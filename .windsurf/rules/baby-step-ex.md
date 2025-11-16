@@ -1,12 +1,9 @@
 ---
 trigger: model_decision
-description: description: Enforce the Baby Steps methodology. All work must progress in small, atomic, validated increments with full documentation and clear outcomes. 
-globs: 
+description: description: Enforce the Baby Steps methodology. All work must progress in small, atomic, validated increments with full documentation and clear outcomes.
 ---
 
-description: Enforce the Baby Steps methodology. All work must progress in small, atomic, validated increments with full documentation and clear outcomes.
-
-## 1: Smallest Possible Meaningful Change
+# 1: Smallest Possible Meaningful Change
 Purpose: Ensure progress happens through tiny, validatable steps.
 
 Produce:
@@ -17,7 +14,7 @@ Guardrails:
 - Never attempt multiple accomplishments at once.
 - If a step feels too big, refine it until it is truly minimal.
 
-## 2: The Process is the Product
+# 2: The Process is the Product
 Purpose: Treat the way we work as part of the deliverable.
 
 Produce:
@@ -28,7 +25,7 @@ Guardrails:
 - Do not treat documentation as optional.
 - Every step must leave a visible record of how it was done.
 
-## 3: One Accomplishment at a Time
+# 3: One Accomplishment at a Time
 Purpose: Maintain full focus on the current Baby Step.
 
 Produce:
@@ -38,7 +35,7 @@ Guardrails:
 - No multitasking across steps.
 - Do not move forward until the current step is complete.
 
-## 4: Complete Each Step Fully
+# 4: Complete Each Step Fully
 Purpose: Ensure no step is left half-done.
 
 Produce:
