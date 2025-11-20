@@ -30,8 +30,8 @@ def main():
     terminated = False
     truncated = False
     
-    print(f"{'Step':<6} {'Action':<12} {'Ammo':<8} {'HP':<8} {'Reward':<8} {'Status'}")
-    print("-" * 60)
+    print(f"{'Step':<6} {'Action':<12} {'Ammo':<8} {'HP':<8} {'Distance':<10} {'Time':<6} {'Reward':<8} {'Status'}")
+    print("-" * 80)
     
     # Episode loop
     while not (terminated or truncated):
@@ -44,6 +44,8 @@ def main():
         # Extract observation components
         ammo_norm = observation[0]
         hp_norm = observation[1]
+        distance = observation[2]
+        time_progress = observation[3]
         
         # Format action label
         action_label = "Idle" if action == 0 else "Fire"
@@ -57,7 +59,7 @@ def main():
             status = "TRUNCATED"
         
         print(f"{step_num:<6} {action_label:<12} {ammo_norm:<8.2f} {hp_norm:<8.2f} "
-              f"{reward:<8.1f} {status}")
+              f"{distance:<10.1f} {time_progress:<6.3f} {reward:<8.1f} {status}")
     
     # Episode summary
     print()
