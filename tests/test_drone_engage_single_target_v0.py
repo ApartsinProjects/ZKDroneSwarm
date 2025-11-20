@@ -8,10 +8,12 @@ import gymnasium as gym
 from gymnasium import spaces
 
 from tabula_drone.envs.drone_engage_single_target_v0 import (
+    DroneEngageSingleTargetV0,
+)
+from tabula_drone.core.states import (
     DroneState,
     TargetState,
     WorldState,
-    DroneEngageSingleTargetV0,
     DEFAULT_CLASS_HP_MAPPING,
 )
 

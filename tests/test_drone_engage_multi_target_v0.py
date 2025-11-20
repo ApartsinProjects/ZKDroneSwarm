@@ -10,7 +10,7 @@ from gymnasium import spaces
 from tabula_drone.envs.drone_engage_multi_target_v0 import (
     DroneEngageMultiTargetV0,
 )
-from tabula_drone.envs.drone_engage_single_target_v0 import (
+from tabula_drone.core.states import (
     DroneState,
     TargetState,
     WorldState,

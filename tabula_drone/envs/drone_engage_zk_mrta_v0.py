@@ -17,7 +17,7 @@ from gymnasium import spaces
 from pettingzoo.utils.env import ParallelEnv
 
 # Import existing state classes
-from .drone_engage_single_target_v0 import (
+from ..core.states import (
     TargetState,
     WorldState,
     DEFAULT_CLASS_HP_MAPPING,
