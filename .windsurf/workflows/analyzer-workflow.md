@@ -26,8 +26,9 @@ If no prior output exists, proceed with standalone operation based on the user's
 
 ## Purpose
 
-The Analyzer phase bridges the gap between Brainstorming and Planning.  
-It ensures that any modification or extension to an existing design is deeply understood before a plan is drafted.
+The Analyzer phase turns raw intent and specs into a clear, evidence-based understanding of the current and target design.  
+It acts as the conceptual handoff for Planning and, when needed, for direct Execution - ensuring changes are grounded in existing architecture before any plan or code is drafted.
+
 
 The goal is to:
 - Inspect the current flow and dependencies.
@@ -112,15 +113,13 @@ Guardrails:
 - No implementation steps.
 - Language must remain conceptual - Planning will convert it into a concrete plan.
 
-
 # Stop here.  
-Suggest: “Would you like me to proceed to the Output Manifest for Planning Workflow handoff?”
+Suggest: “Would you like me to proceed to the Output Manifest for downstream workflows (Planning and/or Execution) handoff?”
 Wait for explicit approval before proceeding.
-
 
 ## Output Manifest (upon approval only)
 
-Upon your approval to proceed, provide the following outputs for Planning Workflow:
+Upon your approval to proceed, provide the following outputs for downstream workflows (Planning and/or Execution):
 
 The Chosen Direction:
 - Conceptual Direction Sheet: One-paragraph summary of the chosen approach and its guiding logic

@@ -9,6 +9,10 @@ Standalone Capability: This workflow can run independently without requiring pri
 
 rules: [baby-steps-ex, architecture-principles]
 
+## Purpose
+
+The Execution phase turns the current understanding of the change - whether it comes from upstream workflow outputs or directly from the request - into minimal, traceable code changes.
+
 ## Phase Input (optional)
 
 If Planning output exists (Mode A - With Approved Plan), import:
@@ -29,7 +33,19 @@ If Planning output is incomplete or unclear:
    - (If safe) Proceed with stated assumptions
 4. Wait for your decision before implementation begins
 
-If no Planning output exists (Mode B - Direct Execution), create a Rapid Goal & Step Stub before coding:
+If no Planning output exists but Analyzer output exists, first import:
+
+- Conceptual Direction Sheet: Align execution with the chosen conceptual direction.
+- Rationale Summary: Keep visible why this is the simplest viable path.
+- Compatibility Surface: Respect public APIs, events, configs, logs, and data contracts that must stay stable.
+- Risk & Reversibility Notes: Surface risky areas and rollback difficulty when choosing the next step.
+- Impact Overview: Understand which boundaries/modules are expected to be affected.
+- Hand-off Notes: Treat open assumptions, required validations, and pending decisions as constraints to respect.
+
+Use these as the conceptual and risk baseline when constructing the Rapid Goal & Step Stub and selecting the first baby step.
+
+If neither Planning nor Analyzer output exists (Mode B - Direct Execution), create a Rapid Goal & Step Stub before coding:
+
 - Restated Goal (1–2 lines)
 - Single Baby Step to implement now (1 outcome)
 - Affected files/modules
@@ -43,11 +59,16 @@ Before any implementation step, state:
 “I confirm I am fully aware of <read the rules name from rules: section>, and I am following them.”
 
 ## Act as the Implementer Agent
+
+Purpose: Turn the current agreed step into minimal, architecture-aligned code without expanding scope or inventing new decisions.
+
 - Implement exactly and only the current step (Plan Step or Stub Step).
 - Keep diffs minimal; reuse existing names/patterns.
 - If a new need surfaces or acceptance cannot be met → stop and escalate (Planning/Review).
 
 ## Negative-First Compliance Check
+
+Purpose: Make gaps, limits, and residual risks explicit before treating the step as complete.
 
 - Briefly note what was covered and validated.
 
@@ -58,11 +79,18 @@ Report what’s NOT fully covered by this step:
 - Residual risks or follow-ups needed
 
 ## Act as the Final Verifier
-Ensure the following command runs without errors (if available):
-npm run build -- --configuration development
 
-If issues occur, report the exact error, propose the minimal corrective fix,
-and restart the cycle (plan | review | implement | verify).
+Purpose: Verify that the implemented step passes the agreed verification command(s) and address any immediate issues.
+
+- Ensure the following command (or your project’s equivalent) runs without errors:
+  <PUT YOUR COMMAND HERE>  
+  _Example:_ `npm run build -- --configuration development`
+
+If issues occur:
+- Report the exact error output (no paraphrasing).
+- Propose the minimal corrective fix aligned with Baby Steps and Architecture Principles.
+- Apply the fix only if clearly within the current step; otherwise, stop and escalate (Planning/Review) and restart the cycle (plan | review | implement | verify).
+
 
 ## Traceability Note (short)
 Record: Plan ID or "Stub/<timestamp>", Step label, files touched, validation outcome,
