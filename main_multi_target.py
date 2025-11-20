@@ -4,6 +4,8 @@ Main demonstration script for DroneEngageMultiTarget-v0 environment.
 Executes a single episode with a simple policy and detailed console logging.
 """
 
+import random
+
 from tabula_drone.envs.drone_engage_multi_target_v0 import DroneEngageMultiTargetV0
 
 
@@ -61,16 +63,17 @@ def main():
     total_reward = 0.0
     episode_step = 0
     
-    # Episode loop with simple policy: fire at first active target
+    # Episode loop with filtered random policy: randomly select from active targets
     while not (terminated or truncated):
         episode_step += 1
         
-        # Simple policy: fire at first active target, or idle if all neutralized
-        action = 0  # Default: Idle
-        for i, target in enumerate(env.targets):
-            if target.is_active:
-                action = i + 1  # Fire at this target
-                break
+        # Filtered random policy: randomly select from active targets only
+        active_target_indices = [i for i, target in enumerate(env.targets) if target.is_active]
+        if active_target_indices:
+            target_idx = random.choice(active_target_indices)
+            action = target_idx + 1  # Fire at randomly selected active target
+        else:
+            action = 0  # Idle if all targets neutralized
         
         # Execute step
         observation, reward, terminated, truncated, info = env.step(action)
