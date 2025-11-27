@@ -10,9 +10,10 @@ Demonstrates:
 
 from typing import Dict, Any, List
 
-from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
+from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, DEFAULT_WEAPON_DAMAGE_MAPPING
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.scenarios import ScenarioBuilder
+from tabula_drone.core.states import DEFAULT_CLASS_HP_MAPPING
 
 
 def print_episode_summary(
@@ -31,10 +32,13 @@ def print_episode_summary(
     print(f"Steps:                {step_count}")
     print(f"Targets Neutralized:  {targets_neutralized}")
     print(f"Total Ammo Used:      {total_ammo_used}")
-    print(f"\nAgent Rewards:")
+    print(f"\nAgent Performance:")
     for agent_id, reward in sorted(total_rewards.items()):
         ammo = info['ammo_used'][agent_id]
-        print(f"  {agent_id}: {reward:.1f} (ammo: {ammo})")
+        # Extract weapon type for this agent (drone_0 -> index 0, etc.)
+        agent_idx = int(agent_id.split('_')[1])
+        weapon_type = info['weapon_types'][agent_idx]
+        print(f"  {agent_id}: {reward:.1f} (weapon: {weapon_type}, ammo: {ammo})")
     print("=" * 60 + "\n")
 
 
@@ -65,6 +69,7 @@ def run_episode(
         print(f"{'='*60}")
         print(f"Drones: {env.num_drones}, Targets: {env.num_targets}")
         print(f"Target classes: {info['target_classes']}")
+        print(f"Drone weapons: {info['weapon_types']}")
         print(f"Target zones: {info['target_zones']}")
         print(f"Initial HPs: {info['target_hps']}")
         print()
@@ -140,9 +145,11 @@ def run_episode(
 
 def main():
     """Main demo execution."""
+
+    seed = 42
     
     # Environment configuration using ScenarioBuilder
-    builder = ScenarioBuilder(world_size=(1000.0, 1000.0), seed=42)
+    builder = ScenarioBuilder(world_size=(1000.0, 1000.0), seed=seed)
     
     # Configure drones with positions and weapon distribution
     builder.with_drones(
@@ -182,21 +189,25 @@ def main():
         scenario_id="random_policy_demo",
     )
     
+    # Create policy
+    policy = RandomPolicy(seed=seed, allow_noop=False)
+    
+    # Run episodes
+    num_episodes = 1
+    
     print("\n" + "="*60)
     print("ZK-MRTA ENVIRONMENT DEMO")
     print("="*60)
     print(f"Environment: {env.metadata['name']}")
-    print(f"Num Drones: {env.num_drones}")
-    print(f"Num Targets: {env.num_targets}")
-    print(f"Weapon Types: {[d['weapon_type'] for d in drones_config]}")
+    print(f"Scenario ID: {env.scenario_id}")
+    print(f"World Size: {env.world_size}")
     print(f"Max Steps: {env.max_steps}")
+    print(f"Random Seed: {seed}")
+    print(f"Policy: {policy.__class__.__name__}")
+    print(f"Episodes: {num_episodes}")
+    print(f"Weapon Damage: {DEFAULT_WEAPON_DAMAGE_MAPPING}")
+    print(f"Target Class HP: {DEFAULT_CLASS_HP_MAPPING}")
     print("="*60)
-    
-    # Create policy
-    policy = RandomPolicy(seed=42, allow_noop=False)
-    
-    # Run episodes
-    num_episodes = 1
     all_metrics = []
     
     for episode_num in range(1, num_episodes + 1):
