@@ -12,7 +12,7 @@ from typing import Dict, Any, List
 
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.policies.random_policy import RandomPolicy
-from tabula_drone.scenarios import assign_weapons_to_drones
+from tabula_drone.scenarios import ScenarioBuilder
 
 
 def print_episode_summary(
@@ -141,31 +141,37 @@ def run_episode(
 def main():
     """Main demo execution."""
     
-    # Environment configuration
-    # Define drone positions
-    base_drones_config = [
-        {"position": (100.0, 100.0)},
-        {"position": (200.0, 200.0)},
-        # {"position": (300.0, 300.0)},
-    ]
+    # Environment configuration using ScenarioBuilder
+    builder = ScenarioBuilder(world_size=(1000.0, 1000.0), seed=42)
     
-    # Assign weapons using weighted distribution
-    weapon_distribution = {
-        "light": 0.2,
-        "medium": 0.5,
-        "heavy": 0.3,
-    }
-    drones_config = assign_weapons_to_drones(
-        base_drones_config,
-        distribution=weapon_distribution,
-        seed=42  # For reproducibility
+    # Configure drones with positions and weapon distribution
+    builder.with_drones(
+        positions=[
+            (100.0, 100.0),
+            (200.0, 200.0),
+            # (300.0, 300.0),
+        ],
+        weapon_distribution={
+            "light": 0.2,
+            "medium": 0.5,
+            "heavy": 0.3,
+        }
     )
     
-    targets_config = [
-        {"position": (500.0, 500.0), "class_type": "A", "zone_id": "zone_1"},
-        {"position": (700.0, 700.0), "class_type": "B", "zone_id": "zone_2"},
-        {"position": (900.0, 900.0), "class_type": "C", "zone_id": "zone_3"},
-    ]
+    # Configure targets with spatial constraints and class distribution
+    builder.with_targets(
+        count=3,
+        class_distribution={
+            "A": 0.3,
+            "B": 0.4,
+            "C": 0.3,
+        },
+        min_distance_from_drones=100.0,
+        min_distance_between_targets=80.0
+    )
+    
+    # Build configurations
+    drones_config, targets_config = builder.build()
     
     # Create environment
     env = DroneEngageZKMRTA(
