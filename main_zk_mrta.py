@@ -12,6 +12,7 @@ from typing import Dict, Any, List
 
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.policies.random_policy import RandomPolicy
+from tabula_drone.scenarios import assign_weapons_to_drones
 
 
 def print_episode_summary(
@@ -141,11 +142,24 @@ def main():
     """Main demo execution."""
     
     # Environment configuration
-    drones_config = [
-        {"position": (100.0, 100.0), "weapon_type": "heavy"},
-        {"position": (200.0, 200.0), "weapon_type": "medium"},
-        # {"position": (300.0, 300.0), "weapon_type": "light"},
+    # Define drone positions
+    base_drones_config = [
+        {"position": (100.0, 100.0)},
+        {"position": (200.0, 200.0)},
+        # {"position": (300.0, 300.0)},
     ]
+    
+    # Assign weapons using weighted distribution
+    weapon_distribution = {
+        "light": 0.2,
+        "medium": 0.5,
+        "heavy": 0.3,
+    }
+    drones_config = assign_weapons_to_drones(
+        base_drones_config,
+        distribution=weapon_distribution,
+        seed=42  # For reproducibility
+    )
     
     targets_config = [
         {"position": (500.0, 500.0), "class_type": "A", "zone_id": "zone_1"},
