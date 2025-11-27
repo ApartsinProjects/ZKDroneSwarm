@@ -187,7 +187,7 @@ def main():
     print("="*60)
     
     # Create policy
-    policy = RandomPolicy(seed=42)
+    policy = RandomPolicy(seed=42, allow_noop=False)
     
     # Run episodes
     num_episodes = 1
