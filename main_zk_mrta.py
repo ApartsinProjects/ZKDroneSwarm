@@ -142,9 +142,9 @@ def main():
     
     # Environment configuration
     drones_config = [
-        {"position": (100.0, 100.0)},
-        # {"position": (200.0, 200.0)},
-        # {"position": (300.0, 300.0)},
+        {"position": (100.0, 100.0), "weapon_type": "heavy"},
+        {"position": (200.0, 200.0), "weapon_type": "medium"},
+        # {"position": (300.0, 300.0), "weapon_type": "light"},
     ]
     
     targets_config = [
@@ -157,7 +157,6 @@ def main():
     env = DroneEngageZKMRTA(
         world_size=(1000.0, 1000.0),
         max_steps=50,
-        drone_damage_per_shot=30.0,
         drones_config=drones_config,
         targets_config=targets_config,
         scenario_id="random_policy_demo",
@@ -169,7 +168,7 @@ def main():
     print(f"Environment: {env.metadata['name']}")
     print(f"Num Drones: {env.num_drones}")
     print(f"Num Targets: {env.num_targets}")
-    print(f"Damage per Shot: {env.drone_damage_per_shot}")
+    print(f"Weapon Types: {[d['weapon_type'] for d in drones_config]}")
     print(f"Max Steps: {env.max_steps}")
     print("="*60)
     

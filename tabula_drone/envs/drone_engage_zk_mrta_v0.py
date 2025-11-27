@@ -24,6 +24,14 @@ from ..core.states import (
 )
 
 
+# Weapon type to damage mapping for drone armaments
+DEFAULT_WEAPON_DAMAGE_MAPPING = {
+    "light": 10.0,
+    "medium": 25.0,
+    "heavy": 50.0,
+}
+
+
 @dataclass
 class DroneStateZK:
     """
@@ -32,11 +40,13 @@ class DroneStateZK:
     Differs from DroneState in single-agent envs:
     - Uses ammo_used (counter) instead of ammo/ammo_max (unlimited ammo)
     - Damage is tracked but hidden from agent observations
+    - Each drone has a weapon_type that determines damage_per_shot
     """
     id: str
     position: Tuple[float, float]
     ammo_used: int  # Running count of shots fired (starts at 0)
-    damage_per_shot: float  # Hidden from agents, used for damage calculation
+    weapon_type: str  # Weapon type: "light", "medium", or "heavy"
+    damage_per_shot: float  # Damage value based on weapon_type (hidden from agents)
 
 
 class DroneEngageZKMRTA(ParallelEnv):
@@ -65,7 +75,6 @@ class DroneEngageZKMRTA(ParallelEnv):
         self,
         world_size: Tuple[float, float] = (1000.0, 1000.0),
         max_steps: int = 100,
-        drone_damage_per_shot: float = 30.0,
         drones_config: List[Dict[str, Any]] = None,
         targets_config: List[Dict[str, Any]] = None,
         scenario_id: str = "zk_mrta_baseline",
@@ -77,9 +86,9 @@ class DroneEngageZKMRTA(ParallelEnv):
         Args:
             world_size: (width, height) bounds of 2D world
             max_steps: Maximum steps per episode
-            drone_damage_per_shot: Uniform damage per shot (all drones)
             drones_config: List of drone configs, each with:
                 - position: (x, y) tuple
+                - weapon_type: str ("light", "medium", or "heavy")
             targets_config: List of target configs, each with:
                 - position: (x, y) tuple
                 - class_type: str (maps to HP via class_hp_mapping)
@@ -92,7 +101,6 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Configuration
         self.world_size = world_size
         self.max_steps = max_steps
-        self.drone_damage_per_shot = drone_damage_per_shot
         self.scenario_id = scenario_id
         self.class_hp_mapping = class_hp_mapping or DEFAULT_CLASS_HP_MAPPING
         
@@ -122,6 +130,18 @@ class DroneEngageZKMRTA(ParallelEnv):
             if "position" not in drone_cfg:
                 raise ValueError(
                     f"Drone at index {idx} is missing required key 'position'."
+                )
+            if "weapon_type" not in drone_cfg:
+                raise ValueError(
+                    f"Drone at index {idx} is missing required key 'weapon_type'."
+                )
+            # Validate weapon_type is valid
+            weapon_type = drone_cfg["weapon_type"]
+            if weapon_type not in DEFAULT_WEAPON_DAMAGE_MAPPING:
+                valid_types = list(DEFAULT_WEAPON_DAMAGE_MAPPING.keys())
+                raise ValueError(
+                    f"Drone at index {idx} has invalid weapon_type '{weapon_type}'. "
+                    f"Valid types: {valid_types}"
                 )
         
         # Validate targets_config structure
@@ -211,11 +231,15 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.drones = []
         for idx, drone_cfg in enumerate(self.drones_config):
             drone_id = f"drone_{idx}"
+            weapon_type = drone_cfg["weapon_type"]
+            # Look up damage value based on weapon type
+            damage = DEFAULT_WEAPON_DAMAGE_MAPPING[weapon_type]
             drone = DroneStateZK(
                 id=drone_id,
                 position=drone_cfg["position"],
                 ammo_used=0,
-                damage_per_shot=self.drone_damage_per_shot,
+                weapon_type=weapon_type,
+                damage_per_shot=damage,
             )
             self.drones.append(drone)
         
@@ -266,6 +290,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             "scenario_id": self.scenario_id,
             "actions": actions.copy(),
             "ammo_used": {drone.id: drone.ammo_used for drone in self.drones},
+            "weapon_types": [drone.weapon_type for drone in self.drones],
             "target_hps": [target.hp_current for target in self.targets],
             "target_classes": [target.class_type for target in self.targets],
             "target_zones": [target.zone_id for target in self.targets],
@@ -462,9 +487,11 @@ class DroneEngageZKMRTA(ParallelEnv):
             # Track HP before damage (for overkill calculation)
             hp_before = target.hp_current
             
-            # Aggregate damage from all firing drones
-            num_firing_drones = len(firing_drone_indices)
-            total_damage = num_firing_drones * self.drone_damage_per_shot
+            # Aggregate damage from all firing drones (per-drone weapon damage)
+            total_damage = sum(
+                self.drones[drone_idx].damage_per_shot
+                for drone_idx in firing_drone_indices
+            )
             
             # Apply damage
             target.hp_current -= total_damage
