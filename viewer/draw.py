@@ -3,7 +3,6 @@ Drawing functions for TabulaDrone Episode Viewer.
 """
 
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from typing import Dict, Any, Optional
 
 
@@ -15,12 +14,7 @@ WEAPON_COLORS = {
     "unknown": "#95a5a6",  # Gray
 }
 
-TARGET_COLORS = {
-    "A": "#9b59b6",  # Purple
-    "B": "#e67e22",  # Orange
-    "C": "#7f8c8d",  # Gray
-    "unknown": "#bdc3c7",  # Light gray
-}
+TARGET_COLOR = "#9370DB"  # Medium Purple (all targets same color)
 
 
 def plot_initial_world(state: Dict[str, Any], save_path: Optional[str] = None) -> None:
@@ -56,25 +50,13 @@ def plot_initial_world(state: Dict[str, Any], save_path: Optional[str] = None) -
     # Draw targets (circles)
     for target in targets:
         x, y = target["position"]
-        class_type = target["class_type"]
-        color = TARGET_COLORS.get(class_type, TARGET_COLORS["unknown"])
         
         ax.scatter(
             x, y,
-            s=200,
-            c=color,
+            s=40,
+            c=TARGET_COLOR,
             marker="o",
-            edgecolors="black",
-            linewidths=1,
             zorder=10,
-        )
-        ax.annotate(
-            target["id"],
-            (x, y),
-            textcoords="offset points",
-            xytext=(0, 12),
-            ha="center",
-            fontsize=8,
         )
     
     # Draw drones (triangles)
@@ -85,47 +67,16 @@ def plot_initial_world(state: Dict[str, Any], save_path: Optional[str] = None) -
         
         ax.scatter(
             x, y,
-            s=250,
+            s=35,
             c=color,
             marker="^",
-            edgecolors="black",
-            linewidths=1,
             zorder=11,
-        )
-        ax.annotate(
-            drone["id"],
-            (x, y),
-            textcoords="offset points",
-            xytext=(0, 12),
-            ha="center",
-            fontsize=8,
         )
     
     # Labels
     ax.set_xlabel("X (meters)")
     ax.set_ylabel("Y (meters)")
     ax.set_title("TabulaDrone - Initial World State")
-    
-    # Build legend
-    legend_handles = []
-    
-    # Drone legend entries
-    for weapon_type, color in WEAPON_COLORS.items():
-        if weapon_type == "unknown":
-            continue
-        if any(d["weapon_type"] == weapon_type for d in drones):
-            handle = mpatches.Patch(color=color, label=f"Drone ({weapon_type})")
-            legend_handles.append(handle)
-    
-    # Target legend entries
-    for class_type, color in TARGET_COLORS.items():
-        if class_type == "unknown":
-            continue
-        if any(t["class_type"] == class_type for t in targets):
-            handle = mpatches.Patch(color=color, label=f"Target (class {class_type})")
-            legend_handles.append(handle)
-    
-    ax.legend(handles=legend_handles, loc="upper right")
     
     plt.tight_layout()
     
