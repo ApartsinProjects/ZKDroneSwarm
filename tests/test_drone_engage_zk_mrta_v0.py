@@ -28,7 +28,7 @@ class TestConstructorValidation:
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -42,7 +42,7 @@ class TestConstructorValidation:
             DroneEngageZKMRTA(
                 drones_config=[],
                 targets_config=[
-                    {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                    {'position': (500.0, 500.0), 'class_type': 'A'},
                 ]
             )
 
@@ -52,7 +52,7 @@ class TestConstructorValidation:
             DroneEngageZKMRTA(
                 drones_config=None,
                 targets_config=[
-                    {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                    {'position': (500.0, 500.0), 'class_type': 'A'},
                 ]
             )
 
@@ -78,7 +78,7 @@ class TestConstructorValidation:
             DroneEngageZKMRTA(
                 drones_config=[{}],
                 targets_config=[
-                    {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                    {'position': (500.0, 500.0), 'class_type': 'A'},
                 ]
             )
 
@@ -88,7 +88,7 @@ class TestConstructorValidation:
             DroneEngageZKMRTA(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
                 targets_config=[
-                    {'class_type': 'A', 'zone_id': 'z1'},
+                    {'class_type': 'A'},
                 ]
             )
 
@@ -98,17 +98,7 @@ class TestConstructorValidation:
             DroneEngageZKMRTA(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
                 targets_config=[
-                    {'position': (500.0, 500.0), 'zone_id': 'z1', 'weapon_type': 'medium'},
-                ]
-            )
-
-    def test_missing_zone_id_in_target_raises_error(self):
-        """Test that missing 'zone_id' in target config raises ValueError."""
-        with pytest.raises(ValueError, match="missing required keys.*zone_id"):
-            DroneEngageZKMRTA(
-                drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
-                targets_config=[
-                    {'position': (500.0, 500.0), 'class_type': 'A'},
+                    {'position': (500.0, 500.0), 'weapon_type': 'medium'},
                 ]
             )
 
@@ -121,7 +111,7 @@ class TestConstructorValidation:
                     "not a dict"
                 ],
                 targets_config=[
-                    {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                    {'position': (500.0, 500.0), 'class_type': 'A'},
                 ]
             )
 
@@ -131,7 +121,7 @@ class TestConstructorValidation:
             DroneEngageZKMRTA(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
                 targets_config=[
-                    {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                    {'position': (500.0, 500.0), 'class_type': 'A'},
                     "not a dict"
                 ]
             )
@@ -141,7 +131,7 @@ class TestConstructorValidation:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -159,7 +149,7 @@ class TestConstructorValidation:
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'B', 'zone_id': 'custom'},
+                {'position': (500.0, 500.0), 'class_type': 'B'},
             ],
             scenario_id="custom_test",
         )
@@ -177,7 +167,7 @@ class TestConstructorValidation:
                 {'position': (300.0, 300.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -190,7 +180,7 @@ class TestConstructorValidation:
             DroneEngageZKMRTA(
                 drones_config=[{'position': (100.0, 100.0)}],
                 targets_config=[
-                    {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                    {'position': (500.0, 500.0), 'class_type': 'A'},
                 ]
             )
 
@@ -200,7 +190,7 @@ class TestConstructorValidation:
             DroneEngageZKMRTA(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'super_heavy'}],
                 targets_config=[
-                    {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                    {'position': (500.0, 500.0), 'class_type': 'A'},
                 ]
             )
 
@@ -213,7 +203,7 @@ class TestConstructorValidation:
                 {'position': (300.0, 300.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -231,7 +221,7 @@ class TestResetLogic:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -251,7 +241,7 @@ class TestResetLogic:
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -265,8 +255,8 @@ class TestResetLogic:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
-                {'position': (600.0, 600.0), 'class_type': 'B', 'zone_id': 'z2'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
+                {'position': (600.0, 600.0), 'class_type': 'B'},
             ]
         )
         
@@ -285,7 +275,7 @@ class TestResetLogic:
                 {'position': (300.0, 300.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -304,7 +294,7 @@ class TestResetLogic:
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -318,9 +308,9 @@ class TestResetLogic:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
-                {'position': (600.0, 600.0), 'class_type': 'B', 'zone_id': 'z2'},
-                {'position': (700.0, 700.0), 'class_type': 'C', 'zone_id': 'z3'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
+                {'position': (600.0, 600.0), 'class_type': 'B'},
+                {'position': (700.0, 700.0), 'class_type': 'C'},
             ]
         )
         
@@ -336,9 +326,9 @@ class TestResetLogic:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
-                {'position': (600.0, 600.0), 'class_type': 'B', 'zone_id': 'z2'},
-                {'position': (700.0, 700.0), 'class_type': 'C', 'zone_id': 'z3'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
+                {'position': (600.0, 600.0), 'class_type': 'B'},
+                {'position': (700.0, 700.0), 'class_type': 'C'},
             ]
         )
         
@@ -354,7 +344,7 @@ class TestResetLogic:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -368,7 +358,7 @@ class TestResetLogic:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -382,7 +372,7 @@ class TestResetLogic:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -400,7 +390,7 @@ class TestResetLogic:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -424,7 +414,7 @@ class TestZKObservationCompliance:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 600.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 600.0), 'class_type': 'A'},
             ]
         )
         
@@ -442,8 +432,8 @@ class TestZKObservationCompliance:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 600.0), 'class_type': 'A', 'zone_id': 'z1'},
-                {'position': (700.0, 800.0), 'class_type': 'A', 'zone_id': 'z2'},
+                {'position': (500.0, 600.0), 'class_type': 'A'},
+                {'position': (700.0, 800.0), 'class_type': 'A'},
             ]
         )
         
@@ -466,7 +456,7 @@ class TestZKObservationCompliance:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 600.0), 'class_type': 'A', 'zone_id': 'z1'},  # 100 HP
+                {'position': (500.0, 600.0), 'class_type': 'A'},  # 100 HP
             ]
         )
         
@@ -492,9 +482,9 @@ class TestZKObservationCompliance:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 600.0), 'class_type': 'A', 'zone_id': 'z1'},
-                {'position': (700.0, 800.0), 'class_type': 'B', 'zone_id': 'z2'},
-                {'position': (900.0, 900.0), 'class_type': 'C', 'zone_id': 'z3'},
+                {'position': (500.0, 600.0), 'class_type': 'A'},
+                {'position': (700.0, 800.0), 'class_type': 'B'},
+                {'position': (900.0, 900.0), 'class_type': 'C'},
             ]
         )
         
@@ -518,7 +508,7 @@ class TestZKObservationCompliance:
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 600.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 600.0), 'class_type': 'A'},
             ]
         )
         
@@ -544,8 +534,8 @@ class TestZKObservationCompliance:
                 {'position': (300.0, 300.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 600.0), 'class_type': 'A', 'zone_id': 'z1'},
-                {'position': (700.0, 800.0), 'class_type': 'B', 'zone_id': 'z2'},
+                {'position': (500.0, 600.0), 'class_type': 'A'},
+                {'position': (700.0, 800.0), 'class_type': 'B'},
             ]
         )
         
@@ -568,7 +558,7 @@ class TestZKObservationCompliance:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 600.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 600.0), 'class_type': 'A'},
             ]
         )
         
@@ -592,7 +582,7 @@ class TestActionValidation:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -609,8 +599,8 @@ class TestActionValidation:
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
-                {'position': (600.0, 600.0), 'class_type': 'B', 'zone_id': 'z2'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
+                {'position': (600.0, 600.0), 'class_type': 'B'},
             ]
         )
         
@@ -626,7 +616,7 @@ class TestActionValidation:
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -639,7 +629,7 @@ class TestActionValidation:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -652,7 +642,7 @@ class TestActionValidation:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -665,7 +655,7 @@ class TestActionValidation:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -682,7 +672,7 @@ class TestDamageMechanics:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
             ]
         )
         
@@ -704,7 +694,7 @@ class TestDamageMechanics:
                 {'position': (300.0, 300.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
             ]
         )
         
@@ -724,7 +714,7 @@ class TestDamageMechanics:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -746,7 +736,7 @@ class TestDamageMechanics:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
             ]
         )
         
@@ -766,7 +756,7 @@ class TestDamageMechanics:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -791,7 +781,7 @@ class TestRewardComputation:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -806,7 +796,7 @@ class TestRewardComputation:
         env = DroneEngageZKMRTA(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
             ]
         )
         
@@ -824,7 +814,7 @@ class TestRewardComputation:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -845,7 +835,7 @@ class TestRewardComputation:
                 {'position': (300.0, 300.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
             ]
         )
         
@@ -867,7 +857,7 @@ class TestRewardComputation:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -896,7 +886,7 @@ class TestTerminationLogic:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
             ]
         )
         
@@ -916,7 +906,7 @@ class TestTerminationLogic:
             max_steps=3,
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'light'}],  # Weak damage (10)
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
             ]
         )
         
@@ -938,8 +928,8 @@ class TestTerminationLogic:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},
-                {'position': (600.0, 600.0), 'class_type': 'A', 'zone_id': 'z2'},
+                {'position': (500.0, 500.0), 'class_type': 'A'},
+                {'position': (600.0, 600.0), 'class_type': 'A'},
             ]
         )
         
@@ -964,8 +954,8 @@ class TestEpisodeIntegration:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A', 'zone_id': 'z1'},  # 100 HP
-                {'position': (600.0, 600.0), 'class_type': 'A', 'zone_id': 'z2'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
+                {'position': (600.0, 600.0), 'class_type': 'A'},  # 100 HP
             ]
         )
         

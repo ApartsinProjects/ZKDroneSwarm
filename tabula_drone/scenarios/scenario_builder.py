@@ -6,10 +6,24 @@ with spatial constraints and weighted random distributions.
 """
 
 import random
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional, Tuple, TypedDict
 
 from ..envs.drone_engage_zk_mrta_v0 import DEFAULT_WEAPON_DAMAGE_MAPPING
 from ..core.states import DEFAULT_CLASS_HP_MAPPING
+
+
+class DroneParams(TypedDict):
+    """Type definition for drone configuration parameters."""
+    positions: List[Tuple[float, float]]
+    weapon_distribution: Dict[str, float]
+
+
+class TargetParams(TypedDict):
+    """Type definition for target configuration parameters."""
+    count: int
+    class_distribution: Dict[str, float]
+    min_distance_from_drones: float
+    min_distance_between_targets: float
 
 
 class ScenarioBuilder:
@@ -49,8 +63,8 @@ class ScenarioBuilder:
         """
         self.world_size = world_size
         self._rng = random.Random(seed)
-        self._drone_params: Optional[Dict[str, Any]] = None
-        self._target_params: Optional[Dict[str, Any]] = None
+        self._drone_params: Optional[DroneParams] = None
+        self._target_params: Optional[TargetParams] = None
     
     def with_drones(
         self,
@@ -97,11 +111,6 @@ class ScenarioBuilder:
         
         # Validate weapon_distribution values are non-negative
         for weapon_type, weight in weapon_distribution.items():
-            if not isinstance(weight, (int, float)):
-                raise ValueError(
-                    f"Weight for weapon type '{weapon_type}' must be a number, "
-                    f"got {type(weight).__name__}"
-                )
             if weight < 0:
                 raise ValueError(
                     f"Weight for weapon type '{weapon_type}' must be non-negative, "
@@ -145,13 +154,9 @@ class ScenarioBuilder:
             Self for method chaining
         
         Raises:
-            ValueError: If count, class_distribution, or distance constraints are invalid
+            ValueError: If count(ed), class_distribution, or distance constraints are invalid
         """
         # Validate count
-        if not isinstance(count, int):
-            raise ValueError(
-                f"Target count must be an integer, got {type(count).__name__}"
-            )
         if count <= 0:
             raise ValueError(
                 f"Target count must be positive, got {count}"
@@ -170,11 +175,6 @@ class ScenarioBuilder:
         
         # Validate class_distribution values are non-negative
         for class_type, weight in class_distribution.items():
-            if not isinstance(weight, (int, float)):
-                raise ValueError(
-                    f"Weight for class type '{class_type}' must be a number, "
-                    f"got {type(weight).__name__}"
-                )
             if weight < 0:
                 raise ValueError(
                     f"Weight for class type '{class_type}' must be non-negative, "
@@ -186,22 +186,12 @@ class ScenarioBuilder:
             raise ValueError("All class distribution weights are zero")
         
         # Validate distance constraints
-        if not isinstance(min_distance_from_drones, (int, float)):
-            raise ValueError(
-                f"min_distance_from_drones must be a number, "
-                f"got {type(min_distance_from_drones).__name__}"
-            )
         if min_distance_from_drones < 0:
             raise ValueError(
                 f"min_distance_from_drones must be non-negative, "
                 f"got {min_distance_from_drones}"
             )
         
-        if not isinstance(min_distance_between_targets, (int, float)):
-            raise ValueError(
-                f"min_distance_between_targets must be a number, "
-                f"got {type(min_distance_between_targets).__name__}"
-            )
         if min_distance_between_targets < 0:
             raise ValueError(
                 f"min_distance_between_targets must be non-negative, "
@@ -386,17 +376,15 @@ class ScenarioBuilder:
         """
         Assign class types to targets based on weighted distribution.
         
-        Creates target configuration dictionaries with positions, randomly
-        assigned class types, and auto-generated zone IDs. Uses the builder's
-        RNG for deterministic results.
+        Creates target configuration dictionaries with positions and randomly
+        assigned class types. Uses the builder's RNG for deterministic results.
         
         Args:
             positions: List of target positions
             class_distribution: Dict mapping class types to probability weights
         
         Returns:
-            List of target configuration dicts, each with "position", "class_type",
-            and "zone_id"
+            List of target configuration dicts, each with "position" and "class_type"
         """
         # Normalize distribution weights to sum to 1.0
         total_weight = sum(class_distribution.values())
@@ -415,14 +403,10 @@ class ScenarioBuilder:
             # Select class type using weighted random choice
             class_type = self._rng.choices(class_types, weights=weights, k=1)[0]
             
-            # Generate zone ID
-            zone_id = f"zone_{idx}"
-            
             # Create config dict
             config = {
                 "position": position,
                 "class_type": class_type,
-                "zone_id": zone_id
             }
             target_configs.append(config)
         

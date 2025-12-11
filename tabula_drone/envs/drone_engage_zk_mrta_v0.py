@@ -92,7 +92,6 @@ class DroneEngageZKMRTA(ParallelEnv):
             targets_config: List of target configs, each with:
                 - position: (x, y) tuple
                 - class_type: str (maps to HP via class_hp_mapping)
-                - zone_id: str (zone identifier)
             scenario_id: Identifier for this scenario
             class_hp_mapping: Custom mapping of class types to HP values
         """
@@ -145,7 +144,7 @@ class DroneEngageZKMRTA(ParallelEnv):
                 )
         
         # Validate targets_config structure
-        required_target_keys = {"position", "class_type", "zone_id"}
+        required_target_keys = {"position", "class_type"}
         for idx, target_cfg in enumerate(self.targets_config):
             if not isinstance(target_cfg, dict):
                 raise ValueError(
@@ -254,7 +253,6 @@ class DroneEngageZKMRTA(ParallelEnv):
                 id=target_id,
                 position=target_cfg["position"],
                 class_type=target_class,
-                zone_id=target_cfg["zone_id"],
                 hp_initial=target_hp_initial,
                 hp_current=target_hp_initial,
                 is_active=True,
@@ -293,7 +291,6 @@ class DroneEngageZKMRTA(ParallelEnv):
             "weapon_types": [drone.weapon_type for drone in self.drones],
             "target_hps": [target.hp_current for target in self.targets],
             "target_classes": [target.class_type for target in self.targets],
-            "target_zones": [target.zone_id for target in self.targets],
             "target_active": [target.is_active for target in self.targets],
         }
     

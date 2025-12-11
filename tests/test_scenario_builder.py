@@ -87,7 +87,6 @@ class TestDeterminism:
         for i, (t1, t2) in enumerate(zip(targets1, targets2)):
             assert t1["position"] == t2["position"], f"Target {i} positions differ"
             assert t1["class_type"] == t2["class_type"], f"Target {i} classes differ"
-            assert t1["zone_id"] == t2["zone_id"], f"Target {i} zone IDs differ"
     
     def test_different_seeds_produce_different_configs(self):
         """Different seeds should produce different configurations."""

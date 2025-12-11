@@ -15,14 +15,13 @@ A multi-agent PettingZoo environment where:
 - Multiple static targets with configurable classes (A/B/C with different HP values)
 - Zero-knowledge constraints: agents don't know target HP, classes, or their own damage capabilities
 - No communication between agents
-- Zone-based target organization
 - Action space per agent: Noop or Fire at specific target
 - Shared reward: +1.0 for each target neutralized (distributed to all agents)
 - Observations show only target positions and binary active status
 
 **Key Features:**
 - Configurable drones with weapon types (light/medium/heavy)
-- Configurable targets with position, class, and zone
+- Configurable targets with position and class
 - ZK-MRTA compliant observations (no HP, no classes, no ammo)
 - Parallel execution (all agents act simultaneously)
 - Deterministic with seed support
@@ -56,9 +55,9 @@ env = DroneEngageZKMRTA(
         {'position': (500, 900), 'weapon_type': 'heavy'},
     ],
     targets_config=[
-        {'position': (200, 200), 'class_type': 'A', 'zone_id': 'zone_1'},
-        {'position': (800, 200), 'class_type': 'B', 'zone_id': 'zone_2'},
-        {'position': (500, 800), 'class_type': 'C', 'zone_id': 'zone_3'},
+        {'position': (200, 200), 'class_type': 'A'},
+        {'position': (800, 200), 'class_type': 'B'},
+        {'position': (500, 800), 'class_type': 'C'},
     ],
     max_steps=100,
 )

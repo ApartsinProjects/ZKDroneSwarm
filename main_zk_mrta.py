@@ -70,7 +70,6 @@ def run_episode(
         print(f"Drones: {env.num_drones}, Targets: {env.num_targets}")
         print(f"Target classes: {info['target_classes']}")
         print(f"Drone weapons: {info['weapon_types']}")
-        print(f"Target zones: {info['target_zones']}")
         print(f"Initial HPs: {info['target_hps']}")
         print()
     

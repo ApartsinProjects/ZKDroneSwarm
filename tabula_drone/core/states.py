@@ -25,7 +25,6 @@ class TargetState:
     id: str
     position: Tuple[float, float]  # (x, y) in 2D space
     class_type: str  # Class label (e.g., "A", "B", "C")
-    zone_id: str  # Zone identifier for future multi-target scenarios
     hp_initial: float  # Initial hit points
     hp_current: float  # Current hit points
     is_active: bool  # Active if hp_current > 0
