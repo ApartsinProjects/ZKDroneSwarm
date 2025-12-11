@@ -26,9 +26,10 @@ class TestLoadConfigValid:
         assert isinstance(config, ScenarioConfig)
         assert config.seed == 42
         assert config.world.size == (1000.0, 1000.0)
-        assert len(config.drones.positions) == 2
-        assert config.drones.positions[0] == (100.0, 100.0)
-        assert config.targets.count == 3
+        assert config.drones.count == 2
+        assert config.drones.region == ((0.05, 0.25), (0.03, 0.5))
+        assert config.drones.min_distance_between_drones == 50.0
+        assert config.targets.count == 15
         assert config.environment.max_steps == 50
         assert config.environment.scenario_id == "random_policy_demo"
         assert config.policy.allow_noop is False
@@ -91,8 +92,8 @@ class TestLoadConfigMissingFields:
         """Missing seed field raises ValueError."""
         config_data = {
             "world": {"size": [1000.0, 1000.0]},
-            "drones": {"positions": [[100.0, 100.0]], "weapon_distribution": {"light": 1.0}},
-            "targets": {"count": 1, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
+            "drones": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "min_distance_between_drones": 50.0, "weapon_distribution": {"light": 1.0}},
+            "targets": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
             "environment": {"max_steps": 50, "scenario_id": "test"},
             "policy": {"allow_noop": False},
             "execution": {"num_episodes": 1, "verbose": True},
@@ -116,8 +117,8 @@ class TestLoadConfigMissingFields:
         """Missing world section raises ValueError."""
         config_data = {
             "seed": 42,
-            "drones": {"positions": [[100.0, 100.0]], "weapon_distribution": {"light": 1.0}},
-            "targets": {"count": 1, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
+            "drones": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "min_distance_between_drones": 50.0, "weapon_distribution": {"light": 1.0}},
+            "targets": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
             "environment": {"max_steps": 50, "scenario_id": "test"},
             "policy": {"allow_noop": False},
             "execution": {"num_episodes": 1, "verbose": True},
@@ -146,8 +147,8 @@ class TestLoadConfigInvalidValues:
         config_data = {
             "seed": 42,
             "world": {"size": [1000.0]},  # Should be [width, height]
-            "drones": {"positions": [[100.0, 100.0]], "weapon_distribution": {"light": 1.0}},
-            "targets": {"count": 1, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
+            "drones": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "min_distance_between_drones": 50.0, "weapon_distribution": {"light": 1.0}},
+            "targets": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
             "environment": {"max_steps": 50, "scenario_id": "test"},
             "policy": {"allow_noop": False},
             "execution": {"num_episodes": 1, "verbose": True},
@@ -171,8 +172,8 @@ class TestLoadConfigInvalidValues:
         config_data = {
             "seed": 42,
             "world": {"size": [1000.0, 1000.0]},
-            "drones": {"positions": [[100.0, 100.0]], "weapon_distribution": {"light": 1.0}},
-            "targets": {"count": 0, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
+            "drones": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "min_distance_between_drones": 50.0, "weapon_distribution": {"light": 1.0}},
+            "targets": {"count": 0, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
             "environment": {"max_steps": 50, "scenario_id": "test"},
             "policy": {"allow_noop": False},
             "execution": {"num_episodes": 1, "verbose": True},

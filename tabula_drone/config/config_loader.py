@@ -19,7 +19,9 @@ class WorldConfig:
 @dataclass
 class DronesConfig:
     """Drone configuration."""
-    positions: List[Tuple[float, float]]
+    count: int
+    region: Tuple[Tuple[float, float], Tuple[float, float]]
+    min_distance_between_drones: float
     weapon_distribution: Dict[str, float]
 
 
@@ -27,6 +29,7 @@ class DronesConfig:
 class TargetsConfig:
     """Target configuration."""
     count: int
+    region: Tuple[Tuple[float, float], Tuple[float, float]]
     class_distribution: Dict[str, float]
     min_distance_from_drones: float
     min_distance_between_targets: float
@@ -89,23 +92,29 @@ def _parse_world_config(data: dict) -> WorldConfig:
 
 def _parse_drones_config(data: dict) -> DronesConfig:
     """Parse drones configuration section."""
-    _validate_required_keys(data, ["positions", "weapon_distribution"], "drones")
+    _validate_required_keys(
+        data,
+        ["count", "region", "min_distance_between_drones", "weapon_distribution"],
+        "drones"
+    )
     
-    positions = data["positions"]
-    if not isinstance(positions, list):
-        raise ValueError("drones.positions must be a list of [x, y] coordinates")
-    parsed_positions = []
-    for idx, pos in enumerate(positions):
-        if not isinstance(pos, list) or len(pos) != 2:
-            raise ValueError(f"drones.positions[{idx}] must be a list of two numbers [x, y]")
-        parsed_positions.append(tuple(pos))
+    count = data["count"]
+    if not isinstance(count, int) or count <= 0:
+        raise ValueError("drones.count must be a positive integer")
+    
+    region_data = data["region"]
+    x_fraction = tuple(region_data["x_fraction"])
+    y_fraction = tuple(region_data["y_fraction"])
+    region = (x_fraction, y_fraction)
     
     weapon_distribution = data["weapon_distribution"]
     if not isinstance(weapon_distribution, dict):
         raise ValueError("drones.weapon_distribution must be a dictionary")
     
     return DronesConfig(
-        positions=parsed_positions,
+        count=count,
+        region=region,
+        min_distance_between_drones=float(data["min_distance_between_drones"]),
         weapon_distribution=weapon_distribution
     )
 
@@ -114,7 +123,7 @@ def _parse_targets_config(data: dict) -> TargetsConfig:
     """Parse targets configuration section."""
     _validate_required_keys(
         data,
-        ["count", "class_distribution", "min_distance_from_drones", "min_distance_between_targets"],
+        ["count", "region", "class_distribution", "min_distance_from_drones", "min_distance_between_targets"],
         "targets"
     )
     
@@ -122,12 +131,18 @@ def _parse_targets_config(data: dict) -> TargetsConfig:
     if not isinstance(count, int) or count <= 0:
         raise ValueError("targets.count must be a positive integer")
     
+    region_data = data["region"]
+    x_fraction = tuple(region_data["x_fraction"])
+    y_fraction = tuple(region_data["y_fraction"])
+    region = (x_fraction, y_fraction)
+    
     class_distribution = data["class_distribution"]
     if not isinstance(class_distribution, dict):
         raise ValueError("targets.class_distribution must be a dictionary")
     
     return TargetsConfig(
         count=count,
+        region=region,
         class_distribution=class_distribution,
         min_distance_from_drones=float(data["min_distance_from_drones"]),
         min_distance_between_targets=float(data["min_distance_between_targets"])

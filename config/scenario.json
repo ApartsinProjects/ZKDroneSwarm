@@ -4,10 +4,12 @@
     "size": [1000.0, 1000.0]
   },
   "drones": {
-    "positions": [
-      [100.0, 100.0],
-      [200.0, 200.0]
-    ],
+    "count": 2,
+    "region": {
+      "x_fraction": [0.35, 0.65],
+      "y_fraction": [0.3, 0.4]
+    },
+    "min_distance_between_drones": 50.0,
     "weapon_distribution": {
       "light": 0.2,
       "medium": 0.5,
@@ -15,14 +17,18 @@
     }
   },
   "targets": {
-    "count": 3,
+    "count": 15,
+    "region": {
+      "x_fraction": [0.25, 0.75],
+      "y_fraction": [0.5, 0.75]
+    },
     "class_distribution": {
       "A": 0.3,
       "B": 0.4,
       "C": 0.3
     },
     "min_distance_from_drones": 100.0,
-    "min_distance_between_targets": 80.0
+    "min_distance_between_targets": 25.0
   },
   "environment": {
     "max_steps": 50,

@@ -17,11 +17,14 @@ class TestDeterminism:
         # Builder 1
         builder1 = ScenarioBuilder((1000.0, 1000.0), seed=42)
         builder1.with_drones(
-            positions=[(100.0, 100.0), (200.0, 200.0)],
+            count=2,
+            region=((0.0, 0.3), (0.0, 0.3)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 0.3, "medium": 0.4, "heavy": 0.3}
         )
         builder1.with_targets(
             count=3,
+            region=((0.5, 1.0), (0.5, 1.0)),
             class_distribution={"A": 0.3, "B": 0.4, "C": 0.3},
             min_distance_from_drones=100.0,
             min_distance_between_targets=80.0
@@ -31,11 +34,14 @@ class TestDeterminism:
         # Builder 2 with same seed
         builder2 = ScenarioBuilder((1000.0, 1000.0), seed=42)
         builder2.with_drones(
-            positions=[(100.0, 100.0), (200.0, 200.0)],
+            count=2,
+            region=((0.0, 0.3), (0.0, 0.3)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 0.3, "medium": 0.4, "heavy": 0.3}
         )
         builder2.with_targets(
             count=3,
+            region=((0.5, 1.0), (0.5, 1.0)),
             class_distribution={"A": 0.3, "B": 0.4, "C": 0.3},
             min_distance_from_drones=100.0,
             min_distance_between_targets=80.0
@@ -55,11 +61,14 @@ class TestDeterminism:
         # Builder 1
         builder1 = ScenarioBuilder((1000.0, 1000.0), seed=123)
         builder1.with_drones(
-            positions=[(100.0, 100.0), (200.0, 200.0)],
+            count=2,
+            region=((0.0, 0.2), (0.0, 0.2)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 0.5, "heavy": 0.5}
         )
         builder1.with_targets(
             count=5,
+            region=((0.5, 1.0), (0.5, 1.0)),
             class_distribution={"A": 0.2, "B": 0.5, "C": 0.3},
             min_distance_from_drones=150.0,
             min_distance_between_targets=100.0
@@ -69,11 +78,14 @@ class TestDeterminism:
         # Builder 2 with same seed
         builder2 = ScenarioBuilder((1000.0, 1000.0), seed=123)
         builder2.with_drones(
-            positions=[(100.0, 100.0), (200.0, 200.0)],
+            count=2,
+            region=((0.0, 0.2), (0.0, 0.2)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 0.5, "heavy": 0.5}
         )
         builder2.with_targets(
             count=5,
+            region=((0.5, 1.0), (0.5, 1.0)),
             class_distribution={"A": 0.2, "B": 0.5, "C": 0.3},
             min_distance_from_drones=150.0,
             min_distance_between_targets=100.0
@@ -93,11 +105,14 @@ class TestDeterminism:
         # Builder 1 with seed 42
         builder1 = ScenarioBuilder((1000.0, 1000.0), seed=42)
         builder1.with_drones(
-            positions=[(100.0, 100.0), (200.0, 200.0), (300.0, 300.0)],
+            count=3,
+            region=((0.0, 0.3), (0.0, 0.3)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 0.3, "medium": 0.4, "heavy": 0.3}
         )
         builder1.with_targets(
             count=5,
+            region=((0.5, 1.0), (0.5, 1.0)),
             class_distribution={"A": 0.3, "B": 0.4, "C": 0.3},
             min_distance_from_drones=100.0,
             min_distance_between_targets=80.0
@@ -107,11 +122,14 @@ class TestDeterminism:
         # Builder 2 with seed 999
         builder2 = ScenarioBuilder((1000.0, 1000.0), seed=999)
         builder2.with_drones(
-            positions=[(100.0, 100.0), (200.0, 200.0), (300.0, 300.0)],
+            count=3,
+            region=((0.0, 0.3), (0.0, 0.3)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 0.3, "medium": 0.4, "heavy": 0.3}
         )
         builder2.with_targets(
             count=5,
+            region=((0.5, 1.0), (0.5, 1.0)),
             class_distribution={"A": 0.3, "B": 0.4, "C": 0.3},
             min_distance_from_drones=100.0,
             min_distance_between_targets=80.0
@@ -133,11 +151,14 @@ class TestDeterminism:
         for _ in range(3):
             builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
             builder.with_drones(
-                positions=[(100.0, 100.0), (200.0, 200.0)],
+                count=2,
+                region=((0.0, 0.3), (0.0, 0.3)),
+                min_distance_between_drones=50.0,
                 weapon_distribution={"light": 0.2, "medium": 0.5, "heavy": 0.3}
             )
             builder.with_targets(
                 count=3,
+                region=((0.5, 1.0), (0.5, 1.0)),
                 class_distribution={"A": 0.3, "B": 0.4, "C": 0.3},
                 min_distance_from_drones=100.0,
                 min_distance_between_targets=80.0
@@ -158,6 +179,7 @@ class TestBuilderValidation:
         builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
         builder.with_targets(
             count=3,
+            region=((0.0, 1.0), (0.0, 1.0)),
             class_distribution={"A": 1.0},
             min_distance_from_drones=100.0,
             min_distance_between_targets=80.0
@@ -170,20 +192,24 @@ class TestBuilderValidation:
         """Building without configuring targets should raise ValueError."""
         builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
         builder.with_drones(
-            positions=[(100.0, 100.0)],
+            count=1,
+            region=((0.0, 1.0), (0.0, 1.0)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 1.0}
         )
         
         with pytest.raises(ValueError, match="not configured for targets"):
             builder.build()
     
-    def test_invalid_drone_position_raises_error(self):
-        """Out-of-bounds drone position should raise ValueError."""
+    def test_invalid_drone_count_raises_error(self):
+        """Invalid drone count should raise ValueError."""
         builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
         
-        with pytest.raises(ValueError, match="out of bounds"):
+        with pytest.raises(ValueError, match="positive"):
             builder.with_drones(
-                positions=[(1100.0, 500.0)],  # x exceeds world width
+                count=0,
+                region=((0.0, 1.0), (0.0, 1.0)),
+                min_distance_between_drones=50.0,
                 weapon_distribution={"light": 1.0}
             )
     
@@ -193,7 +219,9 @@ class TestBuilderValidation:
         
         with pytest.raises(ValueError, match="Invalid weapon types"):
             builder.with_drones(
-                positions=[(100.0, 100.0)],
+                count=1,
+                region=((0.0, 1.0), (0.0, 1.0)),
+                min_distance_between_drones=50.0,
                 weapon_distribution={"invalid_weapon": 1.0}
             )
     
@@ -204,6 +232,7 @@ class TestBuilderValidation:
         with pytest.raises(ValueError, match="positive"):
             builder.with_targets(
                 count=0,
+                region=((0.0, 1.0), (0.0, 1.0)),
                 class_distribution={"A": 1.0},
                 min_distance_from_drones=100.0,
                 min_distance_between_targets=80.0
@@ -216,6 +245,7 @@ class TestBuilderValidation:
         with pytest.raises(ValueError, match="Invalid class types"):
             builder.with_targets(
                 count=3,
+                region=((0.0, 1.0), (0.0, 1.0)),
                 class_distribution={"InvalidClass": 1.0},
                 min_distance_from_drones=100.0,
                 min_distance_between_targets=80.0
@@ -228,20 +258,25 @@ class TestSpatialConstraints:
     def test_targets_respect_drone_distance(self):
         """All targets should be at least min_distance from all drones."""
         builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
-        drone_positions = [(100.0, 100.0), (200.0, 200.0), (300.0, 300.0)]
         min_dist = 150.0
         
         builder.with_drones(
-            positions=drone_positions,
+            count=3,
+            region=((0.0, 0.3), (0.0, 0.3)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 1.0}
         )
         builder.with_targets(
             count=5,
+            region=((0.5, 1.0), (0.5, 1.0)),
             class_distribution={"A": 1.0},
             min_distance_from_drones=min_dist,
             min_distance_between_targets=80.0
         )
-        _, targets = builder.build()
+        drones, targets = builder.build()
+        
+        # Get generated drone positions
+        drone_positions = [d["position"] for d in drones]
         
         # Verify all targets respect drone distance
         for target in targets:
@@ -258,11 +293,14 @@ class TestSpatialConstraints:
         min_dist = 100.0
         
         builder.with_drones(
-            positions=[(100.0, 100.0)],
+            count=1,
+            region=((0.0, 0.2), (0.0, 0.2)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 1.0}
         )
         builder.with_targets(
             count=5,
+            region=((0.5, 1.0), (0.5, 1.0)),
             class_distribution={"A": 1.0},
             min_distance_from_drones=100.0,
             min_distance_between_targets=min_dist
@@ -278,6 +316,36 @@ class TestSpatialConstraints:
                     dist = ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
                     assert dist >= min_dist, \
                         f"Targets {i} and {j} too close: {dist:.1f} < {min_dist}"
+    
+    def test_drones_respect_inter_drone_distance(self):
+        """All drones should be at least min_distance from each other."""
+        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        min_dist = 100.0
+        
+        builder.with_drones(
+            count=5,
+            region=((0.0, 1.0), (0.0, 1.0)),
+            min_distance_between_drones=min_dist,
+            weapon_distribution={"light": 1.0}
+        )
+        builder.with_targets(
+            count=1,
+            region=((0.0, 1.0), (0.0, 1.0)),
+            class_distribution={"A": 1.0},
+            min_distance_from_drones=0.0,
+            min_distance_between_targets=0.0
+        )
+        drones, _ = builder.build()
+        
+        # Verify all drones respect inter-drone distance
+        for i, drone1 in enumerate(drones):
+            for j, drone2 in enumerate(drones):
+                if i != j:
+                    pos1 = drone1["position"]
+                    pos2 = drone2["position"]
+                    dist = ((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)**0.5
+                    assert dist >= min_dist, \
+                        f"Drones {i} and {j} too close: {dist:.1f} < {min_dist}"
 
 
 class TestFluentAPI:
@@ -288,11 +356,14 @@ class TestFluentAPI:
         drones, targets = (
             ScenarioBuilder((1000.0, 1000.0), seed=42)
             .with_drones(
-                positions=[(100.0, 100.0), (200.0, 200.0)],
+                count=2,
+                region=((0.0, 0.3), (0.0, 0.3)),
+                min_distance_between_drones=50.0,
                 weapon_distribution={"light": 0.5, "heavy": 0.5}
             )
             .with_targets(
                 count=3,
+                region=((0.5, 1.0), (0.5, 1.0)),
                 class_distribution={"A": 0.5, "B": 0.5},
                 min_distance_from_drones=100.0,
                 min_distance_between_targets=80.0
@@ -307,11 +378,14 @@ class TestFluentAPI:
         """Same builder can be used to build multiple times (generates same configs)."""
         builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
         builder.with_drones(
-            positions=[(100.0, 100.0)],
+            count=1,
+            region=((0.0, 1.0), (0.0, 1.0)),
+            min_distance_between_drones=50.0,
             weapon_distribution={"light": 1.0}
         )
         builder.with_targets(
             count=2,
+            region=((0.0, 1.0), (0.0, 1.0)),
             class_distribution={"A": 1.0},
             min_distance_from_drones=100.0,
             min_distance_between_targets=80.0

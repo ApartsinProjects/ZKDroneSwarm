@@ -14,13 +14,16 @@ from ..core.states import DEFAULT_CLASS_HP_MAPPING
 
 class DroneParams(TypedDict):
     """Type definition for drone configuration parameters."""
-    positions: List[Tuple[float, float]]
+    count: int
+    region: Tuple[Tuple[float, float], Tuple[float, float]]
+    min_distance_between_drones: float
     weapon_distribution: Dict[str, float]
 
 
 class TargetParams(TypedDict):
     """Type definition for target configuration parameters."""
     count: int
+    region: Tuple[Tuple[float, float], Tuple[float, float]]
     class_distribution: Dict[str, float]
     min_distance_from_drones: float
     min_distance_between_targets: float
@@ -37,11 +40,14 @@ class ScenarioBuilder:
     Example:
         >>> builder = ScenarioBuilder(world_size=(1000.0, 1000.0), seed=42)
         >>> builder.with_drones(
-        ...     positions=[(100.0, 100.0), (200.0, 200.0)],
+        ...     count=2,
+        ...     region=((0.0, 0.3), (0.0, 0.5)),
+        ...     min_distance_between_drones=50.0,
         ...     weapon_distribution={"light": 0.2, "medium": 0.5, "heavy": 0.3}
         ... )
         >>> builder.with_targets(
         ...     count=3,
+        ...     region=((0.5, 1.0), (0.5, 1.0)),
         ...     class_distribution={"A": 0.3, "B": 0.4, "C": 0.3},
         ...     min_distance_from_drones=100.0,
         ...     min_distance_between_targets=80.0
@@ -68,15 +74,20 @@ class ScenarioBuilder:
     
     def with_drones(
         self,
-        positions: List[Tuple[float, float]],
+        count: int,
+        region: Tuple[Tuple[float, float], Tuple[float, float]],
+        min_distance_between_drones: float,
         weapon_distribution: Dict[str, float]
     ) -> "ScenarioBuilder":
         """
         Configure drone parameters for the scenario.
         
         Args:
-            positions: List of (x, y) positions for drones. Each position must be
-                within world bounds.
+            count: Number of drones to generate. Must be positive.
+            region: Tuple of ((x_min_frac, x_max_frac), (y_min_frac, y_max_frac))
+                defining the spawn region as fractions of world size.
+            min_distance_between_drones: Minimum Euclidean distance between any two
+                drone positions. Must be non-negative.
             weapon_distribution: Dict mapping weapon types to probability weights.
                 Keys must be valid weapon types ('light', 'medium', 'heavy').
                 Values must be non-negative. Weights will be normalized automatically.
@@ -86,17 +97,15 @@ class ScenarioBuilder:
             Self for method chaining
         
         Raises:
-            ValueError: If positions are out of bounds or weapon_distribution is invalid
+            ValueError: If count, region, or weapon_distribution is invalid
         """
-        # Validate positions are within world bounds
-        world_width, world_height = self.world_size
-        for idx, pos in enumerate(positions):
-            x, y = pos
-            if not (0 <= x <= world_width and 0 <= y <= world_height):
-                raise ValueError(
-                    f"Drone position at index {idx} is out of bounds: {pos}. "
-                    f"World bounds: (0, 0) to ({world_width}, {world_height})"
-                )
+        # Validate count
+        if not isinstance(count, int) or count <= 0:
+            raise ValueError("Drone count must be a positive integer")
+        
+        # Validate min_distance_between_drones
+        if min_distance_between_drones < 0:
+            raise ValueError("min_distance_between_drones must be non-negative")
         
         # Get valid weapon types
         valid_weapon_types = set(DEFAULT_WEAPON_DAMAGE_MAPPING.keys())
@@ -123,7 +132,9 @@ class ScenarioBuilder:
         
         # Store parameters
         self._drone_params = {
-            "positions": positions,
+            "count": count,
+            "region": region,
+            "min_distance_between_drones": min_distance_between_drones,
             "weapon_distribution": weapon_distribution
         }
         
@@ -132,6 +143,7 @@ class ScenarioBuilder:
     def with_targets(
         self,
         count: int,
+        region: Tuple[Tuple[float, float], Tuple[float, float]],
         class_distribution: Dict[str, float],
         min_distance_from_drones: float,
         min_distance_between_targets: float
@@ -141,6 +153,8 @@ class ScenarioBuilder:
         
         Args:
             count: Number of targets to generate. Must be positive.
+            region: Tuple of ((x_min_frac, x_max_frac), (y_min_frac, y_max_frac))
+                defining the spawn region as fractions of world size.
             class_distribution: Dict mapping target class types to probability weights.
                 Keys must be valid class types (exist in DEFAULT_CLASS_HP_MAPPING).
                 Values must be non-negative. Weights will be normalized automatically.
@@ -201,6 +215,7 @@ class ScenarioBuilder:
         # Store parameters
         self._target_params = {
             "count": count,
+            "region": region,
             "class_distribution": class_distribution,
             "min_distance_from_drones": min_distance_from_drones,
             "min_distance_between_targets": min_distance_between_targets
@@ -259,9 +274,80 @@ class ScenarioBuilder:
         
         return True
     
+    def _generate_drone_positions(
+        self,
+        count: int,
+        region: Tuple[Tuple[float, float], Tuple[float, float]],
+        min_dist_drones: float
+    ) -> List[Tuple[float, float]]:
+        """
+        Generate valid drone positions using rejection sampling.
+        
+        Uses rejection sampling with a maximum of 1000 attempts per position.
+        If a valid position cannot be found within the attempt limit, raises
+        an error indicating the configuration is likely infeasible.
+        
+        Args:
+            count: Number of drone positions to generate
+            region: Tuple of ((x_min_frac, x_max_frac), (y_min_frac, y_max_frac))
+                defining the spawn region as fractions of world size.
+            min_dist_drones: Minimum distance between drones
+        
+        Returns:
+            List of valid drone positions
+        
+        Raises:
+            ValueError: If unable to place all drones (infeasible configuration)
+        """
+        world_width, world_height = self.world_size
+        x_min = region[0][0] * world_width
+        x_max = region[0][1] * world_width
+        y_min = region[1][0] * world_height
+        y_max = region[1][1] * world_height
+        drone_positions: List[Tuple[float, float]] = []
+        max_attempts_per_position = 1000
+        
+        for drone_idx in range(count):
+            position_found = False
+            
+            for attempt in range(max_attempts_per_position):
+                # Generate random position within region bounds
+                x = self._rng.uniform(x_min, x_max)
+                y = self._rng.uniform(y_min, y_max)
+                candidate_pos = (x, y)
+                
+                # Check distance from all existing drone positions
+                is_valid = True
+                for existing_pos in drone_positions:
+                    dx = x - existing_pos[0]
+                    dy = y - existing_pos[1]
+                    distance = (dx * dx + dy * dy) ** 0.5
+                    if distance < min_dist_drones:
+                        is_valid = False
+                        break
+                
+                if is_valid:
+                    drone_positions.append(candidate_pos)
+                    position_found = True
+                    break
+            
+            # If we couldn't find a valid position after max attempts
+            if not position_found:
+                raise ValueError(
+                    f"Unable to place drone {drone_idx + 1} of {count} after "
+                    f"{max_attempts_per_position} attempts. Configuration may be infeasible. "
+                    f"Consider: reducing drone count, reducing minimum distance, "
+                    f"or increasing region size. "
+                    f"Current: world_size={self.world_size}, "
+                    f"min_dist_between_drones={min_dist_drones}"
+                )
+        
+        return drone_positions
+    
     def _generate_target_positions(
         self,
         count: int,
+        region: Tuple[Tuple[float, float], Tuple[float, float]],
         drone_positions: List[Tuple[float, float]],
         min_dist_drones: float,
         min_dist_targets: float
@@ -275,6 +361,8 @@ class ScenarioBuilder:
         
         Args:
             count: Number of target positions to generate
+            region: Tuple of ((x_min_frac, x_max_frac), (y_min_frac, y_max_frac))
+                defining the spawn region as fractions of world size.
             drone_positions: List of drone positions to avoid
             min_dist_drones: Minimum distance from drones
             min_dist_targets: Minimum distance between targets
@@ -286,6 +374,10 @@ class ScenarioBuilder:
             ValueError: If unable to place all targets (infeasible configuration)
         """
         world_width, world_height = self.world_size
+        x_min = region[0][0] * world_width
+        x_max = region[0][1] * world_width
+        y_min = region[1][0] * world_height
+        y_max = region[1][1] * world_height
         target_positions: List[Tuple[float, float]] = []
         max_attempts_per_position = 1000
         
@@ -293,9 +385,9 @@ class ScenarioBuilder:
             position_found = False
             
             for attempt in range(max_attempts_per_position):
-                # Generate random position within world bounds
-                x = self._rng.uniform(0, world_width)
-                y = self._rng.uniform(0, world_height)
+                # Generate random position within region bounds
+                x = self._rng.uniform(x_min, x_max)
+                y = self._rng.uniform(y_min, y_max)
                 candidate_pos = (x, y)
                 
                 # Check if position is valid
@@ -420,9 +512,10 @@ class ScenarioBuilder:
         using the parameters set via with_drones() and with_targets().
         
         Generation order (important for determinism):
-        1. Assign weapons to drones
-        2. Generate target positions (respecting spatial constraints)
-        3. Assign classes to targets
+        1. Generate drone positions (respecting spatial constraints)
+        2. Assign weapons to drones
+        3. Generate target positions (respecting spatial constraints)
+        4. Assign classes to targets
         
         Returns:
             Tuple of (drones_config, targets_config) where:
@@ -446,30 +539,41 @@ class ScenarioBuilder:
             )
         
         # Extract drone parameters
-        drone_positions = self._drone_params["positions"]
+        drone_count = self._drone_params["count"]
+        drone_region = self._drone_params["region"]
+        min_dist_between_drones = self._drone_params["min_distance_between_drones"]
         weapon_distribution = self._drone_params["weapon_distribution"]
         
         # Extract target parameters
         target_count = self._target_params["count"]
+        target_region = self._target_params["region"]
         class_distribution = self._target_params["class_distribution"]
         min_dist_drones = self._target_params["min_distance_from_drones"]
         min_dist_targets = self._target_params["min_distance_between_targets"]
         
-        # Step 1: Generate drone configurations with weapons
+        # Step 1: Generate drone positions with spatial constraints
+        drone_positions = self._generate_drone_positions(
+            count=drone_count,
+            region=drone_region,
+            min_dist_drones=min_dist_between_drones
+        )
+        
+        # Step 2: Generate drone configurations with weapons
         drones_config = self._assign_weapons_internal(
             positions=drone_positions,
             weapon_distribution=weapon_distribution
         )
         
-        # Step 2: Generate target positions with spatial constraints
+        # Step 3: Generate target positions with spatial constraints
         target_positions = self._generate_target_positions(
             count=target_count,
+            region=target_region,
             drone_positions=drone_positions,
             min_dist_drones=min_dist_drones,
             min_dist_targets=min_dist_targets
         )
         
-        # Step 3: Generate target configurations with classes
+        # Step 4: Generate target configurations with classes
         targets_config = self._assign_classes_internal(
             positions=target_positions,
             class_distribution=class_distribution

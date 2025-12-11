@@ -174,15 +174,18 @@ def main():
     # Environment configuration using ScenarioBuilder
     builder = ScenarioBuilder(world_size=config.world.size, seed=config.seed)
     
-    # Configure drones with positions and weapon distribution
+    # Configure drones with count, region, and weapon distribution
     builder.with_drones(
-        positions=config.drones.positions,
+        count=config.drones.count,
+        region=config.drones.region,
+        min_distance_between_drones=config.drones.min_distance_between_drones,
         weapon_distribution=config.drones.weapon_distribution
     )
     
     # Configure targets with spatial constraints and class distribution
     builder.with_targets(
         count=config.targets.count,
+        region=config.targets.region,
         class_distribution=config.targets.class_distribution,
         min_distance_from_drones=config.targets.min_distance_from_drones,
         min_distance_between_targets=config.targets.min_distance_between_targets
