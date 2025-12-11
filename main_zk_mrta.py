@@ -8,9 +8,10 @@ Demonstrates:
 - Metrics collection and logging
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, DEFAULT_WEAPON_DAMAGE_MAPPING
+from tabula_drone.logging import EpisodeLogger
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.core.states import DEFAULT_CLASS_HP_MAPPING
@@ -47,6 +48,8 @@ def run_episode(
     policy: RandomPolicy,
     episode_num: int,
     verbose: bool = True,
+    logger: Optional[EpisodeLogger] = None,
+    seed: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Run a single episode with the given policy.
@@ -56,12 +59,17 @@ def run_episode(
         policy: Policy for action selection
         episode_num: Episode number for logging
         verbose: If True, print step-by-step details
+        logger: Optional EpisodeLogger for capturing episode data
+        seed: Random seed used for this episode (for logger)
     
     Returns:
         Episode metrics dictionary
     """
     # Reset environment
     obs, info = env.reset()
+    
+    if logger:
+        logger.start_episode(env, info, seed)
     
     if verbose:
         print(f"\n{'='*60}")
@@ -89,6 +97,13 @@ def run_episode(
         # Environment step
         obs, rewards, terminations, truncations, info = env.step(actions)
         
+        # Check termination
+        terminated = terminations[env.agents[0]]
+        truncated = truncations[env.agents[0]]
+        
+        if logger:
+            logger.log_step(step_count, actions, rewards, terminated, truncated, info)
+        
         # Update total rewards
         for agent_id in env.agents:
             total_rewards[agent_id] += rewards[agent_id]
@@ -109,7 +124,12 @@ def run_episode(
                 print(f"  Overkill: {info['overkill']}")
         
         # Check termination
-        done = terminations[env.agents[0]] or truncations[env.agents[0]]
+        done = terminated or truncated
+    
+    # Finalize logger
+    if logger:
+        logger.end_episode(total_rewards, info.get("done_reason"))
+        logger.save()
     
     # Compute final metrics
     targets_neutralized = sum(1 for active in info['target_active'] if not active)
@@ -208,13 +228,21 @@ def main():
     print(f"Target Class HP: {DEFAULT_CLASS_HP_MAPPING}")
     print("="*60)
     all_metrics = []
-    
+
+    from tabula_drone.logging import EpisodeLogger
+
+    logger = EpisodeLogger(output_dir="logs/")
+
+    # JSON file saved to logs/episode_YYYYMMDD_HHMMSS_<uuid>.json
+
     for episode_num in range(1, num_episodes + 1):
         metrics = run_episode(
             env=env,
             policy=policy,
             episode_num=episode_num,
             verbose=True,
+            logger=logger,
+            seed=42
         )
         all_metrics.append(metrics)
     
