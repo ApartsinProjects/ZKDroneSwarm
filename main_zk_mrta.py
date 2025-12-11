@@ -10,11 +10,14 @@ Demonstrates:
 
 from typing import Dict, Any, List, Optional
 
+from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, DEFAULT_WEAPON_DAMAGE_MAPPING
 from tabula_drone.logging import EpisodeLogger
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.core.states import DEFAULT_CLASS_HP_MAPPING
+
+CONFIG_PATH = "config/scenario.json"
 
 
 def print_episode_summary(
@@ -164,36 +167,25 @@ def run_episode(
 
 def main():
     """Main demo execution."""
-
-    seed = 42
+    
+    # Load configuration from file
+    config = load_config(CONFIG_PATH)
     
     # Environment configuration using ScenarioBuilder
-    builder = ScenarioBuilder(world_size=(1000.0, 1000.0), seed=seed)
+    builder = ScenarioBuilder(world_size=config.world.size, seed=config.seed)
     
     # Configure drones with positions and weapon distribution
     builder.with_drones(
-        positions=[
-            (100.0, 100.0),
-            (200.0, 200.0),
-            # (300.0, 300.0),
-        ],
-        weapon_distribution={
-            "light": 0.2,
-            "medium": 0.5,
-            "heavy": 0.3,
-        }
+        positions=config.drones.positions,
+        weapon_distribution=config.drones.weapon_distribution
     )
     
     # Configure targets with spatial constraints and class distribution
     builder.with_targets(
-        count=3,
-        class_distribution={
-            "A": 0.3,
-            "B": 0.4,
-            "C": 0.3,
-        },
-        min_distance_from_drones=100.0,
-        min_distance_between_targets=80.0
+        count=config.targets.count,
+        class_distribution=config.targets.class_distribution,
+        min_distance_from_drones=config.targets.min_distance_from_drones,
+        min_distance_between_targets=config.targets.min_distance_between_targets
     )
     
     # Build configurations
@@ -201,27 +193,28 @@ def main():
     
     # Create environment
     env = DroneEngageZKMRTA(
-        world_size=(1000.0, 1000.0),
-        max_steps=50,
+        world_size=config.world.size,
+        max_steps=config.environment.max_steps,
         drones_config=drones_config,
         targets_config=targets_config,
-        scenario_id="random_policy_demo",
+        scenario_id=config.environment.scenario_id,
     )
     
     # Create policy
-    policy = RandomPolicy(seed=seed, allow_noop=False)
+    policy = RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
     
     # Run episodes
-    num_episodes = 1
+    num_episodes = config.execution.num_episodes
     
     print("\n" + "="*60)
     print("ZK-MRTA ENVIRONMENT DEMO")
     print("="*60)
+    print(f"Config File: {CONFIG_PATH}")
     print(f"Environment: {env.metadata['name']}")
     print(f"Scenario ID: {env.scenario_id}")
     print(f"World Size: {env.world_size}")
     print(f"Max Steps: {env.max_steps}")
-    print(f"Random Seed: {seed}")
+    print(f"Random Seed: {config.seed}")
     print(f"Policy: {policy.__class__.__name__}")
     print(f"Episodes: {num_episodes}")
     print(f"Weapon Damage: {DEFAULT_WEAPON_DAMAGE_MAPPING}")
@@ -229,20 +222,16 @@ def main():
     print("="*60)
     all_metrics = []
 
-    from tabula_drone.logging import EpisodeLogger
-
-    logger = EpisodeLogger(output_dir="logs/")
-
-    # JSON file saved to logs/episode_YYYYMMDD_HHMMSS_<uuid>.json
+    logger = EpisodeLogger(output_dir=config.logging.output_dir)
 
     for episode_num in range(1, num_episodes + 1):
         metrics = run_episode(
             env=env,
             policy=policy,
             episode_num=episode_num,
-            verbose=True,
+            verbose=config.execution.verbose,
             logger=logger,
-            seed=42
+            seed=config.seed
         )
         all_metrics.append(metrics)
     
