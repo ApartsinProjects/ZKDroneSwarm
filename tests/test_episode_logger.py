@@ -72,6 +72,12 @@ class TestEpisodeLoggerStartEpisode(unittest.TestCase):
         
         self.mock_env.targets = [mock_target_0, mock_target_1, mock_target_2]
         
+        # Config attributes for _build_config_snapshot
+        self.mock_env.world_size = (1000.0, 1000.0)
+        self.mock_env.max_steps = 100
+        self.mock_env.scenario_id = "test_scenario"
+        self.mock_env.class_hp_mapping = {"A": 100.0, "B": 150.0, "C": 75.0}
+        
         self.reset_info = {
             "step_index": 0,
             "scenario_id": "test_scenario",
@@ -91,7 +97,7 @@ class TestEpisodeLoggerStartEpisode(unittest.TestCase):
         logger = EpisodeLogger()
         logger.start_episode(self.mock_env, self.reset_info, seed=42)
         
-        self.assertEqual(logger._episode_data["version"], "1.0")
+        self.assertEqual(logger._episode_data["version"], "1.1")
     
     def test_start_episode_captures_seed(self):
         """start_episode captures random seed."""
@@ -121,6 +127,17 @@ class TestEpisodeLoggerStartEpisode(unittest.TestCase):
         logger.start_episode(self.mock_env, self.reset_info, seed=42)
         
         self.assertEqual(logger._steps, [])
+    
+    def test_start_episode_captures_config(self):
+        """start_episode captures config snapshot."""
+        logger = EpisodeLogger()
+        logger.start_episode(self.mock_env, self.reset_info, seed=42)
+        
+        config = logger._episode_data["config"]
+        self.assertEqual(config["world_size"], [1000.0, 1000.0])
+        self.assertEqual(config["max_steps"], 100)
+        self.assertEqual(config["scenario_id"], "test_scenario")
+        self.assertEqual(config["class_hp_mapping"], {"A": 100.0, "B": 150.0, "C": 75.0})
 
 
 class TestEpisodeLoggerLogStep(unittest.TestCase):
@@ -143,6 +160,12 @@ class TestEpisodeLoggerLogStep(unittest.TestCase):
         mock_target.position = (100.0, 100.0)
         mock_target.class_type = "A"
         mock_env.targets = [mock_target]
+        
+        # Config attributes
+        mock_env.world_size = (500.0, 500.0)
+        mock_env.max_steps = 50
+        mock_env.scenario_id = "test"
+        mock_env.class_hp_mapping = {"A": 100.0}
         
         self.logger.start_episode(mock_env, {}, seed=1)
     
@@ -252,6 +275,12 @@ class TestEpisodeLoggerEndEpisode(unittest.TestCase):
         mock_target_1.class_type = "B"
         mock_env.targets = [mock_target_0, mock_target_1]
         
+        # Config attributes
+        mock_env.world_size = (500.0, 500.0)
+        mock_env.max_steps = 50
+        mock_env.scenario_id = "test"
+        mock_env.class_hp_mapping = {"A": 100.0, "B": 150.0}
+        
         self.logger.start_episode(mock_env, {}, seed=1)
         
         # Log some steps
@@ -324,6 +353,12 @@ class TestEpisodeLoggerSave(unittest.TestCase):
         mock_target.class_type = "A"
         mock_env.targets = [mock_target]
         
+        # Config attributes
+        mock_env.world_size = (1000.0, 1000.0)
+        mock_env.max_steps = 100
+        mock_env.scenario_id = "save_test"
+        mock_env.class_hp_mapping = {"A": 100.0}
+        
         self.logger.start_episode(mock_env, {}, seed=42)
         self.logger.log_step(1, {"drone_0": 1}, {"drone_0": 1.0}, True, False,
                             {"target_hps": [0.0], "target_active": [False], "ammo_used": {"drone_0": 1}})
@@ -386,7 +421,7 @@ class TestEpisodeLoggerSave(unittest.TestCase):
         with open(filepath) as f:
             data = json.load(f)
         
-        required_keys = ["version", "episode_id", "timestamp", "rng_seed", "scenario", "steps", "summary"]
+        required_keys = ["version", "episode_id", "timestamp", "rng_seed", "config", "scenario", "steps", "summary"]
         for key in required_keys:
             self.assertIn(key, data, f"Missing key: {key}")
     
@@ -398,7 +433,7 @@ class TestEpisodeLoggerSave(unittest.TestCase):
             data = json.load(f)
         
         # Verify structure
-        self.assertEqual(data["version"], "1.0")
+        self.assertEqual(data["version"], "1.1")
         self.assertEqual(data["rng_seed"], 42)
         self.assertEqual(len(data["steps"]), 1)
         self.assertEqual(data["summary"]["total_steps"], 1)

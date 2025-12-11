@@ -33,11 +33,11 @@ A multi-agent PettingZoo environment where:
 
 ```bash
 # Create virtual environment
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ## Usage
@@ -75,8 +75,29 @@ while env.agents:
 
 ```bash
 # ZK-MRTA demo with random policy
-python main_zk_mrta.py
+python3 main_zk_mrta.py
 ```
+
+### Episode Viewer
+
+Visualize episode logs with the built-in viewer:
+
+```bash
+# Show latest episode (auto-discovers from logs/)
+python3 -m viewer show
+
+# Show specific episode
+python3 -m viewer show --episode logs/episode_xxx.json
+
+# Save visualization to PNG
+python3 -m viewer show --save output.png
+```
+
+The viewer displays the initial world state with:
+- World bounds and grid
+- Drones (triangles, colored by weapon type)
+- Targets (circles, colored by class type)
+- Legend showing entity types
 
 ## Project Structure
 
@@ -85,9 +106,13 @@ TabulaDrone/
 ├── tabula_drone/           # Main package
 │   ├── core/              # Shared state representations
 │   ├── envs/              # Environment implementations
+│   ├── logging/           # Episode logging
 │   ├── policies/          # Policy implementations
 │   └── scenarios/         # Scenario utilities
+├── viewer/                # Episode visualization CLI
 ├── tests/                 # Test suite
+├── logs/                  # Episode log output (generated)
+├── config/                # Scenario configuration files
 ├── main_zk_mrta.py       # Demo script
 └── requirements.txt       # Dependencies
 ```

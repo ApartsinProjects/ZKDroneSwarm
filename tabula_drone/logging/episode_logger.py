@@ -27,19 +27,25 @@ class EpisodeLogger:
         logger.end_episode(total_rewards, done_reason)
         filepath = logger.save()
     
-    JSON Schema (version 1.0):
+    JSON Schema (version 1.1):
         {
-            "version": "1.0",
+            "version": "1.1",
             "episode_id": "<uuid>",
             "timestamp": "<ISO8601>",
             "rng_seed": <int|null>,
+            "config": {
+                "world_size": [<float>, <float>],
+                "max_steps": <int>,
+                "scenario_id": "<string>",
+                "class_hp_mapping": {"<class>": <float>, ...}
+            },
             "scenario": {...},
             "steps": [...],
             "summary": {...}
         }
     """
     
-    VERSION = "1.0"
+    VERSION = "1.1"
     
     def __init__(self, output_dir: str = "logs/"):
         """
@@ -73,12 +79,14 @@ class EpisodeLogger:
         self._steps = []
         
         scenario = self._build_scenario_snapshot(env, reset_info, seed)
+        config = self._build_config_snapshot(env)
         
         self._episode_data = {
             "version": self.VERSION,
             "episode_id": self._episode_id,
             "timestamp": self._timestamp,
             "rng_seed": seed,
+            "config": config,
             "scenario": scenario,
             "steps": self._steps,
             "summary": None,
@@ -184,6 +192,26 @@ class EpisodeLogger:
             "target_positions": target_positions,
             "weapon_assignments": weapon_assignments,
             "target_classes": target_classes,
+        }
+    
+    def _build_config_snapshot(self, env: Any) -> Dict[str, Any]:
+        """
+        Build config snapshot from environment configuration.
+        
+        Captures visualization-relevant configuration:
+        - world_size, max_steps, scenario_id, class_hp_mapping
+        
+        Args:
+            env: The environment instance
+            
+        Returns:
+            Config dict for visualization
+        """
+        return {
+            "world_size": list(env.world_size),
+            "max_steps": env.max_steps,
+            "scenario_id": env.scenario_id,
+            "class_hp_mapping": dict(env.class_hp_mapping),
         }
     
     def _build_step_record(
