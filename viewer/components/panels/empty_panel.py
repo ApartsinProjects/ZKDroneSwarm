@@ -15,15 +15,17 @@ class EmptyPanel(BaseComponent):
 
     This component serves as a template for future content panels.
     """
-    def __init__(self, fig: plt.Figure, ax: plt.Axes):
+    def __init__(self, fig: plt.Figure, ax: plt.Axes, text: str = "Empty"):
         """
         Initialize the empty panel.
 
         Args:
             fig: The matplotlib figure to draw on.
             ax: The matplotlib axes to draw on.
+            text: The text to display in the panel.
         """
         super().__init__(fig, ax)
+        self.text = text
 
     def render_display(self) -> None:
         """
@@ -33,8 +35,8 @@ class EmptyPanel(BaseComponent):
         self.ax.set_xlim(0, 1)
         self.ax.set_ylim(0, 1)
         self.ax.text(
-            0.5, 0.5, "Empty",
-            ha='center', va='center',
+            0.0, 1, self.text,
+            ha='left', va='top',
             fontsize=16, color='gray',
             transform=self.ax.transAxes
         )

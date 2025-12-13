@@ -68,19 +68,24 @@ def display_viewer(state: Dict[str, Any]) -> None:
     """
     fig = plt.figure(figsize=(12, 7))
     
-    gs = GridSpec(1, 2, figure=fig, width_ratios=[70, 30], wspace=0.15)
+    gs = GridSpec(1, 2, figure=fig, width_ratios=[70, 30], wspace=0.25,
+                  left=0.06, right=0.98, top=0.95, bottom=0.08)
     
     ax_left = fig.add_subplot(gs[0])
     ax_right = fig.add_subplot(gs[1])
     
     render_map(ax_left, state)
     
-    tab_region = (0.62, 0.92, 0.35, 0.05)
+    tab_region = (0.62, 0.96, 0.35, 0.05)
     tab_container = TabContainer(fig, ax_right, tab_region)
     
-    panel_ax = fig.add_axes([0.62, 0.1, 0.35, 0.78])
-    empty_panel = EmptyPanel(fig, panel_ax)
+    info_ax = fig.add_axes([0.62, 0.08, 0.35, 0.84])
+    info_panel = EmptyPanel(fig, info_ax, text="Info")
     
-    tab_container.add_tab("Info", empty_panel)
+    actions_ax = fig.add_axes([0.62, 0.08, 0.35, 0.84])
+    actions_panel = EmptyPanel(fig, actions_ax, text="Actions")
+    
+    tab_container.add_tab("Info", info_panel)
+    tab_container.add_tab("Actions", actions_panel)
     
     plt.show()
