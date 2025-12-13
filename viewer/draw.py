@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from typing import Dict, Any
 
-from viewer.components import TabContainer, EmptyPanel
+from viewer.components import TabContainer, EmptyPanel, InfoPanel
 
 
 # Color schemes
@@ -76,11 +76,12 @@ def display_viewer(state: Dict[str, Any]) -> None:
     
     render_map(ax_left, state)
     
-    tab_region = (0.62, 0.96, 0.35, 0.05)
+    tab_region = (0.62, 0.95, 0.35, 0.05)
     tab_container = TabContainer(fig, ax_right, tab_region)
     
     info_ax = fig.add_axes([0.62, 0.08, 0.35, 0.84])
-    info_panel = EmptyPanel(fig, info_ax, text="Info")
+    info_panel = InfoPanel(fig, info_ax)
+    info_panel.render(state)
     
     actions_ax = fig.add_axes([0.62, 0.08, 0.35, 0.84])
     actions_panel = EmptyPanel(fig, actions_ax, text="Actions")
