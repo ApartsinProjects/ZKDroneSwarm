@@ -3,7 +3,10 @@ Drawing functions for TabulaDrone Episode Viewer.
 """
 
 import matplotlib.pyplot as plt
-from typing import Dict, Any, Optional
+from matplotlib.gridspec import GridSpec
+from typing import Dict, Any
+
+from viewer.components import TabContainer, EmptyPanel
 
 
 # Color schemes
@@ -17,71 +20,67 @@ WEAPON_COLORS = {
 TARGET_COLOR = "#9370DB"  # Medium Purple (all targets same color)
 
 
-def plot_initial_world(state: Dict[str, Any], save_path: Optional[str] = None) -> None:
+def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     """
-    Plot the initial world state.
+    Render the map view on the given axes.
     
     Args:
+        ax: The matplotlib axes to draw on
         state: Initial state dict from extract_initial_state()
-        save_path: If provided, save figure to this path instead of displaying
     """
     world_size = state["world_size"]
     drones = state["drones"]
     targets = state["targets"]
     
-    # Create figure and axis
-    fig, ax = plt.subplots(1, 1, figsize=(8, 7))
-    
-    # Set world bounds
     ax.set_xlim(0, world_size[0])
     ax.set_ylim(0, world_size[1])
     ax.set_aspect("equal")
     
-    # Draw grid
     ax.grid(True, linestyle="--", alpha=0.3)
     
-    # Draw world border
     border = plt.Rectangle(
         (0, 0), world_size[0], world_size[1],
         fill=False, edgecolor="black", linewidth=2
     )
     ax.add_patch(border)
     
-    # Draw targets (circles)
     for target in targets:
         x, y = target["position"]
-        
-        ax.scatter(
-            x, y,
-            s=40,
-            c=TARGET_COLOR,
-            marker="o",
-            zorder=10,
-        )
+        ax.scatter(x, y, s=40, c=TARGET_COLOR, marker="o", zorder=10)
     
-    # Draw drones (triangles)
     for drone in drones:
         x, y = drone["position"]
         weapon_type = drone["weapon_type"]
         color = WEAPON_COLORS.get(weapon_type, WEAPON_COLORS["unknown"])
-        
-        ax.scatter(
-            x, y,
-            s=35,
-            c=color,
-            marker="^",
-            zorder=11,
-        )
+        ax.scatter(x, y, s=35, c=color, marker="^", zorder=11)
     
-    # Labels
     ax.set_xlabel("X (meters)")
     ax.set_ylabel("Y (meters)")
     ax.set_title("TabulaDrone - Initial World State")
+
+
+def display_viewer(state: Dict[str, Any]) -> None:
+    """
+    Display the split-panel viewer with map on left and info panel on right.
     
-    plt.tight_layout()
+    Args:
+        state: Initial state dict from extract_initial_state()
+    """
+    fig = plt.figure(figsize=(12, 7))
     
-    if save_path:
-        plt.savefig(save_path, dpi=150)
-        print(f"Saved figure to: {save_path}")
-    else:
-        plt.show()
+    gs = GridSpec(1, 2, figure=fig, width_ratios=[70, 30], wspace=0.15)
+    
+    ax_left = fig.add_subplot(gs[0])
+    ax_right = fig.add_subplot(gs[1])
+    
+    render_map(ax_left, state)
+    
+    tab_region = (0.62, 0.92, 0.35, 0.05)
+    tab_container = TabContainer(fig, ax_right, tab_region)
+    
+    panel_ax = fig.add_axes([0.62, 0.1, 0.35, 0.78])
+    empty_panel = EmptyPanel(fig, panel_ax)
+    
+    tab_container.add_tab("Info", empty_panel)
+    
+    plt.show()

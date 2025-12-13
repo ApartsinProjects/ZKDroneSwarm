@@ -8,7 +8,7 @@ import os
 import sys
 
 from viewer.state_adapter import load_episode, extract_initial_state
-from viewer.draw import plot_initial_world
+from viewer.draw import display_viewer
 
 LOGS_DIR = "logs"
 
@@ -39,13 +39,12 @@ def find_latest_episode() -> str:
     return episode_files[0]
 
 
-def show_command(episode_path: str, save_path: str = None) -> None:
+def show_command(episode_path: str) -> None:
     """
     Execute the show command.
     
     Args:
         episode_path: Path to episode log JSON file
-        save_path: Optional path to save figure
     """
     episode_data = load_episode(episode_path)
     state = extract_initial_state(episode_data)
@@ -56,7 +55,7 @@ def show_command(episode_path: str, save_path: str = None) -> None:
     print(f"  Drones: {len(state['drones'])}")
     print(f"  Targets: {len(state['targets'])}")
     
-    plot_initial_world(state, save_path=save_path)
+    display_viewer(state)
 
 
 def main():
@@ -79,16 +78,12 @@ def main():
         "--episode",
         help="Path to episode log JSON file (default: latest in logs/)"
     )
-    show_parser.add_argument(
-        "--save",
-        help="Save figure to file instead of displaying"
-    )
     
     args = parser.parse_args()
     
     if args.command == "show":
         episode_path = args.episode or find_latest_episode()
-        show_command(episode_path, args.save)
+        show_command(episode_path)
     else:
         parser.print_help()
 

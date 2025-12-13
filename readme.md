@@ -88,16 +88,11 @@ python3 -m viewer show
 
 # Show specific episode
 python3 -m viewer show --episode logs/episode_xxx.json
-
-# Save visualization to PNG
-python3 -m viewer show --save output.png
 ```
 
-The viewer displays the initial world state with:
-- World bounds and grid
-- Drones (triangles, colored by weapon type)
-- Targets (circles, colored by class type)
-- Legend showing entity types
+The viewer displays a split-panel view (60/40 layout) with:
+- **Left panel:** Map with world bounds, grid, drones (triangles by weapon type), targets (circles)
+- **Right panel:** Tabbed info panel for additional details
 
 ## Project Structure
 
