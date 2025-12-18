@@ -9,7 +9,7 @@ import random
 import warnings
 from typing import Dict, List, Any, Optional
 
-from ..envs.drone_engage_zk_mrta_v0 import DEFAULT_WEAPON_DAMAGE_MAPPING
+from ..envs.drone_engage_zk_mrta_v0 import DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING
 
 
 def assign_weapons_to_drones(
@@ -63,7 +63,7 @@ def assign_weapons_to_drones(
         return []
     
     # Get valid weapon types from environment
-    valid_weapon_types = list(DEFAULT_WEAPON_DAMAGE_MAPPING.keys())
+    valid_weapon_types = list(DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING.keys())
     
     # Setup distribution
     if distribution is None:

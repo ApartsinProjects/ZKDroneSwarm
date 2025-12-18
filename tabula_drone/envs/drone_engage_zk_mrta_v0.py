@@ -18,35 +18,21 @@ from pettingzoo.utils.env import ParallelEnv
 
 # Import existing state classes
 from ..core.states import (
+    DroneState,
     TargetState,
     WorldState,
+    AttributeProfile,
     DEFAULT_CLASS_HP_MAPPING,
+    DEFAULT_CLASS_ATTRIBUTE_MAPPING,
 )
 
 
-# Weapon type to damage mapping for drone armaments
-DEFAULT_WEAPON_DAMAGE_MAPPING = {
-    "light": 10.0,
-    "medium": 25.0,
-    "heavy": 50.0,
+# Weapon type to damage profile mapping (multi-dimensional)
+DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING = {
+    "light":  {"armor": 5.0,  "shields": 10.0},
+    "medium": {"armor": 15.0, "shields": 15.0},
+    "heavy":  {"armor": 30.0, "shields": 20.0},
 }
-
-
-@dataclass
-class DroneStateZK:
-    """
-    State representation for a drone in ZK-MRTA environment.
-    
-    Differs from DroneState in single-agent envs:
-    - Uses ammo_used (counter) instead of ammo/ammo_max (unlimited ammo)
-    - Damage is tracked but hidden from agent observations
-    - Each drone has a weapon_type that determines damage_per_shot
-    """
-    id: str
-    position: Tuple[float, float]
-    ammo_used: int  # Running count of shots fired (starts at 0)
-    weapon_type: str  # Weapon type: "light", "medium", or "heavy"
-    damage_per_shot: float  # Damage value based on weapon_type (hidden from agents)
 
 
 class DroneEngageZKMRTA(ParallelEnv):
@@ -136,8 +122,8 @@ class DroneEngageZKMRTA(ParallelEnv):
                 )
             # Validate weapon_type is valid
             weapon_type = drone_cfg["weapon_type"]
-            if weapon_type not in DEFAULT_WEAPON_DAMAGE_MAPPING:
-                valid_types = list(DEFAULT_WEAPON_DAMAGE_MAPPING.keys())
+            if weapon_type not in DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING:
+                valid_types = list(DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING.keys())
                 raise ValueError(
                     f"Drone at index {idx} has invalid weapon_type '{weapon_type}'. "
                     f"Valid types: {valid_types}"
@@ -187,7 +173,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         }
         
         # State (will be initialized in reset)
-        self.drones: Optional[List[DroneStateZK]] = None
+        self.drones: Optional[List[DroneState]] = None
         self.targets: Optional[List[TargetState]] = None
         self.world: Optional[WorldState] = None
     
@@ -231,14 +217,14 @@ class DroneEngageZKMRTA(ParallelEnv):
         for idx, drone_cfg in enumerate(self.drones_config):
             drone_id = f"drone_{idx}"
             weapon_type = drone_cfg["weapon_type"]
-            # Look up damage value based on weapon type
-            damage = DEFAULT_WEAPON_DAMAGE_MAPPING[weapon_type]
-            drone = DroneStateZK(
+            # Look up damage profile based on weapon type
+            damage_profile = dict(DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING[weapon_type])
+            drone = DroneState(
                 id=drone_id,
                 position=drone_cfg["position"],
                 ammo_used=0,
                 weapon_type=weapon_type,
-                damage_per_shot=damage,
+                damage_profile=damage_profile,
             )
             self.drones.append(drone)
         
@@ -247,14 +233,15 @@ class DroneEngageZKMRTA(ParallelEnv):
         for idx, target_cfg in enumerate(self.targets_config):
             target_id = f"target_{idx}"
             target_class = target_cfg["class_type"]
-            target_hp_initial = self.class_hp_mapping[target_class]
+            # Look up attribute values based on class type
+            attr_values = dict(DEFAULT_CLASS_ATTRIBUTE_MAPPING[target_class])
+            attributes = AttributeProfile(attributes=attr_values)
             
             target = TargetState(
                 id=target_id,
                 position=target_cfg["position"],
                 class_type=target_class,
-                hp_initial=target_hp_initial,
-                hp_current=target_hp_initial,
+                attributes=attributes,
                 is_active=True,
             )
             self.targets.append(target)
@@ -290,6 +277,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             "ammo_used": {drone.id: drone.ammo_used for drone in self.drones},
             "weapon_types": [drone.weapon_type for drone in self.drones],
             "target_hps": [target.hp_current for target in self.targets],
+            "target_attributes": [dict(target.attributes.attributes) for target in self.targets],
             "target_classes": [target.class_type for target in self.targets],
             "target_active": [target.is_active for target in self.targets],
         }
@@ -458,9 +446,9 @@ class DroneEngageZKMRTA(ParallelEnv):
         
         For each target that was fired upon:
         - Skip if target already inactive
-        - Aggregate damage from all firing drones
-        - Apply damage and update HP
-        - If HP <= 0: set inactive, record neutralization and overkill
+        - Aggregate damage profiles from all firing drones
+        - Apply damage to each attribute via AttributeProfile
+        - If all attributes depleted: set inactive, record neutralization and overkill
         
         Args:
             firing_map: Dict of {target_idx: [list of drone indices]}
@@ -484,25 +472,25 @@ class DroneEngageZKMRTA(ParallelEnv):
             # Track HP before damage (for overkill calculation)
             hp_before = target.hp_current
             
-            # Aggregate damage from all firing drones (per-drone weapon damage)
-            total_damage = sum(
-                self.drones[drone_idx].damage_per_shot
-                for drone_idx in firing_drone_indices
-            )
+            # Aggregate damage profiles from all firing drones
+            aggregated_damage: Dict[str, float] = {}
+            for drone_idx in firing_drone_indices:
+                damage_profile = self.drones[drone_idx].damage_profile
+                for attr_name, damage in damage_profile.items():
+                    aggregated_damage[attr_name] = aggregated_damage.get(attr_name, 0.0) + damage
             
-            # Apply damage
-            target.hp_current -= total_damage
+            # Apply aggregated damage to target attributes
+            target.attributes.apply_damage(aggregated_damage)
             
-            # Check if target became inactive
-            if target.hp_current <= 0:
-                # Step 10b: Calculate overkill
-                # Overkill = damage beyond what was needed to neutralize
+            # Check if target became inactive (all attributes depleted)
+            if target.attributes.is_depleted():
+                # Calculate overkill (total damage beyond what was needed)
+                total_damage = sum(aggregated_damage.values())
                 overkill = max(0.0, total_damage - hp_before)
                 if overkill > 0:
                     overkill_map[target_idx] = overkill
                 
                 # Set target inactive
-                target.hp_current = 0.0
                 target.is_active = False
                 
                 # Record neutralization (target index and who fired at it)

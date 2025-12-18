@@ -244,6 +244,7 @@ class EpisodeLogger:
         """
         step_info = {
             "target_hps": info.get("target_hps", []),
+            "target_attributes": info.get("target_attributes", []),
             "target_active": info.get("target_active", []),
             "ammo_used": info.get("ammo_used", {}),
         }

@@ -11,7 +11,7 @@ Demonstrates:
 from typing import Dict, Any, List, Optional
 
 from tabula_drone.config import load_config
-from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, DEFAULT_WEAPON_DAMAGE_MAPPING
+from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING
 from tabula_drone.logging import EpisodeLogger
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.scenarios import ScenarioBuilder
@@ -220,7 +220,7 @@ def main():
     print(f"Random Seed: {config.seed}")
     print(f"Policy: {policy.__class__.__name__}")
     print(f"Episodes: {num_episodes}")
-    print(f"Weapon Damage: {DEFAULT_WEAPON_DAMAGE_MAPPING}")
+    print(f"Weapon Damage Profiles: {DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING}")
     print(f"Target Class HP: {DEFAULT_CLASS_HP_MAPPING}")
     print("="*60)
     all_metrics = []

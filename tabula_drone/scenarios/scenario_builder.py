@@ -8,8 +8,8 @@ with spatial constraints and weighted random distributions.
 import random
 from typing import Dict, List, Any, Optional, Tuple, TypedDict
 
-from ..envs.drone_engage_zk_mrta_v0 import DEFAULT_WEAPON_DAMAGE_MAPPING
-from ..core.states import DEFAULT_CLASS_HP_MAPPING
+from ..envs.drone_engage_zk_mrta_v0 import DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING
+from ..core.states import DEFAULT_CLASS_HP_MAPPING, DEFAULT_CLASS_ATTRIBUTE_MAPPING
 
 
 class DroneParams(TypedDict):
@@ -108,7 +108,7 @@ class ScenarioBuilder:
             raise ValueError("min_distance_between_drones must be non-negative")
         
         # Get valid weapon types
-        valid_weapon_types = set(DEFAULT_WEAPON_DAMAGE_MAPPING.keys())
+        valid_weapon_types = set(DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING.keys())
         
         # Validate weapon_distribution keys
         invalid_types = set(weapon_distribution.keys()) - valid_weapon_types
@@ -176,8 +176,8 @@ class ScenarioBuilder:
                 f"Target count must be positive, got {count}"
             )
         
-        # Get valid class types
-        valid_class_types = set(DEFAULT_CLASS_HP_MAPPING.keys())
+        # Get valid class types (use new attribute mapping)
+        valid_class_types = set(DEFAULT_CLASS_ATTRIBUTE_MAPPING.keys())
         
         # Validate class_distribution keys
         invalid_types = set(class_distribution.keys()) - valid_class_types
