@@ -11,7 +11,6 @@ from tabula_drone.core.states import (
     DroneState,
     TargetState,
     WorldState,
-    DEFAULT_CLASS_HP_MAPPING,
 )
 
 

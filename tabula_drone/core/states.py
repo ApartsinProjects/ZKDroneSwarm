@@ -119,13 +119,6 @@ class TargetState:
         return sum(self.attributes.initial_values.values())
 
 
-# Default class type to HP mapping (legacy single-dimensional)
-DEFAULT_CLASS_HP_MAPPING = {
-    "A": 100.0,
-    "B": 150.0,
-    "C": 200.0,
-}
-
 # Default class type to attribute mapping (multi-dimensional)
 DEFAULT_CLASS_ATTRIBUTE_MAPPING = {
     "A": {"armor": 50.0, "shields": 50.0},

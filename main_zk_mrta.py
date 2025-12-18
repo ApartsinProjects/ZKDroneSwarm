@@ -15,7 +15,7 @@ from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, DEFAULT
 from tabula_drone.logging import EpisodeLogger
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.scenarios import ScenarioBuilder
-from tabula_drone.core.states import DEFAULT_CLASS_HP_MAPPING
+from tabula_drone.core.states import DEFAULT_CLASS_ATTRIBUTE_MAPPING
 
 CONFIG_PATH = "config/scenario.json"
 
@@ -221,7 +221,7 @@ def main():
     print(f"Policy: {policy.__class__.__name__}")
     print(f"Episodes: {num_episodes}")
     print(f"Weapon Damage Profiles: {DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING}")
-    print(f"Target Class HP: {DEFAULT_CLASS_HP_MAPPING}")
+    print(f"Target Class Attributes: {DEFAULT_CLASS_ATTRIBUTE_MAPPING}")
     print("="*60)
     all_metrics = []
 

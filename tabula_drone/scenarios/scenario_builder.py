@@ -9,7 +9,7 @@ import random
 from typing import Dict, List, Any, Optional, Tuple, TypedDict
 
 from ..envs.drone_engage_zk_mrta_v0 import DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING
-from ..core.states import DEFAULT_CLASS_HP_MAPPING, DEFAULT_CLASS_ATTRIBUTE_MAPPING
+from ..core.states import DEFAULT_CLASS_ATTRIBUTE_MAPPING
 
 
 class DroneParams(TypedDict):
@@ -156,7 +156,7 @@ class ScenarioBuilder:
             region: Tuple of ((x_min_frac, x_max_frac), (y_min_frac, y_max_frac))
                 defining the spawn region as fractions of world size.
             class_distribution: Dict mapping target class types to probability weights.
-                Keys must be valid class types (exist in DEFAULT_CLASS_HP_MAPPING).
+                Keys must be valid class types (exist in DEFAULT_CLASS_ATTRIBUTE_MAPPING).
                 Values must be non-negative. Weights will be normalized automatically.
                 Example: {"A": 0.3, "B": 0.4, "C": 0.3}
             min_distance_from_drones: Minimum Euclidean distance between any target

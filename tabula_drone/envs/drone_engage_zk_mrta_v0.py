@@ -22,7 +22,6 @@ from ..core.states import (
     TargetState,
     WorldState,
     AttributeProfile,
-    DEFAULT_CLASS_HP_MAPPING,
     DEFAULT_CLASS_ATTRIBUTE_MAPPING,
 )
 
@@ -64,7 +63,6 @@ class DroneEngageZKMRTA(ParallelEnv):
         drones_config: List[Dict[str, Any]] = None,
         targets_config: List[Dict[str, Any]] = None,
         scenario_id: str = "zk_mrta_baseline",
-        class_hp_mapping: Optional[Dict[str, float]] = None,
     ):
         """
         Initialize ZK-MRTA environment.
@@ -77,9 +75,8 @@ class DroneEngageZKMRTA(ParallelEnv):
                 - weapon_type: str ("light", "medium", or "heavy")
             targets_config: List of target configs, each with:
                 - position: (x, y) tuple
-                - class_type: str (maps to HP via class_hp_mapping)
+                - class_type: str (maps to attributes via DEFAULT_CLASS_ATTRIBUTE_MAPPING)
             scenario_id: Identifier for this scenario
-            class_hp_mapping: Custom mapping of class types to HP values
         """
         super().__init__()
         
@@ -87,7 +84,6 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.world_size = world_size
         self.max_steps = max_steps
         self.scenario_id = scenario_id
-        self.class_hp_mapping = class_hp_mapping or DEFAULT_CLASS_HP_MAPPING
         
         # Validate and store configs
         self.drones_config = drones_config or []
