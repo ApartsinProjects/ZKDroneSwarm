@@ -11,11 +11,10 @@ Demonstrates:
 from typing import Dict, Any, List, Optional
 
 from tabula_drone.config import load_config
-from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING
+from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.logging import EpisodeLogger
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.scenarios import ScenarioBuilder
-from tabula_drone.core.states import DEFAULT_CLASS_ATTRIBUTE_MAPPING
 
 CONFIG_PATH = "config/scenario.json"
 
@@ -172,7 +171,12 @@ def main():
     config = load_config(CONFIG_PATH)
     
     # Environment configuration using ScenarioBuilder
-    builder = ScenarioBuilder(world_size=config.world.size, seed=config.seed)
+    builder = ScenarioBuilder(
+        world_size=config.world.size,
+        seed=config.seed,
+        class_attribute_mapping=config.mappings.class_attribute_mapping,
+        weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
+    )
     
     # Configure drones with count, region, and weapon distribution
     builder.with_drones(
@@ -201,6 +205,8 @@ def main():
         drones_config=drones_config,
         targets_config=targets_config,
         scenario_id=config.environment.scenario_id,
+        class_attribute_mapping=config.mappings.class_attribute_mapping,
+        weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
     )
     
     # Create policy
@@ -220,8 +226,8 @@ def main():
     print(f"Random Seed: {config.seed}")
     print(f"Policy: {policy.__class__.__name__}")
     print(f"Episodes: {num_episodes}")
-    print(f"Weapon Damage Profiles: {DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING}")
-    print(f"Target Class Attributes: {DEFAULT_CLASS_ATTRIBUTE_MAPPING}")
+    print(f"Weapon Damage Profiles: {config.mappings.weapon_damage_profile_mapping}")
+    print(f"Target Class Attributes: {config.mappings.class_attribute_mapping}")
     print("="*60)
     all_metrics = []
 

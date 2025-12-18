@@ -6,6 +6,7 @@ that reads and validates JSON configuration files.
 """
 
 import json
+import os
 from dataclasses import dataclass
 from typing import Dict, List, Tuple
 
@@ -62,6 +63,13 @@ class LoggingConfig:
 
 
 @dataclass
+class MappingsConfig:
+    """Mappings configuration for class attributes and weapon damage profiles."""
+    class_attribute_mapping: Dict[str, Dict[str, float]]
+    weapon_damage_profile_mapping: Dict[str, Dict[str, float]]
+
+
+@dataclass
 class ScenarioConfig:
     """Root configuration containing all scenario settings."""
     seed: int
@@ -72,6 +80,7 @@ class ScenarioConfig:
     policy: PolicyConfig
     execution: ExecutionConfig
     logging: LoggingConfig
+    mappings: MappingsConfig
 
 
 def _validate_required_keys(data: dict, required_keys: List[str], context: str) -> None:
@@ -189,18 +198,127 @@ def _parse_logging_config(data: dict) -> LoggingConfig:
     return LoggingConfig(output_dir=str(data["output_dir"]))
 
 
+def _parse_mappings_config(data: dict) -> MappingsConfig:
+    """
+    Parse and validate mappings configuration.
+    
+    Validates:
+    - Both required sections are present
+    - All values are dicts of dicts with float values
+    - Cross-validation: weapon attribute names must be subset of target attribute names
+    
+    Args:
+        data: Raw mappings data from JSON
+        
+    Returns:
+        MappingsConfig with validated mappings
+        
+    Raises:
+        ValueError: If validation fails
+    """
+    _validate_required_keys(
+        data,
+        ["class_attribute_mapping", "weapon_damage_profile_mapping"],
+        "mappings"
+    )
+    
+    class_mapping = data["class_attribute_mapping"]
+    weapon_mapping = data["weapon_damage_profile_mapping"]
+    
+    if not isinstance(class_mapping, dict):
+        raise ValueError("class_attribute_mapping must be a dictionary")
+    if not isinstance(weapon_mapping, dict):
+        raise ValueError("weapon_damage_profile_mapping must be a dictionary")
+    
+    if not class_mapping:
+        raise ValueError("class_attribute_mapping must not be empty")
+    if not weapon_mapping:
+        raise ValueError("weapon_damage_profile_mapping must not be empty")
+    
+    # Validate class_attribute_mapping structure
+    all_target_attributes = set()
+    for class_type, attributes in class_mapping.items():
+        if not isinstance(attributes, dict):
+            raise ValueError(
+                f"class_attribute_mapping['{class_type}'] must be a dictionary of attributes"
+            )
+        for attr_name, value in attributes.items():
+            if not isinstance(value, (int, float)):
+                raise ValueError(
+                    f"class_attribute_mapping['{class_type}']['{attr_name}'] must be a number"
+                )
+            all_target_attributes.add(attr_name)
+    
+    # Validate weapon_damage_profile_mapping structure
+    all_weapon_attributes = set()
+    for weapon_type, damage_profile in weapon_mapping.items():
+        if not isinstance(damage_profile, dict):
+            raise ValueError(
+                f"weapon_damage_profile_mapping['{weapon_type}'] must be a dictionary of damage values"
+            )
+        for attr_name, value in damage_profile.items():
+            if not isinstance(value, (int, float)):
+                raise ValueError(
+                    f"weapon_damage_profile_mapping['{weapon_type}']['{attr_name}'] must be a number"
+                )
+            all_weapon_attributes.add(attr_name)
+    
+    # Cross-validation: weapon attributes must be subset of target attributes
+    invalid_weapon_attrs = all_weapon_attributes - all_target_attributes
+    if invalid_weapon_attrs:
+        raise ValueError(
+            f"Weapon damage profiles reference attributes not defined in any target class: "
+            f"{invalid_weapon_attrs}. Valid attributes: {all_target_attributes}"
+        )
+    
+    return MappingsConfig(
+        class_attribute_mapping=class_mapping,
+        weapon_damage_profile_mapping=weapon_mapping
+    )
+
+
+def load_mappings(path: str) -> MappingsConfig:
+    """
+    Load and validate mappings configuration from a JSON file.
+    
+    Args:
+        path: Path to the mappings JSON file
+        
+    Returns:
+        MappingsConfig with validated mappings
+        
+    Raises:
+        FileNotFoundError: If the mappings file does not exist
+        ValueError: If the mappings are invalid
+    """
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"Mappings file not found: {path}. "
+            f"Please create a mappings.json file in the config directory."
+        )
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in mappings file {path}: {e}")
+    
+    return _parse_mappings_config(data)
+
+
 def load_config(path: str) -> ScenarioConfig:
     """
     Load and validate a scenario configuration from a JSON file.
+    
+    Also loads mappings.json from the same directory as the scenario config.
     
     Args:
         path: Path to the JSON configuration file
         
     Returns:
-        ScenarioConfig with all parsed and validated settings
+        ScenarioConfig with all parsed and validated settings including mappings
         
     Raises:
-        FileNotFoundError: If the configuration file does not exist
+        FileNotFoundError: If the configuration file or mappings file does not exist
         ValueError: If the configuration is invalid or missing required fields
         json.JSONDecodeError: If the file contains invalid JSON
     """
@@ -225,6 +343,11 @@ def load_config(path: str) -> ScenarioConfig:
     if not isinstance(seed, int):
         raise ValueError("seed must be an integer")
     
+    # Load mappings from same directory as scenario config
+    config_dir = os.path.dirname(path)
+    mappings_path = os.path.join(config_dir, "mappings.json")
+    mappings = load_mappings(mappings_path)
+    
     return ScenarioConfig(
         seed=seed,
         world=_parse_world_config(data["world"]),
@@ -233,5 +356,6 @@ def load_config(path: str) -> ScenarioConfig:
         environment=_parse_environment_config(data["environment"]),
         policy=_parse_policy_config(data["policy"]),
         execution=_parse_execution_config(data["execution"]),
-        logging=_parse_logging_config(data["logging"])
+        logging=_parse_logging_config(data["logging"]),
+        mappings=mappings
     )

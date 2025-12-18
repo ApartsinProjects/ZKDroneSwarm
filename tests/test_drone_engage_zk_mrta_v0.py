@@ -14,12 +14,33 @@ from tabula_drone.core.states import (
 )
 
 
+# Test mappings fixture - matches original default values
+TEST_CLASS_ATTRIBUTE_MAPPING = {
+    "A": {"armor": 50.0, "shields": 50.0},
+    "B": {"armor": 75.0, "shields": 75.0},
+    "C": {"armor": 100.0, "shields": 100.0},
+}
+
+TEST_WEAPON_DAMAGE_PROFILE_MAPPING = {
+    "light": {"armor": 5.0, "shields": 10.0},
+    "medium": {"armor": 15.0, "shields": 15.0},
+    "heavy": {"armor": 30.0, "shields": 20.0},
+}
+
+
+def make_env(**kwargs):
+    """Helper to create env with test mappings."""
+    kwargs.setdefault('class_attribute_mapping', TEST_CLASS_ATTRIBUTE_MAPPING)
+    kwargs.setdefault('weapon_damage_profile_mapping', TEST_WEAPON_DAMAGE_PROFILE_MAPPING)
+    return DroneEngageZKMRTA(**kwargs)
+
+
 class TestConstructorValidation:
     """Test constructor parameter validation."""
 
     def test_valid_configuration(self):
         """Test that environment can be instantiated with valid configuration."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -36,7 +57,7 @@ class TestConstructorValidation:
     def test_empty_drones_config_raises_error(self):
         """Test that empty drones_config raises ValueError."""
         with pytest.raises(ValueError, match="at least one drone"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[],
                 targets_config=[
                     {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -46,7 +67,7 @@ class TestConstructorValidation:
     def test_none_drones_config_raises_error(self):
         """Test that None drones_config raises ValueError."""
         with pytest.raises(ValueError, match="at least one drone"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=None,
                 targets_config=[
                     {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -56,7 +77,7 @@ class TestConstructorValidation:
     def test_empty_targets_config_raises_error(self):
         """Test that empty targets_config raises ValueError."""
         with pytest.raises(ValueError, match="at least one target"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
                 targets_config=[]
             )
@@ -64,7 +85,7 @@ class TestConstructorValidation:
     def test_none_targets_config_raises_error(self):
         """Test that None targets_config raises ValueError."""
         with pytest.raises(ValueError, match="at least one target"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
                 targets_config=None
             )
@@ -72,7 +93,7 @@ class TestConstructorValidation:
     def test_missing_position_in_drone_raises_error(self):
         """Test that missing 'position' in drone config raises ValueError."""
         with pytest.raises(ValueError, match="missing required key.*position"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[{}],
                 targets_config=[
                     {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -82,7 +103,7 @@ class TestConstructorValidation:
     def test_missing_position_in_target_raises_error(self):
         """Test that missing 'position' in target config raises ValueError."""
         with pytest.raises(ValueError, match="missing required keys.*position"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
                 targets_config=[
                     {'class_type': 'A'},
@@ -92,7 +113,7 @@ class TestConstructorValidation:
     def test_missing_class_type_in_target_raises_error(self):
         """Test that missing 'class_type' in target config raises ValueError."""
         with pytest.raises(ValueError, match="missing required keys.*class_type"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
                 targets_config=[
                     {'position': (500.0, 500.0), 'weapon_type': 'medium'},
@@ -102,7 +123,7 @@ class TestConstructorValidation:
     def test_non_dict_drone_raises_error(self):
         """Test that non-dict item in drones_config raises ValueError."""
         with pytest.raises(ValueError, match="must be a dict"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[
                     {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                     "not a dict"
@@ -115,7 +136,7 @@ class TestConstructorValidation:
     def test_non_dict_target_raises_error(self):
         """Test that non-dict item in targets_config raises ValueError."""
         with pytest.raises(ValueError, match="must be a dict"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
                 targets_config=[
                     {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -125,7 +146,7 @@ class TestConstructorValidation:
 
     def test_environment_instantiation_defaults(self):
         """Test that environment uses default parameters correctly."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -138,7 +159,7 @@ class TestConstructorValidation:
 
     def test_environment_instantiation_custom(self):
         """Test that environment accepts custom parameters."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             world_size=(2000.0, 2000.0),
             max_steps=200,
             drones_config=[
@@ -157,7 +178,7 @@ class TestConstructorValidation:
 
     def test_agent_ids_auto_generated(self):
         """Test that agent IDs are auto-generated as drone_0, drone_1, etc."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -174,7 +195,7 @@ class TestConstructorValidation:
     def test_missing_weapon_type_raises_error(self):
         """Test that missing 'weapon_type' in drone config raises ValueError."""
         with pytest.raises(ValueError, match="missing required key.*weapon_type"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[{'position': (100.0, 100.0)}],
                 targets_config=[
                     {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -184,7 +205,7 @@ class TestConstructorValidation:
     def test_invalid_weapon_type_raises_error(self):
         """Test that invalid weapon_type raises ValueError."""
         with pytest.raises(ValueError, match="invalid weapon_type.*super_heavy"):
-            DroneEngageZKMRTA(
+            make_env(
                 drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'super_heavy'}],
                 targets_config=[
                     {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -193,7 +214,7 @@ class TestConstructorValidation:
 
     def test_all_weapon_types_valid(self):
         """Test that all three weapon types (light, medium, heavy) are valid."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'light'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -216,7 +237,7 @@ class TestResetLogic:
 
     def test_reset_returns_valid_tuple(self):
         """Test that reset returns (observations, infos) tuple."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -233,7 +254,7 @@ class TestResetLogic:
 
     def test_reset_observation_dict_keys(self):
         """Test that reset observations dict has all agent IDs as keys."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -250,7 +271,7 @@ class TestResetLogic:
 
     def test_reset_observation_shape(self):
         """Test that reset observations have correct shape."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -266,7 +287,7 @@ class TestResetLogic:
 
     def test_reset_initializes_drones(self):
         """Test that reset initializes all drones from config."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -286,7 +307,7 @@ class TestResetLogic:
 
     def test_reset_initializes_drone_ammo_used(self):
         """Test that reset initializes drones with ammo_used=0."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -303,7 +324,7 @@ class TestResetLogic:
 
     def test_reset_initializes_targets(self):
         """Test that reset initializes all targets from config."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -321,7 +342,7 @@ class TestResetLogic:
 
     def test_reset_initializes_target_hp(self):
         """Test that reset initializes targets with correct HP from class mapping."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -339,7 +360,7 @@ class TestResetLogic:
 
     def test_reset_initializes_world_state(self):
         """Test that reset initializes world with time_step=0."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -353,7 +374,7 @@ class TestResetLogic:
 
     def test_reset_with_seed(self):
         """Test that reset accepts seed parameter."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -367,7 +388,7 @@ class TestResetLogic:
 
     def test_reset_info_dict(self):
         """Test that reset returns info dict with required keys."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -385,7 +406,7 @@ class TestResetLogic:
 
     def test_reset_multiple_times(self):
         """Test that multiple resets properly reinitialize state."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -409,7 +430,7 @@ class TestZKObservationCompliance:
 
     def test_observations_contain_target_positions(self):
         """Test that observations contain target x, y positions."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 600.0), 'class_type': 'A'},
@@ -424,7 +445,7 @@ class TestZKObservationCompliance:
 
     def test_observations_contain_binary_active_status(self):
         """Test that observations contain binary active status (1.0 or 0.0)."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
@@ -456,7 +477,7 @@ class TestZKObservationCompliance:
 
     def test_observations_do_not_contain_hp_values(self):
         """Test that observations do NOT contain HP values (ZK constraint)."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 600.0), 'class_type': 'A'},  # 100 HP total (50 armor + 50 shields)
@@ -483,7 +504,7 @@ class TestZKObservationCompliance:
 
     def test_observations_do_not_contain_class_types(self):
         """Test that observations do NOT contain class types (ZK constraint)."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 600.0), 'class_type': 'A'},
@@ -506,7 +527,7 @@ class TestZKObservationCompliance:
 
     def test_observations_do_not_contain_ammo_usage(self):
         """Test that observations do NOT contain ammo usage (ZK constraint)."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -531,7 +552,7 @@ class TestZKObservationCompliance:
 
     def test_all_agents_receive_identical_observations(self):
         """Test that all agents receive identical observations (global visibility)."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -559,7 +580,7 @@ class TestZKObservationCompliance:
 
     def test_observation_values_are_floats_only(self):
         """Test that observation values are all floats (no encoded information)."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 600.0), 'class_type': 'A'},
@@ -583,7 +604,7 @@ class TestActionValidation:
 
     def test_valid_noop_action(self):
         """Test that action 0 (NoOp) is valid for all agents."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -597,7 +618,7 @@ class TestActionValidation:
 
     def test_valid_fire_actions(self):
         """Test that fire actions within range are valid."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -614,7 +635,7 @@ class TestActionValidation:
 
     def test_missing_agent_raises_error(self):
         """Test that missing agent in actions raises ValueError."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -630,7 +651,7 @@ class TestActionValidation:
 
     def test_action_out_of_range_raises_error(self):
         """Test that action > num_targets raises ValueError."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -643,7 +664,7 @@ class TestActionValidation:
 
     def test_negative_action_raises_error(self):
         """Test that negative action raises ValueError."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -656,7 +677,7 @@ class TestActionValidation:
 
     def test_non_integer_action_raises_error(self):
         """Test that non-integer action raises ValueError."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -673,7 +694,7 @@ class TestDamageMechanics:
 
     def test_single_drone_damage_application(self):
         """Test that single drone damage is applied correctly."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP total (50 armor + 50 shields)
@@ -691,7 +712,7 @@ class TestDamageMechanics:
 
     def test_multiple_drones_damage_aggregation(self):
         """Test that damage from multiple drones aggregates correctly."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'medium'},
                 {'position': (200.0, 200.0), 'weapon_type': 'medium'},
@@ -713,7 +734,7 @@ class TestDamageMechanics:
 
     def test_target_neutralization(self):
         """Test that target is neutralized when all attributes reach zero."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
@@ -739,7 +760,7 @@ class TestDamageMechanics:
 
     def test_hp_clamped_at_zero(self):
         """Test that HP is clamped at 0 (no negative HP)."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
@@ -761,7 +782,7 @@ class TestDamageMechanics:
 
     def test_fire_at_inactive_target_has_no_effect(self):
         """Test that firing at inactive target has no effect on HP."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
@@ -790,7 +811,7 @@ class TestRewardComputation:
 
     def test_noop_reward_is_zero(self):
         """Test that NoOp action returns zero reward."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},
@@ -805,7 +826,7 @@ class TestRewardComputation:
 
     def test_fire_without_neutralization_zero_reward(self):
         """Test that firing without neutralization returns zero reward."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
                 {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
@@ -820,7 +841,7 @@ class TestRewardComputation:
 
     def test_single_drone_neutralization_reward(self):
         """Test that drones neutralizing target get +1.0 reward."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
@@ -844,7 +865,7 @@ class TestRewardComputation:
 
     def test_multiple_drones_shared_reward(self):
         """Test that all drones firing at neutralized target get +1.0 reward."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
@@ -868,7 +889,7 @@ class TestRewardComputation:
 
     def test_fire_at_inactive_zero_reward(self):
         """Test that firing at inactive target returns zero reward."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
@@ -898,7 +919,7 @@ class TestTerminationLogic:
 
     def test_all_targets_neutralized_terminates(self):
         """Test that episode terminates when all targets neutralized."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
@@ -922,7 +943,7 @@ class TestTerminationLogic:
 
     def test_max_steps_truncates(self):
         """Test that episode truncates at max_steps."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             max_steps=3,
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'light'}],  # Weak damage (10)
             targets_config=[
@@ -942,7 +963,7 @@ class TestTerminationLogic:
 
     def test_partial_neutralization_not_terminated(self):
         """Test that partial neutralization doesn't terminate episode."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
@@ -968,7 +989,7 @@ class TestEpisodeIntegration:
 
     def test_full_episode_all_targets_neutralized(self):
         """Test complete episode with all targets neutralized."""
-        env = DroneEngageZKMRTA(
+        env = make_env(
             drones_config=[
                 {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},

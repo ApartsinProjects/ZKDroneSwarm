@@ -14,6 +14,43 @@ import tempfile
 import pytest
 
 from tabula_drone.config import load_config, ScenarioConfig
+from tabula_drone.config.config_loader import load_mappings, MappingsConfig
+
+
+# Test mappings data - matches original default values
+TEST_MAPPINGS_DATA = {
+    "class_attribute_mapping": {
+        "A": {"armor": 50.0, "shields": 50.0},
+        "B": {"armor": 75.0, "shields": 75.0},
+        "C": {"armor": 100.0, "shields": 100.0},
+    },
+    "weapon_damage_profile_mapping": {
+        "light": {"armor": 5.0, "shields": 10.0},
+        "medium": {"armor": 15.0, "shields": 15.0},
+        "heavy": {"armor": 30.0, "shields": 20.0},
+    }
+}
+
+
+def create_temp_config_with_mappings(config_data):
+    """Create temp config file with accompanying mappings.json in same directory."""
+    temp_dir = tempfile.mkdtemp()
+    config_path = os.path.join(temp_dir, "scenario.json")
+    mappings_path = os.path.join(temp_dir, "mappings.json")
+    
+    with open(config_path, "w") as f:
+        json.dump(config_data, f)
+    
+    with open(mappings_path, "w") as f:
+        json.dump(TEST_MAPPINGS_DATA, f)
+    
+    return config_path, temp_dir
+
+
+def cleanup_temp_dir(temp_dir):
+    """Clean up temp directory and all files."""
+    import shutil
+    shutil.rmtree(temp_dir)
 
 
 class TestLoadConfigValid:
@@ -27,7 +64,7 @@ class TestLoadConfigValid:
         assert config.seed == 42
         assert config.world.size == (1000.0, 1000.0)
         assert config.drones.count == 2
-        assert config.drones.region == ((0.05, 0.25), (0.03, 0.5))
+        assert config.drones.region == ((0.35, 0.65), (0.3, 0.4))
         assert config.drones.min_distance_between_drones == 50.0
         assert config.targets.count == 15
         assert config.environment.max_steps == 50
@@ -100,9 +137,7 @@ class TestLoadConfigMissingFields:
             "logging": {"output_dir": "logs/"}
         }
         
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(config_data, f)
-            temp_path = f.name
+        temp_path, temp_dir = create_temp_config_with_mappings(config_data)
         
         try:
             with pytest.raises(ValueError) as exc_info:
@@ -111,7 +146,7 @@ class TestLoadConfigMissingFields:
             assert "Missing required keys" in str(exc_info.value)
             assert "seed" in str(exc_info.value)
         finally:
-            os.unlink(temp_path)
+            cleanup_temp_dir(temp_dir)
     
     def test_missing_world_section_raises_value_error(self):
         """Missing world section raises ValueError."""
@@ -125,9 +160,7 @@ class TestLoadConfigMissingFields:
             "logging": {"output_dir": "logs/"}
         }
         
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(config_data, f)
-            temp_path = f.name
+        temp_path, temp_dir = create_temp_config_with_mappings(config_data)
         
         try:
             with pytest.raises(ValueError) as exc_info:
@@ -136,7 +169,7 @@ class TestLoadConfigMissingFields:
             assert "Missing required keys" in str(exc_info.value)
             assert "world" in str(exc_info.value)
         finally:
-            os.unlink(temp_path)
+            cleanup_temp_dir(temp_dir)
 
 
 class TestLoadConfigInvalidValues:
@@ -155,9 +188,7 @@ class TestLoadConfigInvalidValues:
             "logging": {"output_dir": "logs/"}
         }
         
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(config_data, f)
-            temp_path = f.name
+        temp_path, temp_dir = create_temp_config_with_mappings(config_data)
         
         try:
             with pytest.raises(ValueError) as exc_info:
@@ -165,7 +196,7 @@ class TestLoadConfigInvalidValues:
             
             assert "world.size" in str(exc_info.value)
         finally:
-            os.unlink(temp_path)
+            cleanup_temp_dir(temp_dir)
     
     def test_invalid_target_count_raises_value_error(self):
         """Non-positive target count raises ValueError."""
@@ -180,9 +211,7 @@ class TestLoadConfigInvalidValues:
             "logging": {"output_dir": "logs/"}
         }
         
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(config_data, f)
-            temp_path = f.name
+        temp_path, temp_dir = create_temp_config_with_mappings(config_data)
         
         try:
             with pytest.raises(ValueError) as exc_info:
@@ -191,4 +220,120 @@ class TestLoadConfigInvalidValues:
             assert "targets.count" in str(exc_info.value)
             assert "positive integer" in str(exc_info.value)
         finally:
-            os.unlink(temp_path)
+            cleanup_temp_dir(temp_dir)
+
+
+class TestLoadMappings:
+    """Tests for mappings configuration loading."""
+    
+    def test_load_valid_mappings(self):
+        """Valid mappings file loads successfully."""
+        mappings = load_mappings("config/mappings.json")
+        
+        assert isinstance(mappings, MappingsConfig)
+        assert "A" in mappings.class_attribute_mapping
+        assert "B" in mappings.class_attribute_mapping
+        assert "C" in mappings.class_attribute_mapping
+        assert "light" in mappings.weapon_damage_profile_mapping
+        assert "medium" in mappings.weapon_damage_profile_mapping
+        assert "heavy" in mappings.weapon_damage_profile_mapping
+    
+    def test_mappings_values_correct(self):
+        """Mappings contain correct values."""
+        mappings = load_mappings("config/mappings.json")
+        
+        assert mappings.class_attribute_mapping["A"]["armor"] == 50.0
+        assert mappings.class_attribute_mapping["A"]["shields"] == 50.0
+        assert mappings.weapon_damage_profile_mapping["heavy"]["armor"] == 30.0
+    
+    def test_missing_mappings_file_raises_error(self):
+        """Missing mappings file raises FileNotFoundError."""
+        with pytest.raises(FileNotFoundError) as exc_info:
+            load_mappings("nonexistent/mappings.json")
+        
+        assert "Mappings file not found" in str(exc_info.value)
+    
+    def test_missing_class_attribute_mapping_raises_error(self):
+        """Missing class_attribute_mapping raises ValueError."""
+        temp_dir = tempfile.mkdtemp()
+        mappings_path = os.path.join(temp_dir, "mappings.json")
+        
+        with open(mappings_path, "w") as f:
+            json.dump({"weapon_damage_profile_mapping": {"light": {"hp": 10.0}}}, f)
+        
+        try:
+            with pytest.raises(ValueError) as exc_info:
+                load_mappings(mappings_path)
+            
+            assert "Missing required keys" in str(exc_info.value)
+            assert "class_attribute_mapping" in str(exc_info.value)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir)
+    
+    def test_missing_weapon_damage_profile_mapping_raises_error(self):
+        """Missing weapon_damage_profile_mapping raises ValueError."""
+        temp_dir = tempfile.mkdtemp()
+        mappings_path = os.path.join(temp_dir, "mappings.json")
+        
+        with open(mappings_path, "w") as f:
+            json.dump({"class_attribute_mapping": {"A": {"hp": 100.0}}}, f)
+        
+        try:
+            with pytest.raises(ValueError) as exc_info:
+                load_mappings(mappings_path)
+            
+            assert "Missing required keys" in str(exc_info.value)
+            assert "weapon_damage_profile_mapping" in str(exc_info.value)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir)
+    
+    def test_empty_class_mapping_raises_error(self):
+        """Empty class_attribute_mapping raises ValueError."""
+        temp_dir = tempfile.mkdtemp()
+        mappings_path = os.path.join(temp_dir, "mappings.json")
+        
+        with open(mappings_path, "w") as f:
+            json.dump({
+                "class_attribute_mapping": {},
+                "weapon_damage_profile_mapping": {"light": {"hp": 10.0}}
+            }, f)
+        
+        try:
+            with pytest.raises(ValueError) as exc_info:
+                load_mappings(mappings_path)
+            
+            assert "must not be empty" in str(exc_info.value)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir)
+    
+    def test_cross_validation_invalid_weapon_attribute(self):
+        """Weapon attributes not in target attributes raises ValueError."""
+        temp_dir = tempfile.mkdtemp()
+        mappings_path = os.path.join(temp_dir, "mappings.json")
+        
+        with open(mappings_path, "w") as f:
+            json.dump({
+                "class_attribute_mapping": {"A": {"armor": 100.0}},
+                "weapon_damage_profile_mapping": {"light": {"shields": 10.0}}
+            }, f)
+        
+        try:
+            with pytest.raises(ValueError) as exc_info:
+                load_mappings(mappings_path)
+            
+            assert "not defined in any target class" in str(exc_info.value)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir)
+    
+    def test_config_includes_mappings(self):
+        """load_config includes mappings in returned ScenarioConfig."""
+        config = load_config("config/scenario.json")
+        
+        assert config.mappings is not None
+        assert isinstance(config.mappings, MappingsConfig)
+        assert "A" in config.mappings.class_attribute_mapping
+        assert "light" in config.mappings.weapon_damage_profile_mapping

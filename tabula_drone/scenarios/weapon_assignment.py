@@ -9,13 +9,13 @@ import random
 import warnings
 from typing import Dict, List, Any, Optional
 
-from ..envs.drone_engage_zk_mrta_v0 import DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING
 
 
 def assign_weapons_to_drones(
     drones_config: List[Dict[str, Any]],
     distribution: Optional[Dict[str, float]] = None,
     seed: Optional[int] = None,
+    valid_weapon_types: Optional[List[str]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Assign weapon types to drones based on weighted random distribution.
@@ -29,12 +29,14 @@ def assign_weapons_to_drones(
             at minimum a 'position' field. Existing 'weapon_type' fields
             will be overwritten.
         distribution: Optional dict mapping weapon types to probability weights.
-            Keys must be valid weapon types ('light', 'medium', 'heavy').
+            Keys must be valid weapon types.
             Weights do not need to sum to 1.0 (will be normalized automatically).
-            If None, uses uniform distribution across all weapon types.
+            If None, uses uniform distribution across all valid weapon types.
             Example: {"light": 0.2, "medium": 0.5, "heavy": 0.3}
         seed: Optional random seed for reproducibility. If None, uses
             system randomness (non-reproducible).
+        valid_weapon_types: List of valid weapon type names.
+            Required - must be provided.
     
     Returns:
         New list of drone configuration dicts with 'weapon_type' added.
@@ -62,8 +64,9 @@ def assign_weapons_to_drones(
     if len(drones_config) == 0:
         return []
     
-    # Get valid weapon types from environment
-    valid_weapon_types = list(DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING.keys())
+    # Validate valid_weapon_types is provided
+    if valid_weapon_types is None:
+        raise ValueError("valid_weapon_types is required")
     
     # Setup distribution
     if distribution is None:

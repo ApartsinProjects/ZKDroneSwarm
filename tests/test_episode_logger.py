@@ -76,7 +76,7 @@ class TestEpisodeLoggerStartEpisode(unittest.TestCase):
         self.mock_env.world_size = (1000.0, 1000.0)
         self.mock_env.max_steps = 100
         self.mock_env.scenario_id = "test_scenario"
-        self.mock_env.class_hp_mapping = {"A": 100.0, "B": 150.0, "C": 75.0}
+        self.mock_env.class_attribute_mapping = {"A": {"armor": 50.0, "shields": 50.0}, "B": {"armor": 75.0, "shields": 75.0}, "C": {"armor": 37.5, "shields": 37.5}}
         
         self.reset_info = {
             "step_index": 0,
@@ -137,7 +137,7 @@ class TestEpisodeLoggerStartEpisode(unittest.TestCase):
         self.assertEqual(config["world_size"], [1000.0, 1000.0])
         self.assertEqual(config["max_steps"], 100)
         self.assertEqual(config["scenario_id"], "test_scenario")
-        self.assertEqual(config["class_hp_mapping"], {"A": 100.0, "B": 150.0, "C": 75.0})
+        self.assertEqual(config["class_attribute_mapping"], {"A": {"armor": 50.0, "shields": 50.0}, "B": {"armor": 75.0, "shields": 75.0}, "C": {"armor": 37.5, "shields": 37.5}})
 
 
 class TestEpisodeLoggerLogStep(unittest.TestCase):

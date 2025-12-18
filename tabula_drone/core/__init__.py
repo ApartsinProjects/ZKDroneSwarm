@@ -10,7 +10,6 @@ from .states import (
     TargetState,
     WorldState,
     AttributeProfile,
-    DEFAULT_CLASS_ATTRIBUTE_MAPPING,
 )
 
 __all__ = [
@@ -18,5 +17,4 @@ __all__ = [
     "TargetState",
     "WorldState",
     "AttributeProfile",
-    "DEFAULT_CLASS_ATTRIBUTE_MAPPING",
 ]

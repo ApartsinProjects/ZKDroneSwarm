@@ -8,8 +8,6 @@ with spatial constraints and weighted random distributions.
 import random
 from typing import Dict, List, Any, Optional, Tuple, TypedDict
 
-from ..envs.drone_engage_zk_mrta_v0 import DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING
-from ..core.states import DEFAULT_CLASS_ATTRIBUTE_MAPPING
 
 
 class DroneParams(TypedDict):
@@ -58,7 +56,9 @@ class ScenarioBuilder:
     def __init__(
         self,
         world_size: Tuple[float, float],
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
+        class_attribute_mapping: Dict[str, Dict[str, float]] = None,
+        weapon_damage_profile_mapping: Dict[str, Dict[str, float]] = None,
     ):
         """
         Initialize ScenarioBuilder.
@@ -66,11 +66,23 @@ class ScenarioBuilder:
         Args:
             world_size: (width, height) bounds of 2D world
             seed: Random seed for reproducibility. If None, uses system randomness.
+            class_attribute_mapping: Dict mapping class types to attribute dicts.
+                Required - must be provided.
+            weapon_damage_profile_mapping: Dict mapping weapon types to damage profile dicts.
+                Required - must be provided.
         """
         self.world_size = world_size
         self._rng = random.Random(seed)
         self._drone_params: Optional[DroneParams] = None
         self._target_params: Optional[TargetParams] = None
+        
+        # Validate and store mappings (required)
+        if class_attribute_mapping is None:
+            raise ValueError("class_attribute_mapping is required")
+        if weapon_damage_profile_mapping is None:
+            raise ValueError("weapon_damage_profile_mapping is required")
+        self.class_attribute_mapping = class_attribute_mapping
+        self.weapon_damage_profile_mapping = weapon_damage_profile_mapping
     
     def with_drones(
         self,
@@ -108,7 +120,7 @@ class ScenarioBuilder:
             raise ValueError("min_distance_between_drones must be non-negative")
         
         # Get valid weapon types
-        valid_weapon_types = set(DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING.keys())
+        valid_weapon_types = set(self.weapon_damage_profile_mapping.keys())
         
         # Validate weapon_distribution keys
         invalid_types = set(weapon_distribution.keys()) - valid_weapon_types
@@ -176,8 +188,8 @@ class ScenarioBuilder:
                 f"Target count must be positive, got {count}"
             )
         
-        # Get valid class types (use new attribute mapping)
-        valid_class_types = set(DEFAULT_CLASS_ATTRIBUTE_MAPPING.keys())
+        # Get valid class types (use instance attribute mapping)
+        valid_class_types = set(self.class_attribute_mapping.keys())
         
         # Validate class_distribution keys
         invalid_types = set(class_distribution.keys()) - valid_class_types

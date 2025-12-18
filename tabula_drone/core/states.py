@@ -117,11 +117,3 @@ class TargetState:
     def hp_initial(self) -> float:
         """Backward compatibility: return total of initial attributes."""
         return sum(self.attributes.initial_values.values())
-
-
-# Default class type to attribute mapping (multi-dimensional)
-DEFAULT_CLASS_ATTRIBUTE_MAPPING = {
-    "A": {"armor": 50.0, "shields": 50.0},
-    "B": {"armor": 75.0, "shields": 75.0},
-    "C": {"armor": 100.0, "shields": 100.0},
-}

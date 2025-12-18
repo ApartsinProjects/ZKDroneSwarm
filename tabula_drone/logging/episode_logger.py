@@ -199,7 +199,7 @@ class EpisodeLogger:
         Build config snapshot from environment configuration.
         
         Captures visualization-relevant configuration:
-        - world_size, max_steps, scenario_id, class_hp_mapping
+        - world_size, max_steps, scenario_id, class_attribute_mapping
         
         Args:
             env: The environment instance
@@ -211,7 +211,7 @@ class EpisodeLogger:
             "world_size": list(env.world_size),
             "max_steps": env.max_steps,
             "scenario_id": env.scenario_id,
-            "class_hp_mapping": dict(env.class_hp_mapping),
+            "class_attribute_mapping": dict(env.class_attribute_mapping),
         }
     
     def _build_step_record(

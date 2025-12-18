@@ -9,13 +9,37 @@ import pytest
 from tabula_drone.scenarios import ScenarioBuilder
 
 
+# Test mappings fixture - matches original default values
+TEST_CLASS_ATTRIBUTE_MAPPING = {
+    "A": {"armor": 50.0, "shields": 50.0},
+    "B": {"armor": 75.0, "shields": 75.0},
+    "C": {"armor": 100.0, "shields": 100.0},
+}
+
+TEST_WEAPON_DAMAGE_PROFILE_MAPPING = {
+    "light": {"armor": 5.0, "shields": 10.0},
+    "medium": {"armor": 15.0, "shields": 15.0},
+    "heavy": {"armor": 30.0, "shields": 20.0},
+}
+
+
+def make_builder(world_size=(1000.0, 1000.0), seed=None):
+    """Helper to create builder with test mappings."""
+    return ScenarioBuilder(
+        world_size=world_size,
+        seed=seed,
+        class_attribute_mapping=TEST_CLASS_ATTRIBUTE_MAPPING,
+        weapon_damage_profile_mapping=TEST_WEAPON_DAMAGE_PROFILE_MAPPING,
+    )
+
+
 class TestDeterminism:
     """Test deterministic behavior of ScenarioBuilder with same/different seeds."""
     
     def test_same_seed_produces_identical_drone_configs(self):
         """Same seed should produce identical drone configurations."""
         # Builder 1
-        builder1 = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder1 = make_builder(seed=42)
         builder1.with_drones(
             count=2,
             region=((0.0, 0.3), (0.0, 0.3)),
@@ -32,7 +56,7 @@ class TestDeterminism:
         drones1, _ = builder1.build()
         
         # Builder 2 with same seed
-        builder2 = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder2 = make_builder(seed=42)
         builder2.with_drones(
             count=2,
             region=((0.0, 0.3), (0.0, 0.3)),
@@ -59,7 +83,7 @@ class TestDeterminism:
     def test_same_seed_produces_identical_target_configs(self):
         """Same seed should produce identical target configurations."""
         # Builder 1
-        builder1 = ScenarioBuilder((1000.0, 1000.0), seed=123)
+        builder1 = make_builder(seed=123)
         builder1.with_drones(
             count=2,
             region=((0.0, 0.2), (0.0, 0.2)),
@@ -76,7 +100,7 @@ class TestDeterminism:
         _, targets1 = builder1.build()
         
         # Builder 2 with same seed
-        builder2 = ScenarioBuilder((1000.0, 1000.0), seed=123)
+        builder2 = make_builder(seed=123)
         builder2.with_drones(
             count=2,
             region=((0.0, 0.2), (0.0, 0.2)),
@@ -103,7 +127,7 @@ class TestDeterminism:
     def test_different_seeds_produce_different_configs(self):
         """Different seeds should produce different configurations."""
         # Builder 1 with seed 42
-        builder1 = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder1 = make_builder(seed=42)
         builder1.with_drones(
             count=3,
             region=((0.0, 0.3), (0.0, 0.3)),
@@ -120,7 +144,7 @@ class TestDeterminism:
         drones1, targets1 = builder1.build()
         
         # Builder 2 with seed 999
-        builder2 = ScenarioBuilder((1000.0, 1000.0), seed=999)
+        builder2 = make_builder(seed=999)
         builder2.with_drones(
             count=3,
             region=((0.0, 0.3), (0.0, 0.3)),
@@ -149,7 +173,7 @@ class TestDeterminism:
         
         # Build 3 times with seed 42
         for _ in range(3):
-            builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+            builder = make_builder(seed=42)
             builder.with_drones(
                 count=2,
                 region=((0.0, 0.3), (0.0, 0.3)),
@@ -176,7 +200,7 @@ class TestBuilderValidation:
     
     def test_build_without_drones_raises_error(self):
         """Building without configuring drones should raise ValueError."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         builder.with_targets(
             count=3,
             region=((0.0, 1.0), (0.0, 1.0)),
@@ -190,7 +214,7 @@ class TestBuilderValidation:
     
     def test_build_without_targets_raises_error(self):
         """Building without configuring targets should raise ValueError."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         builder.with_drones(
             count=1,
             region=((0.0, 1.0), (0.0, 1.0)),
@@ -203,7 +227,7 @@ class TestBuilderValidation:
     
     def test_invalid_drone_count_raises_error(self):
         """Invalid drone count should raise ValueError."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         
         with pytest.raises(ValueError, match="positive"):
             builder.with_drones(
@@ -215,7 +239,7 @@ class TestBuilderValidation:
     
     def test_invalid_weapon_type_raises_error(self):
         """Invalid weapon type should raise ValueError."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         
         with pytest.raises(ValueError, match="Invalid weapon types"):
             builder.with_drones(
@@ -227,7 +251,7 @@ class TestBuilderValidation:
     
     def test_invalid_target_count_raises_error(self):
         """Invalid target count should raise ValueError."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         
         with pytest.raises(ValueError, match="positive"):
             builder.with_targets(
@@ -240,7 +264,7 @@ class TestBuilderValidation:
     
     def test_invalid_class_type_raises_error(self):
         """Invalid class type should raise ValueError."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         
         with pytest.raises(ValueError, match="Invalid class types"):
             builder.with_targets(
@@ -257,7 +281,7 @@ class TestSpatialConstraints:
     
     def test_targets_respect_drone_distance(self):
         """All targets should be at least min_distance from all drones."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         min_dist = 150.0
         
         builder.with_drones(
@@ -289,7 +313,7 @@ class TestSpatialConstraints:
     
     def test_targets_respect_inter_target_distance(self):
         """All targets should be at least min_distance from each other."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         min_dist = 100.0
         
         builder.with_drones(
@@ -319,7 +343,7 @@ class TestSpatialConstraints:
     
     def test_drones_respect_inter_drone_distance(self):
         """All drones should be at least min_distance from each other."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         min_dist = 100.0
         
         builder.with_drones(
@@ -354,7 +378,7 @@ class TestFluentAPI:
     def test_method_chaining(self):
         """Builder methods should chain correctly."""
         drones, targets = (
-            ScenarioBuilder((1000.0, 1000.0), seed=42)
+            make_builder(seed=42)
             .with_drones(
                 count=2,
                 region=((0.0, 0.3), (0.0, 0.3)),
@@ -376,7 +400,7 @@ class TestFluentAPI:
     
     def test_multiple_builds_with_same_builder(self):
         """Same builder can be used to build multiple times (generates same configs)."""
-        builder = ScenarioBuilder((1000.0, 1000.0), seed=42)
+        builder = make_builder(seed=42)
         builder.with_drones(
             count=1,
             region=((0.0, 1.0), (0.0, 1.0)),

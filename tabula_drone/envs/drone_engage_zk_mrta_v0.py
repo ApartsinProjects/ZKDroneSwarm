@@ -22,16 +22,7 @@ from ..core.states import (
     TargetState,
     WorldState,
     AttributeProfile,
-    DEFAULT_CLASS_ATTRIBUTE_MAPPING,
 )
-
-
-# Weapon type to damage profile mapping (multi-dimensional)
-DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING = {
-    "light":  {"armor": 5.0,  "shields": 10.0},
-    "medium": {"armor": 15.0, "shields": 15.0},
-    "heavy":  {"armor": 30.0, "shields": 20.0},
-}
 
 
 class DroneEngageZKMRTA(ParallelEnv):
@@ -63,6 +54,8 @@ class DroneEngageZKMRTA(ParallelEnv):
         drones_config: List[Dict[str, Any]] = None,
         targets_config: List[Dict[str, Any]] = None,
         scenario_id: str = "zk_mrta_baseline",
+        class_attribute_mapping: Dict[str, Dict[str, float]] = None,
+        weapon_damage_profile_mapping: Dict[str, Dict[str, float]] = None,
     ):
         """
         Initialize ZK-MRTA environment.
@@ -72,11 +65,15 @@ class DroneEngageZKMRTA(ParallelEnv):
             max_steps: Maximum steps per episode
             drones_config: List of drone configs, each with:
                 - position: (x, y) tuple
-                - weapon_type: str ("light", "medium", or "heavy")
+                - weapon_type: str (must be key in weapon_damage_profile_mapping)
             targets_config: List of target configs, each with:
                 - position: (x, y) tuple
-                - class_type: str (maps to attributes via DEFAULT_CLASS_ATTRIBUTE_MAPPING)
+                - class_type: str (must be key in class_attribute_mapping)
             scenario_id: Identifier for this scenario
+            class_attribute_mapping: Dict mapping class types to attribute dicts.
+                Required - must be provided.
+            weapon_damage_profile_mapping: Dict mapping weapon types to damage profile dicts.
+                Required - must be provided.
         """
         super().__init__()
         
@@ -84,6 +81,14 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.world_size = world_size
         self.max_steps = max_steps
         self.scenario_id = scenario_id
+        
+        # Validate and store mappings (required)
+        if class_attribute_mapping is None:
+            raise ValueError("class_attribute_mapping is required")
+        if weapon_damage_profile_mapping is None:
+            raise ValueError("weapon_damage_profile_mapping is required")
+        self.class_attribute_mapping = class_attribute_mapping
+        self.weapon_damage_profile_mapping = weapon_damage_profile_mapping
         
         # Validate and store configs
         self.drones_config = drones_config or []
@@ -118,8 +123,8 @@ class DroneEngageZKMRTA(ParallelEnv):
                 )
             # Validate weapon_type is valid
             weapon_type = drone_cfg["weapon_type"]
-            if weapon_type not in DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING:
-                valid_types = list(DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING.keys())
+            if weapon_type not in self.weapon_damage_profile_mapping:
+                valid_types = list(self.weapon_damage_profile_mapping.keys())
                 raise ValueError(
                     f"Drone at index {idx} has invalid weapon_type '{weapon_type}'. "
                     f"Valid types: {valid_types}"
@@ -214,7 +219,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             drone_id = f"drone_{idx}"
             weapon_type = drone_cfg["weapon_type"]
             # Look up damage profile based on weapon type
-            damage_profile = dict(DEFAULT_WEAPON_DAMAGE_PROFILE_MAPPING[weapon_type])
+            damage_profile = dict(self.weapon_damage_profile_mapping[weapon_type])
             drone = DroneState(
                 id=drone_id,
                 position=drone_cfg["position"],
@@ -230,7 +235,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             target_id = f"target_{idx}"
             target_class = target_cfg["class_type"]
             # Look up attribute values based on class type
-            attr_values = dict(DEFAULT_CLASS_ATTRIBUTE_MAPPING[target_class])
+            attr_values = dict(self.class_attribute_mapping[target_class])
             attributes = AttributeProfile(attributes=attr_values)
             
             target = TargetState(

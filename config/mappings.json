@@ -1,0 +1,12 @@
+{
+  "class_attribute_mapping": {
+    "A": {"armor": 50.0, "shields": 50.0},
+    "B": {"armor": 75.0, "shields": 75.0},
+    "C": {"armor": 100.0, "shields": 100.0}
+  },
+  "weapon_damage_profile_mapping": {
+    "light": {"armor": 5.0, "shields": 10.0},
+    "medium": {"armor": 15.0, "shields": 15.0},
+    "heavy": {"armor": 30.0, "shields": 20.0}
+  }
+}
