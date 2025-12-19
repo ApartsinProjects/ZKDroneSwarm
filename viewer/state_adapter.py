@@ -39,6 +39,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
             - drones: list of {id, position, weapon_type}
             - targets: list of {id, position, class_type}
             - version: episode log version
+            - class_attribute_mapping: dict mapping class types to attribute dicts
     """
     version = episode_data.get("version", "1.0")
     scenario = episode_data.get("scenario", {})
@@ -76,11 +77,15 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
             "class_type": class_type,
         })
     
+    # Extract class attribute mapping
+    class_attribute_mapping = config.get("class_attribute_mapping", {})
+    
     return {
         "world_size": world_size,
         "drones": drones,
         "targets": targets,
         "version": version,
+        "class_attribute_mapping": class_attribute_mapping,
     }
 
 

@@ -30,6 +30,7 @@ class InfoPanel(BaseComponent):
         self.num_targets = 0
         self.drone_types = Counter()
         self.target_classes = Counter()
+        self.class_attribute_mapping = {}
 
     def process_data(self, data: Dict[str, Any]) -> None:
         """
@@ -46,6 +47,7 @@ class InfoPanel(BaseComponent):
 
         self.drone_types = Counter(d.get("weapon_type", "unknown") for d in drones)
         self.target_classes = Counter(t.get("class_type", "unknown") for t in targets)
+        self.class_attribute_mapping = data.get("class_attribute_mapping", {})
 
     def render_display(self) -> None:
         """
@@ -72,9 +74,7 @@ class InfoPanel(BaseComponent):
 
         y_pos -= line_height * 0.5
 
-        self._render_table(
-            "Target Classes", self.target_classes, y_pos, line_height
-        )
+        self._render_target_classes(y_pos, line_height)
 
     def _render_table(
         self, title: str, data: Counter, y_start: float, line_height: float
@@ -108,6 +108,40 @@ class InfoPanel(BaseComponent):
             )
             self.ax.text(
                 0.25, y_pos, str(count),
+                ha='left', va='top', fontsize=9, color='#555555',
+                transform=self.ax.transAxes
+            )
+            y_pos -= line_height
+
+        return y_pos
+
+    def _render_target_classes(self, y_start: float, line_height: float) -> float:
+        """
+        Render target classes with their attribute profiles.
+
+        Args:
+            y_start: Starting y position.
+            line_height: Height per line.
+
+        Returns:
+            The y position after rendering.
+        """
+        y_pos = y_start
+
+        self.ax.text(
+            0.0, y_pos, "Target Classes",
+            ha='left', va='top', fontsize=10, fontweight='bold', color='#333333',
+            transform=self.ax.transAxes
+        )
+        y_pos -= line_height
+
+        for class_type in sorted(self.class_attribute_mapping.keys()):
+            attrs = self.class_attribute_mapping[class_type]
+            attr_str = ", ".join(
+                f"{k}={v}" for k, v in sorted(attrs.items())
+            )
+            self.ax.text(
+                0.02, y_pos, f"{class_type}: {attr_str}",
                 ha='left', va='top', fontsize=9, color='#555555',
                 transform=self.ax.transAxes
             )
