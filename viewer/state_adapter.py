@@ -80,12 +80,15 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     # Extract class attribute mapping
     class_attribute_mapping = config.get("class_attribute_mapping", {})
     
+    summary = episode_data.get("summary", None)
+    
     return {
         "world_size": world_size,
         "drones": drones,
         "targets": targets,
         "version": version,
         "class_attribute_mapping": class_attribute_mapping,
+        "summary": summary,
     }
 
 
