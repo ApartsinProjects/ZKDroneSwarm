@@ -47,12 +47,15 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     for target in targets:
         x, y = target["position"]
         ax.scatter(x, y, s=40, c=TARGET_COLOR, marker="o", zorder=10)
+        class_type = target.get("class_type", "")
+        ax.text(x, y + 12, class_type, fontsize=7, ha='center', va='bottom', zorder=12)
     
     for drone in drones:
         x, y = drone["position"]
         weapon_type = drone["weapon_type"]
         color = WEAPON_COLORS.get(weapon_type, WEAPON_COLORS["unknown"])
         ax.scatter(x, y, s=35, c=color, marker="^", zorder=11)
+        ax.text(x, y + 12, weapon_type, fontsize=7, ha='center', va='bottom', zorder=12)
     
     ax.set_xlabel("X (meters)")
     ax.set_ylabel("Y (meters)")
