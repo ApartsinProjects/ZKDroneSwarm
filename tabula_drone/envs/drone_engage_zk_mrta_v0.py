@@ -180,6 +180,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.drones: Optional[List[DroneState]] = None
         self.targets: Optional[List[TargetState]] = None
         self.world: Optional[WorldState] = None
+        self.rng: Optional[np.random.RandomState] = None
     
     @property
     def agents(self) -> List[str]:
@@ -207,6 +208,9 @@ class DroneEngageZKMRTA(ParallelEnv):
             observations: Dict of {agent_id: observation_array}
             infos: Dict with metrics (shared across all agents)
         """
+        # Initialize RNG for reproducible drone ordering
+        self.rng = np.random.RandomState(seed)
+        
         # Initialize world state
         self.world = WorldState(
             world_size=self.world_size,
@@ -339,6 +343,10 @@ class DroneEngageZKMRTA(ParallelEnv):
         """
         Execute one step in the environment with actions from all agents.
         
+        Drones are processed sequentially in random order. Each drone receives
+        a fresh observation before its action is evaluated. Actions targeting
+        already-neutralized targets are wasted (ammo counted, no damage/reward).
+        
         Args:
             actions: Dict of {agent_id: action} where action is:
                 - 0: NoOp (do nothing)
@@ -351,29 +359,72 @@ class DroneEngageZKMRTA(ParallelEnv):
             truncations: Dict of {agent_id: truncated}
             infos: Dict with metrics
         """
-        # Step 8: Action validation
+        # Validate actions
         self._validate_actions(actions)
         
-        # Step 9: Action processing - build firing map and update ammo
-        firing_map = self._process_actions(actions)
+        # Initialize rewards
+        rewards = {agent_id: 0.0 for agent_id in self.agents}
         
-        # Step 10a & 10b: Damage application and overkill tracking
-        neutralizations, overkill_map, pre_damage_attrs = self._apply_damage(firing_map)
+        # Shuffle drone processing order
+        agent_ids = list(self.agents)
+        self.rng.shuffle(agent_ids)
+        processing_order = agent_ids.copy()
         
-        # Step 11: Reward computation - individual lethal contributor rewards
-        rewards = self._compute_rewards(neutralizations, pre_damage_attrs)
+        # Track overkill across all drones
+        overkill_map: Dict[int, float] = {}
+        
+        # Process each drone sequentially
+        for agent_id in agent_ids:
+            action = actions[agent_id]
+            drone_idx = int(agent_id.split('_')[1])
+            drone = self.drones[drone_idx]
+            
+            # NoOp - skip
+            if action == 0:
+                continue
+            
+            # Fire at target (action is 1-indexed)
+            target_idx = action - 1
+            target = self.targets[target_idx]
+            
+            # Always count ammo (even for wasted shots)
+            drone.ammo_used += 1
+            
+            # Check if target is still active
+            if not target.is_active:
+                # Wasted shot - target already neutralized
+                continue
+            
+            # Apply damage from this drone
+            hp_before = target.hp_current
+            damage_profile = drone.damage_profile
+            target.attributes.apply_damage(damage_profile)
+            
+            # Check if target became inactive
+            if target.attributes.is_depleted():
+                target.is_active = False
+                
+                # Award reward to this drone (killing blow)
+                rewards[agent_id] += 1.0
+                
+                # Calculate overkill
+                total_damage = sum(damage_profile.values())
+                overkill = max(0.0, total_damage - hp_before)
+                if overkill > 0:
+                    overkill_map[target_idx] = overkill
         
         # Time progression
         self.world.time_step += 1
         
-        # Step 12: Termination and truncation logic
+        # Termination and truncation logic
         terminations, truncations, done_reason = self._check_termination()
         
         # Compute final observations
         observations = self._compute_observations()
         
-        # Build info dict with overkill and done_reason
+        # Build info dict
         infos = self._build_info_dict(actions)
+        infos["processing_order"] = processing_order
         if overkill_map:
             infos["overkill"] = overkill_map
         if done_reason:
