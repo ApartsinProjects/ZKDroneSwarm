@@ -425,17 +425,16 @@ class DroneEngageZKMRTA(ParallelEnv):
         pre_damage_attrs: Dict[int, Dict[str, float]],
     ) -> Dict[str, float]:
         """
-        Compute individual lethal contributor rewards for neutralizations.
+        Compute killing blow rewards for neutralizations.
         
-        A drone receives +1.0 reward only if its individual damage would have
-        independently depleted all target attributes (lethal contributor).
-        Multiple drones can receive reward for the same target if each one's
-        damage alone would have been lethal.
+        All drones that fired at a target when it was neutralized receive +1.0 reward.
+        This is the "shared credit" model - if multiple drones contributed to a kill,
+        each one gets full credit.
         
         Args:
             neutralizations: Dict of {target_idx: [drone indices that fired at it]}
             pre_damage_attrs: Dict of {target_idx: {attr_name: value}} - attribute
-                             snapshots before damage was applied
+                             snapshots before damage was applied (unused, kept for API)
         
         Returns:
             rewards: Dict of {agent_id: reward_value}
@@ -443,26 +442,11 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Initialize all rewards to 0
         rewards = {agent_id: 0.0 for agent_id in self.agents}
         
-        # For each neutralized target, check which drones were lethal contributors
+        # For each neutralized target, reward all drones that fired at it
         for target_idx, firing_drone_indices in neutralizations.items():
-            attrs_before = pre_damage_attrs[target_idx]
-            
             for drone_idx in firing_drone_indices:
-                # Get this drone's damage profile
-                damage_profile = self.drones[drone_idx].damage_profile
-                
-                # Check if this drone's damage alone would deplete all attributes
-                is_lethal = True
-                for attr_name, attr_value in attrs_before.items():
-                    drone_damage = damage_profile.get(attr_name, 0.0)
-                    if drone_damage < attr_value:
-                        # This drone's damage wouldn't deplete this attribute
-                        is_lethal = False
-                        break
-                
-                if is_lethal:
-                    agent_id = f"drone_{drone_idx}"
-                    rewards[agent_id] += 1.0
+                agent_id = f"drone_{drone_idx}"
+                rewards[agent_id] += 1.0
         
         return rewards
     

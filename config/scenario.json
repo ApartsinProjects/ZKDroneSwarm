@@ -34,7 +34,7 @@
     "max_steps": 1000
   },
   "policy": {
-    "type": "random",
+    "type": "oracle",
     "allow_noop": false
   },
   "execution": {
