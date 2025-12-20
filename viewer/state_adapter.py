@@ -81,6 +81,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     class_attribute_mapping = config.get("class_attribute_mapping", {})
     
     summary = episode_data.get("summary", None)
+    hp_history = extract_hp_history(episode_data)
     
     return {
         "world_size": world_size,
@@ -89,7 +90,36 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
         "version": version,
         "class_attribute_mapping": class_attribute_mapping,
         "summary": summary,
+        "hp_history": hp_history,
     }
+
+
+def extract_hp_history(episode_data: Dict[str, Any]) -> List[float]:
+    """
+    Extract aggregated total HP per step from episode data.
+    
+    Args:
+        episode_data: Episode data dict from load_episode()
+        
+    Returns:
+        List of total HP values (sum of all targets) per step.
+        Returns empty list if steps data is missing or invalid.
+    """
+    steps = episode_data.get("steps", [])
+    if not steps:
+        return []
+    
+    hp_history = []
+    for step in steps:
+        info = step.get("info", {})
+        target_hps = info.get("target_hps", [])
+        if target_hps:
+            hp_history.append(sum(target_hps))
+        else:
+            # If target_hps missing, skip this step
+            break
+    
+    return hp_history
 
 
 def _infer_world_size(scenario: Dict[str, Any]) -> Tuple[float, float]:

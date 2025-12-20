@@ -5,7 +5,7 @@ This module provides a panel that displays episode summary results including
 total steps, success status, targets destroyed, ammo used, and per-drone rewards.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import matplotlib.pyplot as plt
 from viewer.components.base import BaseComponent
 
@@ -27,6 +27,8 @@ class ResultsPanel(BaseComponent):
         """
         super().__init__(fig, ax)
         self.summary: Optional[Dict[str, Any]] = None
+        self.hp_history: List[float] = []
+        self.chart_ax: Optional[plt.Axes] = None
 
     def process_data(self, data: Dict[str, Any]) -> None:
         """
@@ -36,10 +38,13 @@ class ResultsPanel(BaseComponent):
             data: The state dict containing the summary section.
         """
         self.summary = data.get("summary", None)
+        self.hp_history = data.get("hp_history", [])
 
     def render_display(self) -> None:
         """
-        Render the results panel with summary metrics.
+        Render the results panel with summary metrics and HP chart.
+        
+        Layout: Upper ~45% for text metrics, lower ~55% for HP chart.
         """
         self.ax.clear()
         self.ax.set_xlim(0, 1)
@@ -56,6 +61,8 @@ class ResultsPanel(BaseComponent):
         y_pos = self._render_outcome(y_pos, line_height)
         y_pos -= line_height * 0.5
         self._render_metrics(y_pos, line_height)
+        
+        self._render_hp_chart()
 
     def _render_no_results(self) -> None:
         """
@@ -201,8 +208,48 @@ class ResultsPanel(BaseComponent):
 
         return y_pos
 
+    def _render_hp_chart(self) -> None:
+        """
+        Render the HP history chart in the lower portion of the panel.
+        
+        Creates a sub-axes for the chart if HP history data is available.
+        """
+        if not self.hp_history:
+            return
+        
+        if self.chart_ax is not None:
+            self.chart_ax.remove()
+            self.chart_ax = None
+        
+        parent_pos = self.ax.get_position()
+        chart_height = parent_pos.height * 0.50
+        chart_bottom = parent_pos.y0
+        chart_left = parent_pos.x0 + parent_pos.width * 0.08
+        chart_width = parent_pos.width * 0.84
+        
+        self.chart_ax = self.fig.add_axes((
+            chart_left, chart_bottom, chart_width, chart_height
+        ))
+        
+        steps = list(range(1, len(self.hp_history) + 1))
+        self.chart_ax.plot(steps, self.hp_history, color='#3498db', linewidth=1.5)
+        
+        self.chart_ax.set_title('HP Over Time', fontsize=9, fontweight='bold')
+        self.chart_ax.set_xlabel('Step', fontsize=8)
+        self.chart_ax.set_ylabel('Total HP', fontsize=8)
+        self.chart_ax.tick_params(axis='both', labelsize=7)
+        self.chart_ax.grid(True, linestyle='--', alpha=0.3)
+        
+        self.chart_ax.set_xlim(1, len(steps))
+        if self.hp_history:
+            max_hp = max(self.hp_history)
+            self.chart_ax.set_ylim(0, max_hp * 1.05)
+
     def clear(self) -> None:
         """
-        Clear the panel.
+        Clear the panel and remove chart axes if present.
         """
         self.ax.clear()
+        if self.chart_ax is not None:
+            self.chart_ax.remove()
+            self.chart_ax = None

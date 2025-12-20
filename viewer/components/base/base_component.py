@@ -24,6 +24,7 @@ class BaseComponent:
         """
         self.fig = fig
         self.ax = ax
+        self.chart_ax: plt.Axes | None = None
 
     def is_visible(self) -> bool:
         """
