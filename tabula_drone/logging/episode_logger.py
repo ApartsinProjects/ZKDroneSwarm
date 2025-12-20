@@ -37,7 +37,8 @@ class EpisodeLogger:
                 "world_size": [<float>, <float>],
                 "max_steps": <int>,
                 "scenario_id": "<string>",
-                "class_hp_mapping": {"<class>": <float>, ...}
+                "class_attribute_mapping": {"<class>": {"<attr>": <float>, ...}, ...},
+                "weapon_damage_profile_mapping": {"<weapon>": {"<attr>": <float>, ...}, ...}
             },
             "scenario": {...},
             "steps": [...],
@@ -212,6 +213,7 @@ class EpisodeLogger:
             "max_steps": env.max_steps,
             "scenario_id": env.scenario_id,
             "class_attribute_mapping": dict(env.class_attribute_mapping),
+            "weapon_damage_profile_mapping": dict(env.weapon_damage_profile_mapping),
         }
     
     def _build_step_record(

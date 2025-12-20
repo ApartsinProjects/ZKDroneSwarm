@@ -1,12 +1,12 @@
 {
   "class_attribute_mapping": {
-    "A": {"structural_integrity": 60.0, "envelope_integrity": 50.0, "utilities_lifesafety": 40.0},
-    "B": {"structural_integrity": 80.0, "envelope_integrity": 70.0, "utilities_lifesafety": 60.0},
-    "C": {"structural_integrity": 100.0, "envelope_integrity": 90.0, "utilities_lifesafety": 80.0}
+    "A": { "structural_integrity": 60.0,  "envelope_integrity": 120.0, "utilities_lifesafety": 40.0 },
+    "B": { "structural_integrity": 130.0, "envelope_integrity": 50.0,  "utilities_lifesafety": 40.0 },
+    "C": { "structural_integrity": 70.0,  "envelope_integrity": 60.0,  "utilities_lifesafety": 120.0 }
   },
   "weapon_damage_profile_mapping": {
-    "light":  {"structural_integrity": 0.0,  "envelope_integrity": 8.0,  "utilities_lifesafety": 3.0},
-    "medium": {"structural_integrity": 4.0,  "envelope_integrity": 12.0, "utilities_lifesafety": 8.0},
-    "heavy":  {"structural_integrity": 18.0, "envelope_integrity": 15.0, "utilities_lifesafety": 14.0}
+    "breach":     { "structural_integrity": 4.0,  "envelope_integrity": 28.0, "utilities_lifesafety": 2.0 },
+    "structural": { "structural_integrity": 28.0, "envelope_integrity": 4.0,  "utilities_lifesafety": 2.0 },
+    "systems":    { "structural_integrity": 2.0,  "envelope_integrity": 4.0,  "utilities_lifesafety": 28.0 }
   }
 }

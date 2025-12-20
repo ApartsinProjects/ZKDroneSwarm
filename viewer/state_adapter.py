@@ -40,6 +40,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
             - targets: list of {id, position, class_type}
             - version: episode log version
             - class_attribute_mapping: dict mapping class types to attribute dicts
+            - weapon_damage_profile_mapping: dict mapping weapon types to damage profile dicts
     """
     version = episode_data.get("version", "1.0")
     scenario = episode_data.get("scenario", {})
@@ -80,6 +81,9 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     # Extract class attribute mapping
     class_attribute_mapping = config.get("class_attribute_mapping", {})
     
+    # Extract weapon damage profile mapping
+    weapon_damage_profile_mapping = config.get("weapon_damage_profile_mapping", {})
+    
     summary = episode_data.get("summary", None)
     hp_history = extract_hp_history(episode_data)
     active_targets_history = extract_active_targets_history(episode_data)
@@ -91,6 +95,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
         "targets": targets,
         "version": version,
         "class_attribute_mapping": class_attribute_mapping,
+        "weapon_damage_profile_mapping": weapon_damage_profile_mapping,
         "summary": summary,
         "hp_history": hp_history,
         "active_targets_history": active_targets_history,

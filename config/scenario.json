@@ -1,5 +1,5 @@
 {
-  "seed": 42,
+  "seed": 12,
   "world": {
     "size": [1000.0, 1000.0]
   },
@@ -11,9 +11,9 @@
     },
     "min_distance_between_drones": 50.0,
     "weapon_distribution": {
-      "light": 0.2,
-      "medium": 0.5,
-      "heavy": 0.3
+      "breach": 0.2,
+      "structural": 0.5,
+      "systems": 0.3
     }
   },
   "targets": {

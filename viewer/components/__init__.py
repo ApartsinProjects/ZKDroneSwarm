@@ -8,7 +8,7 @@ This package contains the components used in the viewer, organized by their role
 """
 
 from viewer.components.base import BaseComponent
-from viewer.components.containers import TabContainer
+from viewer.components.containers import TabContainer, MapPanel
 from viewer.components.panels import EmptyPanel, InfoPanel, ResultsPanel
 
-__all__ = ['BaseComponent', 'TabContainer', 'EmptyPanel', 'InfoPanel', 'ResultsPanel']
+__all__ = ['BaseComponent', 'TabContainer', 'MapPanel', 'EmptyPanel', 'InfoPanel', 'ResultsPanel']

@@ -31,6 +31,7 @@ class InfoPanel(BaseComponent):
         self.drone_types = Counter()
         self.target_classes = Counter()
         self.class_attribute_mapping = {}
+        self.weapon_damage_profile_mapping = {}
 
     def process_data(self, data: Dict[str, Any]) -> None:
         """
@@ -48,6 +49,7 @@ class InfoPanel(BaseComponent):
         self.drone_types = Counter(d.get("weapon_type", "unknown") for d in drones)
         self.target_classes = Counter(t.get("class_type", "unknown") for t in targets)
         self.class_attribute_mapping = data.get("class_attribute_mapping", {})
+        self.weapon_damage_profile_mapping = data.get("weapon_damage_profile_mapping", {})
 
     def render_display(self) -> None:
         """
@@ -68,9 +70,7 @@ class InfoPanel(BaseComponent):
         )
         y_pos -= line_height * 1.5
 
-        y_pos = self._render_table(
-            "Drone Types", self.drone_types, y_pos, line_height
-        )
+        y_pos = self._render_drone_types(y_pos, line_height)
 
         y_pos -= line_height * 0.5
 
@@ -108,6 +108,40 @@ class InfoPanel(BaseComponent):
             )
             self.ax.text(
                 0.25, y_pos, str(count),
+                ha='left', va='top', fontsize=9, color='#555555',
+                transform=self.ax.transAxes
+            )
+            y_pos -= line_height
+
+        return y_pos
+
+    def _render_drone_types(self, y_start: float, line_height: float) -> float:
+        """
+        Render drone types with their damage profiles.
+
+        Args:
+            y_start: Starting y position.
+            line_height: Height per line.
+
+        Returns:
+            The y position after rendering.
+        """
+        y_pos = y_start
+
+        self.ax.text(
+            0.0, y_pos, "Drone Types",
+            ha='left', va='top', fontsize=10, fontweight='bold', color='#333333',
+            transform=self.ax.transAxes
+        )
+        y_pos -= line_height
+
+        for weapon_type in sorted(self.weapon_damage_profile_mapping.keys()):
+            attrs = self.weapon_damage_profile_mapping[weapon_type]
+            attr_str = ", ".join(
+                f"{k}={v}" for k, v in sorted(attrs.items())
+            )
+            self.ax.text(
+                0.02, y_pos, f"{weapon_type}: {attr_str}",
                 ha='left', va='top', fontsize=9, color='#555555',
                 transform=self.ax.transAxes
             )
