@@ -28,6 +28,7 @@ class ResultsPanel(BaseComponent):
         super().__init__(fig, ax)
         self.summary: Optional[Dict[str, Any]] = None
         self.hp_history: List[float] = []
+        self.active_targets_history: List[int] = []
         self.chart_ax: Optional[plt.Axes] = None
 
     def process_data(self, data: Dict[str, Any]) -> None:
@@ -39,6 +40,7 @@ class ResultsPanel(BaseComponent):
         """
         self.summary = data.get("summary", None)
         self.hp_history = data.get("hp_history", [])
+        self.active_targets_history = data.get("active_targets_history", [])
 
     def render_display(self) -> None:
         """
@@ -46,6 +48,9 @@ class ResultsPanel(BaseComponent):
         
         Layout: Upper ~45% for text metrics, lower ~55% for HP chart.
         """
+        if self.chart_ax is not None:
+            self.chart_ax.remove()
+            self.chart_ax = None
         self.ax.clear()
         self.ax.set_xlim(0, 1)
         self.ax.set_ylim(0, 1)
@@ -210,9 +215,10 @@ class ResultsPanel(BaseComponent):
 
     def _render_hp_chart(self) -> None:
         """
-        Render the HP history chart in the lower portion of the panel.
+        Render the HP and active targets chart in the lower portion of the panel.
         
         Creates a sub-axes for the chart if HP history data is available.
+        Both metrics are normalized to percentage of initial value.
         """
         if not self.hp_history:
             return
@@ -232,18 +238,26 @@ class ResultsPanel(BaseComponent):
         ))
         
         steps = list(range(1, len(self.hp_history) + 1))
-        self.chart_ax.plot(steps, self.hp_history, color='#3498db', linewidth=1.5)
         
-        self.chart_ax.set_title('HP Over Time', fontsize=9, fontweight='bold')
+        initial_hp = self.hp_history[0] if self.hp_history[0] > 0 else 1
+        hp_percent = [hp / initial_hp * 100 for hp in self.hp_history]
+        self.chart_ax.plot(steps, hp_percent, color='#3498db', linewidth=1.5, label='Total HP')
+        
+        if self.active_targets_history:
+            initial_targets = self.active_targets_history[0] if self.active_targets_history[0] > 0 else 1
+            targets_percent = [t / initial_targets * 100 for t in self.active_targets_history]
+            self.chart_ax.plot(steps[:len(targets_percent)], targets_percent, 
+                              color='#e67e22', linewidth=1.5, label='Active Targets')
+        
+        self.chart_ax.set_title('HP & Active Targets Over Time', fontsize=9, fontweight='bold')
         self.chart_ax.set_xlabel('Step', fontsize=8)
-        self.chart_ax.set_ylabel('Total HP', fontsize=8)
+        self.chart_ax.set_ylabel('% of Initial', fontsize=8)
         self.chart_ax.tick_params(axis='both', labelsize=7)
         self.chart_ax.grid(True, linestyle='--', alpha=0.3)
         
         self.chart_ax.set_xlim(1, len(steps))
-        if self.hp_history:
-            max_hp = max(self.hp_history)
-            self.chart_ax.set_ylim(0, max_hp * 1.05)
+        self.chart_ax.set_ylim(0, 105)
+        self.chart_ax.legend(loc='upper right', fontsize=7)
 
     def clear(self) -> None:
         """

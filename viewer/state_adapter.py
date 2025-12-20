@@ -82,6 +82,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     
     summary = episode_data.get("summary", None)
     hp_history = extract_hp_history(episode_data)
+    active_targets_history = extract_active_targets_history(episode_data)
     
     return {
         "world_size": world_size,
@@ -91,6 +92,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
         "class_attribute_mapping": class_attribute_mapping,
         "summary": summary,
         "hp_history": hp_history,
+        "active_targets_history": active_targets_history,
     }
 
 
@@ -120,6 +122,34 @@ def extract_hp_history(episode_data: Dict[str, Any]) -> List[float]:
             break
     
     return hp_history
+
+
+def extract_active_targets_history(episode_data: Dict[str, Any]) -> List[int]:
+    """
+    Extract count of active targets (HP > 0) per step from episode data.
+    
+    Args:
+        episode_data: Episode data dict from load_episode()
+        
+    Returns:
+        List of active target counts per step.
+        Returns empty list if steps data is missing or invalid.
+    """
+    steps = episode_data.get("steps", [])
+    if not steps:
+        return []
+    
+    active_targets_history = []
+    for step in steps:
+        info = step.get("info", {})
+        target_hps = info.get("target_hps", [])
+        if target_hps:
+            active_count = len([hp for hp in target_hps if hp > 0])
+            active_targets_history.append(active_count)
+        else:
+            break
+    
+    return active_targets_history
 
 
 def _infer_world_size(scenario: Dict[str, Any]) -> Tuple[float, float]:
