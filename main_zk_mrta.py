@@ -219,12 +219,13 @@ def main():
     
     # Create policy based on config type
     if config.policy.type == "oracle":
-        # Oracle needs a weapon damage profile - use first weapon type from config
-        # In multi-weapon scenarios, Oracle uses a representative profile
-        first_weapon_type = list(config.mappings.weapon_damage_profile_mapping.keys())[0]
-        weapon_profile = config.mappings.weapon_damage_profile_mapping[first_weapon_type]
+        # Build per-agent weapon profiles from drone configs
+        agent_weapon_profiles = {
+            f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
+            for idx, drone_cfg in enumerate(drones_config)
+        }
         policy: PolicyType = OracleTimeToKillPolicy(
-            weapon_damage_profile=weapon_profile,
+            agent_weapon_profiles=agent_weapon_profiles,
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
         )

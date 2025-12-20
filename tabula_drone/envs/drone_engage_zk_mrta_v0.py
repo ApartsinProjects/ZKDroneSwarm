@@ -33,7 +33,8 @@ class DroneEngageZKMRTA(ParallelEnv):
     - Zero-knowledge observations (target positions + active states only)
     - No communication between agents
     - Unlimited ammo (tracked for metrics)
-    - Shared cooperative rewards
+    - Individual lethal contributor rewards (drone rewarded only if its shot
+      would independently deplete all target attributes)
     
     Observation Space (per agent):
         Box containing [target_1_x, target_1_y, target_1_active, ...]
@@ -357,10 +358,10 @@ class DroneEngageZKMRTA(ParallelEnv):
         firing_map = self._process_actions(actions)
         
         # Step 10a & 10b: Damage application and overkill tracking
-        neutralizations, overkill_map = self._apply_damage(firing_map)
+        neutralizations, overkill_map, pre_damage_attrs = self._apply_damage(firing_map)
         
-        # Step 11: Reward computation - shared cooperative rewards
-        rewards = self._compute_rewards(neutralizations)
+        # Step 11: Reward computation - individual lethal contributor rewards
+        rewards = self._compute_rewards(neutralizations, pre_damage_attrs)
         
         # Time progression
         self.world.time_step += 1
@@ -418,16 +419,23 @@ class DroneEngageZKMRTA(ParallelEnv):
         
         return terminations, truncations, done_reason
     
-    def _compute_rewards(self, neutralizations: Dict[int, List[int]]) -> Dict[str, float]:
+    def _compute_rewards(
+        self,
+        neutralizations: Dict[int, List[int]],
+        pre_damage_attrs: Dict[int, Dict[str, float]],
+    ) -> Dict[str, float]:
         """
-        Compute shared cooperative rewards for neutralizations.
+        Compute individual lethal contributor rewards for neutralizations.
         
-        Each drone that fired at a neutralized target receives +1.0 reward.
-        This encourages participation without revealing who "got the kill"
-        (ZK-compliant: multiple drones can get reward for same target).
+        A drone receives +1.0 reward only if its individual damage would have
+        independently depleted all target attributes (lethal contributor).
+        Multiple drones can receive reward for the same target if each one's
+        damage alone would have been lethal.
         
         Args:
             neutralizations: Dict of {target_idx: [drone indices that fired at it]}
+            pre_damage_attrs: Dict of {target_idx: {attr_name: value}} - attribute
+                             snapshots before damage was applied
         
         Returns:
             rewards: Dict of {agent_id: reward_value}
@@ -435,15 +443,30 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Initialize all rewards to 0
         rewards = {agent_id: 0.0 for agent_id in self.agents}
         
-        # For each neutralized target, give +1.0 to all drones that fired at it
+        # For each neutralized target, check which drones were lethal contributors
         for target_idx, firing_drone_indices in neutralizations.items():
+            attrs_before = pre_damage_attrs[target_idx]
+            
             for drone_idx in firing_drone_indices:
-                agent_id = f"drone_{drone_idx}"
-                rewards[agent_id] += 1.0
+                # Get this drone's damage profile
+                damage_profile = self.drones[drone_idx].damage_profile
+                
+                # Check if this drone's damage alone would deplete all attributes
+                is_lethal = True
+                for attr_name, attr_value in attrs_before.items():
+                    drone_damage = damage_profile.get(attr_name, 0.0)
+                    if drone_damage < attr_value:
+                        # This drone's damage wouldn't deplete this attribute
+                        is_lethal = False
+                        break
+                
+                if is_lethal:
+                    agent_id = f"drone_{drone_idx}"
+                    rewards[agent_id] += 1.0
         
         return rewards
     
-    def _apply_damage(self, firing_map: Dict[int, List[int]]) -> Tuple[Dict[int, List[int]], Dict[int, float]]:
+    def _apply_damage(self, firing_map: Dict[int, List[int]]) -> Tuple[Dict[int, List[int]], Dict[int, float], Dict[int, Dict[str, float]]]:
         """
         Apply aggregated damage to targets and track neutralizations + overkill.
         
@@ -461,9 +484,12 @@ class DroneEngageZKMRTA(ParallelEnv):
                             Only includes targets neutralized THIS step
             overkill_map: Dict of {target_idx: excess_damage}
                          Only includes targets with overkill > 0
+            pre_damage_attrs: Dict of {target_idx: {attr_name: value}}
+                             Attribute snapshots before damage for neutralized targets
         """
         neutralizations = {}
         overkill_map = {}
+        pre_damage_attrs = {}
         
         for target_idx, firing_drone_indices in firing_map.items():
             target = self.targets[target_idx]
@@ -474,6 +500,9 @@ class DroneEngageZKMRTA(ParallelEnv):
             
             # Track HP before damage (for overkill calculation)
             hp_before = target.hp_current
+            
+            # Snapshot attributes before damage (for lethal contributor check)
+            attrs_before = dict(target.attributes.attributes)
             
             # Aggregate damage profiles from all firing drones
             aggregated_damage: Dict[str, float] = {}
@@ -498,8 +527,11 @@ class DroneEngageZKMRTA(ParallelEnv):
                 
                 # Record neutralization (target index and who fired at it)
                 neutralizations[target_idx] = firing_drone_indices
+                
+                # Store pre-damage attributes for reward calculation
+                pre_damage_attrs[target_idx] = attrs_before
         
-        return neutralizations, overkill_map
+        return neutralizations, overkill_map, pre_damage_attrs
     
     def _process_actions(self, actions: Dict[str, int]) -> Dict[int, List[int]]:
         """

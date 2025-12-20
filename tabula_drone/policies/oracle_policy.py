@@ -30,21 +30,24 @@ class OracleTimeToKillPolicy:
     
     def __init__(
         self,
-        weapon_damage_profile: Dict[str, float],
+        agent_weapon_profiles: Dict[str, Dict[str, float]],
         seed: Optional[int] = None,
         allow_noop: bool = True,
     ):
         """
-        Initialize oracle policy with weapon damage profile.
+        Initialize oracle policy with per-agent weapon damage profiles.
         
         Args:
-            weapon_damage_profile: Dict mapping attribute names to damage per hit.
-                                   e.g., {"armor": 10.0, "shields": 5.0}
+            agent_weapon_profiles: Dict mapping agent_id to weapon damage profile.
+                                   e.g., {"drone_0": {"armor": 10.0, "shields": 5.0}, ...}
             seed: Random seed for reproducibility (tie-breaking only)
             allow_noop: If True, action 0 (NoOp) is included in valid actions.
                        If False, agents must always fire at an active target.
         """
-        self.weapon_damage_profile = {k: float(v) for k, v in weapon_damage_profile.items()}
+        self.agent_weapon_profiles = {
+            agent_id: {k: float(v) for k, v in profile.items()}
+            for agent_id, profile in agent_weapon_profiles.items()
+        }
         self.rng = np.random.RandomState(seed)
         self.allow_noop = allow_noop
     
@@ -70,7 +73,11 @@ class OracleTimeToKillPolicy:
             active.append(observation[obs_idx] > 0.5)
         return active
     
-    def _estimated_hits_to_kill(self, target_attributes: Dict[str, float]) -> float:
+    def _estimated_hits_to_kill(
+        self,
+        target_attributes: Dict[str, float],
+        weapon_damage_profile: Dict[str, float],
+    ) -> float:
         """
         Compute exact hits-to-kill under constant per-hit damage.
         
@@ -80,6 +87,7 @@ class OracleTimeToKillPolicy:
         Args:
             target_attributes: Dict mapping attribute names to remaining values.
                               e.g., {"armor": 25.0, "shields": 10.0}
+            weapon_damage_profile: Dict mapping attribute names to damage per hit.
         
         Returns:
             Estimated number of hits to neutralize target, or inf if unkillable.
@@ -91,7 +99,7 @@ class OracleTimeToKillPolicy:
             if rem <= 0.0:
                 continue
             
-            dmg = float(self.weapon_damage_profile.get(attr_name, 0.0))
+            dmg = float(weapon_damage_profile.get(attr_name, 0.0))
             if dmg <= 0.0:
                 return float("inf")  # Can't finish this attribute -> can't kill target
             
@@ -101,6 +109,7 @@ class OracleTimeToKillPolicy:
     
     def select_action(
         self,
+        agent_id: str,
         observation: np.ndarray,
         num_targets: int,
         targets_state: List[Dict[str, float]],
@@ -112,6 +121,7 @@ class OracleTimeToKillPolicy:
         Uses random tie-breaking among equal candidates.
         
         Args:
+            agent_id: ID of the agent (e.g., "drone_0")
             observation: ZK observation array with shape (3 * num_targets,)
                         Format: [target_0_x, target_0_y, target_0_active, ...]
             num_targets: Total number of targets in environment
@@ -132,12 +142,15 @@ class OracleTimeToKillPolicy:
         if not active_targets:
             return 0
         
+        # Get this agent's weapon profile
+        weapon_profile = self.agent_weapon_profiles[agent_id]
+        
         best_hits = float("inf")
         best_targets: List[int] = []
         
         for t in active_targets:
             attrs = targets_state[t]  # Privileged true remaining attributes
-            hits = self._estimated_hits_to_kill(attrs)
+            hits = self._estimated_hits_to_kill(attrs, weapon_profile)
             
             if hits < best_hits:
                 best_hits = hits
@@ -165,7 +178,8 @@ class OracleTimeToKillPolicy:
         """
         Select actions for all agents using privileged target state.
         
-        Each agent independently selects the target with minimum hits-to-kill.
+        Each agent independently selects the target with minimum hits-to-kill
+        based on their own weapon profile.
         Actions are independent - no coordination between agents.
         
         Args:
@@ -178,6 +192,6 @@ class OracleTimeToKillPolicy:
             actions: Dict of {agent_id: action}
         """
         return {
-            agent_id: self.select_action(obs, num_targets, targets_state)
+            agent_id: self.select_action(agent_id, obs, num_targets, targets_state)
             for agent_id, obs in observations.items()
         }

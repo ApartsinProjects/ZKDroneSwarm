@@ -4,7 +4,7 @@
     "size": [1000.0, 1000.0]
   },
   "drones": {
-    "count": 10,
+    "count": 3,
     "region": {
       "x_fraction": [0.35, 0.65],
       "y_fraction": [0.3, 0.4]
@@ -12,20 +12,20 @@
     "min_distance_between_drones": 50.0,
     "weapon_distribution": {
       "breach": 0.3,
-      "structural": 0.4,
+      "structural": 0.3,
       "systems": 0.3
     }
   },
   "targets": {
-    "count": 15,
+    "count": 30,
     "region": {
       "x_fraction": [0.25, 0.75],
       "y_fraction": [0.5, 0.75]
     },
     "class_distribution": {
-      "A": 0.3,
-      "B": 0.4,
-      "C": 0.3
+      "A": 0.33,
+      "B": 0.33,
+      "C": 0.33
     },
     "min_distance_from_drones": 100.0,
     "min_distance_between_targets": 25.0
@@ -34,7 +34,7 @@
     "max_steps": 1000
   },
   "policy": {
-    "type": "oracle",
+    "type": "random",
     "allow_noop": false
   },
   "execution": {

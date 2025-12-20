@@ -436,8 +436,10 @@ class ScenarioBuilder:
         """
         Assign weapon types to drones based on weighted distribution.
         
-        Creates drone configuration dictionaries with positions and randomly
-        assigned weapon types. Uses the builder's RNG for deterministic results.
+        Uses stratified assignment to guarantee proportional distribution:
+        1. Calculate guaranteed count for each weapon based on weights
+        2. Assign remaining slots probabilistically
+        3. Shuffle final assignment to randomize positions
         
         Args:
             positions: List of drone positions
@@ -446,6 +448,8 @@ class ScenarioBuilder:
         Returns:
             List of drone configuration dicts, each with "position" and "weapon_type"
         """
+        num_drones = len(positions)
+        
         # Normalize distribution weights to sum to 1.0
         total_weight = sum(weapon_distribution.values())
         normalized_dist = {
@@ -453,17 +457,31 @@ class ScenarioBuilder:
             for weapon_type, weight in weapon_distribution.items()
         }
         
-        # Prepare weapon types and weights for random.choices()
+        # Calculate guaranteed counts using floor of (weight * count)
         weapon_types = list(normalized_dist.keys())
-        weights = [normalized_dist[wt] for wt in weapon_types]
+        guaranteed_counts = {
+            wt: int(normalized_dist[wt] * num_drones)
+            for wt in weapon_types
+        }
+        
+        # Build list of weapon assignments with guaranteed counts
+        weapon_assignments: List[str] = []
+        for wt in weapon_types:
+            weapon_assignments.extend([wt] * guaranteed_counts[wt])
+        
+        # Fill remaining slots probabilistically
+        remaining = num_drones - len(weapon_assignments)
+        if remaining > 0:
+            weights = [normalized_dist[wt] for wt in weapon_types]
+            additional = self._rng.choices(weapon_types, weights=weights, k=remaining)
+            weapon_assignments.extend(additional)
+        
+        # Shuffle to randomize which positions get which weapon
+        self._rng.shuffle(weapon_assignments)
         
         # Generate configs
         drone_configs = []
-        for position in positions:
-            # Select weapon type using weighted random choice
-            weapon_type = self._rng.choices(weapon_types, weights=weights, k=1)[0]
-            
-            # Create config dict
+        for position, weapon_type in zip(positions, weapon_assignments):
             config = {
                 "position": position,
                 "weapon_type": weapon_type
@@ -480,8 +498,10 @@ class ScenarioBuilder:
         """
         Assign class types to targets based on weighted distribution.
         
-        Creates target configuration dictionaries with positions and randomly
-        assigned class types. Uses the builder's RNG for deterministic results.
+        Uses stratified assignment to guarantee proportional distribution:
+        1. Calculate guaranteed count for each class based on weights
+        2. Assign remaining slots probabilistically
+        3. Shuffle final assignment to randomize positions
         
         Args:
             positions: List of target positions
@@ -490,6 +510,8 @@ class ScenarioBuilder:
         Returns:
             List of target configuration dicts, each with "position" and "class_type"
         """
+        num_targets = len(positions)
+        
         # Normalize distribution weights to sum to 1.0
         total_weight = sum(class_distribution.values())
         normalized_dist = {
@@ -497,17 +519,31 @@ class ScenarioBuilder:
             for class_type, weight in class_distribution.items()
         }
         
-        # Prepare class types and weights for random.choices()
+        # Calculate guaranteed counts using floor of (weight * count)
         class_types = list(normalized_dist.keys())
-        weights = [normalized_dist[ct] for ct in class_types]
+        guaranteed_counts = {
+            ct: int(normalized_dist[ct] * num_targets)
+            for ct in class_types
+        }
+        
+        # Build list of class assignments with guaranteed counts
+        class_assignments: List[str] = []
+        for ct in class_types:
+            class_assignments.extend([ct] * guaranteed_counts[ct])
+        
+        # Fill remaining slots probabilistically
+        remaining = num_targets - len(class_assignments)
+        if remaining > 0:
+            weights = [normalized_dist[ct] for ct in class_types]
+            additional = self._rng.choices(class_types, weights=weights, k=remaining)
+            class_assignments.extend(additional)
+        
+        # Shuffle to randomize which positions get which class
+        self._rng.shuffle(class_assignments)
         
         # Generate configs
         target_configs = []
-        for idx, position in enumerate(positions):
-            # Select class type using weighted random choice
-            class_type = self._rng.choices(class_types, weights=weights, k=1)[0]
-            
-            # Create config dict
+        for position, class_type in zip(positions, class_assignments):
             config = {
                 "position": position,
                 "class_type": class_type,
