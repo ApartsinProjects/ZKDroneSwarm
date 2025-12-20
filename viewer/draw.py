@@ -62,7 +62,12 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     
     ax.set_xlabel("X (meters)")
     ax.set_ylabel("Y (meters)")
-    ax.set_title("TabulaDrone - Initial World State")
+    
+    seed = state.get("seed")
+    title = "TabulaDrone - Initial World State"
+    if seed is not None:
+        title += f" (Seed: {seed})"
+    ax.set_title(title)
 
 
 def display_viewer(

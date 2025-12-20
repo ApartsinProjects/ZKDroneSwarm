@@ -83,6 +83,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     summary = episode_data.get("summary", None)
     hp_history = extract_hp_history(episode_data)
     active_targets_history = extract_active_targets_history(episode_data)
+    seed = episode_data.get("rng_seed", None)
     
     return {
         "world_size": world_size,
@@ -93,6 +94,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
         "summary": summary,
         "hp_history": hp_history,
         "active_targets_history": active_targets_history,
+        "seed": seed,
     }
 
 
