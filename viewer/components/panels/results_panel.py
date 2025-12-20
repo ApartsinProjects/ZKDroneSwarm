@@ -55,9 +55,7 @@ class ResultsPanel(BaseComponent):
 
         y_pos = self._render_outcome(y_pos, line_height)
         y_pos -= line_height * 0.5
-        y_pos = self._render_metrics(y_pos, line_height)
-        y_pos -= line_height * 0.5
-        self._render_rewards(y_pos, line_height)
+        self._render_metrics(y_pos, line_height)
 
     def _render_no_results(self) -> None:
         """
@@ -105,7 +103,7 @@ class ResultsPanel(BaseComponent):
 
     def _render_metrics(self, y_start: float, line_height: float) -> float:
         """
-        Render episode metrics (steps, targets destroyed, ammo used).
+        Render episode metrics (steps, targets destroyed, ammo used) and rewards in two columns.
 
         Args:
             y_start: Starting y position.
@@ -115,9 +113,16 @@ class ResultsPanel(BaseComponent):
             The y position after rendering.
         """
         y_pos = y_start
+        col1_x = 0.0
+        col2_x = 0.5
 
         self.ax.text(
-            0.0, y_pos, "Metrics",
+            col1_x, y_pos, "Metrics",
+            ha='left', va='top', fontsize=10, fontweight='bold', color='#333333',
+            transform=self.ax.transAxes
+        )
+        self.ax.text(
+            col2_x, y_pos, "Rewards",
             ha='left', va='top', fontsize=10, fontweight='bold', color='#333333',
             transform=self.ax.transAxes
         )
@@ -125,74 +130,70 @@ class ResultsPanel(BaseComponent):
 
         total_steps = self.summary.get("total_steps", 0)
         self.ax.text(
-            0.02, y_pos, f"Total Steps: {total_steps}",
+            col1_x + 0.02, y_pos, f"Total Steps: {total_steps}",
             ha='left', va='top', fontsize=9, color='#555555',
             transform=self.ax.transAxes
         )
+
+        total_reward = self.summary.get("total_reward", {})
+        reward_items = sorted(total_reward.items())
+        total_reward_sum = 0.0
+        if len(reward_items) > 0:
+            drone_id, reward = reward_items[0]
+            self.ax.text(
+                col2_x + 0.02, y_pos, f"{drone_id}:",
+                ha='left', va='top', fontsize=9, color='#555555',
+                transform=self.ax.transAxes
+            )
+            self.ax.text(
+                col2_x + 0.25, y_pos, f"{reward:.1f}",
+                ha='left', va='top', fontsize=9, color='#555555',
+                transform=self.ax.transAxes
+            )
+            total_reward_sum += reward
         y_pos -= line_height
 
         metrics = self.summary.get("metrics", {})
         targets_destroyed = metrics.get("targets_destroyed", 0)
         self.ax.text(
-            0.02, y_pos, f"Targets Destroyed: {targets_destroyed}",
+            col1_x + 0.02, y_pos, f"Targets Destroyed: {targets_destroyed}",
             ha='left', va='top', fontsize=9, color='#555555',
             transform=self.ax.transAxes
         )
+
+        if len(reward_items) > 1:
+            drone_id, reward = reward_items[1]
+            self.ax.text(
+                col2_x + 0.02, y_pos, f"{drone_id}:",
+                ha='left', va='top', fontsize=9, color='#555555',
+                transform=self.ax.transAxes
+            )
+            self.ax.text(
+                col2_x + 0.25, y_pos, f"{reward:.1f}",
+                ha='left', va='top', fontsize=9, color='#555555',
+                transform=self.ax.transAxes
+            )
+            total_reward_sum += reward
         y_pos -= line_height
 
         total_ammo = metrics.get("total_ammo_used", 0)
         self.ax.text(
-            0.02, y_pos, f"Total Ammo Used: {total_ammo}",
+            col1_x + 0.02, y_pos, f"Total Ammo Used: {total_ammo}",
             ha='left', va='top', fontsize=9, color='#555555',
             transform=self.ax.transAxes
         )
-        y_pos -= line_height
 
-        return y_pos
-
-    def _render_rewards(self, y_start: float, line_height: float) -> float:
-        """
-        Render per-drone reward breakdown.
-
-        Args:
-            y_start: Starting y position.
-            line_height: Height per line.
-
-        Returns:
-            The y position after rendering.
-        """
-        y_pos = y_start
-
+        for i, (drone_id, reward) in enumerate(reward_items[2:], start=2):
+            total_reward_sum += reward
+        
         self.ax.text(
-            0.0, y_pos, "Rewards",
-            ha='left', va='top', fontsize=10, fontweight='bold', color='#333333',
-            transform=self.ax.transAxes
-        )
-        y_pos -= line_height
-
-        total_reward = self.summary.get("total_reward", {})
-        total = 0.0
-        for drone_id, reward in sorted(total_reward.items()):
-            self.ax.text(
-                0.02, y_pos, f"{drone_id}:",
-                ha='left', va='top', fontsize=9, color='#555555',
-                transform=self.ax.transAxes
-            )
-            self.ax.text(
-                0.25, y_pos, f"{reward:.1f}",
-                ha='left', va='top', fontsize=9, color='#555555',
-                transform=self.ax.transAxes
-            )
-            total += reward
-            y_pos -= line_height
-
-        self.ax.text(
-            0.02, y_pos, "Total:",
+            col2_x + 0.02, y_pos, "Total:",
             ha='left', va='top', fontsize=9, fontweight='bold', color='#333333',
             transform=self.ax.transAxes
         )
+        total_reward_sum = sum(r for _, r in reward_items)
         self.ax.text(
-            0.25, y_pos, f"{total:.1f}",
+            col2_x + 0.25, y_pos, f"{total_reward_sum:.1f}",
             ha='left', va='top', fontsize=9, fontweight='bold', color='#333333',
             transform=self.ax.transAxes
         )
