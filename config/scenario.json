@@ -1,10 +1,10 @@
 {
-  "seed": 42,
+  "seed": 12,
   "world": {
     "size": [1000.0, 1000.0]
   },
   "drones": {
-    "count": 2,
+    "count": 5,
     "region": {
       "x_fraction": [0.35, 0.65],
       "y_fraction": [0.3, 0.4]
@@ -31,8 +31,8 @@
     "min_distance_between_targets": 25.0
   },
   "environment": {
-    "max_steps": 100,
-    "scenario_id": "random_policy_demo"
+    "max_steps": 1000,
+    "scenario_id": "random"
   },
   "policy": {
     "allow_noop": false

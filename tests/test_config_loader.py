@@ -20,14 +20,14 @@ from tabula_drone.config.config_loader import load_mappings, MappingsConfig
 # Test mappings data - matches current attribute names
 TEST_MAPPINGS_DATA = {
     "class_attribute_mapping": {
-        "A": {"structural_integrity": 60.0, "envelope_integrity": 50.0, "utilities_lifesafety": 40.0},
-        "B": {"structural_integrity": 80.0, "envelope_integrity": 70.0, "utilities_lifesafety": 60.0},
-        "C": {"structural_integrity": 100.0, "envelope_integrity": 90.0, "utilities_lifesafety": 80.0},
+        "A": {"structural_integrity": 60.0, "envelope_integrity": 120.0, "utilities_lifesafety": 40.0},
+        "B": {"structural_integrity": 130.0, "envelope_integrity": 50.0, "utilities_lifesafety": 40.0},
+        "C": {"structural_integrity": 70.0, "envelope_integrity": 60.0, "utilities_lifesafety": 120.0},
     },
     "weapon_damage_profile_mapping": {
-        "light": {"structural_integrity": 0.0, "envelope_integrity": 8.0, "utilities_lifesafety": 3.0},
-        "medium": {"structural_integrity": 4.0, "envelope_integrity": 12.0, "utilities_lifesafety": 8.0},
-        "heavy": {"structural_integrity": 18.0, "envelope_integrity": 15.0, "utilities_lifesafety": 14.0},
+        "breach": {"structural_integrity": 4.0, "envelope_integrity": 28.0, "utilities_lifesafety": 2.0},
+        "structural": {"structural_integrity": 28.0, "envelope_integrity": 4.0, "utilities_lifesafety": 2.0},
+        "systems": {"structural_integrity": 2.0, "envelope_integrity": 4.0, "utilities_lifesafety": 28.0},
     }
 }
 
@@ -61,14 +61,14 @@ class TestLoadConfigValid:
         config = load_config("config/scenario.json")
         
         assert isinstance(config, ScenarioConfig)
-        assert config.seed == 42
+        assert config.seed == 12
         assert config.world.size == (1000.0, 1000.0)
         assert config.drones.count == 2
         assert config.drones.region == ((0.35, 0.65), (0.3, 0.4))
         assert config.drones.min_distance_between_drones == 50.0
         assert config.targets.count == 15
-        assert config.environment.max_steps == 100
-        assert config.environment.scenario_id == "random_policy_demo"
+        assert config.environment.max_steps == 1000
+        assert config.environment.scenario_id == "random"
         assert config.policy.allow_noop is False
         assert config.execution.num_episodes == 1
         assert config.execution.verbose is True
@@ -78,10 +78,10 @@ class TestLoadConfigValid:
         """Weapon distribution dictionary is loaded correctly."""
         config = load_config("config/scenario.json")
         
-        assert "light" in config.drones.weapon_distribution
-        assert "medium" in config.drones.weapon_distribution
-        assert "heavy" in config.drones.weapon_distribution
-        assert config.drones.weapon_distribution["light"] == 0.2
+        assert "breach" in config.drones.weapon_distribution
+        assert "structural" in config.drones.weapon_distribution
+        assert "systems" in config.drones.weapon_distribution
+        assert config.drones.weapon_distribution["breach"] == 0.2
     
     def test_class_distribution_loaded(self):
         """Class distribution dictionary is loaded correctly."""
@@ -234,17 +234,17 @@ class TestLoadMappings:
         assert "A" in mappings.class_attribute_mapping
         assert "B" in mappings.class_attribute_mapping
         assert "C" in mappings.class_attribute_mapping
-        assert "light" in mappings.weapon_damage_profile_mapping
-        assert "medium" in mappings.weapon_damage_profile_mapping
-        assert "heavy" in mappings.weapon_damage_profile_mapping
+        assert "breach" in mappings.weapon_damage_profile_mapping
+        assert "structural" in mappings.weapon_damage_profile_mapping
+        assert "systems" in mappings.weapon_damage_profile_mapping
     
     def test_mappings_values_correct(self):
         """Mappings contain correct values."""
         mappings = load_mappings("config/mappings.json")
         
         assert mappings.class_attribute_mapping["A"]["structural_integrity"] == 60.0
-        assert mappings.class_attribute_mapping["A"]["envelope_integrity"] == 50.0
-        assert mappings.weapon_damage_profile_mapping["heavy"]["structural_integrity"] == 18.0
+        assert mappings.class_attribute_mapping["A"]["envelope_integrity"] == 120.0
+        assert mappings.weapon_damage_profile_mapping["structural"]["structural_integrity"] == 28.0
     
     def test_missing_mappings_file_raises_error(self):
         """Missing mappings file raises FileNotFoundError."""
@@ -336,4 +336,4 @@ class TestLoadMappings:
         assert config.mappings is not None
         assert isinstance(config.mappings, MappingsConfig)
         assert "A" in config.mappings.class_attribute_mapping
-        assert "light" in config.mappings.weapon_damage_profile_mapping
+        assert "breach" in config.mappings.weapon_damage_profile_mapping
