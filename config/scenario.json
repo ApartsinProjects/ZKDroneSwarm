@@ -1,5 +1,5 @@
 {
-  "seed": 12,
+  "seed": 42,
   "world": {
     "size": [1000.0, 1000.0]
   },
@@ -32,9 +32,10 @@
   },
   "environment": {
     "max_steps": 1000,
-    "scenario_id": "random"
+    "scenario_id": "oracle"
   },
   "policy": {
+    "type": "oracle",
     "allow_noop": false
   },
   "execution": {

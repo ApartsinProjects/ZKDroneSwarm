@@ -46,6 +46,7 @@ class EnvironmentConfig:
 @dataclass
 class PolicyConfig:
     """Policy configuration."""
+    type: str
     allow_noop: bool
 
 
@@ -175,7 +176,10 @@ def _parse_environment_config(data: dict) -> EnvironmentConfig:
 def _parse_policy_config(data: dict) -> PolicyConfig:
     """Parse policy configuration section."""
     _validate_required_keys(data, ["allow_noop"], "policy")
-    return PolicyConfig(allow_noop=bool(data["allow_noop"]))
+    policy_type = data.get("type", "random")
+    if policy_type not in ("random", "oracle"):
+        raise ValueError(f"policy.type must be 'random' or 'oracle', got '{policy_type}'")
+    return PolicyConfig(type=policy_type, allow_noop=bool(data["allow_noop"]))
 
 
 def _parse_execution_config(data: dict) -> ExecutionConfig:

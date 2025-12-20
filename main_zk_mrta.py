@@ -8,12 +8,13 @@ Demonstrates:
 - Metrics collection and logging
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 
 from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.logging import EpisodeLogger
 from tabula_drone.policies.random_policy import RandomPolicy
+from tabula_drone.policies.oracle_policy import OracleTimeToKillPolicy
 from tabula_drone.scenarios import ScenarioBuilder
 
 CONFIG_PATH = "config/scenario.json"
@@ -45,9 +46,12 @@ def print_episode_summary(
     print("=" * 60 + "\n")
 
 
+PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy]
+
+
 def run_episode(
     env: DroneEngageZKMRTA,
-    policy: RandomPolicy,
+    policy: PolicyType,
     episode_num: int,
     verbose: bool = True,
     logger: Optional[EpisodeLogger] = None,
@@ -94,7 +98,10 @@ def run_episode(
         step_count += 1
         
         # Policy selects actions for all agents
-        actions = policy.select_actions(obs, env.num_targets)
+        if isinstance(policy, OracleTimeToKillPolicy):
+            actions = policy.select_actions(obs, env.num_targets, info["target_attributes"])
+        else:
+            actions = policy.select_actions(obs, env.num_targets)
         
         # Environment step
         obs, rewards, terminations, truncations, info = env.step(actions)
@@ -209,8 +216,19 @@ def main():
         weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
     )
     
-    # Create policy
-    policy = RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
+    # Create policy based on config type
+    if config.policy.type == "oracle":
+        # Oracle needs a weapon damage profile - use first weapon type from config
+        # In multi-weapon scenarios, Oracle uses a representative profile
+        first_weapon_type = list(config.mappings.weapon_damage_profile_mapping.keys())[0]
+        weapon_profile = config.mappings.weapon_damage_profile_mapping[first_weapon_type]
+        policy: PolicyType = OracleTimeToKillPolicy(
+            weapon_damage_profile=weapon_profile,
+            seed=config.seed,
+            allow_noop=config.policy.allow_noop,
+        )
+    else:
+        policy = RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
     
     # Run episodes
     num_episodes = config.execution.num_episodes
