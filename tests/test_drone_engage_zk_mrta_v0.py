@@ -14,17 +14,17 @@ from tabula_drone.core.states import (
 )
 
 
-# Test mappings fixture - matches original default values
+# Test mappings fixture - matches current attribute names
 TEST_CLASS_ATTRIBUTE_MAPPING = {
-    "A": {"armor": 50.0, "shields": 50.0},
-    "B": {"armor": 75.0, "shields": 75.0},
-    "C": {"armor": 100.0, "shields": 100.0},
+    "A": {"structural_integrity": 60.0, "envelope_integrity": 50.0, "utilities_lifesafety": 40.0},
+    "B": {"structural_integrity": 80.0, "envelope_integrity": 70.0, "utilities_lifesafety": 60.0},
+    "C": {"structural_integrity": 100.0, "envelope_integrity": 90.0, "utilities_lifesafety": 80.0},
 }
 
 TEST_WEAPON_DAMAGE_PROFILE_MAPPING = {
-    "light": {"armor": 5.0, "shields": 10.0},
-    "medium": {"armor": 15.0, "shields": 15.0},
-    "heavy": {"armor": 30.0, "shields": 20.0},
+    "light": {"structural_integrity": 0.0, "envelope_integrity": 8.0, "utilities_lifesafety": 3.0},
+    "medium": {"structural_integrity": 4.0, "envelope_integrity": 12.0, "utilities_lifesafety": 8.0},
+    "heavy": {"structural_integrity": 18.0, "envelope_integrity": 15.0, "utilities_lifesafety": 14.0},
 }
 
 
@@ -227,9 +227,9 @@ class TestConstructorValidation:
         
         env.reset()
         # With multi-attribute damage, damage_per_shot is sum of all attribute damages
-        assert env.drones[0].damage_per_shot == 15.0  # light: armor=5 + shields=10
-        assert env.drones[1].damage_per_shot == 30.0  # medium: armor=15 + shields=15
-        assert env.drones[2].damage_per_shot == 50.0  # heavy: armor=30 + shields=20
+        assert env.drones[0].damage_per_shot == 11.0  # light: 0 + 8 + 3
+        assert env.drones[1].damage_per_shot == 24.0  # medium: 4 + 12 + 8
+        assert env.drones[2].damage_per_shot == 47.0  # heavy: 18 + 15 + 14
 
 
 class TestResetLogic:
@@ -353,9 +353,9 @@ class TestResetLogic:
         
         env.reset()
         
-        assert env.targets[0].hp_current == 100.0
-        assert env.targets[1].hp_current == 150.0
-        assert env.targets[2].hp_current == 200.0
+        assert env.targets[0].hp_current == 150.0
+        assert env.targets[1].hp_current == 210.0
+        assert env.targets[2].hp_current == 270.0
         assert all(t.is_active for t in env.targets)
 
     def test_reset_initializes_world_state(self):
@@ -462,11 +462,11 @@ class TestZKObservationCompliance:
         assert obs['drone_0'][2] == 1.0  # target 0 active
         assert obs['drone_0'][5] == 1.0  # target 1 active
         
-        # With multi-attribute: Class A has armor=50, shields=50
-        # Heavy weapon: armor=30, shields=20
-        # 2 heavy drones: armor=60, shields=40 per step
-        # Step 1: armor=0, shields=10 (not depleted)
-        # Step 2: armor=0, shields=0 (depleted)
+        # Class A has total HP: 150 (60+50+40)
+        # Heavy weapon: 47 damage per shot (18+15+14)
+        # 2 heavy drones: 94 damage per step
+        # Step 1: 150 - 94 = 56 HP (not depleted)
+        # Step 2: 56 - 94 = 0 HP (depleted)
         actions = {'drone_0': 1, 'drone_1': 1}
         obs, _, _, _, _ = env.step(actions)
         obs, _, _, _, _ = env.step(actions)  # Need 2 steps to deplete all attributes
@@ -480,19 +480,19 @@ class TestZKObservationCompliance:
         env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 600.0), 'class_type': 'A'},  # 100 HP total (50 armor + 50 shields)
+                {'position': (500.0, 600.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
         obs, _ = env.reset()
         
-        # Fire to reduce HP (medium: armor=15, shields=15 -> total 30 damage)
-        # HP: 100 - 30 = 70 HP total
+        # Fire to reduce HP (medium: 24 damage total)
+        # HP: 150 - 24 = 126 HP total
         actions = {'drone_0': 1}
         obs, _, _, _, info = env.step(actions)
         
-        # HP is 70 but not in observation
-        assert info['target_hps'][0] == 70.0
+        # HP is 126 but not in observation
+        assert info['target_hps'][0] == 126.0
         
         # Observation only contains: [x=500, y=600, active=1]
         assert obs['drone_0'][0] == 500.0
@@ -697,18 +697,18 @@ class TestDamageMechanics:
         env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP total (50 armor + 50 shields)
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
         env.reset()
-        assert env.targets[0].hp_current == 100.0
+        assert env.targets[0].hp_current == 150.0
         
         actions = {'drone_0': 1}
         env.step(actions)
         
-        # Medium weapon does 30 damage total (armor=15, shields=15): 100 - 30 = 70
-        assert env.targets[0].hp_current == 70.0
+        # Medium weapon does 24 damage total: 150 - 24 = 126
+        assert env.targets[0].hp_current == 126.0
 
     def test_multiple_drones_damage_aggregation(self):
         """Test that damage from multiple drones aggregates correctly."""
@@ -719,18 +719,18 @@ class TestDamageMechanics:
                 {'position': (300.0, 300.0), 'weapon_type': 'medium'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP total (50 armor + 50 shields)
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
         env.reset()
         
-        # All 3 drones fire at same target (3 * 30 = 90 damage total)
-        # armor: 50 - 45 = 5, shields: 50 - 45 = 5 -> total = 10
+        # All 3 drones fire at same target (3 * 24 = 72 damage total)
+        # 150 - 72 = 78
         actions = {'drone_0': 1, 'drone_1': 1, 'drone_2': 1}
         env.step(actions)
         
-        assert env.targets[0].hp_current == 10.0
+        assert env.targets[0].hp_current == 78.0
 
     def test_target_neutralization(self):
         """Test that target is neutralized when all attributes reach zero."""
@@ -740,17 +740,17 @@ class TestDamageMechanics:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # armor=50, shields=50
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
         env.reset()
         assert env.targets[0].is_active is True
         
-        # Heavy weapon: armor=30, shields=20
-        # 2 drones: armor=60, shields=40 per step
-        # Step 1: armor=0, shields=10 (not depleted)
-        # Step 2: armor=0, shields=0 (depleted)
+        # Heavy weapon: 47 damage per shot
+        # 2 drones: 94 damage per step
+        # Step 1: 150 - 94 = 56 (not depleted)
+        # Step 2: 56 - 94 = 0 (depleted)
         actions = {'drone_0': 1, 'drone_1': 1}
         env.step(actions)
         env.step(actions)  # Need 2 steps to deplete all attributes
@@ -766,7 +766,7 @@ class TestDamageMechanics:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # armor=50, shields=50
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
@@ -788,13 +788,13 @@ class TestDamageMechanics:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # armor=50, shields=50
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
         env.reset()
         
-        # Neutralize target (need 2 steps with multi-attribute system)
+        # Neutralize target (need 2 steps: 94 + 94 = 188 > 150)
         actions = {'drone_0': 1, 'drone_1': 1}
         env.step(actions)
         env.step(actions)
@@ -829,7 +829,7 @@ class TestRewardComputation:
         env = make_env(
             drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP
             ]
         )
         
@@ -847,19 +847,18 @@ class TestRewardComputation:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # armor=50, shields=50
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
         env.reset()
-        # With multi-attribute: need 2 steps to neutralize
-        # Heavy: armor=30, shields=20 per drone
-        # 2 drones: armor=60, shields=40 per step
+        # Heavy: 47 damage per drone, 2 drones: 94 damage per step
+        # Need 2 steps: 150 - 94 = 56, then 56 - 94 = 0
         actions = {'drone_0': 1, 'drone_1': 1}
-        _, rewards1, _, _, _ = env.step(actions)  # Step 1: armor=0, shields=10
+        _, rewards1, _, _, _ = env.step(actions)  # Step 1: not neutralized
         assert rewards1['drone_0'] == 0.0  # Not neutralized yet
         
-        _, rewards2, _, _, _ = env.step(actions)  # Step 2: armor=0, shields=0 (neutralized)
+        _, rewards2, _, _, _ = env.step(actions)  # Step 2: neutralized
         assert rewards2['drone_0'] == 1.0
         assert rewards2['drone_1'] == 1.0
 
@@ -872,15 +871,19 @@ class TestRewardComputation:
                 {'position': (300.0, 300.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # armor=50, shields=50
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
         env.reset()
         
-        # 3 heavy drones: armor=90, shields=60 per step
-        # Step 1: armor=0, shields=0 (neutralized in one step with 3 drones)
+        # 3 heavy drones: 3 * 47 = 141 damage per step
+        # Step 1: 150 - 141 = 9 HP (not neutralized)
+        # Step 2: neutralized
         actions = {'drone_0': 1, 'drone_1': 1, 'drone_2': 1}
+        _, rewards1, _, _, _ = env.step(actions)
+        assert rewards1['drone_0'] == 0.0  # Not neutralized yet
+        
         _, rewards, _, _, _ = env.step(actions)
         
         assert rewards['drone_0'] == 1.0
@@ -895,13 +898,13 @@ class TestRewardComputation:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # armor=50, shields=50
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
         env.reset()
         
-        # Neutralize target (need 2 steps with multi-attribute)
+        # Neutralize target (need 2 steps: 94 + 94 = 188 > 150)
         actions = {'drone_0': 1, 'drone_1': 1}
         env.step(actions)
         _, rewards1, _, _, _ = env.step(actions)
@@ -926,14 +929,15 @@ class TestTerminationLogic:
                 {'position': (300.0, 300.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # armor=50, shields=50
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP total
             ]
         )
         
         env.reset()
         
-        # 3 heavy drones: armor=90, shields=60 -> neutralizes in one step
+        # 3 heavy drones: 141 damage, need 2 steps to neutralize
         actions = {'drone_0': 1, 'drone_1': 1, 'drone_2': 1}
+        env.step(actions)
         _, _, terminations, _, info = env.step(actions)
         
         assert terminations['drone_0'] is True
@@ -945,9 +949,9 @@ class TestTerminationLogic:
         """Test that episode truncates at max_steps."""
         env = make_env(
             max_steps=3,
-            drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'light'}],  # Weak damage (10)
+            drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'light'}],  # Weak damage (11)
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP
             ]
         )
         
@@ -976,7 +980,7 @@ class TestTerminationLogic:
         
         env.reset()
         
-        # Neutralize only first target: 2 * 50 = 100 damage
+        # Neutralize only first target: 2 * 47 = 94 damage (not enough for 150 HP)
         actions = {'drone_0': 1, 'drone_1': 1}
         _, _, terminations, truncations, _ = env.step(actions)
         
@@ -995,8 +999,8 @@ class TestEpisodeIntegration:
                 {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
             ],
             targets_config=[
-                {'position': (500.0, 500.0), 'class_type': 'A'},  # 100 HP
-                {'position': (600.0, 600.0), 'class_type': 'A'},  # 100 HP
+                {'position': (500.0, 500.0), 'class_type': 'A'},  # 150 HP
+                {'position': (600.0, 600.0), 'class_type': 'A'},  # 150 HP
             ]
         )
         

@@ -76,7 +76,7 @@ class TestEpisodeLoggerStartEpisode(unittest.TestCase):
         self.mock_env.world_size = (1000.0, 1000.0)
         self.mock_env.max_steps = 100
         self.mock_env.scenario_id = "test_scenario"
-        self.mock_env.class_attribute_mapping = {"A": {"armor": 50.0, "shields": 50.0}, "B": {"armor": 75.0, "shields": 75.0}, "C": {"armor": 37.5, "shields": 37.5}}
+        self.mock_env.class_attribute_mapping = {"A": {"structural_integrity": 60.0, "envelope_integrity": 50.0, "utilities_lifesafety": 40.0}, "B": {"structural_integrity": 80.0, "envelope_integrity": 70.0, "utilities_lifesafety": 60.0}, "C": {"structural_integrity": 100.0, "envelope_integrity": 90.0, "utilities_lifesafety": 80.0}}
         
         self.reset_info = {
             "step_index": 0,
@@ -137,7 +137,7 @@ class TestEpisodeLoggerStartEpisode(unittest.TestCase):
         self.assertEqual(config["world_size"], [1000.0, 1000.0])
         self.assertEqual(config["max_steps"], 100)
         self.assertEqual(config["scenario_id"], "test_scenario")
-        self.assertEqual(config["class_attribute_mapping"], {"A": {"armor": 50.0, "shields": 50.0}, "B": {"armor": 75.0, "shields": 75.0}, "C": {"armor": 37.5, "shields": 37.5}})
+        self.assertEqual(config["class_attribute_mapping"], {"A": {"structural_integrity": 60.0, "envelope_integrity": 50.0, "utilities_lifesafety": 40.0}, "B": {"structural_integrity": 80.0, "envelope_integrity": 70.0, "utilities_lifesafety": 60.0}, "C": {"structural_integrity": 100.0, "envelope_integrity": 90.0, "utilities_lifesafety": 80.0}})
 
 
 class TestEpisodeLoggerLogStep(unittest.TestCase):

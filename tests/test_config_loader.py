@@ -17,17 +17,17 @@ from tabula_drone.config import load_config, ScenarioConfig
 from tabula_drone.config.config_loader import load_mappings, MappingsConfig
 
 
-# Test mappings data - matches original default values
+# Test mappings data - matches current attribute names
 TEST_MAPPINGS_DATA = {
     "class_attribute_mapping": {
-        "A": {"armor": 50.0, "shields": 50.0},
-        "B": {"armor": 75.0, "shields": 75.0},
-        "C": {"armor": 100.0, "shields": 100.0},
+        "A": {"structural_integrity": 60.0, "envelope_integrity": 50.0, "utilities_lifesafety": 40.0},
+        "B": {"structural_integrity": 80.0, "envelope_integrity": 70.0, "utilities_lifesafety": 60.0},
+        "C": {"structural_integrity": 100.0, "envelope_integrity": 90.0, "utilities_lifesafety": 80.0},
     },
     "weapon_damage_profile_mapping": {
-        "light": {"armor": 5.0, "shields": 10.0},
-        "medium": {"armor": 15.0, "shields": 15.0},
-        "heavy": {"armor": 30.0, "shields": 20.0},
+        "light": {"structural_integrity": 0.0, "envelope_integrity": 8.0, "utilities_lifesafety": 3.0},
+        "medium": {"structural_integrity": 4.0, "envelope_integrity": 12.0, "utilities_lifesafety": 8.0},
+        "heavy": {"structural_integrity": 18.0, "envelope_integrity": 15.0, "utilities_lifesafety": 14.0},
     }
 }
 
@@ -67,7 +67,7 @@ class TestLoadConfigValid:
         assert config.drones.region == ((0.35, 0.65), (0.3, 0.4))
         assert config.drones.min_distance_between_drones == 50.0
         assert config.targets.count == 15
-        assert config.environment.max_steps == 50
+        assert config.environment.max_steps == 100
         assert config.environment.scenario_id == "random_policy_demo"
         assert config.policy.allow_noop is False
         assert config.execution.num_episodes == 1
@@ -242,9 +242,9 @@ class TestLoadMappings:
         """Mappings contain correct values."""
         mappings = load_mappings("config/mappings.json")
         
-        assert mappings.class_attribute_mapping["A"]["armor"] == 50.0
-        assert mappings.class_attribute_mapping["A"]["shields"] == 50.0
-        assert mappings.weapon_damage_profile_mapping["heavy"]["armor"] == 30.0
+        assert mappings.class_attribute_mapping["A"]["structural_integrity"] == 60.0
+        assert mappings.class_attribute_mapping["A"]["envelope_integrity"] == 50.0
+        assert mappings.weapon_damage_profile_mapping["heavy"]["structural_integrity"] == 18.0
     
     def test_missing_mappings_file_raises_error(self):
         """Missing mappings file raises FileNotFoundError."""
@@ -316,8 +316,8 @@ class TestLoadMappings:
         
         with open(mappings_path, "w") as f:
             json.dump({
-                "class_attribute_mapping": {"A": {"armor": 100.0}},
-                "weapon_damage_profile_mapping": {"light": {"shields": 10.0}}
+                "class_attribute_mapping": {"A": {"structural_integrity": 100.0}},
+                "weapon_damage_profile_mapping": {"light": {"envelope_integrity": 10.0}}
             }, f)
         
         try:
