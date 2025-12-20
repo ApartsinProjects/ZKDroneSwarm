@@ -2,11 +2,14 @@
 Drawing functions for TabulaDrone Episode Viewer.
 """
 
+import sys
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from matplotlib.widgets import Button
 from typing import Dict, Any
 
 from viewer.components import TabContainer, EmptyPanel, InfoPanel, ResultsPanel
+from viewer.state_adapter import load_episode, extract_initial_state
 
 
 # Color schemes
@@ -62,17 +65,23 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     ax.set_title("TabulaDrone - Initial World State")
 
 
-def display_viewer(state: Dict[str, Any]) -> None:
+def display_viewer(
+    state: Dict[str, Any],
+    episode_files: list[str] | None = None,
+    current_index: int = 0
+) -> None:
     """
     Display the split-panel viewer with map on left and info panel on right.
     
     Args:
         state: Initial state dict from extract_initial_state()
+        episode_files: Optional list of episode file paths for navigation (sorted descending)
+        current_index: Index of current episode in episode_files (0 = newest)
     """
     fig = plt.figure(figsize=(12, 7))
     
     gs = GridSpec(1, 2, figure=fig, width_ratios=[70, 30], wspace=0.25,
-                  left=0.06, right=0.98, top=0.95, bottom=0.08)
+                  left=0.06, right=0.98, top=0.95, bottom=0.18)
     
     ax_left = fig.add_subplot(gs[0])
     ax_right = fig.add_subplot(gs[1])
@@ -96,5 +105,82 @@ def display_viewer(state: Dict[str, Any]) -> None:
     tab_container.add_tab("Info", info_panel)
     tab_container.add_tab("Actions", actions_panel)
     tab_container.add_tab("Results", results_panel)
+    
+    if episode_files is not None:
+        index_state = [current_index]
+        
+        def _refresh_viewer():
+            try:
+                episode_data = load_episode(episode_files[index_state[0]])
+                new_state = extract_initial_state(episode_data)
+                
+                ax_left.clear()
+                render_map(ax_left, new_state)
+                
+                info_panel.render(new_state)
+                actions_panel.render(new_state)
+                results_panel.render(new_state)
+                
+                info_text.set_text(f"Episode {index_state[0] + 1} of {len(episode_files)}")
+                
+                fig.canvas.draw_idle()
+            except Exception as e:
+                print(f"Error loading episode: {e}", file=sys.stderr)
+        
+        def _update_button_states():
+            if index_state[0] == 0:
+                prev_button.color = '0.85'
+                prev_button.hovercolor = '0.85'
+            else:
+                prev_button.color = 'white'
+                prev_button.hovercolor = '0.95'
+            
+            if index_state[0] >= len(episode_files) - 1:
+                next_button.color = '0.85'
+                next_button.hovercolor = '0.85'
+            else:
+                next_button.color = 'white'
+                next_button.hovercolor = '0.95'
+            
+            fig.canvas.draw_idle()
+        
+        def on_prev(event):
+            if index_state[0] > 0:
+                index_state[0] -= 1
+                _refresh_viewer()
+                _update_button_states()
+        
+        def on_next(event):
+            if index_state[0] < len(episode_files) - 1:
+                index_state[0] += 1
+                _refresh_viewer()
+                _update_button_states()
+        
+        button_width = 0.06
+        button_height = 0.04
+        button_spacing = 0.02
+        button_y = 0.03
+        
+        left_panel_center = (0.06 + 0.62) / 2
+        total_width = button_width * 2 + button_spacing
+        left_button_x = left_panel_center - total_width / 2
+        right_button_x = left_button_x + button_width + button_spacing
+        
+        prev_ax = fig.add_axes([left_button_x, button_y, button_width, button_height])
+        prev_button = Button(prev_ax, "Previous")
+        prev_button.on_clicked(on_prev)
+        
+        next_ax = fig.add_axes([right_button_x, button_y, button_width, button_height])
+        next_button = Button(next_ax, "Next")
+        next_button.on_clicked(on_next)
+        
+        info_text_y = button_y + button_height + 0.005
+        info_text = fig.text(
+            left_panel_center, info_text_y,
+            f"Episode {current_index + 1} of {len(episode_files)}",
+            ha='center', va='bottom', fontsize=10
+        )
+        
+        _update_button_states()
     
     plt.show()

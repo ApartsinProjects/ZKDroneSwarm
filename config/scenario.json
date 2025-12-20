@@ -1,5 +1,5 @@
 {
-  "seed": 42,
+  "seed": 12,
   "world": {
     "size": [1000.0, 1000.0]
   },
@@ -31,7 +31,7 @@
     "min_distance_between_targets": 25.0
   },
   "environment": {
-    "max_steps": 50,
+    "max_steps": 100,
     "scenario_id": "random_policy_demo"
   },
   "policy": {

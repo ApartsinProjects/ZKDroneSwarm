@@ -13,12 +13,12 @@ from viewer.draw import display_viewer
 LOGS_DIR = "logs"
 
 
-def find_latest_episode() -> str:
+def find_all_episodes() -> list[str]:
     """
-    Find the latest episode log file in the logs directory.
+    Find all episode log files in the logs directory.
     
     Returns:
-        Path to the latest episode log file
+        List of episode file paths sorted descending by filename (newest first)
         
     Raises:
         SystemExit: If logs directory doesn't exist or contains no episodes
@@ -36,7 +36,20 @@ def find_latest_episode() -> str:
     
     # Sort descending by filename (contains timestamp)
     episode_files.sort(reverse=True)
-    return episode_files[0]
+    return episode_files
+
+
+def find_latest_episode() -> str:
+    """
+    Find the latest episode log file in the logs directory.
+    
+    Returns:
+        Path to the latest episode log file
+        
+    Raises:
+        SystemExit: If logs directory doesn't exist or contains no episodes
+    """
+    return find_all_episodes()[0]
 
 
 def show_command(episode_path: str) -> None:
@@ -46,6 +59,9 @@ def show_command(episode_path: str) -> None:
     Args:
         episode_path: Path to episode log JSON file
     """
+    episode_files = find_all_episodes()
+    current_index = episode_files.index(episode_path)
+    
     episode_data = load_episode(episode_path)
     state = extract_initial_state(episode_data)
     
@@ -55,7 +71,7 @@ def show_command(episode_path: str) -> None:
     print(f"  Drones: {len(state['drones'])}")
     print(f"  Targets: {len(state['targets'])}")
     
-    display_viewer(state)
+    display_viewer(state, episode_files, current_index)
 
 
 def main():
