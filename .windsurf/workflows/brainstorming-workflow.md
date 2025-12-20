@@ -1,7 +1,8 @@
 ---
 description: Explore options, ideas, and trade-offs before planning. No plan or code is created here.
-auto_execution_mode: 1
 ---
+
+# Brainstorming Workflow
 
 Standalone Capability: This workflow runs independently without requiring prior phase outputs.
 
@@ -14,7 +15,32 @@ Produce:
 - Success Criteria - how we’ll judge “good.”
 - Constraints - determinism, minimal diffs, stability (config/event/CLI), logging, performance bounds.
 - Scope & Affected Areas - modules, classes, events, configs, CLI, JSON outputs.
-- Assumptions & Unknowns - what needs validation.
+- Problem Model Snapshot (required, 8–12 lines; no solutions/options):
+  - Goal (one line)
+  - Actor(s)
+  - Primary object(s)
+  - Core actions (verbs)
+  - State that changes
+  - Entry points / interfaces touched
+  - Must-hold invariants (3 bullets)
+  - Variables / policies (3 bullets)
+  - Failure / boundary cases (3 bullets)
+  - Definition of done (3 acceptance bullets)
+- Gate A: Requirements Questions (derived ONLY from Snapshot gaps)
+  - Ask only to resolve missing/ambiguous: definitions, ordering/meaning, boundaries, error behavior, constraints.
+  - Tag each as [Blocking] or [Defaultable].
+  - Guardrail: Do NOT mention implementation options here.
+- Gate A Review (Stop Here)
+- Present:
+  1) Proposed Defaults (all [Defaultable] items + their default choices)
+  2) Blocking Questions (all [Blocking] items)
+- Ask the user to:
+  - Confirm/override the Proposed Defaults
+  - Answer the Blocking Questions
+- Stop and wait for user response.
+
+- Guardrail: Do NOT proceed to Options Explorer until user responds.
+- Assumptions & Unknowns - remaining items requiring validation (after Gate A, if any).
 
 Guardrails:
 - Do not propose options, plans, code, or tests.
@@ -43,18 +69,29 @@ Purpose: Compare options objectively to highlight trade-offs.
 Produce:
 - Comparison Table: Minimal Diff, Reuse, Determinism, Compatibility, Testability, Performance, Complexity/Maintenance.
 - Decision Levers: e.g., “If X → Option A; if Y → Option B.”
-- Open Questions: unknowns that would influence the decision.
+- Gate B: Decision / Option-Selection Questions (derived ONLY from Comparator + Decision Levers)
+  - Ask only about priorities/tradeoffs that flip the recommendation.
+  - Guardrail: Do NOT define required behavior here (that belongs to Gate A).
 
 Guardrails:
 - Stay neutral, no recommendations.
 
 ## Act as the Clarifications Gate (no code)
 
-Purpose: Request answers to the existing Open Questions before any recommendation.
+Purpose: Collect user answers for Gate A (defaults + blocking), and later (Gate A + Gate B) if needed.
 
-Produce: A simple request for the user to answer the Open Questions (they are already displayed) and collect the answers.
+Produce:
+- If invoked after Discovery & Framing:
+  - A short "Gate A Review" request:
+    - List Proposed Defaults (Defaultable + suggested default)
+    - List Blocking Questions
+    - Ask user to confirm/override defaults and answer blocking items
+- If invoked after Comparator:
+  - A short request to answer any remaining Gate A questions + all Gate B questions (already displayed)
 
-Guardrails: No new questions.
+Guardrails:
+- No new questions.
+- Stop here and wait for user answers.
 
 Stop here.
 
@@ -99,12 +136,14 @@ From Discovery & Framing Agent:
 - Success Criteria: How success will be judged
 - Constraints: Determinism, minimal diffs, stability requirements, logging, performance bounds
 - Scope & Affected Areas: Modules, classes, events, configs, CLI, JSON outputs
-- Assumptions & Unknowns: Items requiring validation
+- Problem Model Snapshot: Actor/object/actions/state/interfaces + invariants/variables/boundaries + definition of done
+- Gate A: Requirements Questions: [Blocking]/[Defaultable] questions derived from Snapshot gaps
+- Assumptions & Unknowns: Remaining items requiring validation (after Gate A, if any)
 
 From Comparator:
 - Comparison Table: Evaluation of all options against criteria
 - Decision Levers: Conditional guidance (e.g., "If X → Option A; if Y → Option B")
-- Open Questions: Unknowns that would influence the decision
+- Gate B: Decision / Option-Selection Questions: Priority/tradeoff questions derived from Comparator + Decision Levers
 
 From Advisor (if executed):
 - Recommended Option(s): Specific option(s) with rationale
