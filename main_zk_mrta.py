@@ -214,6 +214,7 @@ def main():
         scenario_id=config.environment.scenario_id,
         class_attribute_mapping=config.mappings.class_attribute_mapping,
         weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
+        policy_type=config.policy.type,
     )
     
     # Create policy based on config type

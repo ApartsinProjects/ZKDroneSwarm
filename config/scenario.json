@@ -4,15 +4,15 @@
     "size": [1000.0, 1000.0]
   },
   "drones": {
-    "count": 5,
+    "count": 10,
     "region": {
       "x_fraction": [0.35, 0.65],
       "y_fraction": [0.3, 0.4]
     },
     "min_distance_between_drones": 50.0,
     "weapon_distribution": {
-      "breach": 0.2,
-      "structural": 0.5,
+      "breach": 0.3,
+      "structural": 0.4,
       "systems": 0.3
     }
   },
@@ -31,8 +31,7 @@
     "min_distance_between_targets": 25.0
   },
   "environment": {
-    "max_steps": 1000,
-    "scenario_id": "oracle"
+    "max_steps": 1000
   },
   "policy": {
     "type": "oracle",

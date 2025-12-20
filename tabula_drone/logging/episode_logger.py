@@ -212,6 +212,7 @@ class EpisodeLogger:
             "world_size": list(env.world_size),
             "max_steps": env.max_steps,
             "scenario_id": env.scenario_id,
+            "policy_type": env.policy_type,
             "class_attribute_mapping": dict(env.class_attribute_mapping),
             "weapon_damage_profile_mapping": dict(env.weapon_damage_profile_mapping),
         }

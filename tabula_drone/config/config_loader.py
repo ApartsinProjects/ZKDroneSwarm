@@ -8,6 +8,7 @@ that reads and validates JSON configuration files.
 import json
 import os
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Dict, List, Tuple
 
 
@@ -161,15 +162,17 @@ def _parse_targets_config(data: dict) -> TargetsConfig:
 
 def _parse_environment_config(data: dict) -> EnvironmentConfig:
     """Parse environment configuration section."""
-    _validate_required_keys(data, ["max_steps", "scenario_id"], "environment")
+    _validate_required_keys(data, ["max_steps"], "environment")
     
     max_steps = data["max_steps"]
     if not isinstance(max_steps, int) or max_steps <= 0:
         raise ValueError("environment.max_steps must be a positive integer")
     
+    scenario_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+    
     return EnvironmentConfig(
         max_steps=max_steps,
-        scenario_id=str(data["scenario_id"])
+        scenario_id=scenario_id
     )
 
 

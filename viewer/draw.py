@@ -64,8 +64,8 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     ax.set_ylabel("Y (meters)")
     
     seed = state.get("seed")
-    scenario_id = state.get("scenario_id", "unknown")
-    title = f"World State (Seed: {seed} | Policy: {scenario_id})"
+    policy_type = state.get("policy_type", "unknown")
+    title = f"World State (Seed: {seed} | Policy: {policy_type})"
     ax.set_title(title)
 
 

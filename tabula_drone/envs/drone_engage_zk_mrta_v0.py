@@ -56,6 +56,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         scenario_id: str = "zk_mrta_baseline",
         class_attribute_mapping: Dict[str, Dict[str, float]] = None,
         weapon_damage_profile_mapping: Dict[str, Dict[str, float]] = None,
+        policy_type: str = "random",
     ):
         """
         Initialize ZK-MRTA environment.
@@ -81,6 +82,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.world_size = world_size
         self.max_steps = max_steps
         self.scenario_id = scenario_id
+        self.policy_type = policy_type
         
         # Validate and store mappings (required)
         if class_attribute_mapping is None:

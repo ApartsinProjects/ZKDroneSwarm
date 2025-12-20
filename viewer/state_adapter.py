@@ -89,6 +89,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     active_targets_history = extract_active_targets_history(episode_data)
     seed = episode_data.get("rng_seed", None)
     scenario_id = config.get("scenario_id", None)
+    policy_type = config.get("policy_type", None)
     
     return {
         "world_size": world_size,
@@ -102,6 +103,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
         "active_targets_history": active_targets_history,
         "seed": seed,
         "scenario_id": scenario_id,
+        "policy_type": policy_type,
     }
 
 
