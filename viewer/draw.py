@@ -83,7 +83,7 @@ def display_viewer(
         episode_files: Optional list of episode file paths for navigation (sorted descending)
         current_index: Index of current episode in episode_files (0 = newest)
     """
-    fig = plt.figure(figsize=(14, 7))
+    fig = plt.figure(figsize=(12, 7))
     
     map_width_inches = 6.5
     gap_inches = 0.05
@@ -123,8 +123,9 @@ def display_viewer(
     results_panel.render(state)
     
     tab_container.add_tab("Info", info_panel)
-    tab_container.add_tab("Actions", actions_panel)
     tab_container.add_tab("Results", results_panel)
+    tab_container.add_tab("Actions", actions_panel)
+
     
     def _apply_layout(event=None):
         map_left_inner, map_width_inner, right_panel_left_inner, right_panel_width_inner = _layout_values()

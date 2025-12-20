@@ -117,7 +117,7 @@ class InfoPanel(BaseComponent):
 
     def _render_drone_types(self, y_start: float, line_height: float) -> float:
         """
-        Render drone types with their damage profiles.
+        Render drone types with their damage profiles in a table format.
 
         Args:
             y_start: Starting y position.
@@ -129,29 +129,89 @@ class InfoPanel(BaseComponent):
         y_pos = y_start
 
         self.ax.text(
-            0.0, y_pos, "Drone Types",
+            0.0, y_pos, "Drone Weapon Types",
             ha='left', va='top', fontsize=10, fontweight='bold', color='#333333',
             transform=self.ax.transAxes
         )
         y_pos -= line_height
 
-        for weapon_type in sorted(self.weapon_damage_profile_mapping.keys()):
-            attrs = self.weapon_damage_profile_mapping[weapon_type]
-            attr_str = ", ".join(
-                f"{k}={v}" for k, v in sorted(attrs.items())
-            )
+        if not self.weapon_damage_profile_mapping:
+            return y_pos
+
+        # Get weapon types for column headers and attribute names for rows
+        weapon_types = sorted(self.weapon_damage_profile_mapping.keys())
+        first_weapon = next(iter(self.weapon_damage_profile_mapping.values()))
+        attr_names = sorted(first_weapon.keys())
+
+        # Render header row: Attribute | weapon1 | weapon2 | weapon3
+        col_positions = [0.02, 0.18, 0.36, 0.54]
+        self.ax.text(
+            col_positions[0], y_pos, "Attribute",
+            ha='left', va='top', fontsize=8, fontweight='bold', color='#444444',
+            transform=self.ax.transAxes
+        )
+        for i, weapon in enumerate(weapon_types):
             self.ax.text(
-                0.02, y_pos, f"{weapon_type}: {attr_str}",
+                col_positions[i + 1], y_pos, weapon,
+                ha='left', va='top', fontsize=8, fontweight='bold', color='#444444',
+                transform=self.ax.transAxes
+            )
+        y_pos -= line_height
+
+        # Render data rows: one row per attribute
+        for attr in attr_names:
+            abbrev = self._abbreviate_attr(attr)
+            self.ax.text(
+                col_positions[0], y_pos, abbrev,
                 ha='left', va='top', fontsize=9, color='#555555',
                 transform=self.ax.transAxes
             )
+            for i, weapon in enumerate(weapon_types):
+                value = self.weapon_damage_profile_mapping[weapon].get(attr, 0.0)
+                self.ax.text(
+                    col_positions[i + 1], y_pos, f"{value:.0f}",
+                    ha='left', va='top', fontsize=9, color='#555555',
+                    transform=self.ax.transAxes
+                )
             y_pos -= line_height
+
+        # Render count row: how many drones of each weapon type
+        self.ax.text(
+            col_positions[0], y_pos, "count",
+            ha='left', va='top', fontsize=9, fontweight='bold', color='#555555',
+            transform=self.ax.transAxes
+        )
+        for i, weapon in enumerate(weapon_types):
+            count = self.drone_types.get(weapon, 0)
+            self.ax.text(
+                col_positions[i + 1], y_pos, str(count),
+                ha='left', va='top', fontsize=9, fontweight='bold', color='#555555',
+                transform=self.ax.transAxes
+            )
+        y_pos -= line_height
 
         return y_pos
 
+    def _abbreviate_attr(self, attr_name: str) -> str:
+        """
+        Abbreviate attribute names for table column headers.
+
+        Args:
+            attr_name: Full attribute name.
+
+        Returns:
+            Abbreviated name.
+        """
+        abbreviations = {
+            "structural_integrity": "struct",
+            "envelope_integrity": "envelope",
+            "utilities_lifesafety": "util/life",
+        }
+        return abbreviations.get(attr_name, attr_name[:8])
+
     def _render_target_classes(self, y_start: float, line_height: float) -> float:
         """
-        Render target classes with their attribute profiles.
+        Render target classes with their attribute profiles in a table format.
 
         Args:
             y_start: Starting y position.
@@ -169,17 +229,60 @@ class InfoPanel(BaseComponent):
         )
         y_pos -= line_height
 
-        for class_type in sorted(self.class_attribute_mapping.keys()):
-            attrs = self.class_attribute_mapping[class_type]
-            attr_str = ", ".join(
-                f"{k}={v}" for k, v in sorted(attrs.items())
-            )
+        if not self.class_attribute_mapping:
+            return y_pos
+
+        # Get class types for column headers and attribute names for rows
+        class_types = sorted(self.class_attribute_mapping.keys())
+        first_class = next(iter(self.class_attribute_mapping.values()))
+        attr_names = sorted(first_class.keys())
+
+        # Render header row: Attribute | A | B | C
+        col_positions = [0.02, 0.18, 0.36, 0.54]
+        self.ax.text(
+            col_positions[0], y_pos, "Attribute",
+            ha='left', va='top', fontsize=8, fontweight='bold', color='#444444',
+            transform=self.ax.transAxes
+        )
+        for i, class_type in enumerate(class_types):
             self.ax.text(
-                0.02, y_pos, f"{class_type}: {attr_str}",
+                col_positions[i + 1], y_pos, class_type,
+                ha='left', va='top', fontsize=8, fontweight='bold', color='#444444',
+                transform=self.ax.transAxes
+            )
+        y_pos -= line_height
+
+        # Render data rows: one row per attribute
+        for attr in attr_names:
+            abbrev = self._abbreviate_attr(attr)
+            self.ax.text(
+                col_positions[0], y_pos, abbrev,
                 ha='left', va='top', fontsize=9, color='#555555',
                 transform=self.ax.transAxes
             )
+            for i, class_type in enumerate(class_types):
+                value = self.class_attribute_mapping[class_type].get(attr, 0.0)
+                self.ax.text(
+                    col_positions[i + 1], y_pos, f"{value:.0f}",
+                    ha='left', va='top', fontsize=9, color='#555555',
+                    transform=self.ax.transAxes
+                )
             y_pos -= line_height
+
+        # Render count row: how many targets of each class type
+        self.ax.text(
+            col_positions[0], y_pos, "count",
+            ha='left', va='top', fontsize=9, fontweight='bold', color='#555555',
+            transform=self.ax.transAxes
+        )
+        for i, class_type in enumerate(class_types):
+            count = self.target_classes.get(class_type, 0)
+            self.ax.text(
+                col_positions[i + 1], y_pos, str(count),
+                ha='left', va='top', fontsize=9, fontweight='bold', color='#555555',
+                transform=self.ax.transAxes
+            )
+        y_pos -= line_height
 
         return y_pos
 
