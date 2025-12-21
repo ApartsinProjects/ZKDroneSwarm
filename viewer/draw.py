@@ -14,13 +14,18 @@ from viewer.state_adapter import load_episode, extract_initial_state
 
 # Color schemes
 WEAPON_COLORS = {
-    "light": "#3498db",    # Blue
-    "medium": "#2ecc71",   # Green
-    "heavy": "#e74c3c",    # Red
-    "unknown": "#95a5a6",  # Gray
+    "breach": "#e74c3c",    # Red
+    "structural": "#2eaa71",   # Green
+    "systems": "#3498db",    # Blue
+    "unknown": "#9370DB",  # Medium Purple (fallback)
 }
 
-TARGET_COLOR = "#9370DB"  # Medium Purple (all targets same color)
+TARGET_COLORS = {
+    "A": "#1a5276",    # Dark Blue
+    "B": "#1e8449",    # Dark Green
+    "C": "#922b21",    # Dark Red
+    "unknown": "#5d6d7e",  # Dark Gray (fallback)
+}
 
 
 def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
@@ -49,9 +54,11 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     
     for target in targets:
         x, y = target["position"]
-        ax.scatter(x, y, s=40, c=TARGET_COLOR, marker="o", zorder=10)
-        class_type = target.get("class_type", "")
-        ax.text(x, y + 12, class_type, fontsize=7, ha='center', va='bottom', zorder=12)
+        class_type = target.get("class_type", "unknown")
+        color = TARGET_COLORS.get(class_type, TARGET_COLORS["unknown"])
+        ax.scatter(x, y, s=40, c=color, marker="o", zorder=10)
+        hp = target.get("hp", 0)
+        ax.text(x, y + 12, f"{hp:.0f}", fontsize=7, ha='center', va='bottom', zorder=12)
     
     for drone in drones:
         x, y = drone["position"]

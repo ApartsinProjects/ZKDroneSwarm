@@ -19,7 +19,7 @@
   "targets": {
     "count": 25,
     "region": {
-      "x_fraction": [0.25, 0.75],
+      "x_fraction": [0.1, 0.9],
       "y_fraction": [0.5, 0.75]
     },
     "class_distribution": {

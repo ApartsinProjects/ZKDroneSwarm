@@ -68,14 +68,19 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     # Extract targets
     target_positions = scenario.get("target_positions", [])
     target_classes = scenario.get("target_classes", [])
+    class_attribute_mapping = config.get("class_attribute_mapping", {})
     targets = []
     for i, pos in enumerate(target_positions):
         target_id = f"target_{i}"
         class_type = target_classes[i] if i < len(target_classes) else "unknown"
+        # Calculate initial HP as sum of all integrity attributes
+        attributes = class_attribute_mapping.get(class_type, {})
+        hp = sum(attributes.values()) if attributes else 0.0
         targets.append({
             "id": target_id,
             "position": tuple(pos),
             "class_type": class_type,
+            "hp": hp,
         })
     
     # Extract class attribute mapping
