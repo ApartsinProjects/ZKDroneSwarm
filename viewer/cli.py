@@ -4,6 +4,7 @@ Command-line interface for TabulaDrone Episode Viewer.
 
 import argparse
 import glob
+import json
 import os
 import sys
 
@@ -13,12 +14,30 @@ from viewer.draw import display_viewer
 LOGS_DIR = "logs"
 
 
+def _get_episode_timestamp(file_path: str) -> str:
+    """
+    Extract timestamp from episode log file.
+    
+    Args:
+        file_path: Path to episode JSON file
+        
+    Returns:
+        ISO 8601 timestamp string, or empty string if not found
+    """
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+            return data.get('timestamp', '')
+    except (json.JSONDecodeError, IOError):
+        return ''
+
+
 def find_all_episodes() -> list[str]:
     """
     Find all episode log files in the logs directory.
     
     Returns:
-        List of episode file paths sorted descending by filename (newest first)
+        List of episode file paths sorted descending by timestamp (newest first)
         
     Raises:
         SystemExit: If logs directory doesn't exist or contains no episodes
@@ -34,8 +53,8 @@ def find_all_episodes() -> list[str]:
         print(f"Error: No episode files found in '{LOGS_DIR}'.", file=sys.stderr)
         sys.exit(1)
     
-    # Sort descending by filename (contains timestamp)
-    episode_files.sort(reverse=True)
+    # Sort descending by internal timestamp field (newest first)
+    episode_files.sort(key=_get_episode_timestamp, reverse=True)
     return episode_files
 
 
