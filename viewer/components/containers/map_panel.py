@@ -236,6 +236,12 @@ class MapPanel:
         
         self.map_ax.clear()
         self._render_map(updated_state)
+        
+        actions = step_data.get("action", {})
+        if actions:
+            from viewer.draw import draw_engagements
+            draw_engagements(self.map_ax, self.state["drones"], updated_targets, actions)
+        
         self.fig.canvas.draw_idle()
         
         self.current_step += 1

@@ -29,6 +29,55 @@ TARGET_COLORS = {
 }
 
 
+ENGAGEMENT_COLOR = "#ff7f0e"  # Orange
+
+
+def draw_engagements(
+    ax: plt.Axes,
+    drones: list[Dict[str, Any]],
+    targets: list[Dict[str, Any]],
+    actions: Dict[str, int]
+) -> None:
+    """
+    Draw engagement visuals: dashed line from drone to target + orange circle at target.
+    
+    Args:
+        ax: The matplotlib axes to draw on
+        drones: List of drone dicts with 'id' and 'position'
+        targets: List of target dicts with 'position'
+        actions: Dict mapping drone_id to target_index
+    """
+    for drone_id, target_index in actions.items():
+        drone_idx = int(drone_id.split("_")[1])
+        if drone_idx >= len(drones) or target_index >= len(targets):
+            continue
+        
+        drone_pos = drones[drone_idx]["position"]
+        target_pos = targets[target_index]["position"]
+        
+        ax.plot(
+            [drone_pos[0], target_pos[0]],
+            [drone_pos[1], target_pos[1]],
+            linestyle="--",
+            color=ENGAGEMENT_COLOR,
+            linewidth=.7,
+            alpha=0.3,
+            zorder=5
+        )
+        
+        circle = plt.Circle(
+            target_pos,
+            linestyle="--",
+            radius=20,
+            fill=False,
+            edgecolor=ENGAGEMENT_COLOR,
+            linewidth=1,
+            alpha=0.8,
+            zorder=6
+        )
+        ax.add_patch(circle)
+
+
 def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     """
     Render the map view on the given axes.
