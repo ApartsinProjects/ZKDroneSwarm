@@ -5,8 +5,9 @@ This module provides a panel that displays episode summary results including
 total steps, success status, targets destroyed, ammo used, and per-drone rewards.
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Tuple
 import matplotlib.pyplot as plt
+from matplotlib.text import Text
 from viewer.components.base import BaseComponent
 
 
@@ -30,6 +31,9 @@ class ResultsPanel(BaseComponent):
         self.hp_history: List[float] = []
         self.active_targets_history: List[int] = []
         self.chart_ax: Optional[plt.Axes] = None
+        self._reward_items: List[Tuple[str, float]] = []
+        self._pick_cid: Optional[int] = None
+        self._more_text: Optional[Text] = None
 
     def process_data(self, data: Dict[str, Any]) -> None:
         """
@@ -48,6 +52,10 @@ class ResultsPanel(BaseComponent):
         
         Layout: Upper ~45% for text metrics, lower ~55% for HP chart.
         """
+        if self._pick_cid is not None:
+            self.fig.canvas.mpl_disconnect(self._pick_cid)
+            self._pick_cid = None
+        
         if self.chart_ax is not None:
             self.chart_ax.remove()
             self.chart_ax = None
@@ -68,6 +76,8 @@ class ResultsPanel(BaseComponent):
         self._render_metrics(y_pos, line_height)
         
         self._render_hp_chart()
+        
+        self._pick_cid = self.fig.canvas.mpl_connect('pick_event', self._on_rewards_click)
 
     def _render_no_results(self) -> None:
         """
@@ -148,21 +158,8 @@ class ResultsPanel(BaseComponent):
         )
 
         total_reward = self.summary.get("total_reward", {})
-        reward_items = sorted(total_reward.items())
-        total_reward_sum = 0.0
-        if len(reward_items) > 0:
-            drone_id, reward = reward_items[0]
-            self.ax.text(
-                col2_x + 0.02, y_pos, f"{drone_id}:",
-                ha='left', va='top', fontsize=9, color='#555555',
-                transform=self.ax.transAxes
-            )
-            self.ax.text(
-                col2_x + 0.25, y_pos, f"{reward:.1f}",
-                ha='left', va='top', fontsize=9, color='#555555',
-                transform=self.ax.transAxes
-            )
-            total_reward_sum += reward
+        self._reward_items = sorted(total_reward.items())
+        self._render_rewards_column(col2_x, y_pos, line_height)
         y_pos -= line_height
 
         metrics = self.summary.get("metrics", {})
@@ -172,20 +169,6 @@ class ResultsPanel(BaseComponent):
             ha='left', va='top', fontsize=9, color='#555555',
             transform=self.ax.transAxes
         )
-
-        if len(reward_items) > 1:
-            drone_id, reward = reward_items[1]
-            self.ax.text(
-                col2_x + 0.02, y_pos, f"{drone_id}:",
-                ha='left', va='top', fontsize=9, color='#555555',
-                transform=self.ax.transAxes
-            )
-            self.ax.text(
-                col2_x + 0.25, y_pos, f"{reward:.1f}",
-                ha='left', va='top', fontsize=9, color='#555555',
-                transform=self.ax.transAxes
-            )
-            total_reward_sum += reward
         y_pos -= line_height
 
         total_ammo = metrics.get("total_ammo_used", 0)
@@ -194,24 +177,140 @@ class ResultsPanel(BaseComponent):
             ha='left', va='top', fontsize=9, color='#555555',
             transform=self.ax.transAxes
         )
-
-        for i, (drone_id, reward) in enumerate(reward_items[2:], start=2):
-            total_reward_sum += reward
-        
-        self.ax.text(
-            col2_x + 0.02, y_pos, "Total:",
-            ha='left', va='top', fontsize=9, fontweight='bold', color='#333333',
-            transform=self.ax.transAxes
-        )
-        total_reward_sum = sum(r for _, r in reward_items)
-        self.ax.text(
-            col2_x + 0.25, y_pos, f"{total_reward_sum:.1f}",
-            ha='left', va='top', fontsize=9, fontweight='bold', color='#333333',
-            transform=self.ax.transAxes
-        )
         y_pos -= line_height
 
         return y_pos
+
+    def _render_rewards_column(self, col_x: float, y_start: float, line_height: float) -> None:
+        """
+        Render the rewards column with drone rewards in compact horizontal grid.
+
+        Shows up to MAX_VISIBLE_DRONES in grid format. If more exist, shows
+        a clickable "+ X more" text that opens a popup with all rewards.
+
+        Args:
+            col_x: X position for the column.
+            y_start: Starting y position.
+            line_height: Height per line.
+        """
+        MAX_VISIBLE_DRONES = 8
+        ITEMS_PER_LINE = 4
+        
+        y_pos = y_start
+        reward_items = self._reward_items
+        total_reward_sum = sum(r for _, r in reward_items)
+        
+        visible_items = reward_items[:MAX_VISIBLE_DRONES]
+        remaining_count = len(reward_items) - MAX_VISIBLE_DRONES
+        
+        for i, (drone_id, reward) in enumerate(visible_items):
+            col_offset = (i % ITEMS_PER_LINE) * 0.12
+            if i > 0 and i % ITEMS_PER_LINE == 0:
+                y_pos -= line_height * 0.8
+            
+            label = f"{drone_id}:{reward:.0f}"
+            self.ax.text(
+                col_x + 0.02 + col_offset, y_pos, label,
+                ha='left', va='top', fontsize=8, color='#555555',
+                transform=self.ax.transAxes
+            )
+        
+        if len(visible_items) > 0:
+            y_pos -= line_height * 0.8
+        
+        if remaining_count > 0:
+            more_text = f"+ {remaining_count} more ▶"
+            self._more_text = self.ax.text(
+                col_x + 0.02, y_pos, more_text,
+                ha='left', va='top', fontsize=8, color='#2980b9',
+                transform=self.ax.transAxes,
+                picker=True,
+                bbox=dict(facecolor='#ecf0f1', edgecolor='none', pad=1)
+            )
+            y_pos -= line_height * 0.8
+        else:
+            self._more_text = None
+        
+        self.ax.text(
+            col_x + 0.02, y_pos, f"Total: {total_reward_sum:.1f}",
+            ha='left', va='top', fontsize=9, fontweight='bold', color='#333333',
+            transform=self.ax.transAxes
+        )
+
+    def _on_rewards_click(self, event) -> None:
+        """
+        Handle pick event on the rewards "more" text.
+
+        Args:
+            event: The matplotlib pick event.
+        """
+        if event.artist is not self._more_text:
+            return
+        if self._more_text is None:
+            return
+        self._show_rewards_popup()
+
+    def _show_rewards_popup(self) -> None:
+        """
+        Show a popup window with the full rewards list.
+        
+        Creates a new figure window displaying all drone rewards in a table format.
+        """
+        if not self._reward_items:
+            return
+        
+        popup_fig = plt.figure(figsize=(4, 6))
+        popup_fig.canvas.manager.set_window_title("All Drone Rewards")
+        popup_ax = popup_fig.add_subplot(111)
+        popup_ax.axis('off')
+        
+        popup_ax.text(
+            0.5, 0.95, "All Drone Rewards",
+            ha='center', va='top', fontsize=12, fontweight='bold',
+            transform=popup_ax.transAxes
+        )
+        
+        y_pos = 0.88
+        line_height = 0.04
+        
+        popup_ax.text(
+            0.2, y_pos, "Drone", ha='left', va='top', fontsize=10, fontweight='bold',
+            transform=popup_ax.transAxes
+        )
+        popup_ax.text(
+            0.6, y_pos, "Reward", ha='left', va='top', fontsize=10, fontweight='bold',
+            transform=popup_ax.transAxes
+        )
+        y_pos -= line_height * 1.5
+        
+        for drone_id, reward in self._reward_items:
+            popup_ax.text(
+                0.2, y_pos, str(drone_id),
+                ha='left', va='top', fontsize=9, color='#555555',
+                transform=popup_ax.transAxes
+            )
+            popup_ax.text(
+                0.6, y_pos, f"{reward:.1f}",
+                ha='left', va='top', fontsize=9, color='#555555',
+                transform=popup_ax.transAxes
+            )
+            y_pos -= line_height
+        
+        y_pos -= line_height * 0.5
+        total = sum(r for _, r in self._reward_items)
+        popup_ax.text(
+            0.2, y_pos, "Total",
+            ha='left', va='top', fontsize=10, fontweight='bold', color='#333333',
+            transform=popup_ax.transAxes
+        )
+        popup_ax.text(
+            0.6, y_pos, f"{total:.1f}",
+            ha='left', va='top', fontsize=10, fontweight='bold', color='#333333',
+            transform=popup_ax.transAxes
+        )
+        
+        popup_fig.tight_layout()
+        popup_fig.show()
 
     def _render_hp_chart(self) -> None:
         """
@@ -263,6 +362,12 @@ class ResultsPanel(BaseComponent):
         """
         Clear the panel and remove chart axes if present.
         """
+        if self._pick_cid is not None:
+            self.fig.canvas.mpl_disconnect(self._pick_cid)
+            self._pick_cid = None
+        self._more_text = None
+        self._reward_items = []
+        
         self.ax.clear()
         if self.chart_ax is not None:
             self.chart_ax.remove()
