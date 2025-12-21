@@ -96,6 +96,8 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     scenario_id = config.get("scenario_id", None)
     policy_type = config.get("policy_type", None)
     
+    steps = episode_data.get("steps", [])
+    
     return {
         "world_size": world_size,
         "drones": drones,
@@ -109,6 +111,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
         "seed": seed,
         "scenario_id": scenario_id,
         "policy_type": policy_type,
+        "steps": steps,
     }
 
 

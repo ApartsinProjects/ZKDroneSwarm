@@ -56,8 +56,21 @@ class MapPanel:
         self.next_button: Optional[Button] = None
         self.info_text: Optional[Text] = None
         
+        self.steps: List[Dict[str, Any]] = state.get("steps", [])
+        self.current_step: int = 0
+        self.is_playing: bool = False
+        self.timer: Optional[Any] = None
+        self.play_ax: Optional[plt.Axes] = None
+        self.pause_ax: Optional[plt.Axes] = None
+        self.play_button: Optional[Button] = None
+        self.pause_button: Optional[Button] = None
+        self.step_text: Optional[Text] = None
+        
         if episode_files is not None:
             self._create_nav_buttons()
+        
+        if self.steps:
+            self._create_playback_buttons()
     
     def _create_map_axes(self) -> plt.Axes:
         """
@@ -120,6 +133,113 @@ class MapPanel:
         )
         
         self._update_button_states()
+    
+    def _create_playback_buttons(self) -> None:
+        """
+        Create playback buttons (Play/Pause) below the map.
+        """
+        x, y, width, height = self.region
+        
+        button_width = 0.05
+        button_height = 0.04
+        button_spacing = 0.01
+        button_y = 0.03
+        
+        play_x = x + 0.02
+        pause_x = play_x + button_width + button_spacing
+        
+        self.play_ax = self.fig.add_axes([play_x, button_y, button_width, button_height])
+        self.play_button = Button(self.play_ax, "Play")
+        self.play_button.on_clicked(self._on_play)
+        
+        self.pause_ax = self.fig.add_axes([pause_x, button_y, button_width, button_height])
+        self.pause_button = Button(self.pause_ax, "Pause")
+        self.pause_button.on_clicked(self._on_pause)
+        
+        step_text_x = play_x + button_width + button_spacing / 2
+        step_text_y = button_y + button_height + 0.005
+        self.step_text = self.fig.text(
+            step_text_x, step_text_y,
+            f"Step 0 of {len(self.steps)}",
+            ha='center', va='bottom', fontsize=9
+        )
+    
+    def _update_step_text(self) -> None:
+        """
+        Update the step indicator text.
+        """
+        if self.step_text and self.steps:
+            self.step_text.set_text(f"Step {self.current_step} of {len(self.steps)}")
+    
+    def _on_play(self, event) -> None:
+        """
+        Handle Play button click. Starts timer-based playback.
+        """
+        if self.is_playing:
+            return
+        
+        if self.current_step >= len(self.steps):
+            self.current_step = 0
+        
+        self.is_playing = True
+        self.timer = self.fig.canvas.new_timer(interval=300)
+        self.timer.add_callback(self._timer_callback)
+        self.timer.start()
+    
+    def _on_pause(self, event) -> None:
+        """
+        Handle Pause button click. Stops timer-based playback.
+        """
+        if not self.is_playing:
+            return
+        
+        self.is_playing = False
+        if self.timer:
+            self.timer.stop()
+            self.timer = None
+    
+    def _timer_callback(self) -> None:
+        """
+        Timer callback that advances playback by one step.
+        """
+        if self.current_step >= len(self.steps):
+            self._on_pause(None)
+            return
+        
+        self._advance_step()
+    
+    def _advance_step(self) -> None:
+        """
+        Advance to the next step and update the map.
+        
+        Reads target_hps from current step, updates target HP values,
+        and refreshes the map. Destroyed targets (HP <= 0) get gray color.
+        """
+        if not self.steps or self.current_step >= len(self.steps):
+            return
+        
+        step_data = self.steps[self.current_step]
+        info = step_data.get("info", {})
+        target_hps = info.get("target_hps", [])
+        
+        updated_targets = []
+        for i, target in enumerate(self.state["targets"]):
+            new_target = dict(target)
+            if i < len(target_hps):
+                new_target["hp"] = target_hps[i]
+                if target_hps[i] <= 0:
+                    new_target["class_type"] = "destroyed"
+            updated_targets.append(new_target)
+        
+        updated_state = dict(self.state)
+        updated_state["targets"] = updated_targets
+        
+        self.map_ax.clear()
+        self._render_map(updated_state)
+        self.fig.canvas.draw_idle()
+        
+        self.current_step += 1
+        self._update_step_text()
     
     def _on_prev(self, event) -> None:
         """
@@ -192,6 +312,12 @@ class MapPanel:
         Args:
             new_state: New state dict from extract_initial_state().
         """
+        if self.is_playing:
+            self._on_pause(None)
+        
+        self.current_step = 0
+        self.steps = new_state.get("steps", [])
+        
         self.state = new_state
         self.map_ax.clear()
         self._render_map(new_state)

@@ -25,6 +25,7 @@ TARGET_COLORS = {
     "B": "#1e8449",    # Dark Green
     "C": "#922b21",    # Dark Red
     "unknown": "#5d6d7e",  # Dark Gray (fallback)
+    "destroyed": "#808080",  # Gray (destroyed target)
 }
 
 
