@@ -49,6 +49,36 @@ def print_episode_summary(
 PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy]
 
 
+def create_policy(
+    policy_type: str,
+    config: Any,
+    drones_config: List[Dict[str, Any]],
+) -> PolicyType:
+    """
+    Factory function to create a policy instance.
+    
+    Args:
+        policy_type: Type of policy ("oracle" or "random")
+        config: ScenarioConfig with seed and policy settings
+        drones_config: List of drone configurations for weapon profiles
+    
+    Returns:
+        Policy instance (OracleTimeToKillPolicy or RandomPolicy)
+    """
+    if policy_type == "oracle":
+        agent_weapon_profiles = {
+            f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
+            for idx, drone_cfg in enumerate(drones_config)
+        }
+        return OracleTimeToKillPolicy(
+            agent_weapon_profiles=agent_weapon_profiles,
+            seed=config.seed,
+            allow_noop=config.policy.allow_noop,
+        )
+    else:
+        return RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
+
+
 def run_episode(
     env: DroneEngageZKMRTA,
     policy: PolicyType,
@@ -214,26 +244,12 @@ def main():
         scenario_id=config.environment.scenario_id,
         class_attribute_mapping=config.mappings.class_attribute_mapping,
         weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-        policy_type=config.policy.type,
+        policy_type=",".join(config.policy.type),
     )
     
-    # Create policy based on config type
-    if config.policy.type == "oracle":
-        # Build per-agent weapon profiles from drone configs
-        agent_weapon_profiles = {
-            f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
-            for idx, drone_cfg in enumerate(drones_config)
-        }
-        policy: PolicyType = OracleTimeToKillPolicy(
-            agent_weapon_profiles=agent_weapon_profiles,
-            seed=config.seed,
-            allow_noop=config.policy.allow_noop,
-        )
-    else:
-        policy = RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
-    
-    # Run episodes
+    # Run episodes for each policy type
     num_episodes = config.execution.num_episodes
+    all_metrics = []
     
     print("\n" + "="*60)
     print("ZK-MRTA ENVIRONMENT DEMO")
@@ -244,46 +260,58 @@ def main():
     print(f"World Size: {env.world_size}")
     print(f"Max Steps: {env.max_steps}")
     print(f"Random Seed: {config.seed}")
-    print(f"Policy: {policy.__class__.__name__}")
-    print(f"Episodes: {num_episodes}")
+    print(f"Policy Types: {config.policy.type}")
+    print(f"Episodes per Policy: {num_episodes}")
     print(f"Weapon Damage Profiles: {config.mappings.weapon_damage_profile_mapping}")
     print(f"Target Class Attributes: {config.mappings.class_attribute_mapping}")
     print("="*60)
-    all_metrics = []
-
-    logger = EpisodeLogger(output_dir=config.logging.output_dir)
-
-    for episode_num in range(1, num_episodes + 1):
-        metrics = run_episode(
-            env=env,
-            policy=policy,
-            episode_num=episode_num,
-            verbose=config.execution.verbose,
-            logger=logger,
-            seed=config.seed
-        )
-        all_metrics.append(metrics)
     
-    # Aggregate statistics across episodes
+    for policy_type in config.policy.type:
+        print(f"\n>>> Running policy: {policy_type}")
+        
+        policy = create_policy(policy_type, config, drones_config)
+        logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
+        
+        for episode_num in range(1, num_episodes + 1):
+            metrics = run_episode(
+                env=env,
+                policy=policy,
+                episode_num=episode_num,
+                verbose=config.execution.verbose,
+                logger=logger,
+                seed=config.seed
+            )
+            metrics["policy_type"] = policy_type
+            all_metrics.append(metrics)
+    
+    # Aggregate statistics across all episodes (all policies)
+    total_episodes = len(all_metrics)
     print("\n" + "="*60)
     print("AGGREGATE STATISTICS")
     print("="*60)
-    print(f"Total Episodes: {num_episodes}")
+    print(f"Total Episodes: {total_episodes} ({num_episodes} per policy × {len(config.policy.type)} policies)")
     
-    avg_steps = sum(m["steps"] for m in all_metrics) / num_episodes
-    avg_targets = sum(m["targets_neutralized"] for m in all_metrics) / num_episodes
-    avg_ammo = sum(m["total_ammo_used"] for m in all_metrics) / num_episodes
-    avg_overkill = sum(m["total_overkill"] for m in all_metrics) / num_episodes
+    avg_steps = sum(m["steps"] for m in all_metrics) / total_episodes
+    avg_targets = sum(m["targets_neutralized"] for m in all_metrics) / total_episodes
+    avg_ammo = sum(m["total_ammo_used"] for m in all_metrics) / total_episodes
+    avg_overkill = sum(m["total_overkill"] for m in all_metrics) / total_episodes
     
     print(f"Average Steps:              {avg_steps:.1f}")
     print(f"Average Targets Neutralized: {avg_targets:.1f}")
     print(f"Average Ammo Used:          {avg_ammo:.1f}")
     print(f"Average Overkill Damage:    {avg_overkill:.1f}")
     
+    # Per-policy statistics
+    for policy_type in config.policy.type:
+        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
+        print(f"\n  Policy '{policy_type}':")
+        print(f"    Avg Steps: {sum(m['steps'] for m in policy_metrics) / len(policy_metrics):.1f}")
+        print(f"    Avg Targets: {sum(m['targets_neutralized'] for m in policy_metrics) / len(policy_metrics):.1f}")
+    
     # Per-agent statistics
     print(f"\nPer-Agent Average Rewards:")
     for agent_id in env.agents:
-        avg_reward = sum(m["agent_rewards"][agent_id] for m in all_metrics) / num_episodes
+        avg_reward = sum(m["agent_rewards"][agent_id] for m in all_metrics) / total_episodes
         print(f"  {agent_id}: {avg_reward:.2f}")
     
     print("="*60)

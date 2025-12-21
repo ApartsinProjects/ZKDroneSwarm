@@ -48,14 +48,16 @@ class EpisodeLogger:
     
     VERSION = "1.1"
     
-    def __init__(self, output_dir: str = "logs/"):
+    def __init__(self, output_dir: str = "logs/", policy_type: Optional[str] = None):
         """
         Initialize EpisodeLogger.
         
         Args:
             output_dir: Directory for output JSON files. Created if not exists.
+            policy_type: Policy type identifier for filename (e.g., "oracle", "random").
         """
         self.output_dir = output_dir
+        self.policy_type = policy_type
         self._episode_data: Optional[Dict[str, Any]] = None
         self._steps: List[Dict[str, Any]] = []
         self._episode_id: Optional[str] = None
@@ -149,7 +151,8 @@ class EpisodeLogger:
         os.makedirs(self.output_dir, exist_ok=True)
         
         timestamp_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        filename = f"episode_{timestamp_str}_{self._episode_id}.json"
+        policy_part = f"{self.policy_type}_" if self.policy_type else ""
+        filename = f"episode_{policy_part}{timestamp_str}_{self._episode_id}.json"
         filepath = os.path.join(self.output_dir, filename)
         
         with open(filepath, "w") as f:
@@ -212,7 +215,7 @@ class EpisodeLogger:
             "world_size": list(env.world_size),
             "max_steps": env.max_steps,
             "scenario_id": env.scenario_id,
-            "policy_type": env.policy_type,
+            "policy_type": self.policy_type if self.policy_type else env.policy_type,
             "class_attribute_mapping": dict(env.class_attribute_mapping),
             "weapon_damage_profile_mapping": dict(env.weapon_damage_profile_mapping),
         }

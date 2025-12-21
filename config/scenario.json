@@ -4,7 +4,7 @@
     "size": [1000.0, 1000.0]
   },
   "drones": {
-    "count": 6,
+    "count": 3,
     "region": {
       "x_fraction": [0.35, 0.65],
       "y_fraction": [0.3, 0.4]
@@ -17,7 +17,7 @@
     }
   },
   "targets": {
-    "count": 30,
+    "count": 9,
     "region": {
       "x_fraction": [0.25, 0.75],
       "y_fraction": [0.5, 0.75]
@@ -34,7 +34,7 @@
     "max_steps": 1000
   },
   "policy": {
-    "type": "oracle",
+    "type": ["oracle", "random"],
     "allow_noop": false
   },
   "execution": {
