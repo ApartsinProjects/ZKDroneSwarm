@@ -106,9 +106,14 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
         x, y = target["position"]
         class_type = target.get("class_type", "unknown")
         color = TARGET_COLORS.get(class_type, TARGET_COLORS["unknown"])
-        ax.scatter(x, y, s=40, c=color, marker="o", zorder=10)
         hp = target.get("hp", 0)
-        ax.text(x, y + 12, f"{hp:.0f}", fontsize=7, ha='center', va='bottom', zorder=12)
+        
+        if class_type == "destroyed" or hp <= 0:
+            circle = plt.Circle((x, y), radius=8, fill=False, edgecolor=TARGET_COLORS["destroyed"], linestyle="--", linewidth=1, zorder=10)
+            ax.add_patch(circle)
+        else:
+            ax.scatter(x, y, s=40, c=color, marker="o", zorder=10)
+            ax.text(x, y + 12, f"{hp:.0f}", fontsize=7, ha='center', va='bottom', zorder=12)
     
     for drone in drones:
         x, y = drone["position"]
