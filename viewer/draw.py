@@ -8,7 +8,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.widgets import Button
 from typing import Dict, Any
 
-from viewer.components import TabContainer, MapPanel, EmptyPanel, InfoPanel, ResultsPanel
+from viewer.components import TabContainer, MapPanel, EmptyPanel, InfoPanel, ResultsPanel, SummaryPanel
 from viewer.state_adapter import load_episode, extract_initial_state
 
 
@@ -89,6 +89,7 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     world_size = state["world_size"]
     drones = state["drones"]
     targets = state["targets"]
+    class_attribute_mapping = state.get("class_attribute_mapping", {})
     
     ax.set_xlim(0, world_size[0])
     ax.set_ylim(0, world_size[1])
@@ -112,8 +113,11 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
             circle = plt.Circle((x, y), radius=8, fill=False, edgecolor=TARGET_COLORS["destroyed"], linestyle="--", linewidth=1, zorder=10)
             ax.add_patch(circle)
         else:
-            ax.scatter(x, y, s=40, c=color, marker="o", zorder=10)
-            ax.text(x, y + 12, f"{hp:.0f}", fontsize=7, ha='center', va='bottom', zorder=12)
+            class_attrs = class_attribute_mapping.get(class_type, {})
+            max_hp = sum(class_attrs.values()) if class_attrs else hp
+            alpha = max(0.3, hp / max_hp) if max_hp > 0 else 1.0
+            ax.scatter(x, y, s=40, c=color, marker="o", alpha=alpha, zorder=10)
+            ax.text(x, y + 12, f"{hp:.0f}", fontsize=7, ha='center', va='bottom', alpha=alpha, zorder=12)
     
     for drone in drones:
         x, y = drone["position"]
@@ -176,8 +180,9 @@ def display_viewer(
     info_panel = InfoPanel(fig, info_ax)
     info_panel.render(state)
     
-    actions_ax = fig.add_axes([right_panel_left, 0.08, right_panel_width, 0.84])
-    actions_panel = EmptyPanel(fig, actions_ax, text="Actions")
+    summary_ax = fig.add_axes([right_panel_left, 0.08, right_panel_width, 0.84])
+    summary_panel = SummaryPanel(fig, summary_ax)
+    summary_panel.render(state)
     
     results_ax = fig.add_axes([right_panel_left, 0.08, right_panel_width, 0.84])
     results_panel = ResultsPanel(fig, results_ax)
@@ -185,7 +190,7 @@ def display_viewer(
     
     tab_container.add_tab("Info", info_panel)
     tab_container.add_tab("Results", results_panel)
-    tab_container.add_tab("Actions", actions_panel)
+    tab_container.add_tab("Summary", summary_panel)
 
     
     def _apply_layout(event=None):
@@ -193,7 +198,7 @@ def display_viewer(
         
         ax_right.set_position([right_panel_left_inner, bottom_margin, right_panel_width_inner, top_margin - bottom_margin])
         
-        for panel_ax in (info_ax, actions_ax, results_ax):
+        for panel_ax in (info_ax, summary_ax, results_ax):
             panel_ax.set_position([right_panel_left_inner, 0.08, right_panel_width_inner, 0.84])
         
         tab_container.tab_region = (right_panel_left_inner, 0.95, right_panel_width_inner, 0.05)
@@ -218,7 +223,7 @@ def display_viewer(
             
             map_panel.refresh(new_state)
             info_panel.render(new_state)
-            actions_panel.render(new_state)
+            summary_panel.render(new_state)
             results_panel.render(new_state)
         except Exception as e:
             print(f"Error loading episode: {e}", file=sys.stderr)
