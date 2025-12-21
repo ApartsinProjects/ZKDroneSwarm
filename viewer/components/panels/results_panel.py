@@ -208,10 +208,16 @@ class ResultsPanel(BaseComponent):
             if i > 0 and i % ITEMS_PER_LINE == 0:
                 y_pos -= line_height * 0.8
             
-            label = f"{drone_id}:{reward:.0f}"
+            x_pos = col_x + 0.02 + col_offset
+            short_id = self._abbreviate_drone_id(drone_id)
             self.ax.text(
-                col_x + 0.02 + col_offset, y_pos, label,
-                ha='left', va='top', fontsize=8, color='#555555',
+                x_pos, y_pos, short_id,
+                ha='left', va='top', fontsize=8, fontweight='normal', color='#333333',
+                transform=self.ax.transAxes
+            )
+            self.ax.text(
+                x_pos + 0.04, y_pos, f"{reward:.0f}",
+                ha='left', va='top', fontsize=8, fontweight='bold', color='#2980b9',
                 transform=self.ax.transAxes
             )
         
@@ -236,6 +242,23 @@ class ResultsPanel(BaseComponent):
             ha='left', va='top', fontsize=9, fontweight='bold', color='#333333',
             transform=self.ax.transAxes
         )
+
+    def _abbreviate_drone_id(self, drone_id: str) -> str:
+        """
+        Abbreviate drone ID for compact display.
+
+        Converts 'drone_0' to 'D0', 'drone_10' to 'D10', etc.
+        Returns original ID if pattern doesn't match.
+
+        Args:
+            drone_id: The full drone identifier.
+
+        Returns:
+            Abbreviated identifier.
+        """
+        if drone_id.startswith("drone_"):
+            return f"D{drone_id[6:]}"
+        return drone_id
 
     def _on_rewards_click(self, event) -> None:
         """
