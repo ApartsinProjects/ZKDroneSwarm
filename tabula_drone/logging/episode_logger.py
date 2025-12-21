@@ -257,9 +257,14 @@ class EpisodeLogger:
         if "overkill" in info:
             step_info["overkill"] = info["overkill"]
         
+        actions_0indexed = {
+            agent_id: action - 1 if action > 0 else action
+            for agent_id, action in actions.items()
+        }
+        
         return {
             "step_num": step_num,
-            "action": dict(actions),
+            "action": actions_0indexed,
             "reward": dict(rewards),
             "terminated": terminated,
             "truncated": truncated,

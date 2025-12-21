@@ -145,18 +145,18 @@ class MapPanel:
         button_spacing = 0.01
         button_y = 0.03
         
-        play_x = x + 0.02
-        pause_x = play_x + button_width + button_spacing
-        
-        self.play_ax = self.fig.add_axes([play_x, button_y, button_width, button_height])
-        self.play_button = Button(self.play_ax, "Play")
-        self.play_button.on_clicked(self._on_play)
+        pause_x = x + 0.02
+        play_x = pause_x + button_width + button_spacing
         
         self.pause_ax = self.fig.add_axes([pause_x, button_y, button_width, button_height])
         self.pause_button = Button(self.pause_ax, "Pause")
         self.pause_button.on_clicked(self._on_pause)
         
-        step_text_x = play_x + button_width + button_spacing / 2
+        self.play_ax = self.fig.add_axes([play_x, button_y, button_width, button_height])
+        self.play_button = Button(self.play_ax, "Play")
+        self.play_button.on_clicked(self._on_play)
+        
+        step_text_x = pause_x + button_width + button_spacing / 2
         step_text_y = button_y + button_height + 0.005
         self.step_text = self.fig.text(
             step_text_x, step_text_y,
@@ -242,11 +242,11 @@ class MapPanel:
             from viewer.draw import draw_engagements
             draw_engagements(self.map_ax, self.state["drones"], updated_targets, actions)
         
-        self.fig.canvas.draw_idle()
-        
         self.current_step += 1
         self._update_step_text()
-    
+        
+        self.fig.canvas.draw()
+
     def _on_prev(self, event) -> None:
         """
         Handle Previous button click.
@@ -323,6 +323,7 @@ class MapPanel:
         
         self.current_step = 0
         self.steps = new_state.get("steps", [])
+        self._update_step_text()
         
         self.state = new_state
         self.map_ax.clear()
