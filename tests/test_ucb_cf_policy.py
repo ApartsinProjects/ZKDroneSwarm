@@ -1,84 +1,67 @@
 """
-Tests for Collaborative Filtering Policy.
+Tests for UCB Collaborative Filtering Policy.
 """
 
 import pytest
 import numpy as np
 
-from tabula_drone.policies.cf_policy import CFPolicy, normalize
+from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 
 
-class TestNormalize:
-    """Test normalize helper function."""
-
-    def test_normalize_unit_vector(self):
-        """Test normalizing already unit vector."""
-        v = np.array([1.0, 0.0])
-        result = normalize(v)
-        assert np.allclose(np.linalg.norm(result), 1.0)
-
-    def test_normalize_arbitrary_vector(self):
-        """Test normalizing arbitrary vector."""
-        v = np.array([3.0, 4.0])
-        result = normalize(v)
-        assert np.allclose(np.linalg.norm(result), 1.0)
-        assert np.allclose(result, [0.6, 0.8])
-
-    def test_normalize_zero_vector(self):
-        """Test normalizing zero vector doesn't crash."""
-        v = np.array([0.0, 0.0])
-        result = normalize(v)
-        # Should return something without NaN
-        assert not np.any(np.isnan(result))
-
-
-class TestCFPolicyInit:
-    """Test CF policy initialization."""
+class TestUCBCFPolicyInit:
+    """Test UCB CF policy initialization."""
 
     def test_basic_init(self):
         """Test basic initialization."""
-        policy = CFPolicy(num_agents=2, num_targets=3)
+        policy = UCBCFPolicy(num_agents=2, num_targets=3)
         assert policy.num_agents == 2
         assert policy.num_targets == 3
         assert policy.latent_dim == 2
         assert policy.learning_rate == 0.1
-        assert policy.epsilon == 0.3
+        assert policy.ucb_c == 2.0
 
     def test_custom_params(self):
         """Test initialization with custom parameters."""
-        policy = CFPolicy(
+        policy = UCBCFPolicy(
             num_agents=4,
             num_targets=8,
             latent_dim=4,
             learning_rate=0.05,
-            epsilon=0.5,
+            ucb_c=1.5,
             seed=42,
         )
         assert policy.num_agents == 4
         assert policy.num_targets == 8
         assert policy.latent_dim == 4
         assert policy.learning_rate == 0.05
-        assert policy.epsilon == 0.5
+        assert policy.ucb_c == 1.5
 
     def test_latent_vectors_shape(self):
         """Test latent vectors have correct shape."""
-        policy = CFPolicy(num_agents=3, num_targets=5, latent_dim=4)
+        policy = UCBCFPolicy(num_agents=3, num_targets=5, latent_dim=4)
         assert policy.agent_lv.shape == (3, 4)
         assert policy.target_lv.shape == (5, 4)
 
     def test_latent_vectors_normalized(self):
         """Test latent vectors are normalized."""
-        policy = CFPolicy(num_agents=3, num_targets=5, seed=42)
+        policy = UCBCFPolicy(num_agents=3, num_targets=5, seed=42)
         for i in range(policy.num_agents):
             assert np.allclose(np.linalg.norm(policy.agent_lv[i]), 1.0)
         for i in range(policy.num_targets):
             assert np.allclose(np.linalg.norm(policy.target_lv[i]), 1.0)
 
+    def test_visit_counts_initialized_to_zero(self):
+        """Test visit counts are initialized to zero."""
+        policy = UCBCFPolicy(num_agents=2, num_targets=3)
+        assert policy.visit_counts.shape == (3,)
+        assert np.all(policy.visit_counts == 0)
+        assert policy.total_steps == 0
+
     def test_determinism_with_seed(self):
         """Test initialization is deterministic with seed."""
-        policy1 = CFPolicy(num_agents=2, num_targets=3, seed=42)
-        policy2 = CFPolicy(num_agents=2, num_targets=3, seed=42)
-        policy3 = CFPolicy(num_agents=2, num_targets=3, seed=99)
+        policy1 = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
+        policy2 = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
+        policy3 = UCBCFPolicy(num_agents=2, num_targets=3, seed=99)
         
         assert np.allclose(policy1.agent_lv, policy2.agent_lv)
         assert np.allclose(policy1.target_lv, policy2.target_lv)
@@ -90,7 +73,7 @@ class TestPredictReward:
 
     def test_predict_reward_range(self):
         """Test predicted reward is in [0, 1] range."""
-        policy = CFPolicy(num_agents=2, num_targets=3, seed=42)
+        policy = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
         for a in range(policy.num_agents):
             for t in range(policy.num_targets):
                 pred = policy.predict_reward(a, t)
@@ -98,7 +81,7 @@ class TestPredictReward:
 
     def test_predict_reward_identical_vectors(self):
         """Test prediction when agent and target vectors are identical."""
-        policy = CFPolicy(num_agents=1, num_targets=1, seed=42)
+        policy = UCBCFPolicy(num_agents=1, num_targets=1, seed=42)
         # Set identical vectors
         policy.agent_lv[0] = np.array([1.0, 0.0])
         policy.target_lv[0] = np.array([1.0, 0.0])
@@ -107,11 +90,58 @@ class TestPredictReward:
 
     def test_predict_reward_opposite_vectors(self):
         """Test prediction when vectors are opposite."""
-        policy = CFPolicy(num_agents=1, num_targets=1, seed=42)
+        policy = UCBCFPolicy(num_agents=1, num_targets=1, seed=42)
         policy.agent_lv[0] = np.array([1.0, 0.0])
         policy.target_lv[0] = np.array([-1.0, 0.0])
         pred = policy.predict_reward(0, 0)
         assert np.isclose(pred, 0.0)  # dot product = -1, scaled to 0
+
+
+class TestUCBScore:
+    """Test UCB score computation."""
+
+    def test_ucb_score_unvisited_returns_inf(self):
+        """Test that unvisited targets return infinite UCB score."""
+        policy = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
+        # All targets unvisited
+        for t in range(policy.num_targets):
+            score = policy.ucb_score(0, t)
+            assert score == float('inf')
+
+    def test_ucb_score_decreases_with_visits(self):
+        """Test that UCB score decreases as visit count increases."""
+        policy = UCBCFPolicy(num_agents=1, num_targets=1, seed=42)
+        policy.total_steps = 100
+        
+        # First visit
+        policy.visit_counts[0] = 1
+        score_1 = policy.ucb_score(0, 0)
+        
+        # More visits
+        policy.visit_counts[0] = 10
+        score_10 = policy.ucb_score(0, 0)
+        
+        policy.visit_counts[0] = 100
+        score_100 = policy.ucb_score(0, 0)
+        
+        assert score_1 > score_10 > score_100
+
+    def test_ucb_score_respects_ucb_c(self):
+        """Test that UCB coefficient affects exploration bonus."""
+        policy_low = UCBCFPolicy(num_agents=1, num_targets=1, ucb_c=1.0, seed=42)
+        policy_high = UCBCFPolicy(num_agents=1, num_targets=1, ucb_c=3.0, seed=42)
+        
+        # Same visit counts
+        policy_low.visit_counts[0] = 5
+        policy_low.total_steps = 20
+        policy_high.visit_counts[0] = 5
+        policy_high.total_steps = 20
+        
+        score_low = policy_low.ucb_score(0, 0)
+        score_high = policy_high.ucb_score(0, 0)
+        
+        # Higher c = higher exploration bonus
+        assert score_high > score_low
 
 
 class TestUpdate:
@@ -119,7 +149,7 @@ class TestUpdate:
 
     def test_update_modifies_vectors(self):
         """Test that update modifies latent vectors."""
-        policy = CFPolicy(num_agents=1, num_targets=1, seed=42)
+        policy = UCBCFPolicy(num_agents=1, num_targets=1, seed=42)
         agent_before = policy.agent_lv[0].copy()
         target_before = policy.target_lv[0].copy()
         
@@ -134,7 +164,7 @@ class TestUpdate:
 
     def test_update_vectors_stay_normalized(self):
         """Test that vectors stay normalized after update."""
-        policy = CFPolicy(num_agents=2, num_targets=3, seed=42)
+        policy = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
         
         for _ in range(10):
             policy.update(0, 0, 1.0)
@@ -147,7 +177,7 @@ class TestUpdate:
 
     def test_update_noop_does_nothing(self):
         """Test that update with NoOp target does nothing."""
-        policy = CFPolicy(num_agents=1, num_targets=1, seed=42)
+        policy = UCBCFPolicy(num_agents=1, num_targets=1, seed=42)
         agent_before = policy.agent_lv.copy()
         target_before = policy.target_lv.copy()
         
@@ -158,7 +188,7 @@ class TestUpdate:
 
     def test_update_improves_prediction(self):
         """Test that repeated updates improve prediction toward observed reward."""
-        policy = CFPolicy(num_agents=1, num_targets=1, learning_rate=0.5, seed=42)
+        policy = UCBCFPolicy(num_agents=1, num_targets=1, learning_rate=0.5, seed=42)
         
         target_reward = 0.9
         initial_pred = policy.predict_reward(0, 0)
@@ -177,7 +207,7 @@ class TestUpdateFromObservation:
 
     def test_update_from_observation(self):
         """Test updating from collaborative mode observation."""
-        policy = CFPolicy(num_agents=2, num_targets=3, seed=42)
+        policy = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
         
         observation = {
             'targets': np.array([100, 100, 1.0, 200, 200, 1.0, 300, 300, 1.0]),
@@ -197,7 +227,7 @@ class TestSelectAction:
 
     def test_select_action_returns_valid_action(self):
         """Test that select_action returns valid action."""
-        policy = CFPolicy(num_agents=2, num_targets=3, seed=42)
+        policy = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
         
         observation = {
             'targets': np.array([100, 100, 1.0, 200, 200, 1.0, 300, 300, 0.0]),  # 2 active
@@ -208,23 +238,9 @@ class TestSelectAction:
         action = policy.select_action(0, observation, allow_noop=False)
         assert action in [1, 2]  # Only active targets (1-indexed)
 
-    def test_select_action_with_noop(self):
-        """Test that select_action can return NoOp when allowed."""
-        policy = CFPolicy(num_agents=1, num_targets=1, epsilon=1.0, seed=42)
-        
-        observation = {
-            'targets': np.array([100, 100, 1.0]),
-            'selected_targets': np.array([0]),
-            'observed_rewards': np.array([0.0]),
-        }
-        
-        # With high epsilon, should eventually select NoOp
-        actions = [policy.select_action(0, observation, allow_noop=True) for _ in range(100)]
-        assert 0 in actions  # NoOp should appear
-
     def test_select_action_no_active_targets(self):
         """Test select_action returns NoOp when no active targets."""
-        policy = CFPolicy(num_agents=1, num_targets=2, seed=42)
+        policy = UCBCFPolicy(num_agents=1, num_targets=2, seed=42)
         
         observation = {
             'targets': np.array([100, 100, 0.0, 200, 200, 0.0]),  # All inactive
@@ -235,39 +251,63 @@ class TestSelectAction:
         action = policy.select_action(0, observation, allow_noop=False)
         assert action == 0  # Must be NoOp
 
-    def test_epsilon_decay(self):
-        """Test that epsilon decays after action selection."""
-        policy = CFPolicy(num_agents=1, num_targets=1, epsilon=0.5, epsilon_decay=0.9, seed=42)
+    def test_visit_counts_increment(self):
+        """Test that visit counts increment on action selection."""
+        policy = UCBCFPolicy(num_agents=1, num_targets=2, seed=42)
         
         observation = {
-            'targets': np.array([100, 100, 1.0]),
+            'targets': np.array([100, 100, 1.0, 200, 200, 1.0]),
             'selected_targets': np.array([0]),
             'observed_rewards': np.array([0.0]),
         }
         
-        initial_epsilon = policy.epsilon
-        policy.select_action(0, observation)
-        assert policy.epsilon < initial_epsilon
-        assert np.isclose(policy.epsilon, initial_epsilon * 0.9)
+        initial_visits = policy.visit_counts.copy()
+        initial_steps = policy.total_steps
+        
+        action = policy.select_action(0, observation)
+        
+        # One target should have incremented visit count
+        assert policy.visit_counts.sum() == initial_visits.sum() + 1
+        assert policy.total_steps == initial_steps + 1
 
-    def test_epsilon_min_respected(self):
-        """Test that epsilon doesn't go below minimum."""
-        policy = CFPolicy(
-            num_agents=1, num_targets=1,
-            epsilon=0.1, epsilon_decay=0.5, epsilon_min=0.05,
-            seed=42
-        )
+    def test_shared_visit_counts_across_agents(self):
+        """Test that visit counts are shared across agents."""
+        policy = UCBCFPolicy(num_agents=2, num_targets=2, seed=42)
         
         observation = {
-            'targets': np.array([100, 100, 1.0]),
+            'targets': np.array([100, 100, 1.0, 200, 200, 1.0]),
+            'selected_targets': np.array([0, 0]),
+            'observed_rewards': np.array([0.0, 0.0]),
+        }
+        
+        # Both agents select (will pick unvisited targets first)
+        policy.select_action(0, observation)
+        policy.select_action(1, observation)
+        
+        # Visit counts should reflect both selections
+        assert policy.visit_counts.sum() == 2
+        assert policy.total_steps == 2
+
+    def test_ucb_prioritizes_unvisited(self):
+        """Test that UCB prioritizes unvisited targets."""
+        policy = UCBCFPolicy(num_agents=1, num_targets=3, seed=42)
+        
+        # Mark targets 0 and 1 as visited
+        policy.visit_counts[0] = 10
+        policy.visit_counts[1] = 10
+        policy.total_steps = 20
+        # Target 2 is unvisited
+        
+        observation = {
+            'targets': np.array([100, 100, 1.0, 200, 200, 1.0, 300, 300, 1.0]),
             'selected_targets': np.array([0]),
             'observed_rewards': np.array([0.0]),
         }
         
-        for _ in range(100):
-            policy.select_action(0, observation)
+        action = policy.select_action(0, observation)
         
-        assert policy.epsilon >= policy.epsilon_min
+        # Should select unvisited target 2 (action = 3)
+        assert action == 3
 
 
 class TestSelectActions:
@@ -275,7 +315,7 @@ class TestSelectActions:
 
     def test_select_actions_all_agents(self):
         """Test selecting actions for all agents."""
-        policy = CFPolicy(num_agents=2, num_targets=3, seed=42)
+        policy = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
         
         observations = {
             'drone_0': {
@@ -303,7 +343,7 @@ class TestReset:
 
     def test_reset_reinitializes_vectors(self):
         """Test that reset reinitializes latent vectors."""
-        policy = CFPolicy(num_agents=2, num_targets=3, seed=42)
+        policy = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
         
         # Modify vectors
         policy.agent_lv[0] = np.array([0.5, 0.5])
@@ -313,12 +353,26 @@ class TestReset:
         # Vectors should be different (reinitialized)
         assert not np.allclose(policy.agent_lv[0], [0.5, 0.5])
 
+    def test_reset_clears_visit_counts(self):
+        """Test that reset clears visit counts and total_steps."""
+        policy = UCBCFPolicy(num_agents=2, num_targets=3, seed=42)
+        
+        # Simulate some visits
+        policy.visit_counts[0] = 5
+        policy.visit_counts[1] = 3
+        policy.total_steps = 8
+        
+        policy.reset()
+        
+        assert np.all(policy.visit_counts == 0)
+        assert policy.total_steps == 0
+
 
 class TestIntegration:
     """Integration tests with DroneEngageZKMRTA environment."""
 
-    def test_cf_policy_with_env_no_errors(self):
-        """Test CF policy runs with environment without errors."""
+    def test_ucb_cf_policy_with_env_no_errors(self):
+        """Test UCB CF policy runs with environment without errors."""
         from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
         
         env = DroneEngageZKMRTA(
@@ -342,7 +396,7 @@ class TestIntegration:
             observation_noise=0.0,
         )
         
-        policy = CFPolicy(
+        policy = UCBCFPolicy(
             num_agents=env.num_drones,
             num_targets=env.num_targets,
             seed=42,
@@ -365,8 +419,8 @@ class TestIntegration:
         # Should complete without errors
         assert True
 
-    def test_cf_policy_produces_valid_actions(self):
-        """Test CF policy produces valid actions for environment."""
+    def test_ucb_cf_policy_produces_valid_actions(self):
+        """Test UCB CF policy produces valid actions for environment."""
         from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
         
         env = DroneEngageZKMRTA(
@@ -382,7 +436,7 @@ class TestIntegration:
             observation_mode='collaborative',
         )
         
-        policy = CFPolicy(num_agents=1, num_targets=2, seed=42)
+        policy = UCBCFPolicy(num_agents=1, num_targets=2, seed=42)
         
         obs, _ = env.reset(seed=42)
         
@@ -397,8 +451,8 @@ class TestIntegration:
             if term['drone_0'] or trunc['drone_0']:
                 break
 
-    def test_cf_policy_learns_over_episode(self):
-        """Test that CF policy's predictions change as it learns."""
+    def test_ucb_cf_policy_learns_over_episode(self):
+        """Test that UCB CF policy's predictions change as it learns."""
         from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
         
         env = DroneEngageZKMRTA(
@@ -415,7 +469,7 @@ class TestIntegration:
             observation_noise=0.0,
         )
         
-        policy = CFPolicy(num_agents=1, num_targets=1, learning_rate=0.5, seed=42)
+        policy = UCBCFPolicy(num_agents=1, num_targets=1, learning_rate=0.5, seed=42)
         
         initial_prediction = policy.predict_reward(0, 0)
         

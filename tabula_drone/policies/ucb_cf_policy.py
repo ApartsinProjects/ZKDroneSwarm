@@ -1,29 +1,31 @@
 """
-Collaborative Filtering Policy for ZK-MRTA Environment.
+UCB Collaborative Filtering Policy for ZK-MRTA Environment.
 
-Implements SGD-based matrix factorization with ε-greedy exploration
+Implements SGD-based matrix factorization with UCB1 exploration
 to learn agent-target compatibility from observed rewards.
+
+UCB1 replaces ε-greedy exploration, providing uncertainty-aware
+action selection that automatically prioritizes unexplored targets.
 """
 
 from typing import Dict, Optional, Any
 
 import numpy as np
 
-
-def normalize(v: np.ndarray) -> np.ndarray:
-    """Normalize a vector to unit length."""
-    norm = np.linalg.norm(v)
-    if norm == 0:
-        norm = np.finfo(v.dtype).eps
-    return v / norm
+from tabula_drone.policies.ep_greedy_cf_policy import normalize
 
 
-class CFPolicy:
+class UCBCFPolicy:
     """
-    Collaborative Filtering policy using SGD matrix factorization.
+    UCB Collaborative Filtering policy using SGD matrix factorization.
     
     Learns latent vectors for agents and targets from observed rewards.
-    Uses ε-greedy exploration for action selection.
+    Uses UCB1 exploration for action selection instead of ε-greedy.
+    
+    Key difference from CFPolicy:
+    - Tracks visit counts per target (shared across all agents)
+    - Computes UCB score = predicted_reward + exploration_bonus
+    - Automatically prioritizes unexplored/new targets (infinite UCB score)
     
     Designed for use with DroneEngageZKMRTA in collaborative observation mode.
     """
@@ -34,37 +36,35 @@ class CFPolicy:
         num_targets: int,
         latent_dim: int = 2,
         learning_rate: float = 0.1,
-        epsilon: float = 0.3,
-        epsilon_decay: float = 0.99,
-        epsilon_min: float = 0.05,
+        ucb_c: float = 2.0,
         seed: Optional[int] = None,
     ):
         """
-        Initialize CF policy.
+        Initialize UCB CF policy.
         
         Args:
             num_agents: Number of agents in the environment
             num_targets: Number of targets in the environment
             latent_dim: Dimension of latent vectors (default 2)
             learning_rate: SGD learning rate (default 0.1)
-            epsilon: Initial exploration rate for ε-greedy (default 0.3)
-            epsilon_decay: Decay factor for epsilon per step (default 0.99)
-            epsilon_min: Minimum epsilon value (default 0.05)
+            ucb_c: UCB exploration coefficient (default 2.0)
             seed: Random seed for reproducibility
         """
         self.num_agents = num_agents
         self.num_targets = num_targets
         self.latent_dim = latent_dim
         self.learning_rate = learning_rate
-        self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
+        self.ucb_c = ucb_c
         
         self.rng = np.random.RandomState(seed)
         
         # Initialize latent vectors randomly (normalized)
         self.agent_lv = self._init_latent_vectors(num_agents)
         self.target_lv = self._init_latent_vectors(num_targets)
+        
+        # UCB tracking: shared visit counts across all agents
+        self.visit_counts = np.zeros(num_targets, dtype=np.int32)
+        self.total_steps = 0
     
     def _init_latent_vectors(self, count: int) -> np.ndarray:
         """Initialize normalized random latent vectors."""
@@ -75,11 +75,12 @@ class CFPolicy:
         return vectors.astype(np.float32)
     
     def reset(self) -> None:
-        """Reset latent vectors for new episode."""
+        """Reset latent vectors and UCB state for new episode."""
         self.agent_lv = self._init_latent_vectors(self.num_agents)
         self.target_lv = self._init_latent_vectors(self.num_targets)
-        # Reset epsilon to initial value
-        self.epsilon = max(self.epsilon, 0.3)
+        # Reset UCB tracking
+        self.visit_counts = np.zeros(self.num_targets, dtype=np.int32)
+        self.total_steps = 0
     
     def predict_reward(self, agent_idx: int, target_idx: int) -> float:
         """
@@ -95,6 +96,31 @@ class CFPolicy:
         dot = np.dot(self.agent_lv[agent_idx], self.target_lv[target_idx])
         # Scale from [-1, 1] to [0, 1]
         return (1 + dot) / 2
+    
+    def ucb_score(self, agent_idx: int, target_idx: int) -> float:
+        """
+        Compute UCB1 score for agent-target pair.
+        
+        UCB score = predicted_reward + c * sqrt(log(total_steps + 1) / visits)
+        
+        Args:
+            agent_idx: Agent index (0-based)
+            target_idx: Target index (0-based)
+        
+        Returns:
+            UCB score (float('inf') for unvisited targets)
+        """
+        visits = self.visit_counts[target_idx]
+        
+        if visits == 0:
+            return float('inf')  # Unexplored = highest priority
+        
+        predicted = self.predict_reward(agent_idx, target_idx)
+        
+        # UCB1 exploration bonus
+        bonus = self.ucb_c * np.sqrt(np.log(self.total_steps + 1) / visits)
+        
+        return predicted + bonus
     
     def update(self, agent_idx: int, target_idx: int, observed_reward: float) -> None:
         """
@@ -150,12 +176,12 @@ class CFPolicy:
         allow_noop: bool = False,
     ) -> int:
         """
-        Select action using ε-greedy over predicted rewards.
+        Select action using UCB1 over predicted rewards.
         
         Args:
             agent_idx: Index of the agent selecting action
             observation: Dict observation from collaborative mode
-            allow_noop: If True, include NoOp (0) as valid action
+            allow_noop: If True, include NoOp (0) as valid action (not used in UCB selection)
         
         Returns:
             Action: 0 for NoOp, 1-N for fire at target
@@ -173,34 +199,22 @@ class CFPolicy:
         if not active_targets:
             return 0  # NoOp if no active targets
         
-        # Build valid actions
-        valid_actions = [0] if allow_noop else []
-        valid_actions.extend([t + 1 for t in active_targets])  # 1-indexed
+        # UCB selection: find target with highest UCB score
+        best_action = 0
+        best_score = -np.inf
         
-        # ε-greedy selection
-        if self.rng.random() < self.epsilon:
-            # Explore: random action
-            action = self.rng.choice(valid_actions)
-        else:
-            # Exploit: best predicted reward
-            best_action = valid_actions[0]
-            best_reward = -np.inf
-            
-            for action in valid_actions:
-                if action == 0:
-                    continue  # Skip NoOp for exploitation
-                target_idx = action - 1
-                predicted = self.predict_reward(agent_idx, target_idx)
-                if predicted > best_reward:
-                    best_reward = predicted
-                    best_action = action
-            
-            action = best_action
+        for t_idx in active_targets:
+            score = self.ucb_score(agent_idx, t_idx)
+            if score > best_score:
+                best_score = score
+                best_action = t_idx + 1  # Convert to 1-indexed action
         
-        # Decay epsilon
-        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+        # Update visit count for selected target
+        if best_action > 0:
+            self.visit_counts[best_action - 1] += 1
+        self.total_steps += 1
         
-        return int(action)
+        return int(best_action)
     
     def select_actions(
         self,

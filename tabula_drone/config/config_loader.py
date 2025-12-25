@@ -190,7 +190,7 @@ def _parse_policy_config(data: dict) -> PolicyConfig:
     policy_types = data["type"]
     if not isinstance(policy_types, list) or not policy_types:
         raise ValueError("policy.type must be a non-empty list of policy types")
-    valid_types = {"random", "min_ttk_oracle", "max_damage_oracle", "collaborative_filtering"}
+    valid_types = {"random", "min_ttk_oracle", "max_damage_oracle", "ep_greedy_cf", "ucb_cf"}
     for pt in policy_types:
         if pt not in valid_types:
             raise ValueError(f"policy.type contains invalid type '{pt}', must be one of {valid_types}")

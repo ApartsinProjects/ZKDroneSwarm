@@ -17,7 +17,8 @@ from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 from tabula_drone.scenarios import ScenarioBuilder
-from tabula_drone.policies.cf_policy import CFPolicy
+from tabula_drone.policies.ep_greedy_cf_policy import EpGreedyCFPolicy
+from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 
 CONFIG_PATH = "config/scenario.json"
 
@@ -48,7 +49,7 @@ def print_episode_summary(
     print("=" * 60 + "\n")
 
 
-PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, CFPolicy]
+PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, EpGreedyCFPolicy, UCBCFPolicy]
 
 
 def create_policy(
@@ -61,7 +62,7 @@ def create_policy(
     Factory function to create a policy instance.
     
     Args:
-        policy_type: Type of policy ("min_ttk_oracle", "max_damage_oracle", "random", "collaborative_filtering")
+        policy_type: Type of policy ("min_ttk_oracle", "max_damage_oracle", "random", "ep_greedy_cf", "ucb_cf")
         config: ScenarioConfig with seed and policy settings
         drones_config: List of drone configurations for weapon profiles
         num_targets: Number of targets (required for collaborative_filtering)
@@ -89,10 +90,18 @@ def create_policy(
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
         )
-    elif policy_type == "collaborative_filtering":
+    elif policy_type == "ep_greedy_cf":
         if num_targets is None:
-            raise ValueError("num_targets is required for collaborative_filtering policy")
-        return CFPolicy(
+            raise ValueError("num_targets is required for ep_greedy_cf policy")
+        return EpGreedyCFPolicy(
+            num_agents=len(drones_config),
+            num_targets=num_targets,
+            seed=config.seed,
+        )
+    elif policy_type == "ucb_cf":
+        if num_targets is None:
+            raise ValueError("num_targets is required for ucb_cf policy")
+        return UCBCFPolicy(
             num_agents=len(drones_config),
             num_targets=num_targets,
             seed=config.seed,
@@ -152,7 +161,7 @@ def run_episode(
         # Policy selects actions for all agents
         if isinstance(policy, (OracleTimeToKillPolicy, OptimalAssignmentOracle)):
             actions = policy.select_actions(obs, env.num_targets, info["target_attributes"])
-        elif isinstance(policy, CFPolicy):
+        elif isinstance(policy, (EpGreedyCFPolicy, UCBCFPolicy)):
             actions = policy.select_actions(obs)
             # CF policy learns from observations
             for agent_id, agent_obs in obs.items():
@@ -288,7 +297,7 @@ def main():
         print(f"\n>>> Running policy: {policy_type}")
         
         # Create environment with appropriate observation mode per policy
-        is_cf = policy_type == "collaborative_filtering"
+        is_cf = policy_type in ("ep_greedy_cf", "ucb_cf")
         
         env = DroneEngageZKMRTA(
             world_size=config.world.size,

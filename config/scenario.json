@@ -17,7 +17,7 @@
     }
   },
   "targets": {
-    "count": 250,
+    "count": 500,
     "region": {
       "x_fraction": [0.1, 0.9],
       "y_fraction": [0.5, 0.75]
@@ -34,7 +34,7 @@
     "max_steps": 1000
   },
   "policy": {
-    "type": ["max_damage_oracle", "min_ttk_oracle", "collaborative_filtering", "random"],
+    "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
     "allow_noop": false
   },
   "collaborative_filtering": {
