@@ -159,20 +159,21 @@ class OptimalAssignmentOracle:
         if n_active == 0:
             return actions, assigned_mask, 0.0
         
-        S = agent_vectors @ target_vectors.T
+        active_indices = np.where(active_mask)[0]
         
-        S[:, ~active_mask] = -np.inf
+        S_full = agent_vectors @ target_vectors.T
+        S_active = S_full[:, active_indices]
         
-        C = -S
+        C_active = -S_active
         
-        row_ind, col_ind = linear_sum_assignment(C)
+        row_ind, col_ind = linear_sum_assignment(C_active)
         
         total_score = 0.0
         for r, c in zip(row_ind, col_ind):
-            if active_mask[c]:
-                actions[r] = c
-                assigned_mask[r] = True
-                total_score += S[r, c]
+            original_target_idx = active_indices[c]
+            actions[r] = original_target_idx
+            assigned_mask[r] = True
+            total_score += S_active[r, c]
         
         return actions, assigned_mask, total_score
     
@@ -219,6 +220,6 @@ class OptimalAssignmentOracle:
             if assigned_mask[i]:
                 result[agent_id] = int(actions_arr[i]) + 1
             else:
-                result[agent_id] = 0 if self.allow_noop else -1
+                result[agent_id] = 0
         
         return result
