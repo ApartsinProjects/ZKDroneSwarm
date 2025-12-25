@@ -4,20 +4,20 @@
     "size": [1000.0, 1000.0]
   },
   "drones": {
-    "count": 6,
+    "count": 8,
+    "weapon_distribution": {
+      "breach": 0.25,
+      "structural": 0.25,
+      "systems": 0.25
+    },
     "region": {
       "x_fraction": [0.35, 0.65],
       "y_fraction": [0.3, 0.4]
     },
-    "min_distance_between_drones": 50.0,
-    "weapon_distribution": {
-      "breach": 0.3,
-      "structural": 0.3,
-      "systems": 0.3
-    }
+    "min_distance_between_drones": 50.0
   },
   "targets": {
-    "count": 150,
+    "count": 40,
     "region": {
       "x_fraction": [0.1, 0.9],
       "y_fraction": [0.5, 0.75]
@@ -38,11 +38,12 @@
     "allow_noop": false
   },
   "collaborative_filtering": {
-    "reward_noise": 1,
-    "observation_noise": 0.05
+    "reward_noise": 0.05,
+    "observation_noise": 0.02,
+    "ucb_c": 0.5
   },
   "execution": {
-    "num_episodes": 1,
+    "num_episodes": 3,
     "verbose": false
   },
   "logging": {

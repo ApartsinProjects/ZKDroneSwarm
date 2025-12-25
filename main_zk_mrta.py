@@ -10,6 +10,8 @@ Demonstrates:
 
 from typing import Dict, Any, List, Optional, Union
 
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 from tabulate import tabulate
 
 from tabula_drone.config import load_config
@@ -103,10 +105,12 @@ def create_policy(
     elif policy_type == "ucb_cf":
         if num_targets is None:
             raise ValueError("num_targets is required for ucb_cf policy")
+        ucb_c = config.collaborative_filtering.ucb_c if config.collaborative_filtering else 2.0
         return UCBCFPolicy(
             num_agents=len(drones_config),
             num_targets=num_targets,
             seed=config.seed,
+            ucb_c=ucb_c,
         )
     else:
         return RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
@@ -239,6 +243,29 @@ def run_episode(
     }
 
 
+def analyze_agent_clustering(policy, drone_weapon_map):
+    """
+    Prints similarity scores between drones to see if they are clustering by weapon.
+    drone_weapon_map: List of weapons assigned to agents (e.g., ['structural', 'breach', ...])
+    """
+    vectors = policy.agent_lv
+    sim_matrix = cosine_similarity(vectors)
+    
+    print("\n--- Agent Latent Vector Analysis ---")
+    print("Agent Types:")
+    for i, weapon in enumerate(drone_weapon_map):
+        print(f"  Agent {i}: {weapon}")
+    for i in range(len(vectors)):
+        for j in range(i + 1, len(vectors)):
+            w1 = drone_weapon_map[i]
+            w2 = drone_weapon_map[j]
+            similarity = sim_matrix[i, j]
+            
+            # Highlight if drones with the SAME weapon are becoming similar
+            match_status = "[MATCH]" if w1 == w2 else "       "
+            print(f"Agent {i}({w1[:4]}) vs Agent {j}({w2[:4]}): {similarity:.4f} {match_status}")
+
+
 def main():
     """Main demo execution."""
     
@@ -320,9 +347,9 @@ def main():
         logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
         for episode_num in range(1, num_episodes + 1):
-            # Reset CF policy for new episode
+            # Soft reset CF policy for new episode (preserves agent latent vectors)
             if is_cf and episode_num > 1:
-                policy.reset()
+                policy.soft_reset()
             
             metrics = run_episode(
                 env=env,
@@ -334,39 +361,52 @@ def main():
             )
             metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
+            
+            # Per-episode summary
+            total_reward = sum(metrics["agent_rewards"].values())
+            print(f"  Episode {episode_num}: Steps={metrics['steps']}, "
+                  f"Targets={metrics['targets_neutralized']}, "
+                  f"Overkill={metrics['total_overkill']:.0f}, "
+                  f"Reward={total_reward:.0f}")
+            
+            # Debug: Analyze agent clustering for CF policies
+            if is_cf:
+                drone_weapons = [d["weapon_type"] for d in drones_config]
+                analyze_agent_clustering(policy, drone_weapons)
+
+    if config.execution.verbose:
+        # Aggregate statistics across all episodes (all policies)
+        total_episodes = len(all_metrics)
+        print("\n" + "="*60)
+        print("AGGREGATE STATISTICS")
+        print("="*60)
+        print(f"Total Episodes: {total_episodes} ({num_episodes} per policy × {len(config.policy.type)} policies)")
+
+        avg_steps = sum(m["steps"] for m in all_metrics) / total_episodes
+        avg_targets = sum(m["targets_neutralized"] for m in all_metrics) / total_episodes
+        avg_ammo = sum(m["total_ammo_used"] for m in all_metrics) / total_episodes
+        avg_overkill = sum(m["total_overkill"] for m in all_metrics) / total_episodes
+
+        print(f"Average Steps:              {avg_steps:.1f}")
+        print(f"Average Targets Neutralized: {avg_targets:.1f}")
+        print(f"Average Ammo Used:          {avg_ammo:.1f}")
+        print(f"Average Overkill Damage:    {avg_overkill:.1f}")
     
-    # Aggregate statistics across all episodes (all policies)
-    total_episodes = len(all_metrics)
-    print("\n" + "="*60)
-    print("AGGREGATE STATISTICS")
-    print("="*60)
-    print(f"Total Episodes: {total_episodes} ({num_episodes} per policy × {len(config.policy.type)} policies)")
+        # Per-policy statistics
+        for policy_type in config.policy.type:
+            policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
+            if policy_metrics:
+                print(f"\n  Policy '{policy_type}':")
+                print(f"    Avg Steps: {sum(m['steps'] for m in policy_metrics) / len(policy_metrics):.1f}")
+                print(f"    Avg Targets: {sum(m['targets_neutralized'] for m in policy_metrics) / len(policy_metrics):.1f}")
     
-    avg_steps = sum(m["steps"] for m in all_metrics) / total_episodes
-    avg_targets = sum(m["targets_neutralized"] for m in all_metrics) / total_episodes
-    avg_ammo = sum(m["total_ammo_used"] for m in all_metrics) / total_episodes
-    avg_overkill = sum(m["total_overkill"] for m in all_metrics) / total_episodes
-    
-    print(f"Average Steps:              {avg_steps:.1f}")
-    print(f"Average Targets Neutralized: {avg_targets:.1f}")
-    print(f"Average Ammo Used:          {avg_ammo:.1f}")
-    print(f"Average Overkill Damage:    {avg_overkill:.1f}")
-    
-    # Per-policy statistics
-    for policy_type in config.policy.type:
-        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
-        if policy_metrics:
-            print(f"\n  Policy '{policy_type}':")
-            print(f"    Avg Steps: {sum(m['steps'] for m in policy_metrics) / len(policy_metrics):.1f}")
-            print(f"    Avg Targets: {sum(m['targets_neutralized'] for m in policy_metrics) / len(policy_metrics):.1f}")
-    
-    # Per-agent statistics (use last env for agent list)
-    print(f"\nPer-Agent Average Rewards:")
-    for agent_id in env.agents:
-        avg_reward = sum(m["agent_rewards"][agent_id] for m in all_metrics) / total_episodes
-        print(f"  {agent_id}: {avg_reward:.2f}")
-    
-    print("="*60)
+        # Per-agent statistics (use last env for agent list)
+        print(f"\nPer-Agent Average Rewards:")
+        for agent_id in env.agents:
+            avg_reward = sum(m["agent_rewards"][agent_id] for m in all_metrics) / total_episodes
+            print(f"  {agent_id}: {avg_reward:.2f}")
+
+        print("="*60)
     
     # Policy Performance Summary Table
     table_data = []

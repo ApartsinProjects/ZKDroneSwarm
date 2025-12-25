@@ -75,8 +75,15 @@ class UCBCFPolicy:
         return vectors.astype(np.float32)
     
     def reset(self) -> None:
-        """Reset latent vectors and UCB state for new episode."""
+        """Reset all state including agent latent vectors (full reset)."""
         self.agent_lv = self._init_latent_vectors(self.num_agents)
+        self.target_lv = self._init_latent_vectors(self.num_targets)
+        # Reset UCB tracking
+        self.visit_counts = np.zeros(self.num_targets, dtype=np.int32)
+        self.total_steps = 0
+    
+    def soft_reset(self) -> None:
+        """Reset for new episode, preserving agent latent vectors (weapon knowledge)."""
         self.target_lv = self._init_latent_vectors(self.num_targets)
         # Reset UCB tracking
         self.visit_counts = np.zeros(self.num_targets, dtype=np.int32)

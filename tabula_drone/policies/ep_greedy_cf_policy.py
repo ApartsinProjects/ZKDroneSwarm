@@ -75,10 +75,16 @@ class EpGreedyCFPolicy:
         return vectors.astype(np.float32)
     
     def reset(self) -> None:
-        """Reset latent vectors for new episode."""
+        """Reset all state including agent latent vectors (full reset)."""
         self.agent_lv = self._init_latent_vectors(self.num_agents)
         self.target_lv = self._init_latent_vectors(self.num_targets)
         # Reset epsilon to initial value
+        self.epsilon = max(self.epsilon, 0.3)
+    
+    def soft_reset(self) -> None:
+        """Reset for new episode, preserving agent latent vectors (weapon knowledge)."""
+        self.target_lv = self._init_latent_vectors(self.num_targets)
+        # Reset epsilon to initial value for fresh exploration
         self.epsilon = max(self.epsilon, 0.3)
     
     def predict_reward(self, agent_idx: int, target_idx: int) -> float:

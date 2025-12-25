@@ -76,6 +76,7 @@ class CollaborativeFilteringConfig:
     """Collaborative filtering policy configuration."""
     reward_noise: float
     observation_noise: float
+    ucb_c: float
 
 
 @dataclass
@@ -204,7 +205,8 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
     _validate_required_keys(data, ["reward_noise", "observation_noise"], "collaborative_filtering")
     return CollaborativeFilteringConfig(
         reward_noise=float(data["reward_noise"]),
-        observation_noise=float(data["observation_noise"])
+        observation_noise=float(data["observation_noise"]),
+        ucb_c=float(data.get("ucb_c", 2.0))
     )
 
 
