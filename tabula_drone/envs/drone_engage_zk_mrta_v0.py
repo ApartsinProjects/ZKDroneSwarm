@@ -473,19 +473,23 @@ class DroneEngageZKMRTA(ParallelEnv):
             # Check if target is still active
             if not target.is_active:
                 # Wasted shot - target already neutralized
+                rewards[agent_id] = -1.0
                 continue
             
             # Apply damage from this drone
             hp_before = target.hp_current
             damage_profile = drone.damage_profile
             target.attributes.apply_damage(damage_profile)
+            hp_after = target.hp_current
+            
+            # Dense reward: actual HP reduction normalized by max possible (for CF learning)
+            # A matching weapon deals ~10 damage to dominant attribute, mismatch deals ~1
+            actual_damage = hp_before - hp_after
+            rewards[agent_id] += actual_damage / 10.0
             
             # Check if target became inactive
             if target.attributes.is_depleted():
                 target.is_active = False
-                
-                # Award reward to this drone (killing blow)
-                rewards[agent_id] += 1.0
                 
                 # Calculate overkill
                 total_damage = sum(damage_profile.values())

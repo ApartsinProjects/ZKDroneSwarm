@@ -370,7 +370,7 @@ def main():
                   f"Reward={total_reward:.0f}")
             
             # Debug: Analyze agent clustering for CF policies
-            if is_cf:
+            if False and is_cf:
                 drone_weapons = [d["weapon_type"] for d in drones_config]
                 analyze_agent_clustering(policy, drone_weapons)
 

@@ -43,7 +43,7 @@
     "ucb_c": 0.5
   },
   "execution": {
-    "num_episodes": 3,
+    "num_episodes": 1,
     "verbose": false
   },
   "logging": {
