@@ -142,7 +142,7 @@ def run_episode(
     obs, info = env.reset()
     
     if logger:
-        logger.start_episode(env, info, seed)
+        logger.start_episode(env, info, seed, episode_num)
     
     if verbose:
         print(f"\n{'='*60}")

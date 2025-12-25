@@ -67,7 +67,8 @@ class EpisodeLogger:
         self,
         env: Any,
         reset_info: Dict[str, Any],
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
+        episode_num: Optional[int] = None
     ) -> None:
         """
         Capture initial episode state after env.reset().
@@ -76,6 +77,7 @@ class EpisodeLogger:
             env: The environment instance (DroneEngageZKMRTA)
             reset_info: Info dict returned by env.reset()
             seed: Random seed used for this episode
+            episode_num: Episode number (1-indexed)
         """
         self._episode_id = str(uuid.uuid4())[:8]
         self._timestamp = datetime.utcnow().isoformat() + "Z"
@@ -87,6 +89,7 @@ class EpisodeLogger:
         self._episode_data = {
             "version": self.VERSION,
             "episode_id": self._episode_id,
+            "episode_num": episode_num,
             "timestamp": self._timestamp,
             "rng_seed": seed,
             "config": config,
@@ -152,7 +155,9 @@ class EpisodeLogger:
         
         timestamp_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
         policy_part = f"{self.policy_type}_" if self.policy_type else ""
-        filename = f"episode_{policy_part}{timestamp_str}_{self._episode_id}.json"
+        episode_num = self._episode_data.get("episode_num")
+        episode_part = f"ep{episode_num:02d}_" if episode_num is not None else ""
+        filename = f"episode_{policy_part}{episode_part}{timestamp_str}_{self._episode_id}.json"
         filepath = os.path.join(self.output_dir, filename)
         
         with open(filepath, "w") as f:

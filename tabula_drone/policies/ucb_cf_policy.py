@@ -35,7 +35,7 @@ class UCBCFPolicy:
         num_agents: int,
         num_targets: int,
         latent_dim: int = 2,
-        learning_rate: float = 0.1,
+        learning_rate: float = 0.01,
         ucb_c: float = 2.0,
         seed: Optional[int] = None,
     ):
@@ -83,11 +83,10 @@ class UCBCFPolicy:
         self.total_steps = 0
     
     def soft_reset(self) -> None:
-        """Reset for new episode, preserving agent latent vectors (weapon knowledge)."""
-        self.target_lv = self._init_latent_vectors(self.num_targets)
-        # Reset UCB tracking
-        self.visit_counts = np.zeros(self.num_targets, dtype=np.int32)
-        self.total_steps = 0
+        """Reset for new episode, preserving agent/target latent vectors and visit counts."""
+        # Preserve target_lv, visit_counts, and total_steps across episodes
+        # This allows UCB to exploit learned knowledge instead of re-exploring
+        pass
     
     def predict_reward(self, agent_idx: int, target_idx: int) -> float:
         """

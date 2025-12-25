@@ -33,7 +33,7 @@ class EpGreedyCFPolicy:
         num_agents: int,
         num_targets: int,
         latent_dim: int = 2,
-        learning_rate: float = 0.1,
+        learning_rate: float = 0.01,
         epsilon: float = 0.3,
         epsilon_decay: float = 0.99,
         epsilon_min: float = 0.05,
@@ -82,10 +82,11 @@ class EpGreedyCFPolicy:
         self.epsilon = max(self.epsilon, 0.3)
     
     def soft_reset(self) -> None:
+        pass
         """Reset for new episode, preserving agent latent vectors (weapon knowledge)."""
-        self.target_lv = self._init_latent_vectors(self.num_targets)
+        # self.target_lv = self._init_latent_vectors(self.num_targets)
         # Reset epsilon to initial value for fresh exploration
-        self.epsilon = max(self.epsilon, 0.3)
+        # self.epsilon = max(self.epsilon, 0.3)
     
     def predict_reward(self, agent_idx: int, target_idx: int) -> float:
         """
