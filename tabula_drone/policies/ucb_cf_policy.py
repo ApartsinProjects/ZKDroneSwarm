@@ -212,7 +212,6 @@ class UCBCFPolicy:
         # Update visit count for selected target
         if best_action > 0:
             self.visit_counts[best_action - 1] += 1
-        self.total_steps += 1
         
         return int(best_action)
     
@@ -235,4 +234,5 @@ class UCBCFPolicy:
         for agent_id, obs in observations.items():
             agent_idx = int(agent_id.split('_')[1])
             actions[agent_id] = self.select_action(agent_idx, obs, allow_noop)
+        self.total_steps += 1  # Increment once per tick, not per agent
         return actions
