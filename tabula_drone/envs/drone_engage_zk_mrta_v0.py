@@ -10,7 +10,7 @@ Multi-Robot Task Allocation (ZK-MRTA) constraints:
 """
 
 from dataclasses import dataclass
-from typing import Tuple, Optional, Dict, Any, List
+from typing import Tuple, Optional, Dict, Any, List, Union
 
 import numpy as np
 from gymnasium import spaces
@@ -248,7 +248,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         self,
         seed: Optional[int] = None,
         options: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[Dict[str, np.ndarray], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Union[np.ndarray, Dict[str, Any]]], Dict[str, Any]]:
         """
         Reset the environment to initial state.
         
@@ -414,7 +414,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         self,
         actions: Dict[str, int],
     ) -> Tuple[
-        Dict[str, np.ndarray],
+        Dict[str, Union[np.ndarray, Dict[str, Any]]],
         Dict[str, float],
         Dict[str, bool],
         Dict[str, bool],

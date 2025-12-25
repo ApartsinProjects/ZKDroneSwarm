@@ -38,7 +38,7 @@
     "allow_noop": false
   },
   "collaborative_filtering": {
-    "reward_noise": 0.1,
+    "reward_noise": 0.5,
     "observation_noise": 0.05
   },
   "execution": {

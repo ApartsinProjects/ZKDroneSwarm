@@ -152,6 +152,11 @@ def run_episode(
         # Policy selects actions for all agents
         if isinstance(policy, (OracleTimeToKillPolicy, OptimalAssignmentOracle)):
             actions = policy.select_actions(obs, env.num_targets, info["target_attributes"])
+        elif isinstance(policy, CFPolicy):
+            actions = policy.select_actions(obs)
+            # CF policy learns from observations
+            for agent_id, agent_obs in obs.items():
+                policy.update_from_observation(agent_obs, agent_id)
         else:
             actions = policy.select_actions(obs, env.num_targets)
         
@@ -308,88 +313,16 @@ def main():
             if is_cf and episode_num > 1:
                 policy.reset()
             
-            if is_cf:
-                # CF policy episode loop (needs update_from_observation)
-                obs, info = env.reset(seed=config.seed)
-                
-                if logger:
-                    logger.start_episode(env, info, config.seed)
-                
-                total_rewards = {agent_id: 0.0 for agent_id in env.agents}
-                step_count = 0
-                done = False
-                overkill_events = []
-                
-                while not done:
-                    step_count += 1
-                    
-                    # CF policy selects actions
-                    actions = policy.select_actions(obs)
-                    
-                    # Update policy from observations (learn from all agents)
-                    for agent_id, agent_obs in obs.items():
-                        policy.update_from_observation(agent_obs, agent_id)
-                    
-                    # Environment step
-                    obs, rewards, terminations, truncations, info = env.step(actions)
-                    
-                    # Check termination
-                    terminated = terminations[env.agents[0]]
-                    truncated = truncations[env.agents[0]]
-                    
-                    if logger:
-                        logger.log_step(step_count, actions, rewards, terminated, truncated, info)
-                    
-                    # Update total rewards
-                    for agent_id in env.agents:
-                        total_rewards[agent_id] += rewards[agent_id]
-                    
-                    # Track overkill
-                    if "overkill" in info:
-                        overkill_events.append(info["overkill"])
-                    
-                    done = terminated or truncated
-                
-                # Finalize logger
-                if logger:
-                    logger.end_episode(total_rewards, info.get("done_reason"))
-                    logger.save()
-                
-                # Compute metrics
-                targets_neutralized = sum(1 for active in info['target_active'] if not active)
-                total_ammo_used = sum(info['ammo_used'].values())
-                total_overkill = sum(sum(ok.values()) for ok in overkill_events)
-                
-                if config.execution.verbose:
-                    print_episode_summary(
-                        episode_num, step_count, total_rewards, info,
-                        targets_neutralized, total_ammo_used
-                    )
-                
-                metrics = {
-                    "episode": episode_num,
-                    "steps": step_count,
-                    "targets_neutralized": targets_neutralized,
-                    "total_ammo_used": total_ammo_used,
-                    "total_overkill": total_overkill,
-                    "done_reason": info.get("done_reason"),
-                    "agent_rewards": total_rewards.copy(),
-                    "overkill_events": len(overkill_events),
-                    "policy_type": policy_type,
-                }
-                all_metrics.append(metrics)
-            else:
-                # Standard policy episode loop
-                metrics = run_episode(
-                    env=env,
-                    policy=policy,
-                    episode_num=episode_num,
-                    verbose=config.execution.verbose,
-                    logger=logger,
-                    seed=config.seed
-                )
-                metrics["policy_type"] = policy_type
-                all_metrics.append(metrics)
+            metrics = run_episode(
+                env=env,
+                policy=policy,
+                episode_num=episode_num,
+                verbose=config.execution.verbose,
+                logger=logger,
+                seed=config.seed
+            )
+            metrics["policy_type"] = policy_type
+            all_metrics.append(metrics)
     
     # Aggregate statistics across all episodes (all policies)
     total_episodes = len(all_metrics)
