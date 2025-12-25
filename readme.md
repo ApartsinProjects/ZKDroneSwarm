@@ -14,15 +14,44 @@ A multi-agent PettingZoo environment where:
 - Multiple static drones with unlimited ammunition
 - Multiple static targets with configurable classes (A/B/C with different HP values)
 - Zero-knowledge constraints: agents don't know target HP, classes, or their own damage capabilities
-- No communication between agents
 - Action space per agent: Noop or Fire at specific target
-- Shared reward: +1.0 for each target neutralized (distributed to all agents)
-- Observations show only target positions and binary active status
+- Reward: +1.0 for killing blow on target
+
+**Observation Modes:**
+
+The environment supports two observation modes controlled by `observation_mode` parameter:
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| `minimal` (default) | Target positions + active status only | Pure ZK-MRTA, no inter-agent visibility |
+| `collaborative` | Adds other agents' actions and rewards | Collaborative filtering, multi-agent learning |
+
+*Minimal mode observations:*
+- Target positions (x, y) and binary active status
+
+*Collaborative mode adds:*
+- `selected_targets`: Which target each agent fired at last step
+- `observed_rewards`: What reward each agent received last step
+
+**Noise Parameters (collaborative mode):**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `reward_noise` | float | 0.0 | Gaussian noise σ added to actual rewards |
+| `observation_noise` | float | 0.0 | Additional Gaussian noise σ when observing other agents' rewards |
+
+When both noise parameters are non-zero, an agent observing another agent's reward sees:
+`observed = true_reward + N(0, reward_noise) + N(0, observation_noise)`
+
+Own rewards have only `reward_noise`; observed rewards from others have both noise sources.
+
+**Note:** Both modes maintain zero-knowledge about *capabilities* — agents never see HP values, damage profiles, weapon types, or class types. Collaborative mode only reveals *actions and outcomes*, not *why* those outcomes occurred.
 
 **Key Features:**
 - Configurable drones with weapon types (light/medium/heavy)
 - Configurable targets with position and class
-- ZK-MRTA compliant observations (no HP, no classes, no ammo)
+- ZK-MRTA compliant observations (no HP, no classes, no damage capabilities)
+- Configurable observation mode (minimal or collaborative)
 - Parallel execution (all agents act simultaneously)
 - Deterministic with seed support
 - Fully PettingZoo-compliant

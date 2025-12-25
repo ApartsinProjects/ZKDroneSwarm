@@ -4,6 +4,8 @@
 
 This document describes the **current state** of the TabulaDrone ZK-MRTA simulation as implemented. It serves as a factual reference for what exists in the codebase today.
 
+> **Last Updated:** December 2024
+
 ---
 
 ## 1. Entity Model (Implemented)
@@ -16,34 +18,34 @@ Defined in `tabula_drone/core/states.py`:
 |-----------|------|-------------|
 | `id` | `str` | Unique identifier (e.g., `"target_0"`) |
 | `position` | `Tuple[float, float]` | Static 2D coordinates `(x, y)` |
-| `class_type` | `str` | Class label (`"A"`, `"B"`, `"C"`) determining initial HP |
-| `hp_initial` | `float` | Initial hit points based on class_type |
-| `hp_current` | `float` | Current remaining hit points |
-| `is_active` | `bool` | `True` if `hp_current > 0`, else `False` |
+| `class_type` | `str` | Class label determining initial attributes |
+| `attributes` | `AttributeProfile` | Multi-attribute health profile (see 1.4) |
+| `is_active` | `bool` | `True` if any attribute > 0, else `False` |
 
-**Default Class HP Mapping:**
-- `"A"` → 100.0 HP
-- `"B"` → 150.0 HP
-- `"C"` → 200.0 HP
+**Backward Compatibility Properties:**
+- `hp_current` → Sum of all current attribute values
+- `hp_initial` → Sum of all initial attribute values
+
+**Class-to-Attribute Mapping:** Configurable via `class_attribute_mapping` parameter (no hardcoded defaults).
 
 ---
 
-### 1.2 DroneStateZK
+### 1.2 DroneState
 
-Defined in `tabula_drone/envs/drone_engage_zk_mrta_v0.py`:
+Defined in `tabula_drone/core/states.py`:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `id` | `str` | Unique identifier (e.g., `"drone_0"`) |
 | `position` | `Tuple[float, float]` | Static 2D coordinates `(x, y)` |
 | `ammo_used` | `int` | Running count of shots fired (starts at 0) |
-| `weapon_type` | `str` | Weapon category (`"light"`, `"medium"`, `"heavy"`) |
-| `damage_per_shot` | `float` | Damage value based on weapon_type |
+| `weapon_type` | `str` | Weapon category (e.g., `"light"`, `"medium"`, `"heavy"`) |
+| `damage_profile` | `Dict[str, float]` | Damage per attribute (e.g., `{"armor": 10.0, "shields": 5.0}`) |
 
-**Default Weapon Damage Mapping:**
-- `"light"` → 10.0 damage
-- `"medium"` → 25.0 damage
-- `"heavy"` → 50.0 damage
+**Backward Compatibility Property:**
+- `damage_per_shot` → Sum of all damage profile values
+
+**Weapon-to-Damage Mapping:** Configurable via `weapon_damage_profile_mapping` parameter (no hardcoded defaults).
 
 > **Note:** Drones have **unlimited ammo**. The `ammo_used` field is a counter for metrics, not a constraint.
 
@@ -60,6 +62,24 @@ Defined in `tabula_drone/core/states.py`:
 | `max_steps` | `int` | Maximum allowed steps per episode |
 | `scenario_id` | `str` | Identifier for scenario configuration |
 | `seed` | `Optional[int]` | Random seed for reproducibility |
+
+---
+
+### 1.4 AttributeProfile
+
+Defined in `tabula_drone/core/states.py`:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `attributes` | `Dict[str, float]` | Current values for each attribute (mutable) |
+| `initial_values` | `Dict[str, float]` | Original values at creation (immutable reference) |
+
+**Methods:**
+- `apply_damage(damage_profile)` → Reduces each attribute by corresponding damage value
+- `is_depleted()` → Returns `True` if ALL attributes are ≤ 0
+- `get_total()` → Returns sum of all current attribute values
+
+> **Note:** A target is considered neutralized when ALL attributes reach zero or below.
 
 ---
 
@@ -91,24 +111,24 @@ Defined in `tabula_drone/core/states.py`:
    │   WorldState     │
    └──────────────────┘
 
-3. EPISODE LOOP
+3. EPISODE LOOP (Sequential Processing)
    ┌──────────────────────────────────────────────────────────────┐
    │                                                              │
    │  ┌─────────────┐    observations    ┌─────────────────────┐ │
-   │  │ Environment │ ─────────────────► │    RandomPolicy     │ │
+   │  │ Environment │ ─────────────────► │       Policy        │ │
    │  │             │                    │                     │ │
-   │  │ • Targets   │    actions         │ • Uniform selection │ │
-   │  │ • Drones    │ ◄───────────────── │ • ZK-compliant      │ │
-   │  │ • World     │                    │ • No memory         │ │
+   │  │ • Targets   │    actions         │ • RandomPolicy      │ │
+   │  │ • Drones    │ ◄───────────────── │ • OracleTimeToKill  │ │
+   │  │ • World     │                    │ • OptimalAssignment │ │
    │  └─────────────┘                    └─────────────────────┘ │
    │        │                                                    │
    │        ▼                                                    │
    │  ┌─────────────┐                                            │
-   │  │ Step Logic  │                                            │
-   │  │             │                                            │
+   │  │ Step Logic  │  (Drones processed sequentially in        │
+   │  │             │   random order each step)                  │
    │  │ • Validate  │                                            │
    │  │ • Apply dmg │                                            │
-   │  │ • Rewards   │                                            │
+   │  │ • Rewards   │  (Killing blow only)                       │
    │  │ • Check end │                                            │
    │  └─────────────┘                                            │
    │                                                              │
@@ -196,7 +216,9 @@ Each drone observes a flat array of shape `(3 * num_targets,)`:
 
 ---
 
-## 6. Random Policy
+## 6. Policies
+
+### 6.1 RandomPolicy (ZK-Compliant)
 
 Implemented in `tabula_drone/policies/random_policy.py`:
 
@@ -207,13 +229,45 @@ Implemented in `tabula_drone/policies/random_policy.py`:
 | **Memory** | None — stateless per step |
 | **Coordination** | None — independent per drone |
 | **Seed** | Accepts seed for reproducibility |
+| **ZK-Compliant** | Yes — uses only binary active/inactive status |
+
+---
+
+### 6.2 OracleTimeToKillPolicy (Privileged Baseline)
+
+Implemented in `tabula_drone/policies/min_ttk_oracle.py`:
+
+| Property | Implementation |
+|----------|----------------|
+| **Selection** | Target with minimum estimated hits-to-kill |
+| **Formula** | `hits = max_a ceil(remaining_a / damage_a)` |
+| **Tie-Breaking** | Random among equal candidates |
+| **Memory** | None — stateless per step |
+| **Coordination** | None — independent per drone |
+| **ZK-Compliant** | **No** — uses true remaining attribute values |
+
+---
+
+### 6.3 OptimalAssignmentOracle (Privileged Baseline)
+
+Implemented in `tabula_drone/policies/max_damage_oracle.py`:
+
+| Property | Implementation |
+|----------|----------------|
+| **Selection** | Globally optimal drone-to-target assignment |
+| **Algorithm** | Linear sum assignment (SciPy) |
+| **Objective** | Maximize total dot-product score |
+| **Constraint** | At most one drone per target (collision-free) |
+| **Coordination** | **Yes** — centralized global optimization |
+| **ZK-Compliant** | **No** — uses true remaining attribute values |
 
 ---
 
 ## 7. Reward Model
 
-- **+1.0** to each drone that fired at a target that was neutralized this step
-- Multiple drones can receive reward for same target (shared cooperative reward)
+- **+1.0** to the drone that delivers the **killing blow** (neutralizes the target)
+- Sequential processing: only one drone can neutralize a target per step
+- Shots at already-neutralized targets are wasted (ammo counted, no reward)
 - No penalty for NoOp or missed shots
 
 ---
@@ -235,36 +289,97 @@ Implemented in `tabula_drone/policies/random_policy.py`:
 
 ```
 tabula_drone/
+├── config/
+│   ├── __init__.py
+│   └── config_loader.py       # Configuration loading utilities
 ├── core/
-│   └── states.py          # DroneState, TargetState, WorldState dataclasses
+│   ├── __init__.py
+│   └── states.py              # DroneState, TargetState, WorldState, AttributeProfile
 ├── envs/
+│   ├── __init__.py
 │   └── drone_engage_zk_mrta_v0.py  # PettingZoo ParallelEnv implementation
+├── logging/
+│   ├── __init__.py
+│   └── episode_logger.py      # JSON episode capture for replay/analysis
 ├── policies/
-│   └── random_policy.py   # ZK-compliant random action selection
+│   ├── __init__.py
+│   ├── random_policy.py       # ZK-compliant random action selection
+│   ├── min_ttk_oracle.py      # Oracle: minimum time-to-kill selection
+│   └── max_damage_oracle.py   # Oracle: optimal assignment via linear sum
 ├── scenarios/
+│   ├── __init__.py
 │   ├── scenario_builder.py    # Fluent API for scenario generation
 │   └── weapon_assignment.py   # Weapon distribution utilities
 └── utils/
-    └── (empty)
+    └── __init__.py
 
-main_zk_mrta.py            # Demo script / entry point
+viewer/                        # Visualization module
+├── components/
+│   ├── base/
+│   ├── containers/
+│   └── panels/
+├── __main__.py
+├── cli.py
+└── draw.py
+
+docs/
+└── policies/
+    ├── random_policy.md       # Policy documentation
+    ├── min_ttk_oracle.md
+    └── max_damage_oracle.md
+
+main_zk_mrta.py                # Demo script / entry point
 specs/
-└── high_level_specification_random.md  # Target specification
+├── current_status_spec.md     # This document
+└── high_level_specification_random.md
 tests/
+├── test_config_loader.py
 ├── test_drone_engage_zk_mrta_v0.py
-└── test_scenario_builder.py
+├── test_episode_logger.py
+├── test_max_damage_oracle.py
+├── test_min_ttk_oracle.py
+├── test_scenario_builder.py
+└── test_state_adapter.py
 ```
 
 ---
 
-## 10. Known Deviations from Specification
+## 10. Known Deviations from Original Specification
 
 | Spec Requirement | Current Implementation | Notes |
 |------------------|------------------------|-------|
 | Finite ammo (`ammo`, `ammo_max`) | Unlimited ammo (`ammo_used` counter) | Intentional simplification for MVP |
-| `DroneState` with ammo fields | `DroneStateZK` with `ammo_used` | Separate dataclass in env module |
+| Single HP value per target | Multi-attribute `AttributeProfile` | More flexible damage model |
+| Single damage value per drone | `damage_profile` dict per attribute | Matches multi-attribute targets |
+| Simultaneous action processing | Sequential (random order) | Enables killing-blow reward |
+| Shared cooperative reward | Killing-blow-only reward | Single drone rewarded per kill |
 | Per-class/zone metrics | Aggregate metrics only | Not yet implemented |
-| Single seed for full reproducibility | Separate env/policy seeds | Set to same value in demo |
+| Hardcoded class/weapon mappings | Configurable via parameters | Required at env/builder init |
+
+---
+
+## 11. Logging & Replay
+
+Implemented in `tabula_drone/logging/episode_logger.py`:
+
+**EpisodeLogger** captures:
+- Initial scenario setup (positions, weapons, classes)
+- Per-step actions, rewards, and state
+- Episode summary (total steps, rewards, termination reason)
+
+**JSON Schema (v1.1):**
+```json
+{
+  "version": "1.1",
+  "episode_id": "<uuid>",
+  "timestamp": "<ISO8601>",
+  "rng_seed": <int|null>,
+  "config": {...},
+  "scenario": {...},
+  "steps": [...],
+  "summary": {...}
+}
+```
 
 ---
 
