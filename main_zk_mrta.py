@@ -15,6 +15,7 @@ from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.logging import EpisodeLogger
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.policies.oracle_policy import OracleTimeToKillPolicy
+from tabula_drone.policies.optimal_assignment_oracle import OptimalAssignmentOracle
 from tabula_drone.scenarios import ScenarioBuilder
 
 CONFIG_PATH = "config/scenario.json"
@@ -46,7 +47,7 @@ def print_episode_summary(
     print("=" * 60 + "\n")
 
 
-PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy]
+PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle]
 
 
 def create_policy(
@@ -71,6 +72,16 @@ def create_policy(
             for idx, drone_cfg in enumerate(drones_config)
         }
         return OracleTimeToKillPolicy(
+            agent_weapon_profiles=agent_weapon_profiles,
+            seed=config.seed,
+            allow_noop=config.policy.allow_noop,
+        )
+    elif policy_type == "oracle_assignment":
+        agent_weapon_profiles = {
+            f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
+            for idx, drone_cfg in enumerate(drones_config)
+        }
+        return OptimalAssignmentOracle(
             agent_weapon_profiles=agent_weapon_profiles,
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
@@ -128,7 +139,7 @@ def run_episode(
         step_count += 1
         
         # Policy selects actions for all agents
-        if isinstance(policy, OracleTimeToKillPolicy):
+        if isinstance(policy, (OracleTimeToKillPolicy, OptimalAssignmentOracle)):
             actions = policy.select_actions(obs, env.num_targets, info["target_attributes"])
         else:
             actions = policy.select_actions(obs, env.num_targets)

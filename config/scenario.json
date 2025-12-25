@@ -17,7 +17,7 @@
     }
   },
   "targets": {
-    "count": 100,
+    "count": 75,
     "region": {
       "x_fraction": [0.1, 0.9],
       "y_fraction": [0.5, 0.75]
@@ -34,7 +34,7 @@
     "max_steps": 1000
   },
   "policy": {
-    "type": ["oracle", "random"],
+    "type": ["oracle", "oracle_assignment"],
     "allow_noop": false
   },
   "execution": {
