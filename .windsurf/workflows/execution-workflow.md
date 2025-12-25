@@ -1,6 +1,5 @@
 ---
 description: Implement the approved plan, then verify and test with minimal changes.
-auto_execution_mode: 1
 ---
 
 # Execution Workflow
@@ -83,7 +82,7 @@ Report what’s NOT fully covered by this step:
 Purpose: Verify that the implemented step passes the agreed verification command(s) and address any immediate issues.
 
 - Ensure the following command (or your project’s equivalent) runs without errors:
-  <PUT YOUR COMMAND HERE>  
+ python3 main_zk_mrta.py 
   _Example:_ `npm run build -- --configuration development`
 
 If issues occur:
