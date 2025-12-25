@@ -143,8 +143,8 @@ class InfoPanel(BaseComponent):
         first_weapon = next(iter(self.weapon_damage_profile_mapping.values()))
         attr_names = sorted(first_weapon.keys())
 
-        # Render header row: Attribute | weapon1 | weapon2 | weapon3
-        col_positions = [0.02, 0.18, 0.36, 0.54]
+        # Render header row: Attribute | weapon1 | weapon2 | ...
+        col_positions = [0.02 + i * 0.16 for i in range(len(weapon_types) + 1)]
         self.ax.text(
             col_positions[0], y_pos, "Attribute",
             ha='left', va='top', fontsize=8, fontweight='bold', color='#444444',
@@ -237,8 +237,8 @@ class InfoPanel(BaseComponent):
         first_class = next(iter(self.class_attribute_mapping.values()))
         attr_names = sorted(first_class.keys())
 
-        # Render header row: Attribute | A | B | C
-        col_positions = [0.02, 0.18, 0.36, 0.54]
+        # Render header row: Attribute | A | B | C | ...
+        col_positions = [0.02 + i * 0.16 for i in range(len(class_types) + 1)]
         self.ax.text(
             col_positions[0], y_pos, "Attribute",
             ha='left', va='top', fontsize=8, fontweight='bold', color='#444444',

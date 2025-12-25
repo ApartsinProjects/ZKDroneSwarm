@@ -10,6 +10,8 @@ Demonstrates:
 
 from typing import Dict, Any, List, Optional, Union
 
+from tabulate import tabulate
+
 from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.logging import EpisodeLogger
@@ -22,7 +24,7 @@ from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 
 CONFIG_PATH = "config/scenario.json"
 
-
+# "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
 def print_episode_summary(
     episode_num: int,
     step_count: int,
@@ -114,7 +116,7 @@ def run_episode(
     env: DroneEngageZKMRTA,
     policy: PolicyType,
     episode_num: int,
-    verbose: bool = True,
+    verbose: bool = False,
     logger: Optional[EpisodeLogger] = None,
     seed: Optional[int] = None,
 ) -> Dict[str, Any]:
@@ -365,6 +367,37 @@ def main():
         print(f"  {agent_id}: {avg_reward:.2f}")
     
     print("="*60)
+    
+    # Policy Performance Summary Table
+    table_data = []
+    for policy_type in config.policy.type:
+        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
+        if policy_metrics:
+            n = len(policy_metrics)
+            avg_steps = sum(m["steps"] for m in policy_metrics) / n
+            avg_targets = sum(m["targets_neutralized"] for m in policy_metrics) / n
+            avg_ammo = sum(m["total_ammo_used"] for m in policy_metrics) / n
+            avg_overkill = sum(m["total_overkill"] for m in policy_metrics) / n
+            avg_reward = sum(sum(m["agent_rewards"].values()) for m in policy_metrics) / n
+            success_count = sum(1 for m in policy_metrics if m["done_reason"] == "all_targets_neutralized")
+            success_rate = (success_count / n) * 100
+            table_data.append([
+                policy_type,
+                f"{avg_steps:.1f}",
+                f"{avg_targets:.1f}",
+                f"{avg_ammo:.1f}",
+                f"{avg_overkill:.1f}",
+                f"{avg_reward:.1f}",
+                f"{success_rate:.0f}%",
+            ])
+    
+    print("\n" + "="*60)
+    print("POLICY PERFORMANCE SUMMARY")
+    print("="*60)
+    headers = ["Policy", "Avg Steps", "Avg Targets", "Avg Ammo", "Avg Overkill", "Avg Reward", "Success %"]
+    print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    print("="*60)
+    
     print("\nDemo complete! ✓")
 
 
