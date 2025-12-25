@@ -66,7 +66,7 @@ def create_policy(
     Returns:
         Policy instance (OracleTimeToKillPolicy or RandomPolicy)
     """
-    if policy_type == "oracle":
+    if policy_type == "min_ttk_oracle":
         agent_weapon_profiles = {
             f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
             for idx, drone_cfg in enumerate(drones_config)
@@ -76,7 +76,7 @@ def create_policy(
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
         )
-    elif policy_type == "oracle_assignment":
+    elif policy_type == "max_damage_oracle":
         agent_weapon_profiles = {
             f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
             for idx, drone_cfg in enumerate(drones_config)
