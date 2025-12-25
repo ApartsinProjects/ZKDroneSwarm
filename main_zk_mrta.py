@@ -21,9 +21,6 @@ from tabula_drone.policies.cf_policy import CFPolicy
 
 CONFIG_PATH = "config/scenario.json"
 
-# Flag to enable collaborative filtering mode
-USE_COLLABORATIVE_MODE = False
-
 
 def print_episode_summary(
     episode_num: int,
@@ -51,24 +48,26 @@ def print_episode_summary(
     print("=" * 60 + "\n")
 
 
-PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle]
+PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, CFPolicy]
 
 
 def create_policy(
     policy_type: str,
     config: Any,
     drones_config: List[Dict[str, Any]],
+    num_targets: Optional[int] = None,
 ) -> PolicyType:
     """
     Factory function to create a policy instance.
     
     Args:
-        policy_type: Type of policy ("oracle" or "random")
+        policy_type: Type of policy ("min_ttk_oracle", "max_damage_oracle", "random", "collaborative_filtering")
         config: ScenarioConfig with seed and policy settings
         drones_config: List of drone configurations for weapon profiles
+        num_targets: Number of targets (required for collaborative_filtering)
     
     Returns:
-        Policy instance (OracleTimeToKillPolicy or RandomPolicy)
+        Policy instance
     """
     if policy_type == "min_ttk_oracle":
         agent_weapon_profiles = {
@@ -89,6 +88,14 @@ def create_policy(
             agent_weapon_profiles=agent_weapon_profiles,
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
+        )
+    elif policy_type == "collaborative_filtering":
+        if num_targets is None:
+            raise ValueError("num_targets is required for collaborative_filtering policy")
+        return CFPolicy(
+            num_agents=len(drones_config),
+            num_targets=num_targets,
+            seed=config.seed,
         )
     else:
         return RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
@@ -250,32 +257,10 @@ def main():
     # Build configurations
     drones_config, targets_config = builder.build()
     
-    # Create environment with collaborative mode if enabled
-    if USE_COLLABORATIVE_MODE:
-        env = DroneEngageZKMRTA(
-            world_size=config.world.size,
-            max_steps=config.environment.max_steps,
-            drones_config=drones_config,
-            targets_config=targets_config,
-            scenario_id=config.environment.scenario_id,
-            class_attribute_mapping=config.mappings.class_attribute_mapping,
-            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-            policy_type="cf_policy",
-            observation_mode="collaborative",
-            reward_noise=5,
-            observation_noise=0.05,
-        )
-    else:
-        env = DroneEngageZKMRTA(
-            world_size=config.world.size,
-            max_steps=config.environment.max_steps,
-            drones_config=drones_config,
-            targets_config=targets_config,
-            scenario_id=config.environment.scenario_id,
-            class_attribute_mapping=config.mappings.class_attribute_mapping,
-            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-            policy_type=",".join(config.policy.type),
-        )
+    # Get CF noise parameters from config (with defaults)
+    cf_config = getattr(config, 'collaborative_filtering', None)
+    reward_noise = cf_config.reward_noise if cf_config else 0.1
+    observation_noise = cf_config.observation_noise if cf_config else 0.05
     
     # Run episodes
     num_episodes = config.execution.num_episodes
@@ -285,108 +270,116 @@ def main():
     print("ZK-MRTA ENVIRONMENT DEMO")
     print("="*60)
     print(f"Config File: {CONFIG_PATH}")
-    print(f"Environment: {env.metadata['name']}")
-    print(f"Scenario ID: {env.scenario_id}")
-    print(f"World Size: {env.world_size}")
-    print(f"Max Steps: {env.max_steps}")
+    print(f"World Size: {config.world.size}")
     print(f"Random Seed: {config.seed}")
-    print(f"Collaborative Mode: {USE_COLLABORATIVE_MODE}")
-    if USE_COLLABORATIVE_MODE:
-        print(f"Policy: CF Policy (SGD Matrix Factorization)")
-    else:
-        print(f"Policy Types: {config.policy.type}")
+    print(f"Policy Types: {config.policy.type}")
     print(f"Episodes per Policy: {num_episodes}")
     print(f"Weapon Damage Profiles: {config.mappings.weapon_damage_profile_mapping}")
     print(f"Target Class Attributes: {config.mappings.class_attribute_mapping}")
     print("="*60)
     
-    if USE_COLLABORATIVE_MODE:
-        # Collaborative filtering mode - use CF policy
-        print("\n>>> Running policy: cf_policy (Collaborative Filtering)")
+    # Run each policy type
+    for policy_type in config.policy.type:
+        print(f"\n>>> Running policy: {policy_type}")
         
-        policy = CFPolicy(
-            num_agents=env.num_drones,
-            num_targets=env.num_targets,
-            seed=config.seed,
+        # Create environment with appropriate observation mode per policy
+        is_cf = policy_type == "collaborative_filtering"
+        
+        env = DroneEngageZKMRTA(
+            world_size=config.world.size,
+            max_steps=config.environment.max_steps,
+            drones_config=drones_config,
+            targets_config=targets_config,
+            scenario_id=config.environment.scenario_id,
+            class_attribute_mapping=config.mappings.class_attribute_mapping,
+            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
+            policy_type=policy_type,
+            observation_mode="collaborative" if is_cf else "minimal",
+            reward_noise=reward_noise if is_cf else 0.0,
+            observation_noise=observation_noise if is_cf else 0.0,
         )
-        logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type="cf_policy")
+        
+        # Create policy (pass num_targets for CF policy)
+        policy = create_policy(policy_type, config, drones_config, num_targets=env.num_targets)
+        logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
         for episode_num in range(1, num_episodes + 1):
-            # Reset policy for new episode
-            if episode_num > 1:
+            # Reset CF policy for new episode
+            if is_cf and episode_num > 1:
                 policy.reset()
             
-            obs, info = env.reset(seed=config.seed)
-            
-            if logger:
-                logger.start_episode(env, info, config.seed)
-            
-            total_rewards = {agent_id: 0.0 for agent_id in env.agents}
-            step_count = 0
-            done = False
-            
-            while not done:
-                step_count += 1
-                
-                # CF policy selects actions
-                actions = policy.select_actions(obs)
-                
-                # Update policy from observations (learn from all agents)
-                for agent_id, agent_obs in obs.items():
-                    policy.update_from_observation(agent_obs, agent_id)
-                
-                # Environment step
-                obs, rewards, terminations, truncations, info = env.step(actions)
-                
-                # Check termination
-                terminated = terminations[env.agents[0]]
-                truncated = truncations[env.agents[0]]
+            if is_cf:
+                # CF policy episode loop (needs update_from_observation)
+                obs, info = env.reset(seed=config.seed)
                 
                 if logger:
-                    logger.log_step(step_count, actions, rewards, terminated, truncated, info)
+                    logger.start_episode(env, info, config.seed)
                 
-                # Update total rewards
-                for agent_id in env.agents:
-                    total_rewards[agent_id] += rewards[agent_id]
+                total_rewards = {agent_id: 0.0 for agent_id in env.agents}
+                step_count = 0
+                done = False
+                overkill_events = []
                 
-                done = terminated or truncated
-            
-            # Finalize logger
-            if logger:
-                logger.end_episode(total_rewards, info.get("done_reason"))
-                logger.save()
-            
-            # Compute metrics
-            targets_neutralized = sum(1 for active in info['target_active'] if not active)
-            total_ammo_used = sum(info['ammo_used'].values())
-            
-            if config.execution.verbose:
-                print_episode_summary(
-                    episode_num, step_count, total_rewards, info,
-                    targets_neutralized, total_ammo_used
-                )
-            
-            metrics = {
-                "episode": episode_num,
-                "steps": step_count,
-                "targets_neutralized": targets_neutralized,
-                "total_ammo_used": total_ammo_used,
-                "total_overkill": 0,
-                "done_reason": info.get("done_reason"),
-                "agent_rewards": total_rewards.copy(),
-                "overkill_events": 0,
-                "policy_type": "cf_policy",
-            }
-            all_metrics.append(metrics)
-    else:
-        # Standard mode - use configured policies
-        for policy_type in config.policy.type:
-            print(f"\n>>> Running policy: {policy_type}")
-            
-            policy = create_policy(policy_type, config, drones_config)
-            logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
-            
-            for episode_num in range(1, num_episodes + 1):
+                while not done:
+                    step_count += 1
+                    
+                    # CF policy selects actions
+                    actions = policy.select_actions(obs)
+                    
+                    # Update policy from observations (learn from all agents)
+                    for agent_id, agent_obs in obs.items():
+                        policy.update_from_observation(agent_obs, agent_id)
+                    
+                    # Environment step
+                    obs, rewards, terminations, truncations, info = env.step(actions)
+                    
+                    # Check termination
+                    terminated = terminations[env.agents[0]]
+                    truncated = truncations[env.agents[0]]
+                    
+                    if logger:
+                        logger.log_step(step_count, actions, rewards, terminated, truncated, info)
+                    
+                    # Update total rewards
+                    for agent_id in env.agents:
+                        total_rewards[agent_id] += rewards[agent_id]
+                    
+                    # Track overkill
+                    if "overkill" in info:
+                        overkill_events.append(info["overkill"])
+                    
+                    done = terminated or truncated
+                
+                # Finalize logger
+                if logger:
+                    logger.end_episode(total_rewards, info.get("done_reason"))
+                    logger.save()
+                
+                # Compute metrics
+                targets_neutralized = sum(1 for active in info['target_active'] if not active)
+                total_ammo_used = sum(info['ammo_used'].values())
+                total_overkill = sum(sum(ok.values()) for ok in overkill_events)
+                
+                if config.execution.verbose:
+                    print_episode_summary(
+                        episode_num, step_count, total_rewards, info,
+                        targets_neutralized, total_ammo_used
+                    )
+                
+                metrics = {
+                    "episode": episode_num,
+                    "steps": step_count,
+                    "targets_neutralized": targets_neutralized,
+                    "total_ammo_used": total_ammo_used,
+                    "total_overkill": total_overkill,
+                    "done_reason": info.get("done_reason"),
+                    "agent_rewards": total_rewards.copy(),
+                    "overkill_events": len(overkill_events),
+                    "policy_type": policy_type,
+                }
+                all_metrics.append(metrics)
+            else:
+                # Standard policy episode loop
                 metrics = run_episode(
                     env=env,
                     policy=policy,
@@ -403,11 +396,7 @@ def main():
     print("\n" + "="*60)
     print("AGGREGATE STATISTICS")
     print("="*60)
-    
-    if USE_COLLABORATIVE_MODE:
-        print(f"Total Episodes: {total_episodes} (CF Policy)")
-    else:
-        print(f"Total Episodes: {total_episodes} ({num_episodes} per policy × {len(config.policy.type)} policies)")
+    print(f"Total Episodes: {total_episodes} ({num_episodes} per policy × {len(config.policy.type)} policies)")
     
     avg_steps = sum(m["steps"] for m in all_metrics) / total_episodes
     avg_targets = sum(m["targets_neutralized"] for m in all_metrics) / total_episodes
@@ -420,21 +409,14 @@ def main():
     print(f"Average Overkill Damage:    {avg_overkill:.1f}")
     
     # Per-policy statistics
-    if USE_COLLABORATIVE_MODE:
-        policy_metrics = [m for m in all_metrics if m["policy_type"] == "cf_policy"]
+    for policy_type in config.policy.type:
+        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
         if policy_metrics:
-            print(f"\n  Policy 'cf_policy':")
+            print(f"\n  Policy '{policy_type}':")
             print(f"    Avg Steps: {sum(m['steps'] for m in policy_metrics) / len(policy_metrics):.1f}")
             print(f"    Avg Targets: {sum(m['targets_neutralized'] for m in policy_metrics) / len(policy_metrics):.1f}")
-    else:
-        for policy_type in config.policy.type:
-            policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
-            if policy_metrics:
-                print(f"\n  Policy '{policy_type}':")
-                print(f"    Avg Steps: {sum(m['steps'] for m in policy_metrics) / len(policy_metrics):.1f}")
-                print(f"    Avg Targets: {sum(m['targets_neutralized'] for m in policy_metrics) / len(policy_metrics):.1f}")
     
-    # Per-agent statistics
+    # Per-agent statistics (use last env for agent list)
     print(f"\nPer-Agent Average Rewards:")
     for agent_id in env.agents:
         avg_reward = sum(m["agent_rewards"][agent_id] for m in all_metrics) / total_episodes

@@ -34,8 +34,12 @@
     "max_steps": 1000
   },
   "policy": {
-    "type": ["min_ttk_oracle", "max_damage_oracle", "random"],
+    "type": ["max_damage_oracle", "min_ttk_oracle", "collaborative_filtering", "random"],
     "allow_noop": false
+  },
+  "collaborative_filtering": {
+    "reward_noise": 0.1,
+    "observation_noise": 0.05
   },
   "execution": {
     "num_episodes": 1,

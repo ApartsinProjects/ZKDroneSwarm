@@ -72,6 +72,13 @@ class MappingsConfig:
 
 
 @dataclass
+class CollaborativeFilteringConfig:
+    """Collaborative filtering policy configuration."""
+    reward_noise: float
+    observation_noise: float
+
+
+@dataclass
 class ScenarioConfig:
     """Root configuration containing all scenario settings."""
     seed: int
@@ -83,6 +90,7 @@ class ScenarioConfig:
     execution: ExecutionConfig
     logging: LoggingConfig
     mappings: MappingsConfig
+    collaborative_filtering: CollaborativeFilteringConfig = None
 
 
 def _validate_required_keys(data: dict, required_keys: List[str], context: str) -> None:
@@ -182,11 +190,22 @@ def _parse_policy_config(data: dict) -> PolicyConfig:
     policy_types = data["type"]
     if not isinstance(policy_types, list) or not policy_types:
         raise ValueError("policy.type must be a non-empty list of policy types")
-    valid_types = {"random", "min_ttk_oracle", "max_damage_oracle"}
+    valid_types = {"random", "min_ttk_oracle", "max_damage_oracle", "collaborative_filtering"}
     for pt in policy_types:
         if pt not in valid_types:
             raise ValueError(f"policy.type contains invalid type '{pt}', must be one of {valid_types}")
     return PolicyConfig(type=policy_types, allow_noop=bool(data["allow_noop"]))
+
+
+def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringConfig:
+    """Parse collaborative filtering configuration section (optional)."""
+    if data is None:
+        return None
+    _validate_required_keys(data, ["reward_noise", "observation_noise"], "collaborative_filtering")
+    return CollaborativeFilteringConfig(
+        reward_noise=float(data["reward_noise"]),
+        observation_noise=float(data["observation_noise"])
+    )
 
 
 def _parse_execution_config(data: dict) -> ExecutionConfig:
@@ -359,6 +378,9 @@ def load_config(path: str) -> ScenarioConfig:
     mappings_path = os.path.join(config_dir, "mappings.json")
     mappings = load_mappings(mappings_path)
     
+    # Parse optional collaborative_filtering config
+    cf_config = _parse_collaborative_filtering_config(data.get("collaborative_filtering"))
+    
     return ScenarioConfig(
         seed=seed,
         world=_parse_world_config(data["world"]),
@@ -368,5 +390,6 @@ def load_config(path: str) -> ScenarioConfig:
         policy=_parse_policy_config(data["policy"]),
         execution=_parse_execution_config(data["execution"]),
         logging=_parse_logging_config(data["logging"]),
-        mappings=mappings
+        mappings=mappings,
+        collaborative_filtering=cf_config
     )
