@@ -17,7 +17,7 @@
     }
   },
   "targets": {
-    "count": 100,
+    "count": 250,
     "region": {
       "x_fraction": [0.1, 0.9],
       "y_fraction": [0.5, 0.75]
@@ -28,7 +28,7 @@
       "C": 0.33
     },
     "min_distance_from_drones": 100.0,
-    "min_distance_between_targets": 25.0
+    "min_distance_between_targets": 5.0
   },
   "environment": {
     "max_steps": 1000

@@ -1032,3 +1032,182 @@ class TestEpisodeIntegration:
         # Both drones participated in both neutralizations
         assert total_rewards['drone_0'] == 2.0
         assert total_rewards['drone_1'] == 2.0
+
+
+class TestCollaborativeMode:
+    """Test collaborative observation mode."""
+
+    def test_observation_mode_default_is_minimal(self):
+        """Test that default observation_mode is 'minimal'."""
+        env = make_env(
+            drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
+            targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+        )
+        assert env.observation_mode == "minimal"
+
+    def test_observation_mode_collaborative(self):
+        """Test that collaborative mode can be set."""
+        env = make_env(
+            drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
+            targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+            observation_mode='collaborative',
+        )
+        assert env.observation_mode == "collaborative"
+
+    def test_invalid_observation_mode_raises_error(self):
+        """Test that invalid observation_mode raises ValueError."""
+        with pytest.raises(ValueError, match="observation_mode must be one of"):
+            make_env(
+                drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
+                targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+                observation_mode='invalid',
+            )
+
+    def test_minimal_mode_observation_is_array(self):
+        """Test that minimal mode returns numpy array observations."""
+        env = make_env(
+            drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
+            targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+            observation_mode='minimal',
+        )
+        obs, _ = env.reset()
+        assert isinstance(obs['drone_0'], np.ndarray)
+        assert obs['drone_0'].shape == (3,)  # 1 target * 3 values
+
+    def test_collaborative_mode_observation_is_dict(self):
+        """Test that collaborative mode returns dict observations."""
+        env = make_env(
+            drones_config=[
+                {'position': (100.0, 100.0), 'weapon_type': 'medium'},
+                {'position': (200.0, 200.0), 'weapon_type': 'light'},
+            ],
+            targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+            observation_mode='collaborative',
+        )
+        obs, _ = env.reset()
+        
+        assert isinstance(obs['drone_0'], dict)
+        assert 'targets' in obs['drone_0']
+        assert 'selected_targets' in obs['drone_0']
+        assert 'observed_rewards' in obs['drone_0']
+
+    def test_collaborative_mode_observation_shapes(self):
+        """Test collaborative mode observation array shapes."""
+        env = make_env(
+            drones_config=[
+                {'position': (100.0, 100.0), 'weapon_type': 'medium'},
+                {'position': (200.0, 200.0), 'weapon_type': 'light'},
+            ],
+            targets_config=[
+                {'position': (500.0, 500.0), 'class_type': 'A'},
+                {'position': (600.0, 600.0), 'class_type': 'B'},
+            ],
+            observation_mode='collaborative',
+        )
+        obs, _ = env.reset()
+        
+        # 2 targets * 3 values = 6
+        assert obs['drone_0']['targets'].shape == (6,)
+        # 2 drones
+        assert obs['drone_0']['selected_targets'].shape == (2,)
+        assert obs['drone_0']['observed_rewards'].shape == (2,)
+
+    def test_collaborative_mode_selected_targets_updated(self):
+        """Test that selected_targets reflects actions from current step."""
+        env = make_env(
+            drones_config=[
+                {'position': (100.0, 100.0), 'weapon_type': 'medium'},
+                {'position': (200.0, 200.0), 'weapon_type': 'light'},
+            ],
+            targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+            observation_mode='collaborative',
+        )
+        env.reset()
+        
+        actions = {'drone_0': 1, 'drone_1': 0}  # drone_0 fires, drone_1 noop
+        obs, _, _, _, _ = env.step(actions)
+        
+        assert list(obs['drone_0']['selected_targets']) == [1, 0]
+        assert list(obs['drone_1']['selected_targets']) == [1, 0]
+
+    def test_collaborative_mode_observed_rewards_updated(self):
+        """Test that observed_rewards reflects rewards from current step."""
+        env = make_env(
+            drones_config=[
+                {'position': (100.0, 100.0), 'weapon_type': 'heavy'},
+                {'position': (200.0, 200.0), 'weapon_type': 'heavy'},
+            ],
+            targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+            observation_mode='collaborative',
+            reward_noise=0.0,
+            observation_noise=0.0,
+        )
+        env.reset(seed=42)
+        
+        # Fire until target neutralized
+        actions = {'drone_0': 1, 'drone_1': 1}
+        for _ in range(10):
+            obs, rewards, term, _, _ = env.step(actions)
+            if term['drone_0']:
+                break
+        
+        # One drone got the kill reward
+        total_reward = sum(obs['drone_0']['observed_rewards'])
+        assert total_reward == 1.0  # Only killing blow drone gets reward
+
+    def test_noise_parameters_stored(self):
+        """Test that noise parameters are stored correctly."""
+        env = make_env(
+            drones_config=[{'position': (100.0, 100.0), 'weapon_type': 'medium'}],
+            targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+            observation_mode='collaborative',
+            reward_noise=0.1,
+            observation_noise=0.05,
+        )
+        assert env.reward_noise == 0.1
+        assert env.observation_noise == 0.05
+
+    def test_noise_affects_observations(self):
+        """Test that noise parameters affect observed rewards."""
+        env = make_env(
+            drones_config=[
+                {'position': (100.0, 100.0), 'weapon_type': 'medium'},
+                {'position': (200.0, 200.0), 'weapon_type': 'light'},
+            ],
+            targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+            observation_mode='collaborative',
+            reward_noise=0.5,
+            observation_noise=0.5,
+        )
+        obs, _ = env.reset(seed=42)
+        
+        # With noise, observed rewards should not be exactly 0
+        # (statistically very unlikely with seed=42)
+        rewards_drone0 = obs['drone_0']['observed_rewards']
+        rewards_drone1 = obs['drone_1']['observed_rewards']
+        
+        # At least one should be non-zero due to noise
+        assert not (np.allclose(rewards_drone0, 0) and np.allclose(rewards_drone1, 0))
+
+    def test_determinism_with_seed(self):
+        """Test that collaborative mode is deterministic with seed."""
+        def run_episode(seed):
+            env = make_env(
+                drones_config=[
+                    {'position': (100.0, 100.0), 'weapon_type': 'medium'},
+                    {'position': (200.0, 200.0), 'weapon_type': 'light'},
+                ],
+                targets_config=[{'position': (500.0, 500.0), 'class_type': 'A'}],
+                observation_mode='collaborative',
+                reward_noise=0.1,
+                observation_noise=0.05,
+            )
+            obs, _ = env.reset(seed=seed)
+            return obs['drone_0']['observed_rewards'].copy()
+        
+        rewards1 = run_episode(42)
+        rewards2 = run_episode(42)
+        rewards3 = run_episode(99)
+        
+        assert np.allclose(rewards1, rewards2)  # Same seed = same result
+        assert not np.allclose(rewards1, rewards3)  # Different seed = different result

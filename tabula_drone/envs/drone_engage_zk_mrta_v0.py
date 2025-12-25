@@ -58,6 +58,9 @@ class DroneEngageZKMRTA(ParallelEnv):
         class_attribute_mapping: Dict[str, Dict[str, float]] = None,
         weapon_damage_profile_mapping: Dict[str, Dict[str, float]] = None,
         policy_type: str = "random",
+        observation_mode: str = "minimal",
+        reward_noise: float = 0.0,
+        observation_noise: float = 0.0,
     ):
         """
         Initialize ZK-MRTA environment.
@@ -76,14 +79,31 @@ class DroneEngageZKMRTA(ParallelEnv):
                 Required - must be provided.
             weapon_damage_profile_mapping: Dict mapping weapon types to damage profile dicts.
                 Required - must be provided.
+            observation_mode: Observation mode - "minimal" (default) or "collaborative".
+                - minimal: Target positions + active status only
+                - collaborative: Adds other agents' actions and rewards
+            reward_noise: Gaussian noise σ added to actual rewards (default 0.0)
+            observation_noise: Additional Gaussian noise σ when observing other
+                agents' rewards in collaborative mode (default 0.0)
         """
         super().__init__()
+        
+        # Validate observation_mode
+        valid_modes = ("minimal", "collaborative")
+        if observation_mode not in valid_modes:
+            raise ValueError(
+                f"observation_mode must be one of {valid_modes}. "
+                f"Got: '{observation_mode}'"
+            )
         
         # Configuration
         self.world_size = world_size
         self.max_steps = max_steps
         self.scenario_id = scenario_id
         self.policy_type = policy_type
+        self.observation_mode = observation_mode
+        self.reward_noise = reward_noise
+        self.observation_noise = observation_noise
         
         # Validate and store mappings (required)
         if class_attribute_mapping is None:
@@ -163,24 +183,56 @@ class DroneEngageZKMRTA(ParallelEnv):
             for agent_id in self.possible_agents
         }
         
-        # Define observation spaces: Box(shape=(3 * num_targets,))
-        # Each target contributes: [x, y, active] (3 values)
-        obs_dim = 3 * self.num_targets
-        self.observation_spaces = {
-            agent_id: spaces.Box(
-                low=0.0,
-                high=np.inf,
-                shape=(obs_dim,),
-                dtype=np.float32
-            )
-            for agent_id in self.possible_agents
-        }
+        # Define observation spaces based on mode
+        if self.observation_mode == "minimal":
+            # Minimal mode: Box(shape=(3 * num_targets,))
+            # Each target contributes: [x, y, active] (3 values)
+            obs_dim = 3 * self.num_targets
+            self.observation_spaces = {
+                agent_id: spaces.Box(
+                    low=0.0,
+                    high=np.inf,
+                    shape=(obs_dim,),
+                    dtype=np.float32
+                )
+                for agent_id in self.possible_agents
+            }
+        else:
+            # Collaborative mode: Dict space with targets, actions, rewards
+            obs_dim = 3 * self.num_targets
+            self.observation_spaces = {
+                agent_id: spaces.Dict({
+                    "targets": spaces.Box(
+                        low=0.0,
+                        high=np.inf,
+                        shape=(obs_dim,),
+                        dtype=np.float32
+                    ),
+                    "selected_targets": spaces.Box(
+                        low=0,
+                        high=self.num_targets,
+                        shape=(self.num_drones,),
+                        dtype=np.int32
+                    ),
+                    "observed_rewards": spaces.Box(
+                        low=-np.inf,
+                        high=np.inf,
+                        shape=(self.num_drones,),
+                        dtype=np.float32
+                    ),
+                })
+                for agent_id in self.possible_agents
+            }
         
         # State (will be initialized in reset)
         self.drones: Optional[List[DroneState]] = None
         self.targets: Optional[List[TargetState]] = None
         self.world: Optional[WorldState] = None
         self.rng: Optional[np.random.RandomState] = None
+        
+        # Collaborative mode state tracking
+        self.last_actions: Dict[str, int] = {}
+        self.last_rewards: Dict[str, float] = {}
     
     @property
     def agents(self) -> List[str]:
@@ -257,6 +309,10 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Reset agents list
         self._agents = self.possible_agents[:]
         
+        # Initialize collaborative mode state tracking
+        self.last_actions = {agent_id: 0 for agent_id in self.possible_agents}
+        self.last_rewards = {agent_id: 0.0 for agent_id in self.possible_agents}
+        
         # Compute initial observations (Step 6)
         observations = self._compute_observations()
         
@@ -290,43 +346,67 @@ class DroneEngageZKMRTA(ParallelEnv):
             "target_active": [target.is_active for target in self.targets],
         }
     
-    def _compute_observations(self) -> Dict[str, np.ndarray]:
+    def _compute_observations(self) -> Dict[str, Any]:
         """
-        Compute zero-knowledge observations for all agents.
+        Compute observations for all agents based on observation mode.
         
-        Each agent observes:
-        - Target positions (x, y)
-        - Target active states (1.0 if active, 0.0 if inactive)
+        Minimal mode (ZK-compliant):
+        - Target positions (x, y) and active states only
         
-        ZK Compliance: Does NOT expose:
-        - HP values (current or initial)
-        - Class types
-        - Zone IDs
-        - Damage values
-        - Ammo usage
-        - Other drones' states
+        Collaborative mode:
+        - Target positions and active states
+        - Other agents' selected targets (last step)
+        - Other agents' observed rewards (with noise)
         
         Returns:
-            Dict of {agent_id: observation_array}
-            Each observation has shape (3 * num_targets,)
+            Dict of {agent_id: observation}
+            - Minimal: np.ndarray of shape (3 * num_targets,)
+            - Collaborative: Dict with 'targets', 'selected_targets', 'observed_rewards'
         """
-        observation = []
-        
+        # Build target observation array (shared by both modes)
+        target_obs = []
         for target in self.targets:
-            # Target position
             x, y = target.position
-            
-            # Active status as float (ZK-compliant: only binary state visible)
             is_active_float = 1.0 if target.is_active else 0.0
+            target_obs.extend([x, y, is_active_float])
+        target_array = np.array(target_obs, dtype=np.float32)
+        
+        if self.observation_mode == "minimal":
+            # All agents receive identical observations
+            return {agent_id: target_array.copy() for agent_id in self.agents}
+        
+        # Collaborative mode: build Dict observations with noise
+        observations = {}
+        for agent_id in self.agents:
+            # Build selected_targets array (actions from last step)
+            selected_targets = np.array(
+                [self.last_actions.get(aid, 0) for aid in self.possible_agents],
+                dtype=np.int32
+            )
             
-            # Append [x, y, active] for this target
-            observation.extend([x, y, is_active_float])
-        
-        # Convert to numpy array
-        obs_array = np.array(observation, dtype=np.float32)
-        
-        # All agents receive identical observations (global state visibility)
-        observations = {agent_id: obs_array.copy() for agent_id in self.agents}
+            # Build observed_rewards array with noise
+            observed_rewards = []
+            for other_agent_id in self.possible_agents:
+                base_reward = self.last_rewards.get(other_agent_id, 0.0)
+                
+                # Apply noise
+                if other_agent_id == agent_id:
+                    # Own reward: only reward_noise
+                    noise = self.rng.normal(0, self.reward_noise) if self.reward_noise > 0 else 0.0
+                else:
+                    # Other's reward: reward_noise + observation_noise
+                    total_noise_std = (self.reward_noise ** 2 + self.observation_noise ** 2) ** 0.5
+                    noise = self.rng.normal(0, total_noise_std) if total_noise_std > 0 else 0.0
+                
+                observed_rewards.append(base_reward + noise)
+            
+            observed_rewards_array = np.array(observed_rewards, dtype=np.float32)
+            
+            observations[agent_id] = {
+                "targets": target_array.copy(),
+                "selected_targets": selected_targets,
+                "observed_rewards": observed_rewards_array,
+            }
         
         return observations
     
@@ -418,6 +498,10 @@ class DroneEngageZKMRTA(ParallelEnv):
         
         # Termination and truncation logic
         terminations, truncations, done_reason = self._check_termination()
+        
+        # Store actions and rewards for collaborative mode observations (before computing obs)
+        self.last_actions = dict(actions)
+        self.last_rewards = dict(rewards)
         
         # Compute final observations
         observations = self._compute_observations()
