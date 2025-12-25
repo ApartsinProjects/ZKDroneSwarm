@@ -14,8 +14,8 @@ from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.logging import EpisodeLogger
 from tabula_drone.policies.random_policy import RandomPolicy
-from tabula_drone.policies.oracle_policy import OracleTimeToKillPolicy
-from tabula_drone.policies.optimal_assignment_oracle import OptimalAssignmentOracle
+from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
+from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 from tabula_drone.scenarios import ScenarioBuilder
 
 CONFIG_PATH = "config/scenario.json"

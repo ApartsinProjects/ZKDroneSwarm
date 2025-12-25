@@ -11,7 +11,7 @@ Tests cover:
 import numpy as np
 import pytest
 
-from tabula_drone.policies.oracle_policy import OracleTimeToKillPolicy
+from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 
 
 class TestEstimatedHitsToKill:

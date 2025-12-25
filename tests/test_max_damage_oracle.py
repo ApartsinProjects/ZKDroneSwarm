@@ -11,7 +11,7 @@ Verifies:
 import pytest
 import numpy as np
 
-from tabula_drone.policies.optimal_assignment_oracle import OptimalAssignmentOracle
+from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 
 
 class TestOptimalAssignmentOracleBasic:
