@@ -34,7 +34,7 @@
     "max_steps": 1000
   },
   "policy": {
-    "type": ["min_ttk_oracle"],
+    "type": ["min_ttk_oracle", "max_damage_oracle", "random", "ep_greedy_cf", "ucb_cf"],
     "allow_noop": false
   },
   "collaborative_filtering": {
@@ -43,7 +43,7 @@
     "ucb_c": 0.5
   },
   "execution": {
-    "num_episodes": 15,
+    "num_episodes": 150,
     "verbose": false
   },
   "logging": {

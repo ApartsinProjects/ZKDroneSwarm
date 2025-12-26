@@ -339,8 +339,14 @@ def main():
     for policy_type in config.policy.type:
         print(f"\n>>> Running policy: {policy_type}")
         
-        # Create environment with appropriate observation mode per policy
+        # Determine episode count and logging strategy based on policy type
+        # Deterministic policies: run 1 episode (results are reproducible)
+        # CF policies: run all episodes but only log the last one
+        is_deterministic = policy_type in ("min_ttk_oracle", "max_damage_oracle", "random")
         is_cf = policy_type in ("ep_greedy_cf", "ucb_cf")
+        effective_episodes = 1 if is_deterministic else num_episodes
+        
+        # Create environment with appropriate observation mode per policy
         
         env = DroneEngageZKMRTA(
             world_size=config.world.size,
@@ -360,17 +366,20 @@ def main():
         policy = create_policy(policy_type, config, drones_config, num_targets=env.num_targets)
         logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
-        for episode_num in range(1, num_episodes + 1):
+        for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
             if is_cf and episode_num > 1:
                 policy.soft_reset()
+            
+            # For CF policies, only log the last episode; deterministic policies always log
+            use_logger = logger if (is_deterministic or episode_num == effective_episodes) else None
             
             metrics = run_episode(
                 env=env,
                 policy=policy,
                 episode_num=episode_num,
                 verbose=config.execution.verbose,
-                logger=logger,
+                logger=use_logger,
                 seed=config.seed
             )
             metrics["policy_type"] = policy_type
@@ -441,7 +450,7 @@ def main():
             dmg_eff = avg_eff_dmg / avg_pot_dmg if avg_pot_dmg > 0 else 0.0
             table_data.append([
                 policy_type,
-                f"{avg_steps:.1f}",
+                avg_steps,
                 f"{avg_targets:.1f}",
                 f"{avg_ammo:.1f}",
                 f"{avg_overkill:.1f}",
@@ -450,6 +459,12 @@ def main():
                 f"{ammo_eff:.3f}",
                 f"{dmg_eff:.1%}",
             ])
+    
+    # Sort by Avg Steps ascending
+    table_data.sort(key=lambda row: row[1])
+    # Format Avg Steps for display after sorting
+    for row in table_data:
+        row[1] = f"{row[1]:.1f}"
     
     print("\n" + "="*60)
     print("POLICY PERFORMANCE SUMMARY")
