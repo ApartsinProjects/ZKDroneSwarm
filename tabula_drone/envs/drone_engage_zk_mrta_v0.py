@@ -24,6 +24,9 @@ from ..core.states import (
     AttributeProfile,
 )
 
+# Reward mode toggle: True = dominant attribute damage, False = total HP reduction
+REWARD_DOMINANT_ATTRIBUTE = False
+
 
 class DroneEngageZKMRTA(ParallelEnv):
     """
@@ -112,6 +115,18 @@ class DroneEngageZKMRTA(ParallelEnv):
             raise ValueError("weapon_damage_profile_mapping is required")
         self.class_attribute_mapping = class_attribute_mapping
         self.weapon_damage_profile_mapping = weapon_damage_profile_mapping
+        
+        # Compute max single-attribute damage for reward normalization
+        self.max_weapon_damage = max(
+            max(profile.values())
+            for profile in weapon_damage_profile_mapping.values()
+        )
+        
+        # Compute max total damage per shot (sum of all attributes) for HP-based reward
+        self.max_total_weapon_damage = max(
+            sum(profile.values())
+            for profile in weapon_damage_profile_mapping.values()
+        )
         
         # Validate and store configs
         self.drones_config = drones_config or []
@@ -479,12 +494,13 @@ class DroneEngageZKMRTA(ParallelEnv):
             hp_before = target.hp_current
             damage_profile = drone.damage_profile
             target.attributes.apply_damage(damage_profile)
+
+            # Compute reward based on selected mode
             hp_after = target.hp_current
-            
-            # Dense reward: actual HP reduction normalized by max possible (for CF learning)
-            # A matching weapon deals ~10 damage to dominant attribute, mismatch deals ~1
-            actual_damage = hp_before - hp_after
-            rewards[agent_id] += actual_damage / 10.0
+            if REWARD_DOMINANT_ATTRIBUTE:
+                rewards[agent_id] += self._reward_dominant_attribute(damage_profile, target)
+            else:
+                rewards[agent_id] += self._reward_hp_reduction(hp_before, hp_after)
             
             # Check if target became inactive
             if target.attributes.is_depleted():
@@ -692,6 +708,17 @@ class DroneEngageZKMRTA(ParallelEnv):
                 firing_map[target_idx].append(drone_idx)
         
         return firing_map
+    
+    def _reward_dominant_attribute(self, damage_profile: Dict[str, float], target: TargetState) -> float:
+        """Reward based on damage to target's dominant attribute, normalized by max weapon damage."""
+        dominant_attr = max(target.attributes.initial_values, key=target.attributes.initial_values.get)
+        damage_to_dominant = damage_profile.get(dominant_attr, 0)
+        return damage_to_dominant / self.max_weapon_damage
+    
+    def _reward_hp_reduction(self, hp_before: float, hp_after: float) -> float:
+        """Reward based on total HP reduction, normalized by max total weapon damage."""
+        actual_damage = hp_before - hp_after
+        return actual_damage / self.max_total_weapon_damage
     
     def _validate_actions(self, actions: Dict[str, int]) -> None:
         """
