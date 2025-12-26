@@ -14,17 +14,16 @@ from viewer.state_adapter import load_episode, extract_initial_state
 
 # Color schemes
 WEAPON_COLORS = {
-    "breach": "#e74c3c",    # Red
-    "structural": "#2eaa71",   # Green
-    "systems": "#3498db",    # Blue
+    "breach": "#1a5276",    # Dark Blue
+    "structural": "#1e8449",   # Dark Green
+    "systems": "#922b21",    # Dark Red
     "unknown": "#9370DB",  # Medium Purple (fallback)
 }
 
 TARGET_COLORS = {
-    "A": "#1a5276",    # Dark Blue
-    "B": "#1e8449",    # Dark Green
-    "C": "#922b21",    # Dark Red
-    "D": "#7d3c98",    # Dark Purple
+    "A": "#e74c3c",    # Red
+    "B": "#2eaa71",    # Green
+    "C": "#3498db",    # Blue
     "unknown": "#5d6d7e",  # Dark Gray (fallback)
     "destroyed": "#808080",  # Gray (destroyed target)
 }

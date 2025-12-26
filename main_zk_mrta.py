@@ -159,6 +159,7 @@ def run_episode(
     step_count = 0
     done = False
     overkill_events: List[Dict[int, float]] = []
+    total_effective_damage = 0.0
     
     # Episode loop
     while not done:
@@ -185,9 +186,12 @@ def run_episode(
         if logger:
             logger.log_step(step_count, actions, rewards, terminated, truncated, info)
         
-        # Update total rewards
+        # Update total rewards and track effective damage
         for agent_id in env.agents:
             total_rewards[agent_id] += rewards[agent_id]
+            # Positive rewards represent actual_damage / 10.0
+            if rewards[agent_id] > 0:
+                total_effective_damage += rewards[agent_id] * 10.0
         
         # Track overkill
         if "overkill" in info:
@@ -230,6 +234,14 @@ def run_episode(
             total_ammo_used,
         )
     
+    # Compute potential damage from actual weapon profiles and ammo used per agent
+    total_potential_damage = 0.0
+    for agent_id, ammo in info['ammo_used'].items():
+        agent_idx = int(agent_id.split('_')[1])
+        weapon_type = info['weapon_types'][agent_idx]
+        damage_per_shot = sum(env.weapon_damage_profile_mapping[weapon_type].values())
+        total_potential_damage += ammo * damage_per_shot
+    
     # Return metrics
     return {
         "episode": episode_num,
@@ -240,6 +252,8 @@ def run_episode(
         "done_reason": info.get("done_reason"),
         "agent_rewards": total_rewards.copy(),
         "overkill_events": len(overkill_events),
+        "total_effective_damage": total_effective_damage,
+        "total_potential_damage": total_potential_damage,
     }
 
 
@@ -421,6 +435,10 @@ def main():
             avg_reward = sum(sum(m["agent_rewards"].values()) for m in policy_metrics) / n
             success_count = sum(1 for m in policy_metrics if m["done_reason"] == "all_targets_neutralized")
             success_rate = (success_count / n) * 100
+            ammo_eff = avg_targets / avg_ammo if avg_ammo > 0 else 0.0
+            avg_eff_dmg = sum(m["total_effective_damage"] for m in policy_metrics) / n
+            avg_pot_dmg = sum(m["total_potential_damage"] for m in policy_metrics) / n
+            dmg_eff = avg_eff_dmg / avg_pot_dmg if avg_pot_dmg > 0 else 0.0
             table_data.append([
                 policy_type,
                 f"{avg_steps:.1f}",
@@ -429,12 +447,14 @@ def main():
                 f"{avg_overkill:.1f}",
                 f"{avg_reward:.1f}",
                 f"{success_rate:.0f}%",
+                f"{ammo_eff:.3f}",
+                f"{dmg_eff:.1%}",
             ])
     
     print("\n" + "="*60)
     print("POLICY PERFORMANCE SUMMARY")
     print("="*60)
-    headers = ["Policy", "Avg Steps", "Avg Targets", "Avg Ammo", "Avg Overkill", "Avg Reward", "Success %"]
+    headers = ["Policy", "Avg Steps", "Avg Targets", "Avg Ammo", "Avg Overkill", "Avg Reward", "Success %", "Ammo Eff", "Dmg Eff"]
     print(tabulate(table_data, headers=headers, tablefmt="grid"))
     print("="*60)
     

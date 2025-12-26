@@ -162,11 +162,11 @@ class OracleTimeToKillPolicy:
         if best_hits == float("inf"):
             if self.allow_noop:
                 return 0
-            # Must act -> pick any active target (random tie-break)
-            return int(self.rng.choice(active_targets)) + 1
+            # Must act -> pick first active target (deterministic)
+            return int(min(active_targets)) + 1
         
-        # Random tie-break among best targets
-        chosen_target_idx = int(self.rng.choice(best_targets))
+        # Deterministic tie-break: pick lowest index target
+        chosen_target_idx = int(min(best_targets))
         return chosen_target_idx + 1  # 1-indexed action
     
     def select_actions(

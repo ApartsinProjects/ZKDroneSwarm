@@ -445,9 +445,8 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Initialize rewards
         rewards = {agent_id: 0.0 for agent_id in self.agents}
         
-        # Shuffle drone processing order
+        # Process drones in fixed order (deterministic)
         agent_ids = list(self.agents)
-        self.rng.shuffle(agent_ids)
         processing_order = agent_ids.copy()
         
         # Track overkill across all drones
