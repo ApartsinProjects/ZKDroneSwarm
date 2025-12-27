@@ -8,7 +8,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.widgets import Button
 from typing import Dict, Any
 
-from viewer.components import TabContainer, MapPanel, EmptyPanel, InfoPanel, ResultsPanel, SummaryPanel
+from viewer.components import TabContainer, MapPanel, EmptyPanel, InfoPanel, ResultsPanel, SummaryPanel, TrainingPathPanel
 from viewer.state_adapter import load_episode, extract_initial_state
 
 
@@ -188,9 +188,14 @@ def display_viewer(
     results_panel = ResultsPanel(fig, results_ax)
     results_panel.render(state)
     
+    training_path_ax = fig.add_axes([right_panel_left, 0.08, right_panel_width, 0.84])
+    training_path_panel = TrainingPathPanel(fig, training_path_ax)
+    training_path_panel.render(state)
+    
     tab_container.add_tab("Info", info_panel)
     tab_container.add_tab("Results", results_panel)
     tab_container.add_tab("Summary", summary_panel)
+    tab_container.add_tab("Training Path", training_path_panel)
 
     
     def _apply_layout(event=None):
@@ -198,7 +203,7 @@ def display_viewer(
         
         ax_right.set_position([right_panel_left_inner, bottom_margin, right_panel_width_inner, top_margin - bottom_margin])
         
-        for panel_ax in (info_ax, summary_ax, results_ax):
+        for panel_ax in (info_ax, summary_ax, results_ax, training_path_ax):
             panel_ax.set_position([right_panel_left_inner, 0.08, right_panel_width_inner, 0.84])
         
         tab_container.tab_region = (right_panel_left_inner, 0.95, right_panel_width_inner, 0.05)
@@ -225,6 +230,7 @@ def display_viewer(
             info_panel.render(new_state)
             summary_panel.render(new_state)
             results_panel.render(new_state)
+            training_path_panel.render(new_state)
         except Exception as e:
             print(f"Error loading episode: {e}", file=sys.stderr)
     

@@ -97,6 +97,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     policy_type = config.get("policy_type", None)
     
     steps = episode_data.get("steps", [])
+    learning_path = episode_data.get("learning_path", None)
     
     return {
         "world_size": world_size,
@@ -112,6 +113,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
         "scenario_id": scenario_id,
         "policy_type": policy_type,
         "steps": steps,
+        "learning_path": learning_path,
     }
 
 

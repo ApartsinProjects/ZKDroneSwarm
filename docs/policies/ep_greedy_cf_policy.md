@@ -31,6 +31,7 @@ The policy exists to:
 
 ## Core Algorithm
 
+
 ### Matrix Factorization Model
 
 The policy maintains **latent vectors** for each agent and target:

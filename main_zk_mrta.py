@@ -69,7 +69,8 @@ def print_learning_path(
         row = [f"A{i}", drone_cfg["weapon_type"][:4]]
         row.extend([f"{v:.3f}" for v in policy.agent_lv[i]])
         agent_rows.append(row)
-    print(tabulate(agent_rows, headers=agent_headers, tablefmt="simple"))
+    agent_rows_sorted = sorted(agent_rows, key=lambda r: r[1])
+    print(tabulate(agent_rows_sorted, headers=agent_headers, tablefmt="simple"))
     
     print()  # Separator
     
@@ -80,7 +81,8 @@ def print_learning_path(
         row = [f"T{i}", target_cfg["class_type"][:4]]
         row.extend([f"{v:.3f}" for v in policy.target_lv[i]])
         target_rows.append(row)
-    print(tabulate(target_rows, headers=target_headers, tablefmt="simple"))
+    target_rows_sorted = sorted(target_rows, key=lambda r: r[1])
+    print(tabulate(target_rows_sorted, headers=target_headers, tablefmt="simple"))
     print()
 
 
@@ -321,6 +323,60 @@ def run_episode(
     }
 
 
+def compute_alignment_score(
+    agent_lv: np.ndarray,
+    target_lv: np.ndarray,
+    drones_config: List[Dict[str, Any]],
+    targets_config: List[Dict[str, Any]],
+) -> float:
+    """
+    Compute alignment score measuring how well latent vectors capture weapon-class relationships.
+    
+    Computes centroid of agent vectors per weapon type and target vectors per class type,
+    then returns average dot product of optimal pairs: structural→A, breach→B, systems→C.
+    
+    Args:
+        agent_lv: Agent latent vectors, shape (num_agents, latent_dim)
+        target_lv: Target latent vectors, shape (num_targets, latent_dim)
+        drones_config: List of drone configs with 'weapon_type' key
+        targets_config: List of target configs with 'class_type' key
+    
+    Returns:
+        Alignment score in [-1, 1], where 1 = perfect alignment
+    """
+    optimal_pairs = {
+        "structural": "A",
+        "breach": "B",
+        "systems": "C",
+    }
+    
+    # Compute agent centroids per weapon type
+    agent_centroids = {}
+    for weapon in optimal_pairs.keys():
+        indices = [i for i, d in enumerate(drones_config) if d["weapon_type"] == weapon]
+        if indices:
+            agent_centroids[weapon] = np.mean(agent_lv[indices], axis=0)
+    
+    # Compute target centroids per class type
+    target_centroids = {}
+    for cls in optimal_pairs.values():
+        indices = [i for i, t in enumerate(targets_config) if t["class_type"] == cls]
+        if indices:
+            target_centroids[cls] = np.mean(target_lv[indices], axis=0)
+    
+    # Compute average dot product of optimal pairs
+    dot_products = []
+    for weapon, cls in optimal_pairs.items():
+        if weapon in agent_centroids and cls in target_centroids:
+            dot = np.dot(agent_centroids[weapon], target_centroids[cls])
+            dot_products.append(dot)
+    
+    if not dot_products:
+        return 0.0
+    
+    return float(np.mean(dot_products))
+
+
 def analyze_agent_clustering(policy, drone_weapon_map):
     """
     Prints similarity scores between drones to see if they are clustering by weapon.
@@ -433,14 +489,19 @@ def main():
         policy = create_policy(policy_type, config, drones_config, num_targets=env.num_targets)
         logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
-        # Best-episode tracking per policy
-        best_episode_data = None
+        # Best-episode tracking per policy (dual: by steps and by alignment score)
+        best_steps_data = None
         best_step_count = float('inf')
+        best_align_data = None
+        best_align_score = -float('inf')
         
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
             if is_cf and episode_num > 1:
                 policy.soft_reset()
+            
+            # Snapshot latent vectors BEFORE episode (for correct learning_path capture)
+            pre_episode_lv = (policy.agent_lv.copy(), policy.target_lv.copy()) if is_cf else None
             
             metrics = run_episode(
                 env=env,
@@ -453,25 +514,52 @@ def main():
             metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
             
-            # Track best episode (minimum steps)
+            # Compute alignment score for CF policies (used by both trackers)
+            alignment_score = None
+            if is_cf:
+                alignment_score = compute_alignment_score(
+                    pre_episode_lv[0], pre_episode_lv[1], drones_config, targets_config
+                )
+            
+            # Track best episode by STEPS (minimum)
             if metrics["steps"] < best_step_count:
                 best_step_count = metrics["steps"]
-                best_episode_data = copy.deepcopy(logger._episode_data)
+                best_steps_data = copy.deepcopy(logger._episode_data)
                 
-                # Capture learning path for CF policies at best-episode time
+                # Capture learning path for CF policies using PRE-episode vectors
                 if is_cf:
-                    best_episode_data["learning_path"] = {
+                    best_steps_data["learning_path"] = {
+                        "alignment_score": alignment_score,
                         "agents": [
                             {"id": f"A{i}", "weapon_type": d["weapon_type"],
-                             "latent_vector": policy.agent_lv[i].tolist()}
+                             "latent_vector": pre_episode_lv[0][i].tolist()}
                             for i, d in enumerate(drones_config)
                         ],
                         "targets": [
                             {"id": f"T{i}", "class_type": t["class_type"],
-                             "latent_vector": policy.target_lv[i].tolist()}
+                             "latent_vector": pre_episode_lv[1][i].tolist()}
                             for i, t in enumerate(targets_config)
                         ]
                     }
+            
+            # Track best episode by ALIGNMENT SCORE (maximum) - CF policies only
+            if is_cf and alignment_score > best_align_score:
+                best_align_score = alignment_score
+                best_align_data = copy.deepcopy(logger._episode_data)
+                
+                best_align_data["learning_path"] = {
+                    "alignment_score": alignment_score,
+                    "agents": [
+                        {"id": f"A{i}", "weapon_type": d["weapon_type"],
+                         "latent_vector": pre_episode_lv[0][i].tolist()}
+                        for i, d in enumerate(drones_config)
+                    ],
+                    "targets": [
+                        {"id": f"T{i}", "class_type": t["class_type"],
+                         "latent_vector": pre_episode_lv[1][i].tolist()}
+                        for i, t in enumerate(targets_config)
+                    ]
+                }
             
             # Per-episode summary
             total_reward = sum(metrics["agent_rewards"].values())
@@ -489,12 +577,19 @@ def main():
                 drone_weapons = [d["weapon_type"] for d in drones_config]
                 analyze_agent_clustering(policy, drone_weapons)
         
-        # Save only the best episode for this policy
-        if best_episode_data is not None:
-            logger._episode_data = best_episode_data
-            saved_path = logger.save(is_best=True)
-            best_ep_num = best_episode_data.get("episode_num", "?")
-            print(f"  Saved best episode (ep{best_ep_num}, {best_step_count} steps): {saved_path}")
+        # Save best-by-steps episode
+        if best_steps_data is not None:
+            logger._episode_data = best_steps_data
+            saved_path = logger.save(prefix="best_")
+            best_ep_num = best_steps_data.get("episode_num", "?")
+            print(f"  Saved best-by-steps (ep{best_ep_num}, {best_step_count} steps): {saved_path}")
+        
+        # Save best-by-alignment episode (CF policies only)
+        if best_align_data is not None:
+            logger._episode_data = best_align_data
+            saved_path = logger.save(prefix="best_algn_score_")
+            best_ep_num = best_align_data.get("episode_num", "?")
+            print(f"  Saved best-by-alignment (ep{best_ep_num}, score={best_align_score:.4f}): {saved_path}")
         
         # Print final Learning Path for CF policies (after all episodes)
         if is_cf:
