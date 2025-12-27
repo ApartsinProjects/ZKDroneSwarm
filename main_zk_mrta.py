@@ -9,6 +9,7 @@ Demonstrates:
 """
 
 from typing import Dict, Any, List, Optional, Union
+import copy
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -51,6 +52,70 @@ def print_episode_summary(
         weapon_type = info['weapon_types'][agent_idx]
         print(f"  {agent_id}: {reward:.1f} (weapon: {weapon_type}, ammo: {ammo})")
     print("=" * 60 + "\n")
+
+
+def print_learning_path(
+    policy: Union["EpGreedyCFPolicy", "UCBCFPolicy"],
+    drones_config: List[Dict[str, Any]],
+    targets_config: List[Dict[str, Any]],
+) -> None:
+    """Print current latent vectors for CF policy learning visualization."""
+    print("    --- Learning Path ---")
+    
+    # Agent latent vectors
+    agent_headers = ["Agent", "Weapon"] + [f"d{i}" for i in range(policy.latent_dim)]
+    agent_rows = []
+    for i, drone_cfg in enumerate(drones_config):
+        row = [f"A{i}", drone_cfg["weapon_type"][:4]]
+        row.extend([f"{v:.3f}" for v in policy.agent_lv[i]])
+        agent_rows.append(row)
+    print(tabulate(agent_rows, headers=agent_headers, tablefmt="simple"))
+    
+    print()  # Separator
+    
+    # Target latent vectors
+    target_headers = ["Target", "Class"] + [f"d{i}" for i in range(policy.latent_dim)]
+    target_rows = []
+    for i, target_cfg in enumerate(targets_config):
+        row = [f"T{i}", target_cfg["class_type"][:4]]
+        row.extend([f"{v:.3f}" for v in policy.target_lv[i]])
+        target_rows.append(row)
+    print(tabulate(target_rows, headers=target_headers, tablefmt="simple"))
+    print()
+
+
+def print_scenario_config(
+    drones_config: List[Dict[str, Any]],
+    class_attribute_mapping: Dict[str, Dict[str, float]],
+    weapon_damage_profile_mapping: Dict[str, Dict[str, float]],
+) -> None:
+    """Print scenario configuration tables for agents, target classes, and weapon profiles."""
+    # Table 1: Agent Configuration
+    print("\nAgent Configuration:")
+    agent_headers = ["Agent", "Weapon"]
+    agent_rows = [[f"A{i}", cfg["weapon_type"]] for i, cfg in enumerate(drones_config)]
+    print(tabulate(agent_rows, headers=agent_headers, tablefmt="simple"))
+    
+    # Table 2: Target Class Attributes (HP)
+    print("\nTarget Class Attributes (HP):")
+    attributes = list(next(iter(class_attribute_mapping.values())).keys())
+    attr_short = [a[:6] for a in attributes]  # Abbreviate column names
+    class_headers = ["Class"] + attr_short
+    class_rows = []
+    for cls, attrs in sorted(class_attribute_mapping.items()):
+        row = [cls] + [int(attrs[a]) for a in attributes]
+        class_rows.append(row)
+    print(tabulate(class_rows, headers=class_headers, tablefmt="simple"))
+    
+    # Table 3: Weapon Damage Profiles
+    print("\nWeapon Damage Profiles:")
+    weapon_headers = ["Weapon"] + attr_short
+    weapon_rows = []
+    for weapon, profile in sorted(weapon_damage_profile_mapping.items()):
+        row = [weapon] + [int(profile[a]) for a in attributes]
+        weapon_rows.append(row)
+    print(tabulate(weapon_rows, headers=weapon_headers, tablefmt="simple"))
+    print()
 
 
 PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, EpGreedyCFPolicy, UCBCFPolicy]
@@ -211,10 +276,9 @@ def run_episode(
         # Check termination
         done = terminated or truncated
     
-    # Finalize logger
+    # Finalize logger (save is handled by caller for best-episode tracking)
     if logger:
         logger.end_episode(total_rewards, info.get("done_reason"))
-        logger.save()
     
     # Compute final metrics
     targets_neutralized = sum(1 for active in info['target_active'] if not active)
@@ -331,8 +395,11 @@ def main():
     print(f"Random Seed: {config.seed}")
     print(f"Policy Types: {config.policy.type}")
     print(f"Episodes per Policy: {num_episodes}")
-    print(f"Weapon Damage Profiles: {config.mappings.weapon_damage_profile_mapping}")
-    print(f"Target Class Attributes: {config.mappings.class_attribute_mapping}")
+    print_scenario_config(
+        drones_config,
+        config.mappings.class_attribute_mapping,
+        config.mappings.weapon_damage_profile_mapping,
+    )
     print("="*60)
     
     # Run each policy type
@@ -366,24 +433,45 @@ def main():
         policy = create_policy(policy_type, config, drones_config, num_targets=env.num_targets)
         logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
+        # Best-episode tracking per policy
+        best_episode_data = None
+        best_step_count = float('inf')
+        
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
             if is_cf and episode_num > 1:
                 policy.soft_reset()
-            
-            # For CF policies, only log the last episode; deterministic policies always log
-            use_logger = logger if (is_deterministic or episode_num == effective_episodes) else None
             
             metrics = run_episode(
                 env=env,
                 policy=policy,
                 episode_num=episode_num,
                 verbose=config.execution.verbose,
-                logger=use_logger,
+                logger=logger,
                 seed=config.seed
             )
             metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
+            
+            # Track best episode (minimum steps)
+            if metrics["steps"] < best_step_count:
+                best_step_count = metrics["steps"]
+                best_episode_data = copy.deepcopy(logger._episode_data)
+                
+                # Capture learning path for CF policies at best-episode time
+                if is_cf:
+                    best_episode_data["learning_path"] = {
+                        "agents": [
+                            {"id": f"A{i}", "weapon_type": d["weapon_type"],
+                             "latent_vector": policy.agent_lv[i].tolist()}
+                            for i, d in enumerate(drones_config)
+                        ],
+                        "targets": [
+                            {"id": f"T{i}", "class_type": t["class_type"],
+                             "latent_vector": policy.target_lv[i].tolist()}
+                            for i, t in enumerate(targets_config)
+                        ]
+                    }
             
             # Per-episode summary
             total_reward = sum(metrics["agent_rewards"].values())
@@ -392,10 +480,26 @@ def main():
                   f"Overkill={metrics['total_overkill']:.0f}, "
                   f"Reward={total_reward:.0f}")
             
+            # Print learning path for CF policies
+            if is_cf and config.execution.verbose:
+                print_learning_path(policy, drones_config, targets_config)
+            
             # Debug: Analyze agent clustering for CF policies
             if False and is_cf:
                 drone_weapons = [d["weapon_type"] for d in drones_config]
                 analyze_agent_clustering(policy, drone_weapons)
+        
+        # Save only the best episode for this policy
+        if best_episode_data is not None:
+            logger._episode_data = best_episode_data
+            saved_path = logger.save(is_best=True)
+            best_ep_num = best_episode_data.get("episode_num", "?")
+            print(f"  Saved best episode (ep{best_ep_num}, {best_step_count} steps): {saved_path}")
+        
+        # Print final Learning Path for CF policies (after all episodes)
+        if is_cf:
+            print(f"  --- Final Learning Path ({policy_type}) ---")
+            print_learning_path(policy, drones_config, targets_config)
 
     if config.execution.verbose:
         # Aggregate statistics across all episodes (all policies)
