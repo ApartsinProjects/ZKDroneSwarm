@@ -138,9 +138,12 @@ class EpisodeLogger:
         summary = self._build_summary(total_rewards, done_reason, self._steps)
         self._episode_data["summary"] = summary
     
-    def save(self) -> str:
+    def save(self, is_best: bool = False) -> str:
         """
         Write episode data to JSON file.
+        
+        Args:
+            is_best: If True, include "best" prefix in filename after episode number
         
         Returns:
             Filepath of the saved JSON file
@@ -157,7 +160,8 @@ class EpisodeLogger:
         policy_part = f"{self.policy_type}_" if self.policy_type else ""
         episode_num = self._episode_data.get("episode_num")
         episode_part = f"ep{episode_num:02d}_" if episode_num is not None else ""
-        filename = f"episode_{policy_part}{episode_part}{timestamp_str}_{self._episode_id}.json"
+        best_part = "best_" if is_best else ""
+        filename = f"episode_{policy_part}{episode_part}{best_part}{timestamp_str}_{self._episode_id}.json"
         filepath = os.path.join(self.output_dir, filename)
         
         with open(filepath, "w") as f:
