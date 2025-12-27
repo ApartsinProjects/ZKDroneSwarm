@@ -87,6 +87,10 @@ the actual weapon/target attributes!
 When an agent attacks a target and receives a reward, the policy updates both latent vectors using stochastic gradient descent:
 
 ```
+# Skip updates for NoOp or negative rewards (wasted shots)
+if target_idx < 0 or observed_reward < 0:
+    return
+
 error = observed_reward - predicted_reward
 
 A[agent] += learning_rate * error * T[target]
@@ -96,6 +100,14 @@ T[target] += learning_rate * error * A[agent]
 A[agent] = normalize(A[agent])
 T[target] = normalize(T[target])
 ```
+
+#### Why Skip Negative Rewards?
+
+The environment returns -1.0 for "wasted shots" (firing at already-neutralized targets). Due to sequential processing, this can happen when:
+1. Drone A fires at Target X and kills it
+2. Drone B (who also targeted X) fires but target is already dead → gets -1.0
+
+If we learned from this -1.0, the policy would incorrectly conclude that Drone B is "incompatible" with Target X's class — when in reality it was just a timing issue. Skipping negative rewards prevents this false incompatibility learning.
 
 #### Why Normalize?
 
@@ -271,6 +283,7 @@ Instead, it **learns** agent-target compatibility from observed rewards, which i
 | No active targets | Returns NoOp (action 0) |
 | Single active target | ε-greedy between NoOp (if allowed) and that target |
 | NoOp action in update | Skipped (no learning from NoOp) |
+| Negative reward (wasted shot) | Skipped (no learning from timing-based penalties) |
 
 ---
 
@@ -342,6 +355,10 @@ def update(
 ```
 
 Update latent vectors based on observed reward using SGD.
+
+**Skipped when**:
+- `target_idx < 0` (NoOp action)
+- `observed_reward < 0` (wasted shot penalty — avoids learning false incompatibilities from timing issues)
 
 **Parameters**:
 - **`agent_idx`**: Agent index that took action

@@ -137,7 +137,7 @@ class UCBCFPolicy:
             target_idx: Target index that was selected
             observed_reward: Observed reward value
         """
-        if target_idx < 0:  # NoOp action
+        if target_idx < 0 or observed_reward < 0:  # Skip NoOp and wasted shots
             return
         
         predicted = self.predict_reward(agent_idx, target_idx)

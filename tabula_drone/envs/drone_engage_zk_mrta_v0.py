@@ -25,7 +25,7 @@ from ..core.states import (
 )
 
 # Reward mode toggle: True = dominant attribute damage, False = total HP reduction
-REWARD_DOMINANT_ATTRIBUTE = False
+REWARD_DOMINANT_ATTRIBUTE = True
 
 
 class DroneEngageZKMRTA(ParallelEnv):
@@ -714,12 +714,12 @@ class DroneEngageZKMRTA(ParallelEnv):
         dominant_attr = max(target.attributes.initial_values, key=target.attributes.initial_values.get)
         damage_to_dominant = damage_profile.get(dominant_attr, 0)
         return damage_to_dominant / self.max_weapon_damage
-    
+
     def _reward_hp_reduction(self, hp_before: float, hp_after: float) -> float:
         """Reward based on total HP reduction, normalized by max total weapon damage."""
         actual_damage = hp_before - hp_after
         return actual_damage / self.max_total_weapon_damage
-    
+
     def _validate_actions(self, actions: Dict[str, int]) -> None:
         """
         Validate that actions dict is properly formed.
