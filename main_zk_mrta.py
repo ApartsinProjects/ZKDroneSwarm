@@ -596,7 +596,7 @@ def main():
         # Save best-by-steps episode
         if best_steps_data is not None:
             logger._episode_data = best_steps_data
-            prefix = "best_steps_" if is_cf else "best_"
+            prefix = "min_steps_" if is_cf else ""
             saved_path = logger.save(prefix=prefix)
             best_ep_num = best_steps_data.get("episode_num", "?")
             print(f"  Saved best-by-steps (ep{best_ep_num}, {best_step_count} steps): {saved_path}")
@@ -604,7 +604,7 @@ def main():
         # Save best-by-alignment episode (CF policies only)
         if best_align_data is not None:
             logger._episode_data = best_align_data
-            saved_path = logger.save(prefix="best_algn_score_")
+            saved_path = logger.save(prefix="highest_score_")
             best_ep_num = best_align_data.get("episode_num", "?")
             print(f"  Saved best-by-alignment (ep{best_ep_num}, score={best_align_score:.4f}): {saved_path}")
         
