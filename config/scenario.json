@@ -8,7 +8,7 @@
     ]
   },
   "drones": {
-    "count": 25,
+    "count": 6,
     "weapon_distribution": {
       "breach": 0.25,
       "structural": 0.25,
@@ -27,7 +27,7 @@
     "min_distance_between_drones": 5.0
   },
   "targets": {
-    "count": 150,
+    "count": 18,
     "region": {
       "x_fraction": [
         0.1,
@@ -52,9 +52,9 @@
   "policy": {
     "type": [
       "max_damage_oracle",
-      "min_ttk_oracle",
-      "ep_greedy_cf",
-      "random"
+      "random",
+      "decentralized_ep_greedy_cf",
+      "ep_greedy_cf"
     ],
     "allow_noop": false
   },
@@ -75,7 +75,7 @@
     }
   },
   "execution": {
-    "num_episodes": 10,
+    "num_episodes": 25,
     "verbose": false
   },
   "logging": {

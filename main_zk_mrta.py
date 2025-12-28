@@ -24,6 +24,7 @@ from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.policies.ep_greedy_cf_policy import EpGreedyCFPolicy
 from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
+from tabula_drone.policies.decentralized_ep_greedy_cf_policy import DecentralizedEpGreedyCFPolicy
 
 CONFIG_PATH = "config/scenario.json"
 
@@ -55,19 +56,32 @@ def print_episode_summary(
 
 
 def print_learning_path(
-    policy: Union["EpGreedyCFPolicy", "UCBCFPolicy"],
+    policy: Union["EpGreedyCFPolicy", "UCBCFPolicy", Dict[str, "DecentralizedEpGreedyCFPolicy"]],
     drones_config: List[Dict[str, Any]],
     targets_config: List[Dict[str, Any]],
 ) -> None:
     """Print current latent vectors for CF policy learning visualization."""
     print("    --- Learning Path ---")
     
+    # Handle decentralized policy (dict of policy instances)
+    if isinstance(policy, dict):
+        first_policy = next(iter(policy.values()))
+        latent_dim = first_policy.latent_dim
+        # Collect agent vectors from each agent's private state
+        agent_lv = [policy[f"drone_{i}"].agent_lv for i in range(len(policy))]
+        # Use first agent's target estimates (they may differ between agents)
+        target_lv = first_policy.target_lv
+    else:
+        latent_dim = policy.latent_dim
+        agent_lv = policy.agent_lv
+        target_lv = policy.target_lv
+    
     # Agent latent vectors
-    agent_headers = ["Agent", "Weapon"] + [f"d{i}" for i in range(policy.latent_dim)]
+    agent_headers = ["Agent", "Weapon"] + [f"d{i}" for i in range(latent_dim)]
     agent_rows = []
     for i, drone_cfg in enumerate(drones_config):
         row = [f"A{i}", drone_cfg["weapon_type"][:4]]
-        row.extend([f"{v:.3f}" for v in policy.agent_lv[i]])
+        row.extend([f"{v:.3f}" for v in agent_lv[i]])
         agent_rows.append(row)
     agent_rows_sorted = sorted(agent_rows, key=lambda r: r[1])
     print(tabulate(agent_rows_sorted, headers=agent_headers, tablefmt="simple"))
@@ -75,11 +89,11 @@ def print_learning_path(
     print()  # Separator
     
     # Target latent vectors
-    target_headers = ["Target", "Class"] + [f"d{i}" for i in range(policy.latent_dim)]
+    target_headers = ["Target", "Class"] + [f"d{i}" for i in range(latent_dim)]
     target_rows = []
     for i, target_cfg in enumerate(targets_config):
         row = [f"T{i}", target_cfg["class_type"][:4]]
-        row.extend([f"{v:.3f}" for v in policy.target_lv[i]])
+        row.extend([f"{v:.3f}" for v in target_lv[i]])
         target_rows.append(row)
     target_rows_sorted = sorted(target_rows, key=lambda r: r[1])
     print(tabulate(target_rows_sorted, headers=target_headers, tablefmt="simple"))
@@ -120,7 +134,7 @@ def print_scenario_config(
     print()
 
 
-PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, EpGreedyCFPolicy, UCBCFPolicy]
+PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, EpGreedyCFPolicy, UCBCFPolicy, DecentralizedEpGreedyCFPolicy, Dict[str, DecentralizedEpGreedyCFPolicy]]
 
 
 def create_policy(
@@ -193,6 +207,30 @@ def create_policy(
             ucb_c=ucb_cfg.ucb_c if ucb_cfg and ucb_cfg.ucb_c else 0.5,
             seed=config.seed,
         )
+    elif policy_type == "decentralized_ep_greedy_cf":
+        if num_targets is None:
+            raise ValueError("num_targets is required for decentralized_ep_greedy_cf policy")
+        # Extract hyperparameters from config (reuse ep_greedy_cf config)
+        ep_cfg = None
+        if config.collaborative_filtering:
+            ep_cfg = config.collaborative_filtering.ep_greedy_cf
+        # Create one policy instance per agent (true decentralization)
+        num_agents = len(drones_config)
+        policies = {}
+        for agent_idx in range(num_agents):
+            agent_id = f"drone_{agent_idx}"
+            policies[agent_id] = DecentralizedEpGreedyCFPolicy(
+                num_targets=num_targets,
+                agent_idx=agent_idx,
+                num_agents=num_agents,
+                latent_dim=ep_cfg.latent_dim if ep_cfg and ep_cfg.latent_dim else 2,
+                learning_rate=ep_cfg.learning_rate if ep_cfg and ep_cfg.learning_rate else 0.01,
+                epsilon=ep_cfg.epsilon if ep_cfg and ep_cfg.epsilon else 0.3,
+                epsilon_decay=ep_cfg.epsilon_decay if ep_cfg and ep_cfg.epsilon_decay else 0.99,
+                epsilon_min=ep_cfg.epsilon_min if ep_cfg and ep_cfg.epsilon_min else 0.05,
+                seed=config.seed + agent_idx if config.seed else None,
+            )
+        return policies
     else:
         return RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
 
@@ -255,6 +293,14 @@ def run_episode(
             # CF policy learns from observations
             for agent_id, agent_obs in obs.items():
                 policy.update_from_observation(agent_obs, agent_id)
+        elif isinstance(policy, dict) and all(isinstance(p, DecentralizedEpGreedyCFPolicy) for p in policy.values()):
+            # Decentralized CF: each agent has its own policy instance
+            actions = {}
+            for agent_id, agent_obs in obs.items():
+                actions[agent_id] = policy[agent_id].select_action(agent_obs)
+            # Each agent learns from its own observation (which includes all agents' rewards)
+            for agent_id, agent_obs in obs.items():
+                policy[agent_id].update_from_observation(agent_obs)
         else:
             actions = policy.select_actions(obs, env.num_targets)
         
@@ -481,7 +527,8 @@ def main():
         # Deterministic policies: run 1 episode (results are reproducible)
         # CF policies: run all episodes but only log the last one
         is_deterministic = policy_type in ("min_ttk_oracle", "max_damage_oracle", "random")
-        is_cf = policy_type in ("ep_greedy_cf", "ucb_cf")
+        is_cf = policy_type in ("ep_greedy_cf", "ucb_cf", "decentralized_ep_greedy_cf")
+        is_decentralized_cf = policy_type == "decentralized_ep_greedy_cf"
         effective_episodes = 1 if is_deterministic else num_episodes
         
         # Create environment with appropriate observation mode per policy
@@ -504,19 +551,41 @@ def main():
         policy = create_policy(policy_type, config, drones_config, num_targets=env.num_targets)
         logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
-        # Best-episode tracking per policy (dual: by steps and by alignment score)
+        # Best-episode tracking per policy (by minimum steps)
         best_steps_data = None
         best_step_count = float('inf')
-        best_align_data = None
-        best_align_score = -float('inf')
         
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
             if is_cf and episode_num > 1:
-                policy.soft_reset()
+                if is_decentralized_cf:
+                    for p in policy.values():
+                        p.soft_reset()
+                else:
+                    policy.soft_reset()
             
             # Snapshot latent vectors BEFORE episode (for correct learning_path capture)
-            pre_episode_lv = (policy.agent_lv.copy(), policy.target_lv.copy()) if is_cf else None
+            if is_decentralized_cf:
+                # For decentralized: collect each agent's full private state
+                agent_lv = np.array([policy[f"drone_{i}"].agent_lv.copy() for i in range(len(policy))])
+                target_lv = policy["drone_0"].target_lv.copy()  # Use first agent's target estimates (for alignment score)
+                pre_episode_lv = (agent_lv, target_lv)
+                # Full pre-episode state for learning state file
+                pre_episode_state = {
+                    "agents": [
+                        {
+                            "id": f"drone_{i}",
+                            "agent_lv": policy[f"drone_{i}"].agent_lv.tolist(),
+                            "target_lv": policy[f"drone_{i}"].target_lv.tolist(),
+                            "other_agents_lv": policy[f"drone_{i}"].other_agents_lv.tolist(),
+                        }
+                        for i in range(len(policy))
+                    ]
+                }
+            elif is_cf:
+                pre_episode_lv = (policy.agent_lv.copy(), policy.target_lv.copy())
+            else:
+                pre_episode_lv = None
             
             metrics = run_episode(
                 env=env,
@@ -530,6 +599,20 @@ def main():
             metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
             
+            # Capture post-episode state for decentralized CF policies
+            if is_decentralized_cf:
+                post_episode_state = {
+                    "agents": [
+                        {
+                            "id": f"drone_{i}",
+                            "agent_lv": policy[f"drone_{i}"].agent_lv.tolist(),
+                            "target_lv": policy[f"drone_{i}"].target_lv.tolist(),
+                            "other_agents_lv": policy[f"drone_{i}"].other_agents_lv.tolist(),
+                        }
+                        for i in range(len(policy))
+                    ]
+                }
+            
             # Compute alignment score for CF policies (used by both trackers)
             alignment_score = None
             if is_cf:
@@ -537,13 +620,27 @@ def main():
                     pre_episode_lv[0], pre_episode_lv[1], drones_config, targets_config
                 )
             
+            # Save decentralized learning state to dedicated folder (every episode)
+            if is_decentralized_cf:
+                first_policy = next(iter(policy.values()))
+                learning_state_folder = logger.save_decentralized_learning_state(
+                    pre_state=pre_episode_state,
+                    post_state=post_episode_state,
+                    episode_num=episode_num,
+                    policy_type=policy_type,
+                    num_agents=len(policy),
+                    num_targets=first_policy.num_targets,
+                    latent_dim=first_policy.latent_dim,
+                )
+            
             # Track best episode by STEPS (minimum)
             if metrics["steps"] < best_step_count:
                 best_step_count = metrics["steps"]
                 best_steps_data = copy.deepcopy(logger._episode_data)
                 
-                # Capture learning path for CF policies using PRE-episode vectors
-                if is_cf:
+                # Capture learning path for centralized CF policies using PRE-episode vectors
+                # (decentralized policies use separate learning_state_folder)
+                if is_cf and not is_decentralized_cf:
                     best_steps_data["learning_path"] = {
                         "alignment_score": alignment_score,
                         "agents": [
@@ -557,25 +654,9 @@ def main():
                             for i, t in enumerate(targets_config)
                         ]
                     }
-            
-            # Track best episode by ALIGNMENT SCORE (maximum) - CF policies only
-            if is_cf and alignment_score > best_align_score:
-                best_align_score = alignment_score
-                best_align_data = copy.deepcopy(logger._episode_data)
-                
-                best_align_data["learning_path"] = {
-                    "alignment_score": alignment_score,
-                    "agents": [
-                        {"id": f"A{i}", "weapon_type": d["weapon_type"],
-                         "latent_vector": pre_episode_lv[0][i].tolist()}
-                        for i, d in enumerate(drones_config)
-                    ],
-                    "targets": [
-                        {"id": f"T{i}", "class_type": t["class_type"],
-                         "latent_vector": pre_episode_lv[1][i].tolist()}
-                        for i, t in enumerate(targets_config)
-                    ]
-                }
+                elif is_decentralized_cf:
+                    # Add folder reference instead of learning_path
+                    best_steps_data["learning_state_folder"] = learning_state_folder
             
             # Per-episode summary
             total_reward = sum(metrics["agent_rewards"].values())
@@ -600,18 +681,6 @@ def main():
             saved_path = logger.save(prefix=prefix)
             best_ep_num = best_steps_data.get("episode_num", "?")
             print(f"  Saved best-by-steps (ep{best_ep_num}, {best_step_count} steps): {saved_path}")
-        
-        # Save best-by-alignment episode (CF policies only)
-        if best_align_data is not None:
-            logger._episode_data = best_align_data
-            saved_path = logger.save(prefix="highest_score_")
-            best_ep_num = best_align_data.get("episode_num", "?")
-            print(f"  Saved best-by-alignment (ep{best_ep_num}, score={best_align_score:.4f}): {saved_path}")
-        
-        # Print final Learning Path for CF policies (after all episodes)
-        if is_cf:
-            print(f"  --- Final Learning Path ({policy_type}) ---")
-            print_learning_path(policy, drones_config, targets_config)
 
     if config.execution.verbose:
         # Aggregate statistics across all episodes (all policies)
