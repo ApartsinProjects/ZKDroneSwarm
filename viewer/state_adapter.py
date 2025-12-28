@@ -3,6 +3,7 @@ State adapter for loading and extracting data from episode logs.
 """
 
 import json
+import os
 from typing import Dict, Any, List, Tuple, Optional
 
 
@@ -24,14 +25,19 @@ def load_episode(path: str) -> Dict[str, Any]:
         return json.load(f)
 
 
-def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
+def extract_initial_state(
+    episode_data: Dict[str, Any],
+    episode_path: Optional[str] = None
+) -> Dict[str, Any]:
     """
     Extract initial world state for visualization.
     
     Handles both v1.0 (no config) and v1.1 (with config) episode logs.
+    For decentralized policies, loads external learning_state.json if available.
     
     Args:
         episode_data: Episode data dict from load_episode()
+        episode_path: Path to episode log file (needed to resolve learning_state_folder)
         
     Returns:
         Dict with:
@@ -41,6 +47,8 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
             - version: episode log version
             - class_attribute_mapping: dict mapping class types to attribute dicts
             - weapon_damage_profile_mapping: dict mapping weapon types to damage profile dicts
+            - decentralized_learning_state: dict with pre/post episode state (if decentralized)
+            - learning_state_folder: relative path to learning state folder (if decentralized)
     """
     version = episode_data.get("version", "1.0")
     scenario = episode_data.get("scenario", {})
@@ -100,6 +108,38 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     learning_path = episode_data.get("learning_path", None)
     total_episodes = episode_data.get("total_episodes", None)
     
+    # Extract decentralized learning state if available
+    learning_state_folder = episode_data.get("learning_state_folder", None)
+    decentralized_learning_state = None
+    decentralized_learning_state_ep1 = None
+    
+    if learning_state_folder and episode_path:
+        # Resolve path relative to episode file's directory
+        episode_dir = os.path.dirname(episode_path)
+        learning_state_path = os.path.join(episode_dir, learning_state_folder, "learning_state.json")
+        if os.path.exists(learning_state_path):
+            try:
+                with open(learning_state_path, "r") as f:
+                    decentralized_learning_state = json.load(f)
+            except (json.JSONDecodeError, IOError):
+                decentralized_learning_state = None
+        
+        # Also load episode 1's learning state for comparison (random initialization)
+        # learning_state_folder format: scenario_<id>/learning_state_ep<NN>_<policy>_<timestamp>_<episode_id>
+        # We need to find ep01 in the same scenario folder
+        scenario_folder = learning_state_folder.split("/")[0] if "/" in learning_state_folder else None
+        if scenario_folder:
+            import glob
+            scenario_path = os.path.join(episode_dir, scenario_folder)
+            ep1_pattern = os.path.join(scenario_path, "learning_state_ep01_*", "learning_state.json")
+            ep1_files = glob.glob(ep1_pattern)
+            if ep1_files:
+                try:
+                    with open(ep1_files[0], "r") as f:
+                        decentralized_learning_state_ep1 = json.load(f)
+                except (json.JSONDecodeError, IOError):
+                    decentralized_learning_state_ep1 = None
+    
     return {
         "world_size": world_size,
         "drones": drones,
@@ -116,6 +156,9 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
         "steps": steps,
         "learning_path": learning_path,
         "total_episodes": total_episodes,
+        "learning_state_folder": learning_state_folder,
+        "decentralized_learning_state": decentralized_learning_state,
+        "decentralized_learning_state_ep1": decentralized_learning_state_ep1,
     }
 
 

@@ -82,7 +82,7 @@ def show_command(episode_path: str) -> None:
     current_index = episode_files.index(episode_path)
     
     episode_data = load_episode(episode_path)
-    state = extract_initial_state(episode_data)
+    state = extract_initial_state(episode_data, episode_path=episode_path)
     
     print(f"Loading episode: {episode_path}")
     print(f"  Version: {state['version']}")

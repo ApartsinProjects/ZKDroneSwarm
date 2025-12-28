@@ -74,6 +74,10 @@ class TabContainer:
             component.ax.set_visible(False)
             if hasattr(component, 'chart_ax') and component.chart_ax is not None:
                 component.chart_ax.set_visible(False)
+            if hasattr(component, 'chart_ax_left') and component.chart_ax_left is not None:
+                component.chart_ax_left.set_visible(False)
+            if hasattr(component, 'chart_ax_right') and component.chart_ax_right is not None:
+                component.chart_ax_right.set_visible(False)
     
     def switch_to(self, tab_name: str) -> None:
         """
@@ -96,6 +100,10 @@ class TabContainer:
             current_component.ax.set_visible(False)
             if hasattr(current_component, 'chart_ax') and current_component.chart_ax is not None:
                 current_component.chart_ax.set_visible(False)
+            if hasattr(current_component, 'chart_ax_left') and current_component.chart_ax_left is not None:
+                current_component.chart_ax_left.set_visible(False)
+            if hasattr(current_component, 'chart_ax_right') and current_component.chart_ax_right is not None:
+                current_component.chart_ax_right.set_visible(False)
             self.fig.canvas.draw_idle()
         
         new_component = self.tabs[tab_name]
@@ -103,6 +111,10 @@ class TabContainer:
         new_component.ax.set_visible(True)
         if hasattr(new_component, 'chart_ax') and new_component.chart_ax is not None:
             new_component.chart_ax.set_visible(True)
+        if hasattr(new_component, 'chart_ax_left') and new_component.chart_ax_left is not None:
+            new_component.chart_ax_left.set_visible(True)
+        if hasattr(new_component, 'chart_ax_right') and new_component.chart_ax_right is not None:
+            new_component.chart_ax_right.set_visible(True)
         
         if hasattr(new_component, 'render_display'):
             new_component.render_display()

@@ -223,8 +223,9 @@ def display_viewer(
     
     def _on_episode_change(new_index: int) -> None:
         try:
-            episode_data = load_episode(episode_files[new_index])
-            new_state = extract_initial_state(episode_data)
+            episode_path = episode_files[new_index]
+            episode_data = load_episode(episode_path)
+            new_state = extract_initial_state(episode_data, episode_path=episode_path)
             
             map_panel.refresh(new_state)
             info_panel.render(new_state)
