@@ -1,5 +1,23 @@
 # EpGreedyCFPolicy (ε-Greedy Collaborative Filtering)
 
+## Table of Contents
+
+1. [Overview](#overview)
+2. [Design Philosophy](#design-philosophy)
+3. [High-Level Flow (5 Phases)](#high-level-flow-5-phases)
+4. [Core Algorithm](#core-algorithm)
+5. [ZK-Compliance Deep Dive](#zk-compliance-deep-dive)
+6. [Hyperparameters](#hyperparameters)
+7. [Edge Case Handling](#edge-case-handling)
+8. [Action Space](#action-space)
+9. [API Reference](#api-reference)
+10. [Usage Example](#usage-example)
+11. [Implementation Details](#implementation-details)
+12. [Limitations](#limitations)
+13. [File Location](#file-location)
+
+---
+
 ## Overview
 
 The `EpGreedyCFPolicy` is a **learning-based ZK-compliant policy** for the ZK-MRTA (Zero-Knowledge Multi-Robot Task Allocation) environment. It uses **SGD-based matrix factorization** to learn agent-target compatibility from observed rewards, combined with **ε-greedy exploration** for action selection.
@@ -29,10 +47,188 @@ The policy exists to:
 
 ---
 
+## High-Level Flow (5 Phases)
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         EPISODE LOOP                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  1. OBSERVE        →  Get observation (active targets, past rewards)│
+│         ↓                                                           │
+│  2. LEARN          →  Update latent vectors from past rewards (SGD) │
+│         ↓                                                           │
+│  3. SELECT ACTION  →  ε-greedy: explore randomly OR exploit best    │
+│         ↓                                                           │
+│  4. EXECUTE        →  Environment processes action (fires at target)│
+│         ↓                                                           │
+│  5. REWARD         →  Environment returns reward based on damage    │
+│         ↓                                                           │
+│       (loop back to 1)                                              │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Responsibility Breakdown
+
+| Phase | Responsible Component | Method/Location |
+|-------|----------------------|-----------------|
+| Phase 1: OBSERVE | Environment | `DroneEngageZKMRTA._compute_observations()` |
+| Phase 2: LEARN | Policy | `EpGreedyCFPolicy.update_from_observation()` |
+| Phase 3: SELECT ACTION | Policy | `EpGreedyCFPolicy.select_action()` |
+| Phase 4: EXECUTE | Environment | `DroneEngageZKMRTA.step()` |
+| Phase 5: REWARD | Environment | `DroneEngageZKMRTA.step()` |
+
+**In short**: The policy controls *what action to take* (Phase 3) and *how to learn from feedback* (Phase 2). Everything else — observation, execution, reward calculation — is handled by the environment.
+
+### Phase 1: OBSERVE — *Receive what happened last step*
+
+Receive observation dictionary with 3 components:
+
+**`targets`** — Shape: `(3 * num_targets,)`
+- Each target contributes 3 values: x-coordinate, y-coordinate, active status
+- Format: `[t0_x, t0_y, t0_active, t1_x, t1_y, t1_active, ...]`
+- Active status: `1.0` if target is alive, `0.0` if neutralized
+- Example: 2 targets → array of length 6: `[100, 200, 1.0, 300, 400, 0.0]` (target 0 at (100,200) alive, target 1 at (300,400) neutralized)
+
+**`selected_targets`** — Shape: `(num_drones,)`
+- History log of what each drone did **last step**
+- Format: `[action_of_drone_0, action_of_drone_1, action_of_drone_2, ...]`
+- Action `0` means NoOp (did nothing), action `N` means fired at target `N-1`
+- Example with 3 drones and 4 targets:
+  - Last step: drone_0 fired at target 2, drone_1 did nothing, drone_2 fired at target 0
+  - This step's observation: `[3, 0, 1]`
+- Why needed: The policy pairs this with `observed_rewards` to learn which drone-target combinations are effective
+
+**`observed_rewards`** — Shape: `(num_drones,)` *(Dominant Attribute Reward)*
+- The feedback signal telling how effective each drone's last action was
+- Format: `[reward_of_drone_0, reward_of_drone_1, reward_of_drone_2, ...]`
+- Uses the **Dominant Attribute** approach: `reward = damage_to_dominant_attribute / max_weapon_damage`
+- Values:
+  - Positive (0 to 1): Damage dealt, normalized by max possible damage
+  - `0.0`: Drone did nothing (NoOp)
+  - `-1.0`: Wasted shot (fired at already-dead target)
+- Why "dominant attribute": Each target has multiple defensive attributes (e.g., armor, shields). The reward reflects damage to the attribute with the highest initial value. This means weapon-target compatibility affects the reward.
+- Example: drone_0 with "heavy" weapon (50 armor damage) fires at "armored" target → reward = 50/50 = 1.0
+
+The policy pairs `selected_targets` with `observed_rewards` to learn: *"drone X fired at target Y and got reward Z"* — this is how it discovers which drone-target combinations are effective without ever seeing weapon or target attributes.
+
+### Phase 2: LEARN — *Update predictions based on observed rewards*
+
+This is where the policy updates its knowledge based on what happened last step.
+
+**What the policy learns** — Two sets of latent vectors (hidden representations):
+- `agent_lv`: Shape `(num_drones, latent_dim)` — each drone's "weapon characteristics" in latent space
+- `target_lv`: Shape `(num_targets, latent_dim)` — each target's "defensive characteristics" in latent space
+- The policy doesn't know actual weapon damage or target attributes — it learns abstract vectors that capture compatibility patterns
+
+**SGD (Stochastic Gradient Descent) Update Process** — For each drone that fired last step:
+1. **Get the data**: Which target did drone X fire at? What reward did it get?
+2. **Predict**: `predicted = (1 + dot(agent_lv[drone], target_lv[target])) / 2`
+3. **Compute error**: `error = observed_reward - predicted_reward`
+   - Positive error → prediction was too low
+   - Negative error → prediction was too high
+4. **Update vectors** — Move both vectors to reduce the error:
+   - `agent_lv[drone] += learning_rate * error * target_lv[target]`
+   - `target_lv[target] += learning_rate * error * agent_lv[drone]`
+5. **Normalize**: Re-normalize vectors to unit length (keeps predictions bounded in [0, 1])
+
+**What gets skipped** — The policy does NOT learn from:
+- NoOp actions (`target_idx < 0`) — no information gained
+- Negative rewards (`reward < 0`) — wasted shots don't reflect true compatibility, just bad timing
+
+**Collaborative learning** — In collaborative mode, the policy learns from ALL drones' experiences, not just its own. This accelerates learning — one drone's experience benefits all drones' future predictions.
+
+**Example**:
+- Last step: drone_0 fired at target_1 (reward 0.8), drone_1 fired at target_0 (reward 0.3)
+- Learning: Update vectors so `dot(agent_lv[0], target_lv[1])` → high, `dot(agent_lv[1], target_lv[0])` → low
+- Over time, the policy learns which drone-target combinations are effective
+
+### Phase 3: SELECT ACTION — *Choose which target to fire at*
+
+This is where the policy decides which target to fire at based on its learned knowledge.
+
+**The ε-greedy (epsilon-greedy) strategy** — Balances two competing goals:
+- **Exploration**: Try new targets to discover better options
+- **Exploitation**: Use learned knowledge to maximize reward
+- Parameter **ε** controls the balance: higher ε = more exploration
+
+**Step-by-step process**:
+1. **Identify active targets**: Parse `targets` array, build list of targets where `active == 1.0`. Inactive targets are never valid choices.
+2. **Build valid actions**:
+   - Always includes: all active target indices
+   - If `allow_noop=True`: also includes NoOp (action 0) as an option
+   - If no active targets exist → return NoOp (nothing to fire at)
+   - **What is NoOp?** NoOp = "No Operation" — the drone does nothing this step (doesn't fire). Action `0` = NoOp, Action `1` = fire at target 0, Action `2` = fire at target 1, etc.
+   - **Why would a policy choose NoOp?** In scenarios with limited ammo, cooldowns, or energy costs, choosing not to act can be strategic (e.g., saving ammo for higher-value targets).
+3. **ε-greedy decision**:
+   - Generate random number [0, 1]
+   - If random < ε → **Explore**: pick random target from active targets
+   - If random ≥ ε → **Exploit**: pick target with highest `predict_reward(drone, target)`
+4. **Decay epsilon**: `ε = max(ε_min, ε * ε_decay)` — gradually shifts from exploration to exploitation
+
+**Why ε-greedy?**
+- Early training: High ε → lots of exploration → discover which drone-target pairs work
+- Later training: Low ε → mostly exploitation → use learned knowledge
+- ε_min > 0 ensures some exploration always continues
+
+**Example**: 3 active targets, ε = 0.2, predicted rewards: target_0 = 0.4, target_1 = 0.9, target_2 = 0.6
+- Random draw 0.15 (< ε) → Explore: pick random target
+- Random draw 0.85 (≥ ε) → Exploit: pick target_1 (highest predicted reward)
+
+### Phase 4: EXECUTE — *Environment applies damage to target*
+
+This phase happens in the **environment**, not the policy. The policy has selected an action, now the environment processes it.
+
+**What happens**:
+1. **Environment receives actions**: Each drone submits its selected action (target index or NoOp)
+2. **Process each drone**: Drones are processed sequentially in fixed order
+   - If action = 0 (NoOp) → skip, do nothing
+   - If action > 0 → fire at target (action - 1)
+3. **Apply damage**: Drone's weapon damage profile is applied to target's attributes. Each attribute (e.g., armor, shields) is reduced by the corresponding damage value
+4. **Check target status**: If all target attributes reach 0 → target becomes inactive (neutralized)
+
+**Edge cases**:
+- Drone fires at active target → damage applied, reward calculated
+- Drone fires at already-dead target → wasted shot (ammo counted, reward = -1.0)
+- Multiple drones fire at same target → each processed sequentially; later drones may hit dead target
+- NoOp → nothing happens, reward = 0.0
+
+**Key point**: The policy doesn't control this phase — it just submits an action and waits. The environment handles all mechanics.
+
+### Phase 5: REWARD — *Environment calculates and returns reward*
+
+This phase happens in the **environment** after damage is applied. The environment calculates and returns rewards to each drone.
+
+**How reward is calculated** — Uses the **Dominant Attribute** approach:
+- Formula: `reward = damage_to_dominant_attribute / max_weapon_damage`
+- Dominant attribute = the target's attribute with the highest initial value (e.g., if target has armor: 100, shields: 50 → armor is dominant)
+
+**Reward values**:
+- Fire at active target → `0.0` to `1.0` (normalized damage to dominant attribute)
+- NoOp → `0.0`
+- Fire at already-dead target → `-1.0` (wasted shot penalty)
+
+**What happens after**:
+1. **Rewards stored**: Environment saves each drone's reward in `last_rewards`
+2. **Actions stored**: Environment saves each drone's action in `last_actions`
+3. **New observation built**: Contains updated `targets`, `selected_targets`, `observed_rewards`
+4. **Loop back to Phase 1**: Next step begins with new observation
+
+**Why this reward design?**
+- Normalized (0-1): Makes learning stable across different weapon/target configurations
+- Dominant attribute focus: Rewards matching weapon strengths to target weaknesses
+- Wasted shot penalty (-1.0): Discourages firing at dead targets
+
+**Connection to learning**: The reward from this phase becomes the `observed_rewards` in the next step's observation, which Phase 2 (LEARN) uses to update the latent vectors. This closes the loop.
+
+---
+
 ## Core Algorithm
 
+*Technical reference for implementation and modification. Some concepts overlap with the High-Level Flow section above — this is intentional for critical points.*
 
-### Matrix Factorization Model
+### 1. Matrix Factorization Model
 
 The policy maintains **latent vectors** for each agent and target:
 
@@ -83,7 +279,7 @@ and drone_1 is effective against target_1, without ever seeing
 the actual weapon/target attributes!
 ```
 
-### SGD Update Rule
+### 2. SGD Update Rule
 
 When an agent attacks a target and receives a reward, the policy updates both latent vectors using stochastic gradient descent:
 
@@ -141,7 +337,7 @@ After Update:
 The prediction moved closer to the observed reward (0.5).
 ```
 
-### ε-Greedy Action Selection
+### 3. ε-Greedy Action Selection
 
 The policy balances exploration and exploitation:
 
@@ -182,7 +378,7 @@ Random draw: 0.85 (> ε=0.2)
 → Action = 2 (fire at target_1)
 ```
 
-### Collaborative Learning
+### 4. Collaborative Learning
 
 In collaborative observation mode, each agent observes:
 - All agents' selected targets from the previous step
@@ -234,17 +430,6 @@ The policy **never accesses**:
 
 Instead, it **learns** agent-target compatibility from observed rewards, which implicitly encode the hidden weapon-target interactions.
 
-### Comparison with Other Policies
-
-| Aspect | RandomPolicy | EpGreedyCFPolicy | Min TTK Oracle |
-|--------|--------------|------------------|----------------|
-| **ZK-Compliant** | ✅ Yes | ✅ Yes | ❌ No |
-| **Uses HP values** | No | No | Yes |
-| **Uses weapon profiles** | No | No | Yes |
-| **Learns from rewards** | No | Yes | No |
-| **Decision basis** | Random | Learned predictions | Hits-to-kill |
-| **Expected performance** | Lowest | Medium | Highest |
-
 ---
 
 ## Hyperparameters
@@ -293,7 +478,7 @@ Instead, it **learns** agent-target compatibility from observed rewards, which i
 | Action | Meaning |
 |--------|---------|
 | `0` | NoOp (do nothing) - only when `allow_noop=True` |
-| `1` to `N` | Fire at target index `i-1` (1-indexed) |
+| `1` to `N` | Fire at target `N-1` (e.g., action 1 → target 0, action 2 → target 1) |
 
 ---
 
