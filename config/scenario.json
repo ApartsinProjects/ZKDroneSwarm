@@ -8,11 +8,11 @@
     ]
   },
   "drones": {
-    "count": 6,
+    "count": 9,
     "weapon_distribution": {
-      "breach": 0.25,
-      "structural": 0.25,
-      "systems": 0.25
+      "breach": 0.33,
+      "structural": 0.33,
+      "systems": 0.33
     },
     "region": {
       "x_fraction": [
@@ -27,7 +27,7 @@
     "min_distance_between_drones": 5.0
   },
   "targets": {
-    "count": 18,
+    "count": 100,
     "region": {
       "x_fraction": [
         0.1,
@@ -74,7 +74,7 @@
     }
   },
   "execution": {
-    "num_episodes": 25,
+    "num_episodes": 50,
     "verbose": false
   },
   "logging": {

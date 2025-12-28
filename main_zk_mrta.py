@@ -507,6 +507,7 @@ def main():
     print("ZK-MRTA ENVIRONMENT DEMO")
     print("="*60)
     print(f"Config File: {CONFIG_PATH}")
+    print(f"Mappings File: {config.mappings_file}")
     print(f"World Size: {config.world.size}")
     print(f"Random Seed: {config.seed}")
     print(f"Policy Types: {config.policy.type}")
@@ -676,10 +677,10 @@ def main():
         result = run_manager.finalize_policy()
         print(f"  Saved episodes: {result['files']}")
         steps = result['steps']
-        if 'only' in steps:
-            print(f"  Steps: only={steps['only']}")
-        else:
+        if 'best' in steps:
             print(f"  Steps: first={steps['first']}, best={steps['best']}, mid={steps['mid']}")
+        else:
+            print(f"  Steps: first={steps['first']}")
 
     if config.execution.verbose:
         # Aggregate statistics across all episodes (all policies)
@@ -756,6 +757,53 @@ def main():
     headers = ["Policy", "Avg Steps", "Avg Targets", "Avg Ammo", "Avg Overkill", "Avg Reward", "Success %", "Ammo Eff", "Dmg Eff"]
     print(tabulate(table_data, headers=headers, tablefmt="grid"))
     print("="*60)
+    
+    # Policy Best Episode Performance (comparison to random baseline)
+    policy_best_metrics = {}
+    for policy_type in config.policy.type:
+        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
+        if policy_metrics:
+            best_ep = min(policy_metrics, key=lambda m: m["steps"])
+            best_ammo = best_ep["total_ammo_used"]
+            best_targets = best_ep["targets_neutralized"]
+            best_eff_dmg = best_ep["total_effective_damage"]
+            best_pot_dmg = best_ep["total_potential_damage"]
+            policy_best_metrics[policy_type] = {
+                "steps": best_ep["steps"],
+                "ammo_eff": best_targets / best_ammo if best_ammo > 0 else 0.0,
+                "dmg_eff": best_eff_dmg / best_pot_dmg if best_pot_dmg > 0 else 0.0,
+                "shots_per_target": best_ammo / best_targets if best_targets > 0 else 0.0,
+            }
+    
+    if "random" in policy_best_metrics and len(policy_best_metrics) > 1:
+        print("\n" + "="*60)
+        print("POLICY BEST EPISODE PERFORMANCE (vs Random Baseline)")
+        print("="*60)
+        print("Ammo Eff = targets / ammo (higher = fewer wasted shots)")
+        print("Dmg Eff  = effective_dmg / potential_dmg (higher = less overkill)")
+        rand = policy_best_metrics["random"]
+        
+        def fmt_pct(val, base, fmt, higher_better=True):
+            if base == 0:
+                return fmt.format(val)
+            pct = ((val - base) / base) * 100
+            if not higher_better:
+                pct = -pct
+            sign = "+" if pct > 0 else ""
+            return f"{fmt.format(val)} ({sign}{pct:.0f}%)"
+        
+        cmp_data = []
+        for pt in config.policy.type:
+            if pt in policy_best_metrics:
+                m = policy_best_metrics[pt]
+                if pt == "random":
+                    cmp_data.append([pt, f"{m['steps']} (baseline)", f"{m['shots_per_target']:.1f} (baseline)", f"{m['ammo_eff']:.3f} (baseline)", f"{m['dmg_eff']:.1%} (baseline)"])
+                else:
+                    cmp_data.append([pt, fmt_pct(m["steps"], rand["steps"], "{}", False), fmt_pct(m["shots_per_target"], rand["shots_per_target"], "{:.1f}", False), fmt_pct(m["ammo_eff"], rand["ammo_eff"], "{:.3f}", True), fmt_pct(m["dmg_eff"], rand["dmg_eff"], "{:.1%}", True)])
+        
+        cmp_data.sort(key=lambda r: int(r[1].split()[0]))
+        print(tabulate(cmp_data, headers=["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"], tablefmt="grid"))
+        print("="*60)
     
     print("\nDemo complete! ✓")
 

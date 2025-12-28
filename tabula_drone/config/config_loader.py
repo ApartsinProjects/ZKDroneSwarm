@@ -110,6 +110,7 @@ class ScenarioConfig:
     execution: ExecutionConfig
     logging: LoggingConfig
     mappings: MappingsConfig
+    mappings_file: str = None
     collaborative_filtering: CollaborativeFilteringConfig = None
 
 
@@ -515,5 +516,6 @@ def load_config(path: str) -> ScenarioConfig:
         execution=_parse_execution_config(data["execution"]),
         logging=_parse_logging_config(data["logging"]),
         mappings=mappings,
+        mappings_file=mappings_file,
         collaborative_filtering=cf_config
     )

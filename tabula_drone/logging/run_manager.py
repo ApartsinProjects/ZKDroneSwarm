@@ -57,11 +57,14 @@ class RunManager:
         self._is_deterministic: bool = False
         
         # Episode accumulation state (reset per policy)
-        self._episodes: List[Tuple[Dict[str, Any], int]] = []  # (episode_data, steps)
+        self._episodes: List[Tuple[Dict[str, Any], int, int]] = []  # (episode_data, steps, episode_num)
         self._first_data: Optional[Dict[str, Any]] = None
         self._first_steps: int = 0
+        self._first_episode_num: int = 0
         self._best_data: Optional[Dict[str, Any]] = None
         self._best_steps: int = float('inf')
+        self._best_episode_num: int = 0
+        self._episode_counter: int = 0
     
     def start_policy(self, policy_type: str, is_deterministic: bool = False) -> None:
         """
@@ -87,8 +90,11 @@ class RunManager:
         self._episodes = []
         self._first_data = None
         self._first_steps = 0
+        self._first_episode_num = 0
         self._best_data = None
         self._best_steps = float('inf')
+        self._best_episode_num = 0
+        self._episode_counter = 0
     
     def record_episode(self, episode_data: Dict[str, Any], steps: int) -> None:
         """
@@ -103,18 +109,24 @@ class RunManager:
         if self._current_policy is None:
             raise ValueError("start_policy() must be called before record_episode()")
         
-        # Store episode
-        self._episodes.append((episode_data, steps))
+        # Increment episode counter
+        self._episode_counter += 1
+        current_episode_num = self._episode_counter
+        
+        # Store episode with episode number
+        self._episodes.append((episode_data, steps, current_episode_num))
         
         # Track first episode
         if self._first_data is None:
             self._first_data = episode_data
             self._first_steps = steps
+            self._first_episode_num = current_episode_num
         
         # Track best episode (minimum steps)
         if steps < self._best_steps:
             self._best_data = episode_data
             self._best_steps = steps
+            self._best_episode_num = current_episode_num
     
     def get_episodes_dir(self) -> str:
         """
@@ -176,23 +188,23 @@ class RunManager:
         steps_info = {}
         
         if self._is_deterministic:
-            # Single episode: save as "only"
-            filepath = self._save_episode(self._first_data, "only", episodes_dir)
-            saved_files.append(f".../episode_only.json")
-            steps_info["only"] = self._first_steps
+            # Single episode: save with episode number
+            filepath = self._save_episode(self._first_data, "first", self._first_episode_num, episodes_dir)
+            saved_files.append(f".../episode_first_ep{self._first_episode_num:02d}.json")
+            steps_info["first"] = self._first_steps
         else:
-            # Learning policy: save first, best, mid
-            filepath = self._save_episode(self._first_data, "first", episodes_dir)
-            saved_files.append(f".../episode_first.json")
+            # Learning policy: save first, best, mid with episode numbers
+            filepath = self._save_episode(self._first_data, "first", self._first_episode_num, episodes_dir)
+            saved_files.append(f".../episode_first_ep{self._first_episode_num:02d}.json")
             steps_info["first"] = self._first_steps
             
-            filepath = self._save_episode(self._best_data, "best", episodes_dir)
-            saved_files.append(f".../episode_best.json")
+            filepath = self._save_episode(self._best_data, "best", self._best_episode_num, episodes_dir)
+            saved_files.append(f".../episode_best_ep{self._best_episode_num:02d}.json")
             steps_info["best"] = self._best_steps
             
-            mid_data, mid_steps = self._select_mid_episode()
-            filepath = self._save_episode(mid_data, "mid", episodes_dir)
-            saved_files.append(f".../episode_mid.json")
+            mid_data, mid_steps, mid_episode_num = self._select_mid_episode()
+            filepath = self._save_episode(mid_data, "mid", mid_episode_num, episodes_dir)
+            saved_files.append(f".../episode_mid_ep{mid_episode_num:02d}.json")
             steps_info["mid"] = mid_steps
         
         return {"files": saved_files, "steps": steps_info}
@@ -202,27 +214,30 @@ class RunManager:
         Select the episode closest to the average of first and best steps.
         
         Returns:
-            Tuple of (episode_data, steps) for the mid episode
+            Tuple of (episode_data, steps, episode_num) for the mid episode
         """
         target_steps = (self._first_steps + self._best_steps) / 2
         
         best_match = None
         best_match_steps = 0
+        best_match_episode_num = 0
         best_distance = float('inf')
         
-        for episode_data, steps in self._episodes:
+        for episode_data, steps, episode_num in self._episodes:
             distance = abs(steps - target_steps)
             if distance < best_distance:
                 best_distance = distance
                 best_match = episode_data
                 best_match_steps = steps
+                best_match_episode_num = episode_num
         
-        return best_match, best_match_steps
+        return best_match, best_match_steps, best_match_episode_num
     
     def _save_episode(
         self,
         episode_data: Dict[str, Any],
         category: str,
+        episode_num: int,
         episodes_dir: str
     ) -> str:
         """
@@ -230,13 +245,14 @@ class RunManager:
         
         Args:
             episode_data: Episode data dictionary
-            category: Episode category ("first", "best", "mid", "only")
+            category: Episode category ("first", "best", "mid")
+            episode_num: Episode number (1-indexed)
             episodes_dir: Directory to save to
         
         Returns:
             Filepath of saved file
         """
-        filename = f"episode_{category}.json"
+        filename = f"episode_{category}_ep{episode_num:02d}.json"
         filepath = os.path.join(episodes_dir, filename)
         
         with open(filepath, "w") as f:

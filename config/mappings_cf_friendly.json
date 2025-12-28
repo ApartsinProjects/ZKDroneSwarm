@@ -1,8 +1,8 @@
 {
   "class_attribute_mapping": {
-    "A": { "structural_integrity": 250.0, "envelope_integrity": 10.0, "utilities_lifesafety": 10.0 },
-    "B": { "structural_integrity": 10.0, "envelope_integrity": 250.0, "utilities_lifesafety": 10.0 },
-    "C": { "structural_integrity": 10.0, "envelope_integrity": 10.0, "utilities_lifesafety": 250.0 }
+    "A": { "structural_integrity": 250.0, "envelope_integrity": 25.0, "utilities_lifesafety": 25.0 },
+    "B": { "structural_integrity": 25.0, "envelope_integrity": 250.0, "utilities_lifesafety": 25.0 },
+    "C": { "structural_integrity": 25.0, "envelope_integrity": 25.0, "utilities_lifesafety": 250.0 }
   },
   "weapon_damage_profile_mapping": {
     "structural": { "structural_integrity": 10, "envelope_integrity": 1, "utilities_lifesafety": 1 },
