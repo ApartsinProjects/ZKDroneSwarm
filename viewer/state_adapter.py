@@ -109,33 +109,36 @@ def extract_initial_state(
     total_episodes = episode_data.get("total_episodes", None)
     
     # Extract decentralized learning state if available
-    learning_state_folder = episode_data.get("learning_state_folder", None)
     decentralized_learning_state = None
     decentralized_learning_state_ep1 = None
     
-    if learning_state_folder and episode_path:
-        # Resolve path relative to episode file's directory
-        episode_dir = os.path.dirname(episode_path)
-        learning_state_path = os.path.join(episode_dir, learning_state_folder, "learning_state.json")
-        if os.path.exists(learning_state_path):
-            try:
-                with open(learning_state_path, "r") as f:
-                    decentralized_learning_state = json.load(f)
-            except (json.JSONDecodeError, IOError):
-                decentralized_learning_state = None
+    if episode_path:
+        # New structure: learning_state is in sibling folder
+        # Episode path: logs/run_*/policy/episodes/episode_*.json
+        # Learning state: logs/run_*/policy/learning_state/learning_state_ep{NN}.json
+        episodes_dir = os.path.dirname(episode_path)
+        policy_dir = os.path.dirname(episodes_dir)
+        learning_state_dir = os.path.join(policy_dir, "learning_state")
         
-        # Also load episode 1's learning state for comparison (random initialization)
-        # learning_state_folder format: scenario_<id>/learning_state_ep<NN>_<policy>_<timestamp>_<episode_id>
-        # We need to find ep01 in the same scenario folder
-        scenario_folder = learning_state_folder.split("/")[0] if "/" in learning_state_folder else None
-        if scenario_folder:
-            import glob
-            scenario_path = os.path.join(episode_dir, scenario_folder)
-            ep1_pattern = os.path.join(scenario_path, "learning_state_ep01_*", "learning_state.json")
-            ep1_files = glob.glob(ep1_pattern)
-            if ep1_files:
+        if os.path.isdir(learning_state_dir):
+            episode_num = episode_data.get("episode_num", 1)
+            
+            # Load learning state for current episode
+            learning_state_path = os.path.join(
+                learning_state_dir, f"learning_state_ep{episode_num:02d}.json"
+            )
+            if os.path.exists(learning_state_path):
                 try:
-                    with open(ep1_files[0], "r") as f:
+                    with open(learning_state_path, "r") as f:
+                        decentralized_learning_state = json.load(f)
+                except (json.JSONDecodeError, IOError):
+                    decentralized_learning_state = None
+            
+            # Load episode 1's learning state for comparison (random initialization)
+            ep1_path = os.path.join(learning_state_dir, "learning_state_ep01.json")
+            if os.path.exists(ep1_path):
+                try:
+                    with open(ep1_path, "r") as f:
                         decentralized_learning_state_ep1 = json.load(f)
                 except (json.JSONDecodeError, IOError):
                     decentralized_learning_state_ep1 = None
@@ -156,7 +159,6 @@ def extract_initial_state(
         "steps": steps,
         "learning_path": learning_path,
         "total_episodes": total_episodes,
-        "learning_state_folder": learning_state_folder,
         "decentralized_learning_state": decentralized_learning_state,
         "decentralized_learning_state_ep1": decentralized_learning_state_ep1,
     }

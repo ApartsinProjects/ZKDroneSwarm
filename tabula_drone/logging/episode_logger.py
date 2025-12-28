@@ -62,7 +62,6 @@ class EpisodeLogger:
         self._steps: List[Dict[str, Any]] = []
         self._episode_id: Optional[str] = None
         self._timestamp: Optional[str] = None
-        self._scenario_id: str = str(uuid.uuid4())[:8]
     
     def start_episode(
         self,
@@ -91,7 +90,7 @@ class EpisodeLogger:
         self._episode_data = {
             "version": self.VERSION,
             "episode_id": self._episode_id,
-            "scenario_id": self._scenario_id,
+            "scenario_id": config.get("scenario_id", ""),
             "episode_num": episode_num,
             "total_episodes": total_episodes,
             "timestamp": self._timestamp,
@@ -142,6 +141,20 @@ class EpisodeLogger:
         summary = self._build_summary(total_rewards, done_reason, self._steps)
         self._episode_data["summary"] = summary
     
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Return episode data as a dictionary without saving to disk.
+        
+        Returns:
+            Copy of the episode data dictionary
+        
+        Raises:
+            ValueError: If start_episode() was not called
+        """
+        if self._episode_data is None:
+            raise ValueError("start_episode() must be called before to_dict()")
+        return dict(self._episode_data)
+    
     def set_learning_path(self, data: Dict[str, Any]) -> None:
         """
         Set learning path data for CF policies.
@@ -151,61 +164,6 @@ class EpisodeLogger:
         """
         if self._episode_data is not None:
             self._episode_data["learning_path"] = data
-    
-    def save_decentralized_learning_state(
-        self,
-        pre_state: Dict[str, Any],
-        post_state: Dict[str, Any],
-        episode_num: int,
-        policy_type: str,
-        num_agents: int,
-        num_targets: int,
-        latent_dim: int,
-    ) -> str:
-        """
-        Save decentralized policy learning state to a dedicated folder.
-        
-        Creates a folder per episode containing the full learning state
-        (pre and post episode) for all agents in a decentralized policy.
-        
-        Args:
-            pre_state: Dict with 'agents' list, each containing agent_lv, target_lv, other_agents_lv
-            post_state: Dict with 'agents' list, each containing agent_lv, target_lv, other_agents_lv
-            episode_num: Episode number (1-indexed)
-            policy_type: Policy type string (e.g., "decentralized_ep_greedy_cf")
-            num_agents: Number of agents
-            num_targets: Number of targets
-            latent_dim: Dimension of latent vectors
-        
-        Returns:
-            Folder path (relative to output_dir) for inclusion in episode data,
-            including scenario subfolder prefix (e.g., "scenario_abc123/learning_state_ep01_...")
-        """
-        timestamp_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        scenario_folder = f"scenario_{self._scenario_id}"
-        learning_state_folder = f"learning_state_ep{episode_num:02d}_{policy_type}_{timestamp_str}_{self._episode_id}"
-        relative_path = os.path.join(scenario_folder, learning_state_folder)
-        folder_path = os.path.join(self.output_dir, relative_path)
-        
-        os.makedirs(folder_path, exist_ok=True)
-        
-        learning_state = {
-            "version": "1.0",
-            "scenario_id": self._scenario_id,
-            "episode_num": episode_num,
-            "policy_type": policy_type,
-            "num_agents": num_agents,
-            "num_targets": num_targets,
-            "latent_dim": latent_dim,
-            "pre_episode": pre_state,
-            "post_episode": post_state,
-        }
-        
-        filepath = os.path.join(folder_path, "learning_state.json")
-        with open(filepath, "w") as f:
-            json.dump(learning_state, f, indent=2)
-        
-        return relative_path
     
     def save(self, is_best: bool = False, prefix: str = "") -> str:
         """

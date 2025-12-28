@@ -196,7 +196,7 @@ def _parse_environment_config(data: dict) -> EnvironmentConfig:
     if not isinstance(max_steps, int) or max_steps <= 0:
         raise ValueError("environment.max_steps must be a positive integer")
     
-    scenario_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+    scenario_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     return EnvironmentConfig(
         max_steps=max_steps,

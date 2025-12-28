@@ -9,7 +9,6 @@ Demonstrates:
 """
 
 from typing import Dict, Any, List, Optional, Union
-import copy
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
@@ -17,7 +16,7 @@ from tabulate import tabulate
 
 from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
-from tabula_drone.logging import EpisodeLogger
+from tabula_drone.logging import EpisodeLogger, RunManager
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
@@ -27,6 +26,8 @@ from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 from tabula_drone.policies.decentralized_ep_greedy_cf_policy import DecentralizedEpGreedyCFPolicy
 
 CONFIG_PATH = "config/scenario.json"
+
+PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, EpGreedyCFPolicy, UCBCFPolicy, DecentralizedEpGreedyCFPolicy, Dict[str, DecentralizedEpGreedyCFPolicy]]
 
 # "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
 def print_episode_summary(
@@ -133,8 +134,6 @@ def print_scenario_config(
     print(tabulate(weapon_rows, headers=weapon_headers, tablefmt="simple"))
     print()
 
-
-PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, EpGreedyCFPolicy, UCBCFPolicy, DecentralizedEpGreedyCFPolicy, Dict[str, DecentralizedEpGreedyCFPolicy]]
 
 
 def create_policy(
@@ -519,6 +518,12 @@ def main():
     )
     print("="*60)
     
+    # Create RunManager for structured logging
+    run_manager = RunManager(
+        output_dir=config.logging.output_dir,
+        scenario_id=config.environment.scenario_id
+    )
+    
     # Run each policy type
     for policy_type in config.policy.type:
         print(f"\n>>> Running policy: {policy_type}")
@@ -551,9 +556,8 @@ def main():
         policy = create_policy(policy_type, config, drones_config, num_targets=env.num_targets)
         logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
-        # Best-episode tracking per policy (by minimum steps)
-        best_steps_data = None
-        best_step_count = float('inf')
+        # Start policy run in RunManager
+        run_manager.start_policy(policy_type, is_deterministic=is_deterministic)
         
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
@@ -620,43 +624,37 @@ def main():
                     pre_episode_lv[0], pre_episode_lv[1], drones_config, targets_config
                 )
             
-            # Save decentralized learning state to dedicated folder (every episode)
+            # Save decentralized learning state using RunManager (every episode)
             if is_decentralized_cf:
                 first_policy = next(iter(policy.values()))
-                learning_state_folder = logger.save_decentralized_learning_state(
+                run_manager.save_learning_state(
                     pre_state=pre_episode_state,
                     post_state=post_episode_state,
                     episode_num=episode_num,
-                    policy_type=policy_type,
                     num_agents=len(policy),
                     num_targets=first_policy.num_targets,
                     latent_dim=first_policy.latent_dim,
                 )
             
-            # Track best episode by STEPS (minimum)
-            if metrics["steps"] < best_step_count:
-                best_step_count = metrics["steps"]
-                best_steps_data = copy.deepcopy(logger._episode_data)
-                
-                # Capture learning path for centralized CF policies using PRE-episode vectors
-                # (decentralized policies use separate learning_state_folder)
-                if is_cf and not is_decentralized_cf:
-                    best_steps_data["learning_path"] = {
-                        "alignment_score": alignment_score,
-                        "agents": [
-                            {"id": f"A{i}", "weapon_type": d["weapon_type"],
-                             "latent_vector": pre_episode_lv[0][i].tolist()}
-                            for i, d in enumerate(drones_config)
-                        ],
-                        "targets": [
-                            {"id": f"T{i}", "class_type": t["class_type"],
-                             "latent_vector": pre_episode_lv[1][i].tolist()}
-                            for i, t in enumerate(targets_config)
-                        ]
-                    }
-                elif is_decentralized_cf:
-                    # Add folder reference instead of learning_path
-                    best_steps_data["learning_state_folder"] = learning_state_folder
+            # Get episode data and add learning path for CF policies
+            episode_data = logger.to_dict()
+            if is_cf and not is_decentralized_cf:
+                episode_data["learning_path"] = {
+                    "alignment_score": alignment_score,
+                    "agents": [
+                        {"id": f"A{i}", "weapon_type": d["weapon_type"],
+                         "latent_vector": pre_episode_lv[0][i].tolist()}
+                        for i, d in enumerate(drones_config)
+                    ],
+                    "targets": [
+                        {"id": f"T{i}", "class_type": t["class_type"],
+                         "latent_vector": pre_episode_lv[1][i].tolist()}
+                        for i, t in enumerate(targets_config)
+                    ]
+                }
+            
+            # Record episode in RunManager for selection
+            run_manager.record_episode(episode_data, metrics["steps"])
             
             # Per-episode summary
             total_reward = sum(metrics["agent_rewards"].values())
@@ -674,13 +672,14 @@ def main():
                 drone_weapons = [d["weapon_type"] for d in drones_config]
                 analyze_agent_clustering(policy, drone_weapons)
         
-        # Save best-by-steps episode
-        if best_steps_data is not None:
-            logger._episode_data = best_steps_data
-            prefix = "min_steps_" if is_cf else ""
-            saved_path = logger.save(prefix=prefix)
-            best_ep_num = best_steps_data.get("episode_num", "?")
-            print(f"  Saved best-by-steps (ep{best_ep_num}, {best_step_count} steps): {saved_path}")
+        # Finalize policy run - saves selected episodes (first/best/mid or only)
+        result = run_manager.finalize_policy()
+        print(f"  Saved episodes: {result['files']}")
+        steps = result['steps']
+        if 'only' in steps:
+            print(f"  Steps: only={steps['only']}")
+        else:
+            print(f"  Steps: first={steps['first']}, best={steps['best']}, mid={steps['mid']}")
 
     if config.execution.verbose:
         # Aggregate statistics across all episodes (all policies)

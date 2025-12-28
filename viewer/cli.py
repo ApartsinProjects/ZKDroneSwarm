@@ -14,48 +14,91 @@ from viewer.draw import display_viewer
 LOGS_DIR = "logs"
 
 
-def _get_episode_timestamp(file_path: str) -> str:
+def _get_episode_step_count(file_path: str) -> int:
     """
-    Extract timestamp from episode log file.
+    Extract step count from episode log file.
     
     Args:
         file_path: Path to episode JSON file
         
     Returns:
-        ISO 8601 timestamp string, or empty string if not found
+        Number of steps in the episode, or 0 if not found
     """
     try:
         with open(file_path, 'r') as f:
             data = json.load(f)
-            return data.get('timestamp', '')
+            return len(data.get('steps', []))
     except (json.JSONDecodeError, IOError):
-        return ''
+        return 0
 
 
-def find_all_episodes() -> list[str]:
+def _find_latest_scenario() -> str:
     """
-    Find all episode log files in the logs directory.
+    Find the most recent scenario folder (run_*) in logs directory.
     
     Returns:
-        List of episode file paths sorted descending by timestamp (newest first)
+        Path to the most recent scenario folder
         
     Raises:
-        SystemExit: If logs directory doesn't exist or contains no episodes
+        SystemExit: If no scenario folders found
     """
     if not os.path.isdir(LOGS_DIR):
         print(f"Error: Logs directory '{LOGS_DIR}' not found.", file=sys.stderr)
         sys.exit(1)
     
-    pattern = os.path.join(LOGS_DIR, "episode_*.json")
-    episode_files = glob.glob(pattern)
+    scenario_folders = glob.glob(os.path.join(LOGS_DIR, "run_*"))
+    scenario_folders = [f for f in scenario_folders if os.path.isdir(f)]
     
-    if not episode_files:
-        print(f"Error: No episode files found in '{LOGS_DIR}'.", file=sys.stderr)
+    if not scenario_folders:
+        print(f"Error: No scenario folders (run_*) found in '{LOGS_DIR}'.", file=sys.stderr)
         sys.exit(1)
     
-    # Sort descending by internal timestamp field (newest first)
-    episode_files.sort(key=_get_episode_timestamp, reverse=True)
-    return episode_files
+    # Sort descending by folder name (timestamp in name)
+    scenario_folders.sort(reverse=True)
+    return scenario_folders[0]
+
+
+def find_all_episodes() -> list[str]:
+    """
+    Find all episode log files from the most recent scenario.
+    
+    Episodes are grouped by policy (alphabetical order), and within each
+    policy group sorted by step count descending (higher to lower).
+    
+    Returns:
+        List of episode file paths
+        
+    Raises:
+        SystemExit: If logs directory doesn't exist or contains no episodes
+    """
+    scenario_path = _find_latest_scenario()
+    
+    # Find all policy subfolders (alphabetical order)
+    policy_folders = sorted([
+        d for d in os.listdir(scenario_path)
+        if os.path.isdir(os.path.join(scenario_path, d))
+    ])
+    
+    all_episodes = []
+    
+    for policy in policy_folders:
+        episodes_dir = os.path.join(scenario_path, policy, "episodes")
+        if not os.path.isdir(episodes_dir):
+            continue
+        
+        # Find all episode files in this policy
+        pattern = os.path.join(episodes_dir, "episode_*.json")
+        policy_episodes = glob.glob(pattern)
+        
+        # Sort by step count descending (higher to lower)
+        policy_episodes.sort(key=_get_episode_step_count, reverse=True)
+        all_episodes.extend(policy_episodes)
+    
+    if not all_episodes:
+        print(f"Error: No episode files found in '{scenario_path}'.", file=sys.stderr)
+        sys.exit(1)
+    
+    return all_episodes
 
 
 def find_latest_episode() -> str:

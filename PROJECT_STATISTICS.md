@@ -1,8 +1,8 @@
 # TabulaDrone Project Statistics Report
 
-**Generated:** December 23, 2025  
+**Generated:** December 28, 2025  
 **Project Started:** November 13, 2025  
-**Last Commit:** December 21, 2025  
+**Last Commit:** December 28, 2025  
 
 ---
 
@@ -10,21 +10,21 @@
 
 | Category | Lines of Code | Files |
 |----------|---------------|-------|
-| **Total (Production + Tests)** | **7,693** | **37** |
-| Core Package (`tabula_drone/`) | 2,609 | 17 |
-| Viewer (`viewer/`) | 2,168 | 16 |
-| Tests (`tests/`) | 2,594 | 6 |
-| Main Script | 322 | 1 |
+| **Total (Production + Tests)** | **11,581** | **48** |
+| Core Package (`tabula_drone/`) | 3,924 | 20 |
+| Viewer (`viewer/`) | 2,763 | 17 |
+| Tests (`tests/`) | 4,129 | 10 |
+| Main Script | 765 | 1 |
 
 ### Breakdown by Module
 
 | Module | Lines | Description |
 |--------|-------|-------------|
-| `tabula_drone/envs/` | 641 | Environment implementations |
+| `tabula_drone/policies/` | 1,287 | Policy implementations (7 policies) |
 | `tabula_drone/scenarios/` | 800 | Scenario building & weapon assignment |
+| `tabula_drone/envs/` | 641 | Environment implementations |
+| `tabula_drone/logging/` | 405 | Episode logging + decentralized state |
 | `tabula_drone/config/` | 390 | Configuration loading |
-| `tabula_drone/logging/` | 326 | Episode logging |
-| `tabula_drone/policies/` | 306 | Policy implementations |
 | `tabula_drone/core/` | 140 | Core state representations |
 
 ### Largest Files
@@ -93,18 +93,23 @@
 - `EnvironmentConfig`, `PolicyConfig`, `ExecutionConfig`
 - `LoggingConfig`, `MappingsConfig`, `ScenarioConfig`
 
-### Policy Classes (2)
+### Policy Classes (7)
 - `RandomPolicy` - ZK-compliant random action selection
-- `OracleTimeToKillPolicy` - Optimal oracle with full knowledge
+- `MaxDamageOracle` - Oracle maximizing damage per step
+- `MinTTKOracle` - Oracle minimizing time-to-kill
+- `EpGreedyCFPolicy` - Centralized ε-greedy collaborative filtering
+- `DecentralizedEpGreedyCFPolicy` - Decentralized ε-greedy CF (ZK-MRTA compliant)
+- `UCBCFPolicy` - Upper Confidence Bound collaborative filtering
 
 ### Environment Class (1)
 - `DroneEngageZKMRTA` - Main PettingZoo ParallelEnv
 
-### Viewer Components (8)
+### Viewer Components (9)
 - `BaseComponent` - Abstract base for all UI components
 - `MapPanel` - World visualization with drones/targets
 - `TabContainer` - Tab navigation system
 - `InfoPanel`, `ResultsPanel`, `SummaryPanel`, `EmptyPanel`
+- `TrainingPathPanel` - Latent space visualization for CF policies
 
 ---
 
@@ -198,8 +203,15 @@ TabulaDrone/
 
 5. **Policy Framework**
    - Random policy (ZK-compliant baseline)
-   - Oracle policy (optimal with full knowledge)
+   - Oracle policies (MaxDamage, MinTTK with full knowledge)
+   - Collaborative Filtering policies (centralized & decentralized)
    - Extensible policy interface
+
+6. **Decentralized Learning**
+   - Per-agent private latent vectors (agent_lv, target_lv, other_agents_lv)
+   - SGD-based matrix factorization with ε-greedy exploration
+   - Learning state logging per episode for post-analysis
+   - Scenario-based folder organization for learning states
 
 ---
 
@@ -207,33 +219,33 @@ TabulaDrone/
 
 | Metric | Value |
 |--------|-------|
-| **Functions/Methods** | 364 |
+| **Functions/Methods** | 450+ |
 | **Dataclasses** | 13 |
-| **Test Functions** | 136 |
-| **Documentation Files** | 4 (.md in specs/) |
+| **Test Functions** | 150+ |
+| **Documentation Files** | 10 (.md in docs/) |
 | **Type Hints** | Extensive (TypedDict, dataclass) |
 
 ---
 
 ## 🔄 Development Activity
 
-- **Total Commits:** 40+
-- **Development Period:** ~6 weeks
+- **Total Commits:** 55+
+- **Development Period:** ~7 weeks
 - **Methodology:** Baby Steps (small, atomic, validated increments)
 
 ### Recent Commits
 
 ```
-e2abbba + summary panel
-257355b empty circle for destroyed target
-84e960c bug fix - oracle policy
-5e7ce1d line between the drone and the target
-3af2faf play pause animation
-2430322 +hp as title colors changes
-a77da2f sort by timestamp (episode)
-32bad4f show reward in a better way
-37205bf display all drone rewards
-575e5ba support multiple policies execution
+d9146f8 fixing training path tab
+7d6a575 log reorganized
+184eaed research proposal
+e925741 doc update
+08d9c65 + prefix changes for episode logs
+c29c8ff + different mappings support
+11dda5f + training path
+8afcf42 learning path is now part of the episode json
+d1ab507 learning path details #1
+cc584aa fixing the reward mechanism
 ```
 
 ---
