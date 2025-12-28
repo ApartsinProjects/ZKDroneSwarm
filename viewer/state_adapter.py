@@ -98,6 +98,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
     
     steps = episode_data.get("steps", [])
     learning_path = episode_data.get("learning_path", None)
+    total_episodes = episode_data.get("total_episodes", None)
     
     return {
         "world_size": world_size,
@@ -114,6 +115,7 @@ def extract_initial_state(episode_data: Dict[str, Any]) -> Dict[str, Any]:
         "policy_type": policy_type,
         "steps": steps,
         "learning_path": learning_path,
+        "total_episodes": total_episodes,
     }
 
 

@@ -32,11 +32,11 @@ TEST_MAPPINGS_DATA = {
 }
 
 
-def create_temp_config_with_mappings(config_data):
-    """Create temp config file with accompanying mappings.json in same directory."""
+def create_temp_config_with_mappings(config_data, mappings_filename="mappings.json"):
+    """Create temp config file with accompanying mappings file in same directory."""
     temp_dir = tempfile.mkdtemp()
     config_path = os.path.join(temp_dir, "scenario.json")
-    mappings_path = os.path.join(temp_dir, "mappings.json")
+    mappings_path = os.path.join(temp_dir, mappings_filename)
     
     with open(config_path, "w") as f:
         json.dump(config_data, f)
@@ -128,6 +128,7 @@ class TestLoadConfigMissingFields:
     def test_missing_seed_raises_value_error(self):
         """Missing seed field raises ValueError."""
         config_data = {
+            "mappings_file": "mappings.json",
             "world": {"size": [1000.0, 1000.0]},
             "drones": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "min_distance_between_drones": 50.0, "weapon_distribution": {"light": 1.0}},
             "targets": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
@@ -151,6 +152,7 @@ class TestLoadConfigMissingFields:
     def test_missing_world_section_raises_value_error(self):
         """Missing world section raises ValueError."""
         config_data = {
+            "mappings_file": "mappings.json",
             "seed": 42,
             "drones": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "min_distance_between_drones": 50.0, "weapon_distribution": {"light": 1.0}},
             "targets": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "class_distribution": {"A": 1.0}, "min_distance_from_drones": 100.0, "min_distance_between_targets": 80.0},
@@ -178,6 +180,7 @@ class TestLoadConfigInvalidValues:
     def test_invalid_world_size_raises_value_error(self):
         """Invalid world size format raises ValueError."""
         config_data = {
+            "mappings_file": "mappings.json",
             "seed": 42,
             "world": {"size": [1000.0]},  # Should be [width, height]
             "drones": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "min_distance_between_drones": 50.0, "weapon_distribution": {"light": 1.0}},
@@ -201,6 +204,7 @@ class TestLoadConfigInvalidValues:
     def test_invalid_target_count_raises_value_error(self):
         """Non-positive target count raises ValueError."""
         config_data = {
+            "mappings_file": "mappings.json",
             "seed": 42,
             "world": {"size": [1000.0, 1000.0]},
             "drones": {"count": 1, "region": {"x_fraction": [0.0, 1.0], "y_fraction": [0.0, 1.0]}, "min_distance_between_drones": 50.0, "weapon_distribution": {"light": 1.0}},
@@ -337,3 +341,121 @@ class TestLoadMappings:
         assert isinstance(config.mappings, MappingsConfig)
         assert "A" in config.mappings.class_attribute_mapping
         assert "breach" in config.mappings.weapon_damage_profile_mapping
+
+
+class TestCollaborativeFilteringConfig:
+    """Tests for collaborative filtering nested config parsing."""
+    
+    def test_ep_greedy_cf_config_full(self):
+        """Full ep_greedy_cf config is parsed correctly."""
+        from tabula_drone.config.config_loader import _parse_ep_greedy_cf_config, EpGreedyCFConfig
+        
+        data = {
+            "latent_dim": 4,
+            "learning_rate": 0.05,
+            "epsilon": 0.2,
+            "epsilon_decay": 0.95,
+            "epsilon_min": 0.01
+        }
+        cfg = _parse_ep_greedy_cf_config(data)
+        
+        assert isinstance(cfg, EpGreedyCFConfig)
+        assert cfg.latent_dim == 4
+        assert cfg.learning_rate == 0.05
+        assert cfg.epsilon == 0.2
+        assert cfg.epsilon_decay == 0.95
+        assert cfg.epsilon_min == 0.01
+    
+    def test_ep_greedy_cf_config_partial(self, capsys):
+        """Partial ep_greedy_cf config uses None for missing fields and logs defaults."""
+        from tabula_drone.config.config_loader import _parse_ep_greedy_cf_config
+        
+        data = {"latent_dim": 3}
+        cfg = _parse_ep_greedy_cf_config(data)
+        
+        assert cfg.latent_dim == 3
+        assert cfg.learning_rate is None
+        assert cfg.epsilon is None
+        
+        captured = capsys.readouterr()
+        assert "learning_rate" in captured.out
+        assert "epsilon" in captured.out
+    
+    def test_ep_greedy_cf_config_none(self):
+        """None data returns None config."""
+        from tabula_drone.config.config_loader import _parse_ep_greedy_cf_config
+        
+        cfg = _parse_ep_greedy_cf_config(None)
+        assert cfg is None
+    
+    def test_ep_greedy_cf_invalid_latent_dim(self):
+        """Invalid latent_dim raises ValueError."""
+        from tabula_drone.config.config_loader import _parse_ep_greedy_cf_config
+        
+        with pytest.raises(ValueError) as exc_info:
+            _parse_ep_greedy_cf_config({"latent_dim": 0})
+        assert "latent_dim" in str(exc_info.value)
+        assert ">= 1" in str(exc_info.value)
+    
+    def test_ep_greedy_cf_invalid_learning_rate(self):
+        """Invalid learning_rate raises ValueError."""
+        from tabula_drone.config.config_loader import _parse_ep_greedy_cf_config
+        
+        with pytest.raises(ValueError) as exc_info:
+            _parse_ep_greedy_cf_config({"learning_rate": 0.0})
+        assert "learning_rate" in str(exc_info.value)
+        assert "(0, 1]" in str(exc_info.value)
+    
+    def test_ep_greedy_cf_invalid_epsilon(self):
+        """Invalid epsilon raises ValueError."""
+        from tabula_drone.config.config_loader import _parse_ep_greedy_cf_config
+        
+        with pytest.raises(ValueError) as exc_info:
+            _parse_ep_greedy_cf_config({"epsilon": 1.5})
+        assert "epsilon" in str(exc_info.value)
+        assert "[0, 1]" in str(exc_info.value)
+    
+    def test_ucb_cf_config_full(self):
+        """Full ucb_cf config is parsed correctly."""
+        from tabula_drone.config.config_loader import _parse_ucb_cf_config, UCBCFConfig
+        
+        data = {
+            "latent_dim": 8,
+            "learning_rate": 0.1,
+            "ucb_c": 2.0
+        }
+        cfg = _parse_ucb_cf_config(data)
+        
+        assert isinstance(cfg, UCBCFConfig)
+        assert cfg.latent_dim == 8
+        assert cfg.learning_rate == 0.1
+        assert cfg.ucb_c == 2.0
+    
+    def test_ucb_cf_invalid_ucb_c(self):
+        """Invalid ucb_c raises ValueError."""
+        from tabula_drone.config.config_loader import _parse_ucb_cf_config
+        
+        with pytest.raises(ValueError) as exc_info:
+            _parse_ucb_cf_config({"ucb_c": -1.0})
+        assert "ucb_c" in str(exc_info.value)
+        assert ">= 0" in str(exc_info.value)
+    
+    def test_collaborative_filtering_nested_sections(self):
+        """Nested ep_greedy_cf and ucb_cf sections are parsed."""
+        from tabula_drone.config.config_loader import _parse_collaborative_filtering_config
+        
+        data = {
+            "reward_noise": 0.1,
+            "observation_noise": 0.05,
+            "ep_greedy_cf": {"latent_dim": 4, "epsilon": 0.5},
+            "ucb_cf": {"latent_dim": 6, "ucb_c": 1.5}
+        }
+        cfg = _parse_collaborative_filtering_config(data)
+        
+        assert cfg.ep_greedy_cf is not None
+        assert cfg.ep_greedy_cf.latent_dim == 4
+        assert cfg.ep_greedy_cf.epsilon == 0.5
+        assert cfg.ucb_cf is not None
+        assert cfg.ucb_cf.latent_dim == 6
+        assert cfg.ucb_cf.ucb_c == 1.5
+    

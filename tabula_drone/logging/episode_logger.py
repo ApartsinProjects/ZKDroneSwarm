@@ -68,7 +68,8 @@ class EpisodeLogger:
         env: Any,
         reset_info: Dict[str, Any],
         seed: Optional[int] = None,
-        episode_num: Optional[int] = None
+        episode_num: Optional[int] = None,
+        total_episodes: Optional[int] = None
     ) -> None:
         """
         Capture initial episode state after env.reset().
@@ -90,6 +91,7 @@ class EpisodeLogger:
             "version": self.VERSION,
             "episode_id": self._episode_id,
             "episode_num": episode_num,
+            "total_episodes": total_episodes,
             "timestamp": self._timestamp,
             "rng_seed": seed,
             "config": config,

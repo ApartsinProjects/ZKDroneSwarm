@@ -164,20 +164,34 @@ def create_policy(
     elif policy_type == "ep_greedy_cf":
         if num_targets is None:
             raise ValueError("num_targets is required for ep_greedy_cf policy")
+        # Extract hyperparameters from config, use defaults if not specified
+        ep_cfg = None
+        if config.collaborative_filtering:
+            ep_cfg = config.collaborative_filtering.ep_greedy_cf
         return EpGreedyCFPolicy(
             num_agents=len(drones_config),
             num_targets=num_targets,
+            latent_dim=ep_cfg.latent_dim if ep_cfg and ep_cfg.latent_dim else 2,
+            learning_rate=ep_cfg.learning_rate if ep_cfg and ep_cfg.learning_rate else 0.01,
+            epsilon=ep_cfg.epsilon if ep_cfg and ep_cfg.epsilon else 0.3,
+            epsilon_decay=ep_cfg.epsilon_decay if ep_cfg and ep_cfg.epsilon_decay else 0.99,
+            epsilon_min=ep_cfg.epsilon_min if ep_cfg and ep_cfg.epsilon_min else 0.05,
             seed=config.seed,
         )
     elif policy_type == "ucb_cf":
         if num_targets is None:
             raise ValueError("num_targets is required for ucb_cf policy")
-        ucb_c = config.collaborative_filtering.ucb_c if config.collaborative_filtering else 2.0
+        # Extract hyperparameters from config, use defaults if not specified
+        ucb_cfg = None
+        if config.collaborative_filtering:
+            ucb_cfg = config.collaborative_filtering.ucb_cf
         return UCBCFPolicy(
             num_agents=len(drones_config),
             num_targets=num_targets,
+            latent_dim=ucb_cfg.latent_dim if ucb_cfg and ucb_cfg.latent_dim else 2,
+            learning_rate=ucb_cfg.learning_rate if ucb_cfg and ucb_cfg.learning_rate else 0.01,
+            ucb_c=ucb_cfg.ucb_c if ucb_cfg and ucb_cfg.ucb_c else 0.5,
             seed=config.seed,
-            ucb_c=ucb_c,
         )
     else:
         return RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
@@ -190,6 +204,7 @@ def run_episode(
     verbose: bool = False,
     logger: Optional[EpisodeLogger] = None,
     seed: Optional[int] = None,
+    total_episodes: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Run a single episode with the given policy.
@@ -209,7 +224,7 @@ def run_episode(
     obs, info = env.reset()
     
     if logger:
-        logger.start_episode(env, info, seed, episode_num)
+        logger.start_episode(env, info, seed, episode_num, total_episodes)
     
     if verbose:
         print(f"\n{'='*60}")
@@ -509,7 +524,8 @@ def main():
                 episode_num=episode_num,
                 verbose=config.execution.verbose,
                 logger=logger,
-                seed=config.seed
+                seed=config.seed,
+                total_episodes=num_episodes,
             )
             metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
@@ -580,7 +596,8 @@ def main():
         # Save best-by-steps episode
         if best_steps_data is not None:
             logger._episode_data = best_steps_data
-            saved_path = logger.save(prefix="best_")
+            prefix = "best_steps_" if is_cf else "best_"
+            saved_path = logger.save(prefix=prefix)
             best_ep_num = best_steps_data.get("episode_num", "?")
             print(f"  Saved best-by-steps (ep{best_ep_num}, {best_step_count} steps): {saved_path}")
         

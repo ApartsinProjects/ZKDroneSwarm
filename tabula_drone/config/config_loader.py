@@ -9,7 +9,7 @@ import json
 import os
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -72,11 +72,30 @@ class MappingsConfig:
 
 
 @dataclass
+class EpGreedyCFConfig:
+    """ε-Greedy Collaborative Filtering policy hyperparameters."""
+    latent_dim: Optional[int] = None
+    learning_rate: Optional[float] = None
+    epsilon: Optional[float] = None
+    epsilon_decay: Optional[float] = None
+    epsilon_min: Optional[float] = None
+
+
+@dataclass
+class UCBCFConfig:
+    """UCB Collaborative Filtering policy hyperparameters."""
+    latent_dim: Optional[int] = None
+    learning_rate: Optional[float] = None
+    ucb_c: Optional[float] = None
+
+
+@dataclass
 class CollaborativeFilteringConfig:
     """Collaborative filtering policy configuration."""
     reward_noise: float
     observation_noise: float
-    ucb_c: float
+    ep_greedy_cf: Optional[EpGreedyCFConfig] = None
+    ucb_cf: Optional[UCBCFConfig] = None
 
 
 @dataclass
@@ -198,15 +217,113 @@ def _parse_policy_config(data: dict) -> PolicyConfig:
     return PolicyConfig(type=policy_types, allow_noop=bool(data["allow_noop"]))
 
 
+def _parse_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
+    """Parse ε-Greedy CF policy configuration section (optional).
+    
+    Validates bounds and logs when defaults are used.
+    """
+    if data is None:
+        return None
+    
+    # Extract values with defaults
+    latent_dim = data.get("latent_dim")
+    learning_rate = data.get("learning_rate")
+    epsilon = data.get("epsilon")
+    epsilon_decay = data.get("epsilon_decay")
+    epsilon_min = data.get("epsilon_min")
+    
+    # Log defaults
+    if latent_dim is None:
+        print("Note, using default value 2 for hyperparameter latent_dim (ep_greedy_cf)")
+    if learning_rate is None:
+        print("Note, using default value 0.01 for hyperparameter learning_rate (ep_greedy_cf)")
+    if epsilon is None:
+        print("Note, using default value 0.3 for hyperparameter epsilon (ep_greedy_cf)")
+    if epsilon_decay is None:
+        print("Note, using default value 0.99 for hyperparameter epsilon_decay (ep_greedy_cf)")
+    if epsilon_min is None:
+        print("Note, using default value 0.05 for hyperparameter epsilon_min (ep_greedy_cf)")
+    
+    # Validate bounds
+    if latent_dim is not None:
+        if not isinstance(latent_dim, int) or latent_dim < 1:
+            raise ValueError("ep_greedy_cf.latent_dim must be an integer >= 1")
+    if learning_rate is not None:
+        if not isinstance(learning_rate, (int, float)) or learning_rate <= 0 or learning_rate > 1:
+            raise ValueError("ep_greedy_cf.learning_rate must be in (0, 1]")
+    if epsilon is not None:
+        if not isinstance(epsilon, (int, float)) or epsilon < 0 or epsilon > 1:
+            raise ValueError("ep_greedy_cf.epsilon must be in [0, 1]")
+    if epsilon_decay is not None:
+        if not isinstance(epsilon_decay, (int, float)) or epsilon_decay < 0 or epsilon_decay > 1:
+            raise ValueError("ep_greedy_cf.epsilon_decay must be in [0, 1]")
+    if epsilon_min is not None:
+        if not isinstance(epsilon_min, (int, float)) or epsilon_min < 0 or epsilon_min > 1:
+            raise ValueError("ep_greedy_cf.epsilon_min must be in [0, 1]")
+    
+    return EpGreedyCFConfig(
+        latent_dim=latent_dim,
+        learning_rate=float(learning_rate) if learning_rate is not None else None,
+        epsilon=float(epsilon) if epsilon is not None else None,
+        epsilon_decay=float(epsilon_decay) if epsilon_decay is not None else None,
+        epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
+    )
+
+
+def _parse_ucb_cf_config(data: dict) -> UCBCFConfig:
+    """Parse UCB CF policy configuration section (optional).
+    
+    Validates bounds and logs when defaults are used.
+    """
+    if data is None:
+        return None
+    
+    # Extract values with defaults
+    latent_dim = data.get("latent_dim")
+    learning_rate = data.get("learning_rate")
+    ucb_c = data.get("ucb_c")
+    
+    # Log defaults
+    if latent_dim is None:
+        print("Note, using default value 2 for hyperparameter latent_dim (ucb_cf)")
+    if learning_rate is None:
+        print("Note, using default value 0.01 for hyperparameter learning_rate (ucb_cf)")
+    if ucb_c is None:
+        print("Note, using default value 0.5 for hyperparameter ucb_c (ucb_cf)")
+    
+    # Validate bounds
+    if latent_dim is not None:
+        if not isinstance(latent_dim, int) or latent_dim < 1:
+            raise ValueError("ucb_cf.latent_dim must be an integer >= 1")
+    if learning_rate is not None:
+        if not isinstance(learning_rate, (int, float)) or learning_rate <= 0 or learning_rate > 1:
+            raise ValueError("ucb_cf.learning_rate must be in (0, 1]")
+    if ucb_c is not None:
+        if not isinstance(ucb_c, (int, float)) or ucb_c < 0:
+            raise ValueError("ucb_cf.ucb_c must be >= 0")
+    
+    return UCBCFConfig(
+        latent_dim=latent_dim,
+        learning_rate=float(learning_rate) if learning_rate is not None else None,
+        ucb_c=float(ucb_c) if ucb_c is not None else None,
+    )
+
+
 def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringConfig:
     """Parse collaborative filtering configuration section (optional)."""
     if data is None:
         return None
     _validate_required_keys(data, ["reward_noise", "observation_noise"], "collaborative_filtering")
+    
+    # Parse nested policy configs
+    ep_greedy_cf = _parse_ep_greedy_cf_config(data.get("ep_greedy_cf"))
+    ucb_cf = _parse_ucb_cf_config(data.get("ucb_cf"))
+    
     return CollaborativeFilteringConfig(
         reward_noise=float(data["reward_noise"]),
         observation_noise=float(data["observation_noise"]),
-        ucb_c=float(data.get("ucb_c", 2.0))
+        ep_greedy_cf=ep_greedy_cf,
+        ucb_cf=ucb_cf,
     )
 
 
@@ -377,7 +494,12 @@ def load_config(path: str) -> ScenarioConfig:
     
     # Load mappings from same directory as scenario config
     config_dir = os.path.dirname(path)
-    mappings_path = os.path.join(config_dir, "mappings.json")
+    mappings_file = data.get("mappings_file")
+    if mappings_file is None:
+        raise ValueError("Missing required key 'mappings_file' in scenario config")
+    mappings_path = os.path.join(config_dir, mappings_file)
+    if not os.path.exists(mappings_path):
+        raise FileNotFoundError(f"Mappings file not found: {mappings_path}")
     mappings = load_mappings(mappings_path)
     
     # Parse optional collaborative_filtering config

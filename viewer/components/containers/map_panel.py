@@ -4,6 +4,7 @@ Map panel container for the TabulaDrone viewer.
 This module provides a container that encapsulates the world map display.
 """
 
+import os
 from typing import Dict, Any, Tuple, List, Optional, Callable
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
@@ -55,6 +56,9 @@ class MapPanel:
         self.prev_button: Optional[Button] = None
         self.next_button: Optional[Button] = None
         self.info_text: Optional[Text] = None
+        self.filename_text: Optional[Text] = None
+        
+        self._create_filename_text()
         
         self.steps: List[Dict[str, Any]] = state.get("steps", [])
         self.current_step: int = 0
@@ -100,6 +104,40 @@ class MapPanel:
         )
         self.fig.patches.append(border)
         return border
+    
+    def _create_filename_text(self) -> None:
+        """
+        Create filename text element below the map title.
+        """
+        x, y, width, height = self.region
+        
+        filename = self._get_current_filename()
+        if filename:
+            text_x = x + width / 2
+            text_y = y + height - 0.02
+            self.filename_text = self.fig.text(
+                text_x, text_y, filename,
+                ha='center', va='top', fontsize=8, color='gray',
+                transform=self.fig.transFigure
+            )
+    
+    def _get_current_filename(self) -> str:
+        """
+        Get the basename of the current episode file.
+        
+        Returns:
+            Filename basename or empty string if not available.
+        """
+        if self.episode_files and 0 <= self.current_index < len(self.episode_files):
+            return os.path.basename(self.episode_files[self.current_index])
+        return ""
+    
+    def _update_filename_text(self) -> None:
+        """
+        Update the filename text element.
+        """
+        if self.filename_text:
+            self.filename_text.set_text(self._get_current_filename())
     
     def _create_nav_buttons(self) -> None:
         """
@@ -255,6 +293,7 @@ class MapPanel:
             self.current_index -= 1
             self._update_button_states()
             self._update_info_text()
+            self._update_filename_text()
             if self.on_episode_change:
                 self.on_episode_change(self.current_index)
     
@@ -266,6 +305,7 @@ class MapPanel:
             self.current_index += 1
             self._update_button_states()
             self._update_info_text()
+            self._update_filename_text()
             if self.on_episode_change:
                 self.on_episode_change(self.current_index)
     

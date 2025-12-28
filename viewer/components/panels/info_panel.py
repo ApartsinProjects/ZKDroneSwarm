@@ -28,6 +28,7 @@ class InfoPanel(BaseComponent):
         super().__init__(fig, ax)
         self.num_drones = 0
         self.num_targets = 0
+        self.total_episodes = None
         self.drone_types = Counter()
         self.target_classes = Counter()
         self.class_attribute_mapping = {}
@@ -50,6 +51,7 @@ class InfoPanel(BaseComponent):
         self.target_classes = Counter(t.get("class_type", "unknown") for t in targets)
         self.class_attribute_mapping = data.get("class_attribute_mapping", {})
         self.weapon_damage_profile_mapping = data.get("weapon_damage_profile_mapping", {})
+        self.total_episodes = data.get("total_episodes", None)
 
     def render_display(self) -> None:
         """
@@ -63,8 +65,9 @@ class InfoPanel(BaseComponent):
         y_pos = 0.95
         line_height = 0.06
 
+        episodes_str = f"  |  Episodes: {self.total_episodes}" if self.total_episodes else ""
         self.ax.text(
-            0.0, y_pos, f"Drones: {self.num_drones}  |  Targets: {self.num_targets}",
+            0.0, y_pos, f"Drones: {self.num_drones}  |  Targets: {self.num_targets}{episodes_str}",
             ha='left', va='top', fontsize=12, fontweight='bold',
             transform=self.ax.transAxes
         )
