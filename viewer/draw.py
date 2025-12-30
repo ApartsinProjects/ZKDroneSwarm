@@ -2,11 +2,22 @@
 Drawing functions for TabulaDrone Episode Viewer.
 """
 
+import os
 import sys
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.widgets import Button
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 from typing import Dict, Any
+
+_BACKGROUND_IMAGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "background.png")
+_BACKGROUND_IMAGE = None
+
+_DRONE_IMAGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "drone.png")
+_DRONE_IMAGE = None
+
+_TARGET_IMAGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "target_1.png")
+_TARGET_IMAGE = None
 
 from viewer.components import TabContainer, MapPanel, EmptyPanel, InfoPanel, ResultsPanel, SummaryPanel, TrainingPathPanel
 from viewer.state_adapter import load_episode, extract_initial_state
@@ -29,7 +40,7 @@ TARGET_COLORS = {
 }
 
 
-ENGAGEMENT_COLOR = "#ff7f0e"  # Orange
+ENGAGEMENT_COLOR = "#e74c3c"  # Red
 
 
 def draw_engagements(
@@ -61,7 +72,7 @@ def draw_engagements(
             linestyle="--",
             color=ENGAGEMENT_COLOR,
             linewidth=.7,
-            alpha=0.3,
+            alpha=0.9,
             zorder=5
         )
         
@@ -91,22 +102,32 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     targets = state["targets"]
     class_attribute_mapping = state.get("class_attribute_mapping", {})
     
+    global _BACKGROUND_IMAGE
+    if _BACKGROUND_IMAGE is None and os.path.exists(_BACKGROUND_IMAGE_PATH):
+        _BACKGROUND_IMAGE = plt.imread(_BACKGROUND_IMAGE_PATH)
+    if _BACKGROUND_IMAGE is not None:
+        ax.imshow(_BACKGROUND_IMAGE, extent=[0, world_size[0], 0, world_size[1]], zorder=0)
+    
     ax.set_xlim(0, world_size[0])
     ax.set_ylim(0, world_size[1])
     ax.set_aspect("equal")
     
-    ax.grid(True, linestyle="--", alpha=0.3)
+    for spine in ax.spines.values():
+        spine.set_color("lightgray")
     
     border = plt.Rectangle(
         (0, 0), world_size[0], world_size[1],
-        fill=False, edgecolor="black", linewidth=2
+        fill=False, edgecolor="yellow", linewidth=1
     )
     ax.add_patch(border)
+    
+    global _TARGET_IMAGE
+    if _TARGET_IMAGE is None and os.path.exists(_TARGET_IMAGE_PATH):
+        _TARGET_IMAGE = plt.imread(_TARGET_IMAGE_PATH)
     
     for target in targets:
         x, y = target["position"]
         class_type = target.get("class_type", "unknown")
-        color = TARGET_COLORS.get(class_type, TARGET_COLORS["unknown"])
         hp = target.get("hp", 0)
         
         if class_type == "destroyed" or hp <= 0:
@@ -116,15 +137,27 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
             class_attrs = class_attribute_mapping.get(class_type, {})
             max_hp = sum(class_attrs.values()) if class_attrs else hp
             alpha = max(0.3, hp / max_hp) if max_hp > 0 else 1.0
-            ax.scatter(x, y, s=40, c=color, marker="o", alpha=alpha, zorder=10)
+            if _TARGET_IMAGE is not None:
+                im = OffsetImage(_TARGET_IMAGE, zoom=0.05, alpha=alpha)
+                ab = AnnotationBbox(im, (x, y), frameon=False, zorder=10)
+                ax.add_artist(ab)
+            else:
+                color = TARGET_COLORS.get(class_type, TARGET_COLORS["unknown"])
+                ax.scatter(x, y, s=40, c=color, marker="o", alpha=alpha, zorder=10)
             ax.text(x, y + 12, f"{hp:.0f}", fontsize=7, ha='center', va='bottom', alpha=alpha, zorder=12)
+    
+    global _DRONE_IMAGE
+    if _DRONE_IMAGE is None and os.path.exists(_DRONE_IMAGE_PATH):
+        _DRONE_IMAGE = plt.imread(_DRONE_IMAGE_PATH)
     
     for drone in drones:
         x, y = drone["position"]
-        weapon_type = drone["weapon_type"]
-        color = WEAPON_COLORS.get(weapon_type, WEAPON_COLORS["unknown"])
-        ax.scatter(x, y, s=35, c=color, marker="^", zorder=11)
-        ax.text(x, y + 12, weapon_type, fontsize=7, ha='center', va='bottom', zorder=12)
+        if _DRONE_IMAGE is not None:
+            ax.imshow(_DRONE_IMAGE, extent=[x-30, x+30, y-30, y+30], zorder=11)
+        else:
+            weapon_type = drone["weapon_type"]
+            color = WEAPON_COLORS.get(weapon_type, WEAPON_COLORS["unknown"])
+            ax.scatter(x, y, s=35, c=color, marker="^", zorder=11)
     
     ax.set_xlabel("X (meters)")
     ax.set_ylabel("Y (meters)")

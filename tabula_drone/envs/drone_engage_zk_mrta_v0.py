@@ -25,8 +25,7 @@ from ..core.states import (
 )
 
 # Reward mode toggle: True = dominant attribute damage, False = total HP reduction
-REWARD_DOMINANT_ATTRIBUTE = True
-
+REWARD_DOMINANT_ATTRIBUTE = False
 
 class DroneEngageZKMRTA(ParallelEnv):
     """

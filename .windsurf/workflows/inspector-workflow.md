@@ -1,5 +1,5 @@
 ---
-description:  Inspect a specific code symbol or concept and produce two human-facing summaries (Summary + Condensed Executive Summary) grounded in a rigorous internal inspection.
+description: Inspect a specific code symbol or concept and produce two human-facing summaries (Summary + Condensed Executive Summary) grounded in a rigorous internal inspection.
 ---
 
 # Inspection Workflow
@@ -221,7 +221,7 @@ Constraints:
 # Alignment with Rules
 
 - Baby Steps: enforce tight scoping and high-signal outputs.
-- Process is the Product: Summary + Condensed Executive Summary are reusable artifacts of understanding.
+- Process is the Product: Distilled Summary + Condensed Executive Summary are reusable artifacts of understanding.
 - Architecture Principles: boundary awareness via coupling hotspots and change sensitivity (only when material).
 
 # Definition of Done
