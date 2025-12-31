@@ -541,7 +541,7 @@ def main():
         # CF policies: run all episodes but only log the last one
         is_deterministic = policy_type in ("min_ttk_oracle", "max_damage_oracle", "random")
         is_cf = policy_type in ("ep_greedy_cf", "ucb_cf", "selfish_ep_greedy_cf", "coordinated_ep_greedy_cf")
-        is_selfish_cf = policy_type in ("selfish_ep_greedy_cf", "coordinated_ep_greedy_cf")
+        is_ep_greedy_cf = policy_type in ("selfish_ep_greedy_cf", "coordinated_ep_greedy_cf")
         effective_episodes = 1 if is_deterministic else num_episodes
         
         # Create environment with appropriate observation mode per policy
@@ -570,14 +570,14 @@ def main():
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
             if is_cf and episode_num > 1:
-                if is_selfish_cf:
+                if is_ep_greedy_cf:
                     for p in policy.values():
                         p.soft_reset()
                 else:
                     policy.soft_reset()
             
             # Snapshot latent vectors BEFORE episode (for correct learning_path capture)
-            if is_selfish_cf:
+            if is_ep_greedy_cf:
                 # For decentralized: collect each agent's full private state
                 agent_lv = np.array([policy[f"drone_{i}"].agent_lv.copy() for i in range(len(policy))])
                 target_lv = policy["drone_0"].target_lv.copy()  # Use first agent's target estimates (for alignment score)
@@ -612,7 +612,7 @@ def main():
             all_metrics.append(metrics)
             
             # Capture post-episode state for decentralized CF policies
-            if is_selfish_cf:
+            if is_ep_greedy_cf:
                 post_episode_state = {
                     "agents": [
                         {
@@ -633,7 +633,7 @@ def main():
                 )
             
             # Save decentralized learning state using RunManager (every episode)
-            if is_selfish_cf:
+            if is_ep_greedy_cf:
                 first_policy = next(iter(policy.values()))
                 run_manager.save_learning_state(
                     pre_state=pre_episode_state,
@@ -646,7 +646,7 @@ def main():
             
             # Get episode data and add learning path for CF policies
             episode_data = logger.to_dict()
-            if is_cf and not is_selfish_cf:
+            if is_cf and not is_ep_greedy_cf:
                 episode_data["learning_path"] = {
                     "alignment_score": alignment_score,
                     "agents": [
