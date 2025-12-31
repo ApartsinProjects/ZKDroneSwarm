@@ -12,7 +12,13 @@ from typing import Dict, Optional, Any
 
 import numpy as np
 
-from tabula_drone.policies.ep_greedy_cf_policy import normalize
+
+def normalize(v: np.ndarray) -> np.ndarray:
+    """Normalize a vector to unit length."""
+    norm = np.linalg.norm(v)
+    if norm == 0:
+        norm = np.finfo(v.dtype).eps
+    return v / norm
 
 
 class UCBCFPolicy:

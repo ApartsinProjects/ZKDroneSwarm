@@ -21,14 +21,13 @@ from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 from tabula_drone.scenarios import ScenarioBuilder
-from tabula_drone.policies.ep_greedy_cf_policy import EpGreedyCFPolicy
 from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 from tabula_drone.policies.decentralized_ep_greedy_cf_policy import DecentralizedEpGreedyCFPolicy
 from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
 
 CONFIG_PATH = "config/scenario.json"
 
-PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, EpGreedyCFPolicy, UCBCFPolicy, DecentralizedEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy, Dict[str, DecentralizedEpGreedyCFPolicy], Dict[str, CoordinatedEpGreedyCFPolicy]]
+PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, UCBCFPolicy, DecentralizedEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy, Dict[str, DecentralizedEpGreedyCFPolicy], Dict[str, CoordinatedEpGreedyCFPolicy]]
 
 # "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
 def print_episode_summary(
@@ -58,7 +57,7 @@ def print_episode_summary(
 
 
 def print_learning_path(
-    policy: Union["EpGreedyCFPolicy", "UCBCFPolicy", Dict[str, "DecentralizedEpGreedyCFPolicy"]],
+    policy: Union["UCBCFPolicy", Dict[str, "DecentralizedEpGreedyCFPolicy"]],
     drones_config: List[Dict[str, Any]],
     targets_config: List[Dict[str, Any]],
 ) -> None:
@@ -174,23 +173,6 @@ def create_policy(
             agent_weapon_profiles=agent_weapon_profiles,
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
-        )
-    elif policy_type == "ep_greedy_cf":
-        if num_targets is None:
-            raise ValueError("num_targets is required for ep_greedy_cf policy")
-        # Extract hyperparameters from config, use defaults if not specified
-        ep_cfg = None
-        if config.collaborative_filtering:
-            ep_cfg = config.collaborative_filtering.ep_greedy_cf
-        return EpGreedyCFPolicy(
-            num_agents=len(drones_config),
-            num_targets=num_targets,
-            latent_dim=ep_cfg.latent_dim if ep_cfg and ep_cfg.latent_dim else 2,
-            learning_rate=ep_cfg.learning_rate if ep_cfg and ep_cfg.learning_rate else 0.01,
-            epsilon=ep_cfg.epsilon if ep_cfg and ep_cfg.epsilon else 0.3,
-            epsilon_decay=ep_cfg.epsilon_decay if ep_cfg and ep_cfg.epsilon_decay else 0.99,
-            epsilon_min=ep_cfg.epsilon_min if ep_cfg and ep_cfg.epsilon_min else 0.05,
-            seed=config.seed,
         )
     elif policy_type == "ucb_cf":
         if num_targets is None:
@@ -312,7 +294,7 @@ def run_episode(
         # Policy selects actions for all agents
         if isinstance(policy, (OracleTimeToKillPolicy, OptimalAssignmentOracle)):
             actions = policy.select_actions(obs, env.num_targets, info["target_attributes"])
-        elif isinstance(policy, (EpGreedyCFPolicy, UCBCFPolicy)):
+        elif isinstance(policy, UCBCFPolicy):
             actions = policy.select_actions(obs)
             # CF policy learns from observations
             for agent_id, agent_obs in obs.items():
