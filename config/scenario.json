@@ -24,10 +24,10 @@
         0.4
       ]
     },
-    "min_distance_between_drones": 50.0
+    "min_distance_between_drones": 25.0
   },
   "targets": {
-    "count": 25,
+    "count": 50,
     "region": {
       "x_fraction": [
         0.1,
@@ -52,9 +52,9 @@
   "policy": {
     "type": [
       "max_damage_oracle",
-      "min_ttk_oracle",
       "random",
-      "decentralized_ep_greedy_cf"
+      "decentralized_ep_greedy_cf",
+      "coordinated_ep_greedy_cf"
     ],
     "allow_noop": false
   },
@@ -72,10 +72,17 @@
       "latent_dim": 2,
       "learning_rate": 0.01,
       "ucb_c": 0.5
+    },
+    "coordinated_ep_greedy_cf": {
+      "latent_dim": 2,
+      "learning_rate": 0.05,
+      "epsilon": 0.3,
+      "epsilon_decay": 0.99,
+      "epsilon_min": 0.05
     }
   },
   "execution": {
-    "num_episodes": 25,
+    "num_episodes": 35,
     "verbose": false
   },
   "logging": {

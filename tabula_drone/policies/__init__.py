@@ -6,5 +6,6 @@ from .max_damage_oracle import OptimalAssignmentOracle
 from .ep_greedy_cf_policy import EpGreedyCFPolicy
 from .ucb_cf_policy import UCBCFPolicy
 from .decentralized_ep_greedy_cf_policy import DecentralizedEpGreedyCFPolicy
+from .coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
 
-__all__ = ["RandomPolicy", "OracleTimeToKillPolicy", "OptimalAssignmentOracle", "EpGreedyCFPolicy", "UCBCFPolicy", "DecentralizedEpGreedyCFPolicy"]
+__all__ = ["RandomPolicy", "OracleTimeToKillPolicy", "OptimalAssignmentOracle", "EpGreedyCFPolicy", "UCBCFPolicy", "DecentralizedEpGreedyCFPolicy", "CoordinatedEpGreedyCFPolicy"]

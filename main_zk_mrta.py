@@ -24,10 +24,11 @@ from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.policies.ep_greedy_cf_policy import EpGreedyCFPolicy
 from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 from tabula_drone.policies.decentralized_ep_greedy_cf_policy import DecentralizedEpGreedyCFPolicy
+from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
 
 CONFIG_PATH = "config/scenario.json"
 
-PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, EpGreedyCFPolicy, UCBCFPolicy, DecentralizedEpGreedyCFPolicy, Dict[str, DecentralizedEpGreedyCFPolicy]]
+PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, EpGreedyCFPolicy, UCBCFPolicy, DecentralizedEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy, Dict[str, DecentralizedEpGreedyCFPolicy], Dict[str, CoordinatedEpGreedyCFPolicy]]
 
 # "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
 def print_episode_summary(
@@ -230,6 +231,30 @@ def create_policy(
                 seed=config.seed + agent_idx if config.seed else None,
             )
         return policies
+    elif policy_type == "coordinated_ep_greedy_cf":
+        if num_targets is None:
+            raise ValueError("num_targets is required for coordinated_ep_greedy_cf policy")
+        # Extract hyperparameters from dedicated config section (required)
+        if not config.collaborative_filtering or not config.collaborative_filtering.coordinated_ep_greedy_cf:
+            raise ValueError("coordinated_ep_greedy_cf policy requires collaborative_filtering.coordinated_ep_greedy_cf config section")
+        coord_cfg = config.collaborative_filtering.coordinated_ep_greedy_cf
+        # Create one policy instance per agent (true decentralization with coordination)
+        num_agents = len(drones_config)
+        policies = {}
+        for agent_idx in range(num_agents):
+            agent_id = f"drone_{agent_idx}"
+            policies[agent_id] = CoordinatedEpGreedyCFPolicy(
+                num_targets=num_targets,
+                agent_idx=agent_idx,
+                num_agents=num_agents,
+                latent_dim=coord_cfg.latent_dim if coord_cfg.latent_dim else 2,
+                learning_rate=coord_cfg.learning_rate if coord_cfg.learning_rate else 0.01,
+                epsilon=coord_cfg.epsilon if coord_cfg.epsilon else 0.3,
+                epsilon_decay=coord_cfg.epsilon_decay if coord_cfg.epsilon_decay else 0.99,
+                epsilon_min=coord_cfg.epsilon_min if coord_cfg.epsilon_min else 0.05,
+                seed=config.seed + agent_idx if config.seed else None,
+            )
+        return policies
     else:
         return RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
 
@@ -292,7 +317,7 @@ def run_episode(
             # CF policy learns from observations
             for agent_id, agent_obs in obs.items():
                 policy.update_from_observation(agent_obs, agent_id)
-        elif isinstance(policy, dict) and all(isinstance(p, DecentralizedEpGreedyCFPolicy) for p in policy.values()):
+        elif isinstance(policy, dict) and all(isinstance(p, (DecentralizedEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy)) for p in policy.values()):
             # Decentralized CF: each agent has its own policy instance
             actions = {}
             for agent_id, agent_obs in obs.items():
@@ -533,8 +558,8 @@ def main():
         # Deterministic policies: run 1 episode (results are reproducible)
         # CF policies: run all episodes but only log the last one
         is_deterministic = policy_type in ("min_ttk_oracle", "max_damage_oracle", "random")
-        is_cf = policy_type in ("ep_greedy_cf", "ucb_cf", "decentralized_ep_greedy_cf")
-        is_decentralized_cf = policy_type == "decentralized_ep_greedy_cf"
+        is_cf = policy_type in ("ep_greedy_cf", "ucb_cf", "decentralized_ep_greedy_cf", "coordinated_ep_greedy_cf")
+        is_decentralized_cf = policy_type in ("decentralized_ep_greedy_cf", "coordinated_ep_greedy_cf")
         effective_episodes = 1 if is_deterministic else num_episodes
         
         # Create environment with appropriate observation mode per policy
