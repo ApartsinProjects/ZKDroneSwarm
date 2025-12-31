@@ -53,7 +53,7 @@
     "type": [
       "max_damage_oracle",
       "random",
-      "decentralized_ep_greedy_cf",
+      "selfish_ep_greedy_cf",
       "coordinated_ep_greedy_cf"
     ],
     "allow_noop": false
@@ -61,7 +61,7 @@
   "collaborative_filtering": {
     "reward_noise": 0.05,
     "observation_noise": 0.02,
-    "ep_greedy_cf": {
+    "selfish_ep_greedy_cf": {
       "latent_dim": 2,
       "learning_rate": 0.05,
       "epsilon": 0.3,

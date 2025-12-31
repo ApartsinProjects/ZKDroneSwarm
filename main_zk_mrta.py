@@ -22,12 +22,12 @@ from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
-from tabula_drone.policies.decentralized_ep_greedy_cf_policy import DecentralizedEpGreedyCFPolicy
+from tabula_drone.policies.selfish_ep_greedy_cf_policy import SelfishEpGreedyCFPolicy
 from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
 
 CONFIG_PATH = "config/scenario.json"
 
-PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, UCBCFPolicy, DecentralizedEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy, Dict[str, DecentralizedEpGreedyCFPolicy], Dict[str, CoordinatedEpGreedyCFPolicy]]
+PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, UCBCFPolicy, SelfishEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy, Dict[str, SelfishEpGreedyCFPolicy], Dict[str, CoordinatedEpGreedyCFPolicy]]
 
 # "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
 def print_episode_summary(
@@ -57,7 +57,7 @@ def print_episode_summary(
 
 
 def print_learning_path(
-    policy: Union["UCBCFPolicy", Dict[str, "DecentralizedEpGreedyCFPolicy"]],
+    policy: Union["UCBCFPolicy", Dict[str, "SelfishEpGreedyCFPolicy"]],
     drones_config: List[Dict[str, Any]],
     targets_config: List[Dict[str, Any]],
 ) -> None:
@@ -189,27 +189,27 @@ def create_policy(
             ucb_c=ucb_cfg.ucb_c if ucb_cfg and ucb_cfg.ucb_c else 0.5,
             seed=config.seed,
         )
-    elif policy_type == "decentralized_ep_greedy_cf":
+    elif policy_type == "selfish_ep_greedy_cf":
         if num_targets is None:
-            raise ValueError("num_targets is required for decentralized_ep_greedy_cf policy")
-        # Extract hyperparameters from config (reuse ep_greedy_cf config)
-        ep_cfg = None
-        if config.collaborative_filtering:
-            ep_cfg = config.collaborative_filtering.ep_greedy_cf
+            raise ValueError("num_targets is required for selfish_ep_greedy_cf policy")
+        # Extract hyperparameters from dedicated config section
+        if not config.collaborative_filtering or not config.collaborative_filtering.selfish_ep_greedy_cf:
+            raise ValueError("selfish_ep_greedy_cf policy requires collaborative_filtering.selfish_ep_greedy_cf config section")
+        selfish_cfg = config.collaborative_filtering.selfish_ep_greedy_cf
         # Create one policy instance per agent (true decentralization)
         num_agents = len(drones_config)
         policies = {}
         for agent_idx in range(num_agents):
             agent_id = f"drone_{agent_idx}"
-            policies[agent_id] = DecentralizedEpGreedyCFPolicy(
+            policies[agent_id] = SelfishEpGreedyCFPolicy(
                 num_targets=num_targets,
                 agent_idx=agent_idx,
                 num_agents=num_agents,
-                latent_dim=ep_cfg.latent_dim if ep_cfg and ep_cfg.latent_dim else 2,
-                learning_rate=ep_cfg.learning_rate if ep_cfg and ep_cfg.learning_rate else 0.01,
-                epsilon=ep_cfg.epsilon if ep_cfg and ep_cfg.epsilon else 0.3,
-                epsilon_decay=ep_cfg.epsilon_decay if ep_cfg and ep_cfg.epsilon_decay else 0.99,
-                epsilon_min=ep_cfg.epsilon_min if ep_cfg and ep_cfg.epsilon_min else 0.05,
+                latent_dim=selfish_cfg.latent_dim if selfish_cfg.latent_dim else 2,
+                learning_rate=selfish_cfg.learning_rate if selfish_cfg.learning_rate else 0.01,
+                epsilon=selfish_cfg.epsilon if selfish_cfg.epsilon else 0.3,
+                epsilon_decay=selfish_cfg.epsilon_decay if selfish_cfg.epsilon_decay else 0.99,
+                epsilon_min=selfish_cfg.epsilon_min if selfish_cfg.epsilon_min else 0.05,
                 seed=config.seed + agent_idx if config.seed else None,
             )
         return policies
@@ -299,7 +299,7 @@ def run_episode(
             # CF policy learns from observations
             for agent_id, agent_obs in obs.items():
                 policy.update_from_observation(agent_obs, agent_id)
-        elif isinstance(policy, dict) and all(isinstance(p, (DecentralizedEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy)) for p in policy.values()):
+        elif isinstance(policy, dict) and all(isinstance(p, (SelfishEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy)) for p in policy.values()):
             # Decentralized CF: each agent has its own policy instance
             actions = {}
             for agent_id, agent_obs in obs.items():
@@ -540,8 +540,8 @@ def main():
         # Deterministic policies: run 1 episode (results are reproducible)
         # CF policies: run all episodes but only log the last one
         is_deterministic = policy_type in ("min_ttk_oracle", "max_damage_oracle", "random")
-        is_cf = policy_type in ("ep_greedy_cf", "ucb_cf", "decentralized_ep_greedy_cf", "coordinated_ep_greedy_cf")
-        is_decentralized_cf = policy_type in ("decentralized_ep_greedy_cf", "coordinated_ep_greedy_cf")
+        is_cf = policy_type in ("ep_greedy_cf", "ucb_cf", "selfish_ep_greedy_cf", "coordinated_ep_greedy_cf")
+        is_selfish_cf = policy_type in ("selfish_ep_greedy_cf", "coordinated_ep_greedy_cf")
         effective_episodes = 1 if is_deterministic else num_episodes
         
         # Create environment with appropriate observation mode per policy
@@ -570,14 +570,14 @@ def main():
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
             if is_cf and episode_num > 1:
-                if is_decentralized_cf:
+                if is_selfish_cf:
                     for p in policy.values():
                         p.soft_reset()
                 else:
                     policy.soft_reset()
             
             # Snapshot latent vectors BEFORE episode (for correct learning_path capture)
-            if is_decentralized_cf:
+            if is_selfish_cf:
                 # For decentralized: collect each agent's full private state
                 agent_lv = np.array([policy[f"drone_{i}"].agent_lv.copy() for i in range(len(policy))])
                 target_lv = policy["drone_0"].target_lv.copy()  # Use first agent's target estimates (for alignment score)
@@ -612,7 +612,7 @@ def main():
             all_metrics.append(metrics)
             
             # Capture post-episode state for decentralized CF policies
-            if is_decentralized_cf:
+            if is_selfish_cf:
                 post_episode_state = {
                     "agents": [
                         {
@@ -633,7 +633,7 @@ def main():
                 )
             
             # Save decentralized learning state using RunManager (every episode)
-            if is_decentralized_cf:
+            if is_selfish_cf:
                 first_policy = next(iter(policy.values()))
                 run_manager.save_learning_state(
                     pre_state=pre_episode_state,
@@ -646,7 +646,7 @@ def main():
             
             # Get episode data and add learning path for CF policies
             episode_data = logger.to_dict()
-            if is_cf and not is_decentralized_cf:
+            if is_cf and not is_selfish_cf:
                 episode_data["learning_path"] = {
                     "alignment_score": alignment_score,
                     "agents": [

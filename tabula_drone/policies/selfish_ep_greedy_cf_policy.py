@@ -1,11 +1,11 @@
 """
-Decentralized Collaborative Filtering Policy for ZK-MRTA Environment.
+Selfish Collaborative Filtering Policy for ZK-MRTA Environment.
 
 Implements a true ZK-MRTA compliant single-agent policy where each agent
 maintains its own private latent vectors and learns independently from
 collaborative observations.
 
-This is the decentralized version of EpGreedyCFPolicy - each agent instance
+This is the selfish version of EpGreedyCFPolicy - each agent instance
 owns its own state with no shared matrices between agents.
 """
 
@@ -22,9 +22,9 @@ def normalize(v: np.ndarray) -> np.ndarray:
     return v / norm
 
 
-class DecentralizedEpGreedyCFPolicy:
+class SelfishEpGreedyCFPolicy:
     """
-    Decentralized Collaborative Filtering policy using SGD matrix factorization.
+    Selfish Collaborative Filtering policy using SGD matrix factorization.
     
     Each agent maintains its own private latent vectors:
     - agent_lv: This agent's latent vector (1D)
@@ -52,7 +52,7 @@ class DecentralizedEpGreedyCFPolicy:
         seed: Optional[int] = None,
     ):
         """
-        Initialize decentralized CF policy for a single agent.
+        Initialize selfish CF policy for a single agent.
         
         Args:
             num_targets: Number of targets in the environment

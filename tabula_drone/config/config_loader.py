@@ -97,6 +97,7 @@ class CollaborativeFilteringConfig:
     ep_greedy_cf: Optional[EpGreedyCFConfig] = None
     ucb_cf: Optional[UCBCFConfig] = None
     coordinated_ep_greedy_cf: Optional[EpGreedyCFConfig] = None
+    selfish_ep_greedy_cf: Optional[EpGreedyCFConfig] = None
 
 
 @dataclass
@@ -212,7 +213,7 @@ def _parse_policy_config(data: dict) -> PolicyConfig:
     policy_types = data["type"]
     if not isinstance(policy_types, list) or not policy_types:
         raise ValueError("policy.type must be a non-empty list of policy types")
-    valid_types = {"random", "min_ttk_oracle", "max_damage_oracle", "ep_greedy_cf", "ucb_cf", "decentralized_ep_greedy_cf", "coordinated_ep_greedy_cf"}
+    valid_types = {"random", "min_ttk_oracle", "max_damage_oracle", "ep_greedy_cf", "ucb_cf", "selfish_ep_greedy_cf", "coordinated_ep_greedy_cf"}
     for pt in policy_types:
         if pt not in valid_types:
             raise ValueError(f"policy.type contains invalid type '{pt}', must be one of {valid_types}")
@@ -262,6 +263,59 @@ def _parse_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
     if epsilon_min is not None:
         if not isinstance(epsilon_min, (int, float)) or epsilon_min < 0 or epsilon_min > 1:
             raise ValueError("ep_greedy_cf.epsilon_min must be in [0, 1]")
+    
+    return EpGreedyCFConfig(
+        latent_dim=latent_dim,
+        learning_rate=float(learning_rate) if learning_rate is not None else None,
+        epsilon=float(epsilon) if epsilon is not None else None,
+        epsilon_decay=float(epsilon_decay) if epsilon_decay is not None else None,
+        epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
+    )
+
+
+def _parse_selfish_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
+    """Parse Selfish ε-Greedy CF policy configuration section (optional).
+    
+    Validates bounds and logs when defaults are used.
+    """
+    if data is None:
+        return None
+    
+    # Extract values with defaults
+    latent_dim = data.get("latent_dim")
+    learning_rate = data.get("learning_rate")
+    epsilon = data.get("epsilon")
+    epsilon_decay = data.get("epsilon_decay")
+    epsilon_min = data.get("epsilon_min")
+    
+    # Log defaults
+    if latent_dim is None:
+        print("Note, using default value 2 for hyperparameter latent_dim (selfish_ep_greedy_cf)")
+    if learning_rate is None:
+        print("Note, using default value 0.01 for hyperparameter learning_rate (selfish_ep_greedy_cf)")
+    if epsilon is None:
+        print("Note, using default value 0.3 for hyperparameter epsilon (selfish_ep_greedy_cf)")
+    if epsilon_decay is None:
+        print("Note, using default value 0.99 for hyperparameter epsilon_decay (selfish_ep_greedy_cf)")
+    if epsilon_min is None:
+        print("Note, using default value 0.05 for hyperparameter epsilon_min (selfish_ep_greedy_cf)")
+    
+    # Validate bounds
+    if latent_dim is not None:
+        if not isinstance(latent_dim, int) or latent_dim < 1:
+            raise ValueError("selfish_ep_greedy_cf.latent_dim must be an integer >= 1")
+    if learning_rate is not None:
+        if not isinstance(learning_rate, (int, float)) or learning_rate <= 0 or learning_rate > 1:
+            raise ValueError("selfish_ep_greedy_cf.learning_rate must be in (0, 1]")
+    if epsilon is not None:
+        if not isinstance(epsilon, (int, float)) or epsilon < 0 or epsilon > 1:
+            raise ValueError("selfish_ep_greedy_cf.epsilon must be in [0, 1]")
+    if epsilon_decay is not None:
+        if not isinstance(epsilon_decay, (int, float)) or epsilon_decay < 0 or epsilon_decay > 1:
+            raise ValueError("selfish_ep_greedy_cf.epsilon_decay must be in [0, 1]")
+    if epsilon_min is not None:
+        if not isinstance(epsilon_min, (int, float)) or epsilon_min < 0 or epsilon_min > 1:
+            raise ValueError("selfish_ep_greedy_cf.epsilon_min must be in [0, 1]")
     
     return EpGreedyCFConfig(
         latent_dim=latent_dim,
@@ -373,6 +427,7 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
     # Parse nested policy configs
     ep_greedy_cf = _parse_ep_greedy_cf_config(data.get("ep_greedy_cf"))
     ucb_cf = _parse_ucb_cf_config(data.get("ucb_cf"))
+    selfish_ep_greedy_cf = _parse_selfish_ep_greedy_cf_config(data.get("selfish_ep_greedy_cf"))
     coordinated_ep_greedy_cf = _parse_coordinated_ep_greedy_cf_config(data.get("coordinated_ep_greedy_cf"))
     
     return CollaborativeFilteringConfig(
@@ -380,6 +435,7 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
         observation_noise=float(data["observation_noise"]),
         ep_greedy_cf=ep_greedy_cf,
         ucb_cf=ucb_cf,
+        selfish_ep_greedy_cf=selfish_ep_greedy_cf,
         coordinated_ep_greedy_cf=coordinated_ep_greedy_cf,
     )
 

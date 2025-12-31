@@ -1,4 +1,4 @@
-# DecentralizedEpGreedyCFPolicy (Decentralized ε-Greedy Collaborative Filtering)
+# SelfishEpGreedyCFPolicy (Selfish ε-Greedy Collaborative Filtering)
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@
 
 ## Overview
 
-The `DecentralizedEpGreedyCFPolicy` is a **true ZK-MRTA compliant learning-based policy** for the ZK-MRTA (Zero-Knowledge Multi-Robot Task Allocation) environment. It uses **SGD-based matrix factorization** to learn agent-target compatibility from observed rewards, combined with **ε-greedy exploration** for action selection.
+The `SelfishEpGreedyCFPolicy` is a **true ZK-MRTA compliant learning-based policy** for the ZK-MRTA (Zero-Knowledge Multi-Robot Task Allocation) environment. It uses **SGD-based matrix factorization** to learn agent-target compatibility from observed rewards, combined with **ε-greedy exploration** for action selection.
 
 **Key Characteristic**: Each agent maintains its own **private latent vectors** and learns independently — one policy instance per agent with **no shared state** between agents. This fully adheres to the ZK-MRTA research proposal requirement that "each agent independently maintains and updates its own model."
 
@@ -47,7 +47,7 @@ It does **not** use:
 
 The policy exists to:
 
-1. Demonstrate **true decentralized learning** in ZK-MRTA settings
+1. Demonstrate **true selfish learning** in ZK-MRTA settings
 2. Align with research proposal: "each agent independently maintains and updates its local matrix"
 3. Enable **deployment-ready** single-agent extraction
 4. Provide a ZK-compliant baseline for comparison with oracle approaches
@@ -98,8 +98,8 @@ The policy exists to:
 | Phase | Responsible Component | Method/Location |
 |-------|----------------------|-----------------|
 | Phase 1: OBSERVE | Environment | `DroneEngageZKMRTA._compute_observations()` |
-| Phase 2: LEARN | Policy (per agent) | `DecentralizedEpGreedyCFPolicy.update_from_observation()` |
-| Phase 3: SELECT ACTION | Policy (per agent) | `DecentralizedEpGreedyCFPolicy.select_action()` |
+| Phase 2: LEARN | Policy (per agent) | `SelfishEpGreedyCFPolicy.update_from_observation()` |
+| Phase 3: SELECT ACTION | Policy (per agent) | `SelfishEpGreedyCFPolicy.select_action()` |
 | Phase 4: EXECUTE | Environment | `DroneEngageZKMRTA.step()` |
 | Phase 5: REWARD | Environment | `DroneEngageZKMRTA.step()` |
 
@@ -139,7 +139,7 @@ The policy pairs `selected_targets` with `observed_rewards` to learn: *"drone X 
 
 ### Phase 2: LEARN — *Update PRIVATE predictions based on observed rewards*
 
-This is where the **decentralized** nature becomes apparent. Each agent updates its **own private vectors**.
+This is where the **selfish** nature becomes apparent. Each agent updates its **own private vectors**.
 
 **What each agent maintains** — Three sets of private latent vectors:
 - `agent_lv`: Shape `(latent_dim,)` — **this agent's** "weapon characteristics" in latent space
@@ -302,7 +302,7 @@ Matrix factorization is a classic collaborative filtering technique that:
 
 **Key insight**: To learn from another agent's reward, this agent needs to model that agent's characteristics. Without `other_agents_lv`, the agent could only learn from its own actions, missing valuable information from collaborative observations.
 
-#### Worked Example: Decentralized Learning
+#### Worked Example: Selfish Learning
 
 ```
 Scenario: 2 agents (drone_0, drone_1), 2 targets, latent_dim=2
@@ -322,7 +322,7 @@ drone_1's private state:
                      [0.2, 0.95]] # drone_1's estimate of itself (unused)
 
 Note: drone_0 and drone_1 have DIFFERENT estimates of the same targets!
-This is the key property of decentralized learning — each agent builds
+This is the key property of selfish learning — each agent builds
 its own model of the world from its own perspective.
 ```
 
@@ -543,7 +543,7 @@ This policy satisfies this requirement because:
 | Indirectly observe others' outcomes | Updates `other_agents_lv` and `target_lv` from observed rewards |
 | **Each agent maintains its own model** | ✅ Private `agent_lv`, `target_lv`, `other_agents_lv` |
 
-### The Decentralized Architecture
+### The Selfish Architecture
 
 The policy **never accesses**:
 - `targets_state` (privileged HP values)
@@ -566,7 +566,7 @@ self.target_lv = np.ndarray((num_targets, latent_dim))  # drone_1's ESTIMATES
 self.other_agents_lv = np.ndarray((num_agents, latent_dim))  # drone_1's ESTIMATES of others
 ```
 
-drone_0 and drone_1 have completely separate state. They can only learn from observed rewards, not from each other's internal representations. This is the key property that makes this policy truly decentralized.
+drone_0 and drone_1 have completely separate state. They can only learn from observed rewards, not from each other's internal representations. This is the key property that makes this policy truly selfish.
 
 ---
 
@@ -638,7 +638,7 @@ This ensures:
 ### Constructor
 
 ```python
-DecentralizedEpGreedyCFPolicy(
+SelfishEpGreedyCFPolicy(
     num_targets: int,
     agent_idx: int,
     num_agents: int,
@@ -765,7 +765,7 @@ Soft reset for new episode. Currently a no-op (preserves learned knowledge acros
 ## Usage Example
 
 ```python
-from tabula_drone.policies import DecentralizedEpGreedyCFPolicy
+from tabula_drone.policies import SelfishEpGreedyCFPolicy
 from tabula_drone.envs import DroneEngageZKMRTA
 
 # Create environment in collaborative mode
@@ -795,7 +795,7 @@ num_targets = env.num_targets
 master_seed = 42
 
 policies = {
-    f"drone_{i}": DecentralizedEpGreedyCFPolicy(
+    f"drone_{i}": SelfishEpGreedyCFPolicy(
         num_targets=num_targets,
         agent_idx=i,
         num_agents=num_agents,
@@ -936,11 +936,11 @@ This is a fundamental limitation of independent learners, not specific to this p
 
 ## File Location
 
-`tabula_drone/policies/decentralized_ep_greedy_cf_policy.py`
+`tabula_drone/policies/selfish_ep_greedy_cf_policy.py`
 
 ## Policy Type
 
-Use `"decentralized_ep_greedy_cf"` in config to select this policy.
+Use `"selfish_ep_greedy_cf"` in config to select this policy.
 
 ## Related
 
