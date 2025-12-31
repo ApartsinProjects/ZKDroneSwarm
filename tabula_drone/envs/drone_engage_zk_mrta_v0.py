@@ -25,7 +25,7 @@ from ..core.states import (
 )
 
 # Reward mode toggle: True = dominant attribute damage, False = total HP reduction
-REWARD_DOMINANT_ATTRIBUTE = False
+REWARD_DOMINANT_ATTRIBUTE = True
 
 class DroneEngageZKMRTA(ParallelEnv):
     """
@@ -499,7 +499,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             if REWARD_DOMINANT_ATTRIBUTE:
                 rewards[agent_id] += self._reward_dominant_attribute(damage_profile, target)
             else:
-                rewards[agent_id] += self._reward_hp_reduction(hp_before, hp_after)
+                rewards[agent_id] += self._reward_hp_reduction(hp_before, hp_after, damage_profile)
             
             # Check if target became inactive
             if target.attributes.is_depleted():
@@ -714,10 +714,11 @@ class DroneEngageZKMRTA(ParallelEnv):
         damage_to_dominant = damage_profile.get(dominant_attr, 0)
         return damage_to_dominant / self.max_weapon_damage
 
-    def _reward_hp_reduction(self, hp_before: float, hp_after: float) -> float:
-        """Reward based on total HP reduction, normalized by max total weapon damage."""
+    def _reward_hp_reduction(self, hp_before: float, hp_after: float, damage_profile: Dict[str, float]) -> float:
+        """Reward based on total HP reduction, normalized by firing drone's weapon damage."""
         actual_damage = hp_before - hp_after
-        return actual_damage / self.max_total_weapon_damage
+        drone_weapon_damage = sum(damage_profile.values())
+        return actual_damage / drone_weapon_damage
 
     def _validate_actions(self, actions: Dict[str, int]) -> None:
         """
