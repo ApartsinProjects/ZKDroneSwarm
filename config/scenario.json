@@ -66,9 +66,9 @@
     "reward_noise": 0.05,
     "observation_noise": 0.02,
     "selfish_ep_greedy_cf": {
-      "latent_dim": 5,
+      "latent_dim": 3,
       "learning_rate": 0.05,
-      "epsilon": 0.5,
+      "epsilon": 0.3,
       "epsilon_decay": 0.99,
       "epsilon_min": 0.05
     },
@@ -78,9 +78,9 @@
       "ucb_c": 0.5
     },
     "coordinated_ep_greedy_cf": {
-      "latent_dim": 5,
+      "latent_dim": 3,
       "learning_rate": 0.05,
-      "epsilon": 0.5,
+      "epsilon": 0.3,
       "epsilon_decay": 0.99,
       "epsilon_min": 0.05
     }
