@@ -19,6 +19,12 @@ _DRONE_IMAGE = None
 _TARGET_IMAGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "target_1.png")
 _TARGET_IMAGE = None
 
+_TARGET_FLAME_IMAGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "target_with_flame.png")
+_TARGET_FLAME_IMAGE = None
+
+_TARGET_DESTROYED_IMAGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "target_destroyed.png")
+_TARGET_DESTROYED_IMAGE = None
+
 from viewer.components import TabContainer, MapPanel, EmptyPanel, InfoPanel, ResultsPanel, SummaryPanel, TrainingPathPanel
 from viewer.state_adapter import load_episode, extract_initial_state
 
@@ -40,8 +46,10 @@ TARGET_COLORS = {
 }
 
 
-ENGAGEMENT_COLOR = "#e74c3c"  # Red
+ENGAGEMENT_LINE_COLOR = "#808080"  # Gray
+ENGAGEMENT_CIRCLE_COLOR = "#ff8c00"  # Orange
 
+TARGET_IMAGE_ZOOM = 0.08
 
 def draw_engagements(
     ax: plt.Axes,
@@ -70,9 +78,9 @@ def draw_engagements(
             [drone_pos[0], target_pos[0]],
             [drone_pos[1], target_pos[1]],
             linestyle="--",
-            color=ENGAGEMENT_COLOR,
+            color=ENGAGEMENT_LINE_COLOR,
             linewidth=.7,
-            alpha=0.9,
+            alpha=0.4,
             zorder=5
         )
         
@@ -81,12 +89,22 @@ def draw_engagements(
             linestyle="--",
             radius=20,
             fill=False,
-            edgecolor=ENGAGEMENT_COLOR,
-            linewidth=1,
-            alpha=0.8,
+            edgecolor=ENGAGEMENT_CIRCLE_COLOR,
+            linewidth=1.5,
+            alpha=0.9,
             zorder=6
         )
-        ax.add_patch(circle)
+        # ax.add_patch(circle)
+        
+        target = targets[target_index]
+        if target.get("hp", 0) > 0:
+            global _TARGET_FLAME_IMAGE
+            if _TARGET_FLAME_IMAGE is None and os.path.exists(_TARGET_FLAME_IMAGE_PATH):
+                _TARGET_FLAME_IMAGE = plt.imread(_TARGET_FLAME_IMAGE_PATH)
+            if _TARGET_FLAME_IMAGE is not None:
+                im = OffsetImage(_TARGET_FLAME_IMAGE, zoom=TARGET_IMAGE_ZOOM, alpha=1)
+                ab = AnnotationBbox(im, target_pos, frameon=False, zorder=7)
+                ax.add_artist(ab)
 
 
 def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
@@ -131,14 +149,22 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
         hp = target.get("hp", 0)
         
         if class_type == "destroyed" or hp <= 0:
-            circle = plt.Circle((x, y), radius=8, fill=False, edgecolor=TARGET_COLORS["destroyed"], linestyle="--", linewidth=1, zorder=10)
-            ax.add_patch(circle)
+            global _TARGET_DESTROYED_IMAGE
+            if _TARGET_DESTROYED_IMAGE is None and os.path.exists(_TARGET_DESTROYED_IMAGE_PATH):
+                _TARGET_DESTROYED_IMAGE = plt.imread(_TARGET_DESTROYED_IMAGE_PATH)
+            if _TARGET_DESTROYED_IMAGE is not None:
+                im = OffsetImage(_TARGET_DESTROYED_IMAGE, zoom=TARGET_IMAGE_ZOOM, alpha=0.8)
+                ab = AnnotationBbox(im, (x, y), frameon=False, zorder=10)
+                ax.add_artist(ab)
+            else:
+                circle = plt.Circle((x, y), radius=8, fill=False, edgecolor=TARGET_COLORS["destroyed"], linestyle="--", linewidth=1, zorder=10)
+                ax.add_patch(circle)
         else:
             class_attrs = class_attribute_mapping.get(class_type, {})
             max_hp = sum(class_attrs.values()) if class_attrs else hp
             alpha = max(0.3, hp / max_hp) if max_hp > 0 else 1.0
             if _TARGET_IMAGE is not None:
-                im = OffsetImage(_TARGET_IMAGE, zoom=0.05, alpha=alpha)
+                im = OffsetImage(_TARGET_IMAGE, zoom=TARGET_IMAGE_ZOOM, alpha=alpha)
                 ab = AnnotationBbox(im, (x, y), frameon=False, zorder=10)
                 ax.add_artist(ab)
             else:
