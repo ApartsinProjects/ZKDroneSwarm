@@ -89,6 +89,17 @@ Here's the intuitive flow of how a drone learns to specialize, without any math:
 │  • drone_0 observes drone_1 (structural) getting low rewards on Class C         │
 │  • drone_0 learns: "drone_1 is different from me"                               │
 │                                                                                  │
+│  PHASE 5: WHAT GETS UPDATED                                                     │
+│  ───────────────────────────                                                    │
+│  Each step, drone_0 updates:                                                    │
+│  • agent_lv — only from its OWN action                                          │
+│  • target_lv[X] — for any target hit by ANY drone this step                     │
+│  • other_agents_lv[i] — for any drone that fired this step                      │
+│                                                                                  │
+│  But for TARGET SELECTION, drone_0 uses only:                                   │
+│  • agent_lv + target_lv → "Which target is best for ME?"                        │
+│  • other_agents_lv is for learning only, not decision-making                    │
+│                                                                                  │
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -201,6 +212,59 @@ adjustment = 0.05 × (-0.4) × target_vector = negative adjustment
 ```
 
 Vectors move **apart** → future predictions for this pair will be lower.
+
+### Step 5: Learning from Others
+
+So far we've seen how drone_0 learns from its **own** action. But drone_0 also observes **other drones' rewards** and learns from them too.
+
+**Example: drone_0 observes drone_4's action**
+
+```
+drone_4 fires at target_1 → gets reward 1.0
+drone_0 observes this (via shared observation)
+```
+
+drone_0 now updates:
+- `other_agents_lv[4]` — its estimate of drone_4's "weapon signature"
+- `target_lv[1]` — its estimate of target_1's "vulnerability"
+
+```
+drone_0's prediction for drone_4 → target_1:
+  predicted = (1 + other_agents_lv[4] · target_lv[1]) / 2 = 0.65
+  actual = 1.0
+  error = +0.35
+
+Updates:
+  other_agents_lv[4] moves toward target_lv[1]
+  target_lv[1] moves toward other_agents_lv[4]
+```
+
+**The indirect learning chain:**
+
+Over time, if drone_4 has the same weapon type as drone_0:
+1. drone_4 gets similar rewards to drone_0 on similar targets
+2. drone_0's `other_agents_lv[4]` converges toward drone_0's own `agent_lv`
+3. When drone_4 gets high reward on target_1, drone_0's `target_lv[1]` aligns with `other_agents_lv[4]`
+4. Since `other_agents_lv[4] ≈ agent_lv`, this means `target_lv[1]` aligns with drone_0's signature too
+5. **Result:** drone_0 learns target_1 is good for it, without ever firing at it!
+
+**What gets updated each step:**
+
+| Vector Type | Updated For |
+|-------------|-------------|
+| `agent_lv` | Only from own action (1 update max) |
+| `target_lv[X]` | Only targets hit by **any** drone this step |
+| `other_agents_lv[i]` | Only drones that fired this step |
+
+Targets nobody hit → no update. Learning is focused on observed outcomes, not speculation.
+
+**Important:** `other_agents_lv` is used **only for learning**, not for target selection. When drone_0 picks a target, it uses:
+
+```
+predicted_reward = dot(agent_lv, target_lv[target_idx])
+```
+
+So `other_agents_lv` affects decisions **indirectly** — by improving `target_lv` estimates through observed rewards from other drones.
 
 ### Why This Works
 
