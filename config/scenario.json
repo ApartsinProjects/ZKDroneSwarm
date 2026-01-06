@@ -51,7 +51,7 @@
     "min_distance_between_targets": 25.0
   },
   "environment": {
-    "max_steps": 10000
+    "max_steps": 500
   },
   "policy": {
     "type": [

@@ -661,6 +661,10 @@ def main():
                     ]
                 }
             
+            # Get analysis data for engagement tracking and save per-episode
+            analysis_data = logger.get_analysis_data()
+            run_manager.save_analysis(analysis_data, episode_num)
+            
             # Record episode in RunManager for selection
             run_manager.record_episode(episode_data, metrics["steps"])
             

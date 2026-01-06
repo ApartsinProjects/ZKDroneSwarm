@@ -6,6 +6,7 @@ for replay and offline analysis.
 """
 
 from .episode_logger import EpisodeLogger
+from .engagement_logger import EngagementLogger
 from .run_manager import RunManager
 
-__all__ = ["EpisodeLogger", "RunManager"]
+__all__ = ["EpisodeLogger", "EngagementLogger", "RunManager"]

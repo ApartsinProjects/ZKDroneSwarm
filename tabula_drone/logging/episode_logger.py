@@ -11,6 +11,8 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 
+from .engagement_logger import EngagementLogger
+
 
 class EpisodeLogger:
     """
@@ -62,6 +64,8 @@ class EpisodeLogger:
         self._steps: List[Dict[str, Any]] = []
         self._episode_id: Optional[str] = None
         self._timestamp: Optional[str] = None
+        self._engagement_logger: EngagementLogger = EngagementLogger()
+        self._env: Optional[Any] = None
     
     def start_episode(
         self,
@@ -83,6 +87,10 @@ class EpisodeLogger:
         self._episode_id = str(uuid.uuid4())[:8]
         self._timestamp = datetime.utcnow().isoformat() + "Z"
         self._steps = []
+        self._env = env
+        
+        # Initialize engagement logger
+        self._engagement_logger.start_episode(env, self._episode_id, self._timestamp)
         
         scenario = self._build_scenario_snapshot(env, reset_info, seed)
         config = self._build_config_snapshot(env)
@@ -125,6 +133,9 @@ class EpisodeLogger:
             step_num, actions, rewards, terminated, truncated, info
         )
         self._steps.append(step_record)
+        
+        # Forward to engagement logger
+        self._engagement_logger.log_engagement(step_num, actions, rewards, info)
     
     def end_episode(
         self,
@@ -140,6 +151,9 @@ class EpisodeLogger:
         """
         summary = self._build_summary(total_rewards, done_reason, self._steps)
         self._episode_data["summary"] = summary
+        
+        # Finalize engagement logger
+        self._engagement_logger.end_episode()
     
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -154,6 +168,20 @@ class EpisodeLogger:
         if self._episode_data is None:
             raise ValueError("start_episode() must be called before to_dict()")
         return dict(self._episode_data)
+    
+    def get_analysis_data(self) -> Dict[str, Any]:
+        """
+        Return engagement analysis data as a dictionary.
+        
+        Returns:
+            Engagement analysis dictionary (drone_pov, target_pov, summary)
+        
+        Raises:
+            ValueError: If start_episode() was not called
+        """
+        if self._episode_data is None:
+            raise ValueError("start_episode() must be called before get_analysis_data()")
+        return self._engagement_logger.to_dict()
     
     def set_learning_path(self, data: Dict[str, Any]) -> None:
         """
@@ -194,6 +222,10 @@ class EpisodeLogger:
         
         with open(filepath, "w") as f:
             json.dump(self._episode_data, f, indent=2)
+        
+        # Save engagement analysis file with _analysis suffix
+        analysis_filepath = filepath.replace(".json", "_analysis.json")
+        self._engagement_logger.save(analysis_filepath)
         
         return filepath
     
