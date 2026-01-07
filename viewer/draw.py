@@ -188,9 +188,8 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
     ax.set_xlabel("X (meters)")
     ax.set_ylabel("Y (meters)")
     
-    seed = state.get("seed")
     policy_type = state.get("policy_type", "unknown")
-    title = f"World State (Seed: {seed} | Policy: {policy_type})"
+    title = f"World State Map ( Policy: {policy_type} )"
     ax.set_title(title)
 
 
