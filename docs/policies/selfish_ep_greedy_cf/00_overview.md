@@ -54,56 +54,79 @@ This is **collaborative learning without communication** — each drone builds i
 
 ## How Learning Leads to Effectiveness
 
-Here's the intuitive flow of how a drone learns to specialize, without any math:
+### 1. The Latent Space: A "Matching" Map
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    THE LEARNING JOURNEY (drone_0 with systems weapon)           │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                  │
-│  PHASE 1: EXPLORATION (Early Episodes)                                          │
-│  ─────────────────────────────────────                                          │
-│  • drone_0 tries random targets (30% exploration rate)                          │
-│  • Hits Class A target → gets reward 1.0 (first hit, full HP)                   │
-│  • Hits Class A again → gets reward 0.58 (low-HP attributes depleted!)          │
-│  • Hits Class C target → gets reward 1.0                                        │
-│  • Hits Class C again → gets reward 1.0 (high-HP attribute still has HP)        │
-│                                                                                  │
-│  PHASE 2: PATTERN RECOGNITION                                                   │
-│  ────────────────────────────────                                               │
-│  • drone_0 notices: "Class C targets keep giving me high rewards"               │
-│  • drone_0 notices: "Class A/B targets give diminishing rewards"                │
-│  • Latent vectors adjust: drone_0's signature aligns with Class C signatures    │
-│                                                                                  │
-│  PHASE 3: EXPLOITATION (Later Episodes)                                         │
-│  ──────────────────────────────────────                                         │
-│  • Exploration rate decays to 5%                                                │
-│  • drone_0 now predicts: "Class C targets will give me high reward"             │
-│  • drone_0 preferentially selects Class C targets                               │
-│  • Result: SPECIALIZATION without ever knowing it has a "systems" weapon        │
-│                                                                                  │
-│  PHASE 4: COLLABORATIVE BOOST                                                   │
-│  ────────────────────────────────                                               │
-│  • drone_0 also observes drone_4's rewards (also systems weapon)                │
-│  • drone_4 gets high rewards on Class C → drone_0 learns faster                 │
-│  • drone_0 observes drone_1 (structural) getting low rewards on Class C         │
-│  • drone_0 learns: "drone_1 is different from me"                               │
-│                                                                                  │
-│  PHASE 5: WHAT GETS UPDATED                                                     │
-│  ───────────────────────────                                                    │
-│  Each step, drone_0 updates:                                                    │
-│  • agent_lv — only from its OWN action                                          │
-│  • target_lv[X] — for any target hit by ANY drone this step                     │
-│  • other_agents_lv[i] — for any drone that fired this step                      │
-│                                                                                  │
-│  But for TARGET SELECTION, drone_0 uses only:                                   │
-│  • agent_lv + target_lv → "Which target is best for ME?"                        │
-│  • other_agents_lv is for learning only, not decision-making                    │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+Think of the latent space as a 2D map (though in the code, it's 3-dimensional).
 
-### The Key Insight: Reward Patterns Reveal Hidden Structure
+- **The Drone's Position (`agent_lv`):** Represents its "Weapon Profile" (e.g., high structural damage, low utility damage).
+- **The Target's Position (`target_lv`):** Represents its "Vulnerability Profile" (e.g., weak structural integrity).
+- **The Dot Product:** Measures the "closeness" of these profiles. If the drone is at "12 o'clock" on the map and the target is also at "12 o'clock," the reward prediction is maximized (1.0).
+
+### 2. The Flow: How Information Moves
+
+The learning process is a **triangulation of data**. Here is how the three components interact:
+
+#### A. Direct Experience (Self ↔ Target)
+
+When you fire and get a reward, you perform a **Symmetric Update**.
+
+- **The Logic:** You assume the error is caused by both an imperfect understanding of yourself and an imperfect understanding of the target.
+- **The Result:** The drone vector and the target vector "tug" on each other. If the reward was high, they move closer. This creates a "gravity well" in the latent space where successful pairings live.
+
+#### B. Observational Learning (Other ↔ Target)
+
+This is where `other_agents_lv` becomes critical. It acts as a proxy or a "simulation" of your teammates.
+
+- **The Flow:** Drone A watches Drone B hit Target X.
+- **The Logic:** Drone A thinks: "I don't know exactly what Drone B's weapon is, but I saw the result. I will update my 'mental model' of Drone B (`other_agents_lv`) and my 'mental model' of Target X (`target_lv`) so they better explain that result."
+- **The Importance:** This allows Drone A to learn about Target X's vulnerability even if it hasn't touched it yet.
+
+#### C. The Indirect "Aha!" Moment (Self ↔ Other)
+
+This is the "magic" of the latent space.
+
+If Drone A and Drone B happen to have similar weapons, their `other_agents_lv` and `agent_lv` will eventually end up in the same "neighborhood" of the latent space.
+
+Because the `target_lv` is being updated by everyone, it becomes an **emergent consensus** (each drone has its own private copy, but they converge toward similar values).
+
+**The Chain Reaction:**
+1. Drone B (Physical) hits Target X → Target X vector moves.
+2. Drone A (Observer) sees this → Drone A updates its own copy of Target X's vector.
+3. Drone A looks at its own `agent_lv` and sees it is now close to that updated Target X vector.
+4. **Result:** Drone A now "knows" to target X in the next step.
+
+### 3. Understanding the Learning Dynamics
+
+To visualize why this leads to specialization, consider the "Push-Pull" mechanics:
+
+| Action | Vector Interaction | Latent Space Effect |
+|--------|-------------------|---------------------|
+| High Reward | Attraction | The Drone and Target "collide" in the latent space, signaling a perfect match. |
+| Low Reward | Repulsion | The Drone and Target "push" away from each other, creating a gap that prevents future selection. |
+| Observation | Alignment | The Observer aligns the "Teammate Vector" with the "Target Vector," essentially "filling in" the map for free. |
+
+### 4. Why This Leads to Specialization
+
+The **Normalization** step in the math (`new_vector = normalize(...)`) is vital. Because the vectors are constrained to a fixed length (a unit sphere), they cannot simply grow to infinity to satisfy a reward.
+
+**Instead, they must rotate.**
+
+- If a drone is good at killing "Class A" targets, its vector will rotate toward "Class A" space.
+- By rotating toward A, it naturally rotates **away** from "Class B."
+
+Specialization is an inevitable byproduct of the geometry: **You cannot point in two opposite directions at once.** The drones are forced to "choose" a signature that yields the most consistent rewards.
+
+### 5. Summary of the Flow
+
+| Step | Action |
+|------|--------|
+| **Prediction** | Check the map (dot product) |
+| **Selection** | Pick the target with highest predicted reward |
+| **Action** | Test the prediction |
+| **Correction** | If reality ≠ prediction, rotate the vectors to "fix" the map |
+| **Scaling** | Use teammates' actions to "fix" the map faster without wasting your own ammo |
+
+### Key Insight: Reward Patterns Reveal Hidden Structure
 
 | What drone_0 experiences | What it means (hidden from drone) |
 |--------------------------|-----------------------------------|
@@ -112,15 +135,13 @@ Here's the intuitive flow of how a drone learns to specialize, without any math:
 | "drone_4 gets same rewards as me" | drone_4 has same weapon type |
 | "drone_1 gets opposite rewards" | drone_1 has different weapon type |
 
-**The magic:** Without knowing weapon types or target classes, drones learn to specialize simply by chasing high rewards. The latent vectors become implicit encodings of the hidden weapon-class compatibility matrix.
-
 ---
 
 ## The Math (Gentle Introduction)
 
 Now let's see how the learning actually works, with a simple example.
 
-s### Step 0: How the Environment Calculates Rewards
+### Step 0: How the Environment Calculates Rewards
 
 Before we can learn, we need to understand what we're learning *from*. The environment calculates rewards based on **actual damage dealt**:
 

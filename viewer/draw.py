@@ -170,7 +170,7 @@ def render_map(ax: plt.Axes, state: Dict[str, Any]) -> None:
             else:
                 color = TARGET_COLORS.get(class_type, TARGET_COLORS["unknown"])
                 ax.scatter(x, y, s=40, c=color, marker="o", alpha=alpha, zorder=10)
-            ax.text(x, y + 12, f"{hp:.0f}", fontsize=7, ha='center', va='bottom', alpha=alpha, zorder=12)
+            ax.text(x, y - 40, f"{hp:.0f}", fontsize=7, ha='center', va='top', alpha=0.9, zorder=12)
     
     global _DRONE_IMAGE
     if _DRONE_IMAGE is None and os.path.exists(_DRONE_IMAGE_PATH):
