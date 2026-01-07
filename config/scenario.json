@@ -1,5 +1,5 @@
 {
-  "mappings_file": "mappings_cf_moderate.json",
+  "mappings_file": "mappings_cf_friendly.json",
   "seed": 42,
   "world": {
     "size": [
@@ -12,7 +12,7 @@
     "verbose": false
   },
   "drones": {
-    "count": 9,
+    "count": 6,
     "weapon_distribution": {
       "breach": 0.33,
       "structural": 0.33,
@@ -31,7 +31,7 @@
     "min_distance_between_drones": 25.0
   },
   "targets": {
-    "count": 100,
+    "count": 25,
     "region": {
       "x_fraction": [
         0.1,
@@ -57,8 +57,7 @@
     "type": [
       "max_damage_oracle",
       "random",
-      "selfish_ep_greedy_cf",
-      "coordinated_ep_greedy_cf"
+      "selfish_ep_greedy_cf"
     ],
     "all_types": [
       "max_damage_oracle",

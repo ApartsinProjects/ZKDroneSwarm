@@ -15,7 +15,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from tabulate import tabulate
 
 from tabula_drone.config import load_config
-from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
+from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, REWARD_MODE
 from tabula_drone.logging import EpisodeLogger, RunManager
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
@@ -790,6 +790,8 @@ def main():
         print("\n" + "="*60)
         print("POLICY BEST EPISODE PERFORMANCE (vs Random Baseline)")
         print("="*60)
+        print(f"Reward Mode: {REWARD_MODE}")
+        print(f"Mappings File: {config.mappings_file}")
         print("Ammo Eff = targets / ammo (higher = fewer wasted shots)")
         print("Dmg Eff  = effective_dmg / potential_dmg (higher = less overkill)")
         rand = policy_best_metrics["random"]

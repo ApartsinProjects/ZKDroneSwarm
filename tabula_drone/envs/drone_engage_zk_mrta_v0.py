@@ -24,8 +24,8 @@ from ..core.states import (
     AttributeProfile,
 )
 
-# Reward mode toggle: True = dominant attribute damage, False = total HP reduction
-REWARD_DOMINANT_ATTRIBUTE = False
+# Reward mode: "HP_REDUCTION" | "DOMINANT_ATTRIBUTE" | "ATTRIBUTE_ALIGNMENT"
+REWARD_MODE = "ATTRIBUTE_ALIGNMENT"
 
 class DroneEngageZKMRTA(ParallelEnv):
     """
@@ -116,14 +116,8 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.weapon_damage_profile_mapping = weapon_damage_profile_mapping
         
         # Compute max single-attribute damage for reward normalization
-        self.max_weapon_damage = max(
+        self.max_single_attribute_weapon_damage = max(
             max(profile.values())
-            for profile in weapon_damage_profile_mapping.values()
-        )
-        
-        # Compute max total damage per shot (sum of all attributes) for HP-based reward
-        self.max_total_weapon_damage = max(
-            sum(profile.values())
             for profile in weapon_damage_profile_mapping.values()
         )
         
@@ -491,14 +485,17 @@ class DroneEngageZKMRTA(ParallelEnv):
             
             # Apply damage from this drone
             hp_before = target.hp_current
+            hp_before_dict = dict(target.attributes.attributes)
             damage_profile = drone.damage_profile
             target.attributes.apply_damage(damage_profile)
 
             # Compute reward based on selected mode
             hp_after = target.hp_current
-            if REWARD_DOMINANT_ATTRIBUTE:
-                rewards[agent_id] += self._reward_dominant_attribute(damage_profile, target)
-            else:
+            if REWARD_MODE == "DOMINANT_ATTRIBUTE":
+                rewards[agent_id] += self._reward_dynamic_dominant_attribute(damage_profile, target)
+            elif REWARD_MODE == "ATTRIBUTE_ALIGNMENT":
+                rewards[agent_id] += self._reward_attribute_alignment(hp_before_dict, damage_profile)
+            else:  # HP_REDUCTION (default)
                 rewards[agent_id] += self._reward_hp_reduction(hp_before, hp_after, damage_profile)
             
             # Check if target became inactive
@@ -707,18 +704,65 @@ class DroneEngageZKMRTA(ParallelEnv):
                 firing_map[target_idx].append(drone_idx)
         
         return firing_map
-    
-    def _reward_dominant_attribute(self, damage_profile: Dict[str, float], target: TargetState) -> float:
-        """Reward based on damage to target's dominant attribute, normalized by max weapon damage."""
-        dominant_attr = max(target.attributes.initial_values, key=target.attributes.initial_values.get)
+
+    def _reward_dynamic_dominant_attribute(self, damage_profile: Dict[str, float], target: TargetState) -> float:
+        """
+        Reward based on damage to the target's CURRENTLY highest attribute.
+        Encourages the drone to 'pivot' focus as target HP bars deplete.
+        """
+        # 1. Identify the dominant attribute based on CURRENT remaining HP
+        # We use target.attributes.attributes instead of initial_values
+        current_hp = target.attributes.attributes
+        dominant_attr = max(current_hp, key=current_hp.get)
+
+        # 2. Get the damage dealt specifically to that attribute
         damage_to_dominant = damage_profile.get(dominant_attr, 0)
-        return damage_to_dominant / self.max_weapon_damage
+
+        # 3. Normalize by the max possible damage a single weapon can do to one attribute
+        # This keeps the reward signal scaled between 0.0 and 1.0
+        reward = damage_to_dominant / self.max_single_attribute_weapon_damage
+
+        return float(reward)
 
     def _reward_hp_reduction(self, hp_before: float, hp_after: float, damage_profile: Dict[str, float]) -> float:
         """Reward based on total HP reduction, normalized by firing drone's weapon damage."""
         actual_damage = hp_before - hp_after
         drone_weapon_damage = sum(damage_profile.values())
         return actual_damage / drone_weapon_damage
+
+    def _reward_attribute_alignment(self, hp_before_dict: Dict[str, float], damage_profile: Dict[str, float]) -> float:
+        """
+        Reward based on damage efficiency weighted by cosine similarity between
+        weapon damage profile and target's current HP profile.
+        
+        Reward = (Damage Efficiency) * (Cosine Similarity)
+        
+        Args:
+            hp_before_dict: Target's per-attribute HP before damage {attr: hp_value}
+            damage_profile: Weapon's damage profile {attr: damage_value}
+        
+        Returns:
+            Reward in range [0, 1]
+        """
+        # Damage efficiency: actual damage / max weapon potential
+        actual_damage = sum(min(hp_before_dict.get(k, 0), v) for k, v in damage_profile.items())
+        max_weapon_potential = sum(damage_profile.values())
+        damage_efficiency = actual_damage / max_weapon_potential if max_weapon_potential > 0 else 0
+        
+        # Cosine similarity between weapon profile and target HP profile
+        keys = sorted(damage_profile.keys())
+        weapon_vec = np.array([damage_profile[k] for k in keys])
+        target_vec = np.array([hp_before_dict.get(k, 0) for k in keys])
+        
+        norm_w = np.linalg.norm(weapon_vec)
+        norm_t = np.linalg.norm(target_vec)
+        
+        if norm_w > 0 and norm_t > 0:
+            cosine_sim = np.dot(weapon_vec, target_vec) / (norm_w * norm_t)
+        else:
+            cosine_sim = 0
+        
+        return damage_efficiency * cosine_sim
 
     def _validate_actions(self, actions: Dict[str, int]) -> None:
         """

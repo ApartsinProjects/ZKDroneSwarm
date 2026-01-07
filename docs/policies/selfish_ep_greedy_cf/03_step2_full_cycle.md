@@ -412,9 +412,9 @@ target.attributes.apply_damage(damage_profile)
 
 # Calculate reward (HP reduction mode, REWARD_DOMINANT_ATTRIBUTE=False)
 hp_before = 180  # 15 + 150 + 15
-hp_after = 168   # 14 + 149 + 5
+hp_after = 168  # 14 + 149 + 5
 total_damage = 12  # 1 + 1 + 10
-reward = total_damage / self.max_weapon_damage  # 12 / 12 = 1.0
+reward = total_damage / self.max_single_attribute_weapon_damage  # 12 / 12 = 1.0
 ```
 
 **With HP reduction mode:** Every hit deals 12 total damage (1+1+10 for systems weapon), and max_weapon_damage is also 12, so every successful hit gives reward 1.0 regardless of weapon-target compatibility.
