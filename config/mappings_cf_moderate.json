@@ -1,12 +1,12 @@
 {
   "class_attribute_mapping": {
-    "A": { "structural_integrity": 50.0, "envelope_integrity": 7.0, "utilities_lifesafety": 5.0 },
-    "B": { "structural_integrity": 5.0, "envelope_integrity": 50.0, "utilities_lifesafety": 7.0 },
-    "C": { "structural_integrity": 7.0, "envelope_integrity": 5.0, "utilities_lifesafety": 50.0 }
+    "A": { "structural_integrity": 150.0, "envelope_integrity": 7.0, "utilities_lifesafety": 5.0 },
+    "B": { "structural_integrity": 5.0, "envelope_integrity": 150.0, "utilities_lifesafety": 7.0 },
+    "C": { "structural_integrity": 7.0, "envelope_integrity": 5.0, "utilities_lifesafety": 150.0 }
   },
   "weapon_damage_profile_mapping": {
-    "structural": { "structural_integrity": 10, "envelope_integrity": 5, "utilities_lifesafety": 1 },
-    "breach": { "structural_integrity": 1, "envelope_integrity": 12, "utilities_lifesafety": 6 },
-    "systems": { "structural_integrity": 5, "envelope_integrity": 1, "utilities_lifesafety": 11 }
+    "structural": { "structural_integrity": 30, "envelope_integrity": 1, "utilities_lifesafety": 15 },
+    "breach": { "structural_integrity": 10, "envelope_integrity": 35, "utilities_lifesafety": 1 },
+    "systems": { "structural_integrity": 1, "envelope_integrity": 12, "utilities_lifesafety": 35 }
   }
 }
