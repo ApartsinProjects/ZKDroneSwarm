@@ -1,6 +1,7 @@
 ---
 trigger: model_decision
 description: description: Architecture Principles (Execution Scope)
+globs: 
 ---
 
 # 1: Prefer Real Types
@@ -49,3 +50,10 @@ When choices are equivalent, pick the change that:
 
 Guardrails:
 - If a fix requires multiple edits, split into smaller approved steps.
+
+# 7: Encapsulate Variation
+When the caller must decide *how* to handle something based on *what kind* of thing it is, move that decision into the thing itself.
+
+Guardrails:
+- If code branches on type or category → the variant should own its behavior, not the caller.
+- Callers ask *what* they need; objects decide *how* to provide it.

@@ -65,6 +65,23 @@ Purpose: Turn the current agreed step into minimal, architecture-aligned code wi
 - Keep diffs minimal; reuse existing names/patterns.
 - If a new need surfaces or acceptance cannot be met → stop and escalate (Planning/Review).
 
+## Act as the Architecture Reviewer (Trigger Based)
+
+Trigger: Run this check when the step modifies existing domain or orchestration code.
+
+Before marking the step complete, review the touched code against the `architecture-principles` rule.
+
+If a violation is detected:
+
+1. If fix is trivial and within current step scope:
+   - Share findings with the user: explain the current implementation, its flaws, and your plan for improvement
+   - Wait for user approval before applying the fix
+
+2. If fix requires design change:
+   - Share findings with the user: explain the current implementation, its flaws, and recommend escalation to the Analyzer Workflow
+   - Include details on what caused the violation and what the Analyzer phase should address to prevent recurrence
+   - Wait for user decision
+
 ## Negative-First Compliance Check
 
 Purpose: Make gaps, limits, and residual risks explicit before treating the step as complete.
