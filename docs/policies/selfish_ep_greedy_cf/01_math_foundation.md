@@ -113,6 +113,38 @@ $$\cos(\vec{w}, \vec{h}) = \frac{\vec{w} \cdot \vec{h}}{\|\vec{w}\| \|\vec{h}\|}
 - Uses full weapon and target vectors
 - **Not ZK-MRTA compliant** — reward pattern leaks weapon profile
 
+### Code Snapshot
+
+```python
+# DroneEngageZKMRTA._reward_hp_reduction (lines 727-731)
+def _reward_hp_reduction(self, hp_before: float, hp_after: float, damage_profile: Dict[str, float]) -> float:
+    actual_damage = hp_before - hp_after
+    return actual_damage / hp_before
+
+# DroneEngageZKMRTA._reward_dynamic_dominant_attribute (lines 708-725)
+def _reward_dynamic_dominant_attribute(self, damage_profile: Dict[str, float], target: TargetState) -> float:
+    current_hp = target.attributes.attributes
+    dominant_attr = max(current_hp, key=current_hp.get)
+    damage_to_dominant = damage_profile.get(dominant_attr, 0)
+    reward = damage_to_dominant / self.max_single_attribute_weapon_damage
+    return float(reward)
+
+# DroneEngageZKMRTA._reward_attribute_alignment (lines 733-765)
+def _reward_attribute_alignment(self, hp_before_dict: Dict[str, float], damage_profile: Dict[str, float]) -> float:
+    actual_damage = sum(min(hp_before_dict.get(k, 0), v) for k, v in damage_profile.items())
+    max_weapon_potential = sum(damage_profile.values())
+    damage_efficiency = actual_damage / max_weapon_potential if max_weapon_potential > 0 else 0
+    
+    keys = sorted(damage_profile.keys())
+    weapon_vec = np.array([damage_profile[k] for k in keys])
+    target_vec = np.array([hp_before_dict.get(k, 0) for k in keys])
+    
+    norm_w, norm_t = np.linalg.norm(weapon_vec), np.linalg.norm(target_vec)
+    cosine_sim = np.dot(weapon_vec, target_vec) / (norm_w * norm_t) if norm_w > 0 and norm_t > 0 else 0
+    
+    return damage_efficiency * cosine_sim
+```
+
 ---
 
 ## 1. Vectors (Building Blocks)
@@ -148,6 +180,21 @@ $$\mathbf{x} = \text{normalize}(\text{uniform}(-1, 1)^k)$$
 | `other_agents_lv[m]` | ❌ No | ❌ No | ✅ Yes |
 
 **Key insight:** `target_lv` is refined from MULTIPLE sources (own + others), while `agent_lv` only learns from own actions.
+
+### Code Snapshot
+
+```python
+# BaseCFPolicy.__init__ (lines 81-88)
+# Initialize private latent vectors
+self.agent_lv = self._init_latent_vector()
+self.target_lv = self._init_latent_vectors(num_targets)
+self.other_agents_lv = self._init_latent_vectors(num_agents)
+
+# BaseCFPolicy._init_latent_vector (lines 90-93)
+def _init_latent_vector(self) -> np.ndarray:
+    vector = self.rng.uniform(-1, 1, self.latent_dim)
+    return normalize(vector).astype(np.float32)
+```
 
 ---
 
@@ -189,6 +236,15 @@ $$\hat{r}_{ij} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}$$
 - Dot product = +1 (perfectly aligned) → Predicted reward = 1.0
 - Dot product = 0 (orthogonal) → Predicted reward = 0.5
 - Dot product = -1 (opposite) → Predicted reward = 0.0
+
+### Code Snapshot
+
+```python
+# BaseCFPolicy.predict_reward (lines 113-126)
+def predict_reward(self, target_idx: int) -> float:
+    dot = np.dot(self.agent_lv, self.target_lv[target_idx])
+    return (1 + dot) / 2
+```
 
 ---
 
@@ -282,6 +338,27 @@ $$\text{normalize}(\mathbf{x}) = \frac{\mathbf{x}}{\|\mathbf{x}\|}$$
 | $e < 0$ | Overestimated | Vectors rotate **away** from each other | Lower |
 | $e = 0$ | Perfect | No change | Same |
 
+### Code Snapshot
+
+```python
+# BaseCFPolicy.update (lines 144-165)
+def update(self, target_idx: int, observed_reward: float) -> None:
+    if target_idx < 0 or observed_reward < 0:
+        return
+    
+    predicted = self.predict_reward(target_idx)
+    error = observed_reward - predicted
+    
+    agent_vec = self.agent_lv.copy()
+    target_vec = self.target_lv[target_idx].copy()
+    
+    self.agent_lv += self.learning_rate * error * target_vec
+    self.target_lv[target_idx] += self.learning_rate * error * agent_vec
+    
+    self.agent_lv = normalize(self.agent_lv)
+    self.target_lv[target_idx] = normalize(self.target_lv[target_idx])
+```
+
 ---
 
 ## 4. Learning from Others
@@ -324,6 +401,32 @@ If agent $m$ has a similar weapon to agent $i$:
 3. When agent $m$ gets high reward on target $j$, agent $i$'s $\mathbf{v}_j$ aligns with $\mathbf{u}_m^{\text{est}}$
 4. Since $\mathbf{u}_m^{\text{est}} \approx \mathbf{u}_i$, this means $\mathbf{v}_j$ aligns with agent $i$'s signature too
 5. **Result:** Agent $i$ learns target $j$ is good for it, without ever firing at it!
+
+### Code Snapshot
+
+```python
+# BaseCFPolicy._predict_reward_for_other (lines 128-142)
+def _predict_reward_for_other(self, other_agent_idx: int, target_idx: int) -> float:
+    dot = np.dot(self.other_agents_lv[other_agent_idx], self.target_lv[target_idx])
+    return (1 + dot) / 2
+
+# BaseCFPolicy._update_from_other (lines 167-194)
+def _update_from_other(self, other_agent_idx: int, target_idx: int, observed_reward: float) -> None:
+    if target_idx < 0 or observed_reward < 0:
+        return
+    
+    predicted = self._predict_reward_for_other(other_agent_idx, target_idx)
+    error = observed_reward - predicted
+    
+    other_agent_vec = self.other_agents_lv[other_agent_idx].copy()
+    target_vec = self.target_lv[target_idx].copy()
+    
+    self.other_agents_lv[other_agent_idx] += self.learning_rate * error * target_vec
+    self.target_lv[target_idx] += self.learning_rate * error * other_agent_vec
+    
+    self.other_agents_lv[other_agent_idx] = normalize(self.other_agents_lv[other_agent_idx])
+    self.target_lv[target_idx] = normalize(self.target_lv[target_idx])
+```
 
 ---
 
