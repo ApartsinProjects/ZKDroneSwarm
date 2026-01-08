@@ -113,6 +113,36 @@ $$\cos(\vec{w}, \vec{h}) = \frac{\vec{w} \cdot \vec{h}}{\|\vec{w}\| \|\vec{h}\|}
 - Uses full weapon and target vectors
 - **Not ZK-MRTA compliant** — reward pattern leaks weapon profile
 
+### Reward Noise (Optional)
+
+The environment supports adding Gaussian noise to reward signals for robustness testing:
+
+$$r_{observed} = r_{actual} + \mathcal{N}(0, \sigma)$$
+
+| Noise Parameter | Applied To | Purpose |
+|-----------------|------------|---------|
+| `reward_noise` (σ₁) | Own + others' rewards | Simulates noisy environment feedback |
+| `observation_noise` (σ₂) | Others' rewards only | Simulates imperfect observation of other agents |
+
+**Combined noise for observing others:**
+
+$$\sigma_{total} = \sqrt{\sigma_1^2 + \sigma_2^2}$$
+
+**Research purpose:** Tests policy robustness under imperfect information — real-world sensors and observations aren't perfect.
+
+```python
+# DroneEngageZKMRTA (lines 399-409) - Noise application in collaborative mode
+if other_agent_id == agent_id:
+    # Own reward: only reward_noise
+    noise = self.rng.normal(0, self.reward_noise) if self.reward_noise > 0 else 0.0
+else:
+    # Other's reward: reward_noise + observation_noise
+    total_noise_std = (self.reward_noise ** 2 + self.observation_noise ** 2) ** 0.5
+    noise = self.rng.normal(0, total_noise_std) if total_noise_std > 0 else 0.0
+
+observed_rewards.append(base_reward + noise)
+```
+
 ### Code Snapshot
 
 ```python
