@@ -25,7 +25,7 @@ from ..core.states import (
 )
 
 # Reward mode: "HP_REDUCTION" | "DOMINANT_ATTRIBUTE" | "ATTRIBUTE_ALIGNMENT"
-REWARD_MODE = "ATTRIBUTE_ALIGNMENT"
+REWARD_MODE = "HP_REDUCTION"
 
 class DroneEngageZKMRTA(ParallelEnv):
     """
@@ -728,7 +728,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         """Reward based on total HP reduction, normalized by firing drone's weapon damage."""
         actual_damage = hp_before - hp_after
         drone_weapon_damage = sum(damage_profile.values())
-        return actual_damage / drone_weapon_damage
+        return actual_damage / hp_before
 
     def _reward_attribute_alignment(self, hp_before_dict: Dict[str, float], damage_profile: Dict[str, float]) -> float:
         """

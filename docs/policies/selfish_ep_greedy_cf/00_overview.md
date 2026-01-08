@@ -143,36 +143,86 @@ Now let's see how the learning actually works, with a simple example.
 
 ### Step 0: How the Environment Calculates Rewards
 
-Before we can learn, we need to understand what we're learning *from*. The environment calculates rewards based on **actual damage dealt**:
+Before we can learn, we need to understand what we're learning *from*. The environment supports **3 reward modes**:
 
-$$\text{reward} = \frac{\text{total damage dealt}}{\text{max weapon damage}}$$
+#### 1. HP_REDUCTION (default)
 
-**Example: systems weapon hits Class B target (first time)**
+Rewards proportional to total HP reduced relative to HP before the shot.
 
+$$\text{reward} = \frac{HP_{before} - HP_{after}}{HP_{before}}$$
+
+#### 2. DOMINANT_ATTRIBUTE
+
+Rewards damage dealt to the target's **currently highest** attribute. Encourages pivoting as attributes deplete.
+
+$$\text{reward} = \frac{\text{damage to dominant attribute}}{\text{max single-attribute weapon damage}}$$
+
+#### 3. ATTRIBUTE_ALIGNMENT
+
+Rewards based on damage efficiency weighted by cosine similarity between weapon and target HP profiles.
+
+$$\text{reward} = \text{DamageEfficiency} \times \text{CosineSimilarity}(\vec{weapon}, \vec{targetHP})$$
+
+Where:
+
+$$\text{DamageEfficiency} = \frac{\sum_i \min(weaponDmg_i, targetHP_i)}{\sum_i weaponDmg_i}$$
+
+*(Actual damage dealt / maximum weapon potential — capped by remaining HP per attribute)*
+
+#### ZK-MRTA Compliance
+
+| Mode | Information used | ZK-MRTA compliant? |
+|------|------------------|-------------------|
+| **HP_REDUCTION** | Aggregate HP (scalars only) | **Yes** — pure black-box outcome |
+| **DOMINANT_ATTRIBUTE** | Per-attribute HP + per-attribute damage | **No** — reward pattern leaks weapon profile |
+| **ATTRIBUTE_ALIGNMENT** | Full weapon vector + full target HP vector | **No** — reward pattern leaks weapon profile |
+
+**Purist ZK-MRTA** requires HP_REDUCTION. The other modes are valid reward shaping strategies but allow the drone to theoretically reverse-engineer its weapon profile from reward patterns.
+
+---
+
+#### Examples
+
+**Configuration:**
+- drone_1 weapon: `{structural: 2, envelope: 35, utilities: 5}` → total = 42
+- drone_2 weapon: `{structural: 5, envelope: 35, utilities: 2}` → total = 42
+- Target HP: `{structural: 10, envelope: 30, utilities: 25}` → total = 65
+
+**HP_REDUCTION:**
 ```
-Weapon damage:  {structural: 1, envelope: 1, utilities: 10}  → max = 12
-Target HP:      {structural: 15, envelope: 150, utilities: 15}
-
-Damage dealt = min(1,15) + min(1,150) + min(10,15) = 1 + 1 + 10 = 12
-Reward = 12/12 = 1.0 ✓
+drone_1: damage = min(2,10) + min(35,30) + min(5,25) = 37  →  reward = 37/65 = 0.569
+drone_2: damage = min(5,10) + min(35,30) + min(2,25) = 37  →  reward = 37/65 = 0.569
 ```
 
-**Same weapon hits same target again:**
-
+**DOMINANT_ATTRIBUTE:** (dominant = envelope, HP=30)
 ```
-Target HP now:  {structural: 14, envelope: 149, utilities: 5}  (depleted!)
-
-Damage dealt = min(1,14) + min(1,149) + min(10,5) = 1 + 1 + 5 = 7
-Reward = 7/12 = 0.58 ✗ (diminishing!)
+drone_1: damage_to_dominant = 35  →  reward = 35/35 = 1.0
+drone_2: damage_to_dominant = 35  →  reward = 35/35 = 1.0
 ```
 
-**The key insight:** Damage is capped by remaining HP. Mismatched weapons deplete low-HP attributes quickly → diminishing rewards. Matched weapons (systems → Class C with 150 utilities HP) sustain high rewards longer.
+**ATTRIBUTE_ALIGNMENT:**
+```
+drone_1: efficiency = 37/42 = 0.881, cosine([2,35,5], [10,30,25]) = 0.837  →  reward = 0.737
+drone_2: efficiency = 37/42 = 0.881, cosine([5,35,2], [10,30,25]) = 0.806  →  reward = 0.710
+```
+
+| Mode | drone_1 | drone_2 | Differentiates? |
+|------|---------|---------|-----------------|
+| HP_REDUCTION | 0.569 | 0.569 | No |
+| DOMINANT_ATTRIBUTE | 1.0 | 1.0 | No |
+| ATTRIBUTE_ALIGNMENT | 0.737 | 0.710 | **Yes** |
+
+**Key insight:** Only ATTRIBUTE_ALIGNMENT differentiates weapons with identical aggregate damage but different profile shapes.
 
 ### Step 1: Prediction
 
 Each drone predicts how good a target will be using a **dot product** of two vectors:
 
 $$\text{predicted reward} = \frac{1 + (\text{drone vector} \cdot \text{target vector})}{2}$$
+
+**Predicted reward range:** [0, 1]
+
+Since vectors are normalized (unit length), the dot product ranges from -1 (opposite directions) to +1 (same direction). The `(1 + x) / 2` transformation maps this to [0, 1] to match the reward scale.
 
 **Simple example with 2D vectors:**
 
@@ -199,68 +249,206 @@ error     = actual - predicted = +0.18  (underestimated!)
 
 ### Step 3: Update Both Vectors
 
-The update rule nudges **both vectors toward each other** when we underestimated:
-
-$$\text{new drone vector} = \text{normalize}(\text{drone vector} + \text{learning rate} \times \text{error} \times \text{target vector})$$
-
-$$\text{new target vector} = \text{normalize}(\text{target vector} + \text{learning rate} \times \text{error} \times \text{drone vector})$$
-
-**Continuing our example (learning_rate = 0.05):**
+We use **Stochastic Gradient Descent (SGD)** to minimize the **Mean Squared Error (MSE)** loss:
 
 ```
-error = +0.18
-
-Drone update:
-  adjustment = 0.05 × 0.18 × [0.6, 0.8] = [0.0054, 0.0072]
-  drone_0 vector: [0.800, 0.200] → [0.806, 0.207]
-
-Target update:
-  adjustment = 0.05 × 0.18 × [0.8, 0.2] = [0.0072, 0.0018]
-  target_5 vector: [0.600, 0.800] → [0.601, 0.799]
+Loss = ½ × (actual - predicted)²
 ```
 
-**What happened?** Both vectors rotated slightly toward each other. The drone "learned" about the target, and the target vector now better represents "what kind of drone works well against me."
+#### Deriving the Update Rule
 
-**Why update both?** This is symmetric learning — the target vector encodes vulnerability patterns just as the drone vector encodes weapon patterns. When multiple drones hit the same target, that target's vector gets refined from multiple perspectives.
+**For the drone vector:**
 
-### Step 4: The Opposite Case
-
-If drone_0 had **overestimated** (predicted 0.9, got 0.5):
-
+**Step 1: Chain rule**
 ```
-error = 0.5 - 0.9 = -0.4  (overestimated!)
-adjustment = 0.05 × (-0.4) × target_vector = negative adjustment
+∂Loss/∂drone = ∂Loss/∂predicted × ∂predicted/∂drone
 ```
 
-Vectors move **apart** → future predictions for this pair will be lower.
+**Step 2: Compute ∂Loss/∂predicted**
+```
+Loss = ½ × (actual - predicted)²
 
-### Step 5: Learning from Others
+∂Loss/∂predicted = ½ × 2 × (actual - predicted) × (-1)
+                 = -(actual - predicted)
+                 = -error
+```
+
+**Step 3: Compute ∂predicted/∂drone**
+```
+predicted = (1 + drone · target) / 2
+          = (1 + Σᵢ droneᵢ × targetᵢ) / 2
+
+∂predicted/∂droneᵢ = targetᵢ / 2
+
+∂predicted/∂drone = target / 2    (as a vector)
+```
+
+**Step 4: Combine via chain rule**
+```
+∂Loss/∂drone = ∂Loss/∂predicted × ∂predicted/∂drone
+             = (-error) × (target / 2)
+             = -error × target / 2
+```
+
+SGD moves in the **negative gradient** direction:
+
+```
+drone_new = drone - η × ∂Loss/∂drone
+          = drone + η × error × target / 2
+```
+
+Absorbing `/2` into learning rate:
+
+```
+drone_new = drone + η × error × target
+```
+
+**For the target vector:** Symmetric derivation yields:
+
+```
+target_new = target + η × error × drone
+```
+
+#### The Update Formulas
+
+```
+new_drone  = normalize(drone  + learning_rate × error × target)
+new_target = normalize(target + learning_rate × error × drone)
+```
+
+#### Example (learning_rate = 0.1)
+
+**1. Starting State — The Two Vectors**
+```
+drone_0 vector  = [1.0, 0.0]     (pointing right)
+target_5 vector = [0.6, 0.8]     (pointing up-right, ~53° from drone)
+```
+
+**2. How Close Are They? (Before Learning)**
+```
+dot product = 1.0×0.6 + 0.0×0.8 = 0.6
+angle = arccos(0.6) = 53.1°
+```
+
+**3. Prediction**
+```
+predicted = (1 + 0.6) / 2 = 0.8
+```
+
+**4. Actual Reward & Error**
+```
+actual = 1.0
+error = 1.0 - 0.8 = +0.2  (underestimated by 20%!)
+```
+
+**5. Calculate Updates**
+```
+Drone adjustment  = 0.1 × 0.2 × [0.6, 0.8] = [0.012, 0.016]
+Target adjustment = 0.1 × 0.2 × [1.0, 0.0] = [0.02, 0.0]
+
+drone_raw  = [1.012, 0.016]  → normalized → [0.999, 0.016]
+target_raw = [0.62, 0.8]     → normalized → [0.613, 0.790]
+```
+
+**6. How Close Are They? (After Learning)**
+```
+dot product = 0.999×0.613 + 0.016×0.790 = 0.624
+angle = arccos(0.624) = 51.4°
+```
+
+**7. Summary**
+
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| Dot product | 0.600 | 0.624 | **+0.024** |
+| Angle | 53.1° | 51.4° | **-1.7°** |
+| Prediction | 0.80 | 0.812 | **+0.012** |
+
+**What happened?** Both vectors rotated ~1.7° toward each other in a single step. With repeated interactions, they'll continue converging until prediction ≈ actual.
+
+**Why update both?** Symmetric learning — the target vector encodes vulnerability patterns just as the drone vector encodes weapon patterns. When multiple drones hit the same target, that target's vector gets refined from multiple perspectives.
+
+**Why normalize?** Constrains vectors to unit length, preventing unbounded growth and ensuring predictions stay in [0, 1].
+
+### Step 4: Learning from Others
 
 So far we've seen how drone_0 learns from its **own** action. But drone_0 also observes **other drones' rewards** and learns from them too.
 
-**Example: drone_0 observes drone_4's action**
+#### The Prediction (for another agent)
 
+drone_0 predicts what reward drone_4 should get using its **mental models**:
+
+```
+predicted = (1 + other_agents_lv[4] · target_lv[1]) / 2
+```
+
+This uses:
+- `other_agents_lv[4]` — drone_0's estimate of drone_4's "weapon signature"
+- `target_lv[1]` — drone_0's estimate of target_1's "vulnerability"
+
+#### The Update Rule
+
+Same SGD formula as Step 3, but updates different vector pairs:
+
+```
+new_other_agents_lv[4] = normalize(other_agents_lv[4] + η × error × target_lv[1])
+new_target_lv[1]       = normalize(target_lv[1] + η × error × other_agents_lv[4])
+```
+
+#### Example (learning_rate = 0.1)
+
+**1. Starting State — drone_0's Mental Models**
+```
+other_agents_lv[4] = [0.8, 0.6]     (drone_0's estimate of drone_4)
+target_lv[1]       = [0.2, 0.98]    (drone_0's estimate of target_1)
+```
+
+**2. How Close Are They? (Before Learning)**
+```
+dot product = 0.8×0.2 + 0.6×0.98 = 0.16 + 0.588 = 0.748
+angle = arccos(0.748) = 41.6°
+```
+
+**3. Prediction**
+```
+predicted = (1 + 0.748) / 2 = 0.874
+```
+
+**4. drone_4's Actual Reward (Observed by drone_0)**
 ```
 drone_4 fires at target_1 → gets reward 1.0
-drone_0 observes this (via shared observation)
+drone_0 observes this
+
+actual = 1.0
+error = 1.0 - 0.874 = +0.126  (underestimated!)
 ```
 
-drone_0 now updates:
-- `other_agents_lv[4]` — its estimate of drone_4's "weapon signature"
-- `target_lv[1]` — its estimate of target_1's "vulnerability"
-
+**5. Calculate Updates**
 ```
-drone_0's prediction for drone_4 → target_1:
-  predicted = (1 + other_agents_lv[4] · target_lv[1]) / 2 = 0.65
-  actual = 1.0
-  error = +0.35
+other_agents_lv[4] adjustment = 0.1 × 0.126 × [0.2, 0.98] = [0.0025, 0.0123]
+target_lv[1] adjustment       = 0.1 × 0.126 × [0.8, 0.6]  = [0.0101, 0.0076]
 
-Updates:
-  other_agents_lv[4] moves toward target_lv[1]
-  target_lv[1] moves toward other_agents_lv[4]
+other_agents_lv[4]: [0.8, 0.6]    → [0.8025, 0.6123] → normalized → [0.795, 0.607]
+target_lv[1]:       [0.2, 0.98]   → [0.2101, 0.9876] → normalized → [0.208, 0.978]
 ```
 
-**The indirect learning chain:**
+**6. How Close Are They? (After Learning)**
+```
+dot product = 0.795×0.208 + 0.607×0.978 = 0.759
+angle = arccos(0.759) = 40.6°
+```
+
+**7. Summary**
+
+| Metric | Before | After | Change |
+|--------|--------|-------|--------|
+| Dot product | 0.748 | 0.759 | **+0.011** |
+| Angle | 41.6° | 40.6° | **-1.0°** |
+| Prediction | 0.874 | 0.880 | **+0.006** |
+
+**What happened?** drone_0's mental model of drone_4 and target_1 improved — without drone_0 firing a single shot!
+
+#### The Indirect Learning Chain
 
 Over time, if drone_4 has the same weapon type as drone_0:
 1. drone_4 gets similar rewards to drone_0 on similar targets
@@ -269,20 +457,18 @@ Over time, if drone_4 has the same weapon type as drone_0:
 4. Since `other_agents_lv[4] ≈ agent_lv`, this means `target_lv[1]` aligns with drone_0's signature too
 5. **Result:** drone_0 learns target_1 is good for it, without ever firing at it!
 
-**What gets updated each step:**
+#### What Gets Updated Each Step
 
 | Vector Type | Updated For |
 |-------------|-------------|
 | `agent_lv` | Only from own action (1 update max) |
-| `target_lv[X]` | Only targets hit by **any** drone this step |
-| `other_agents_lv[i]` | Only drones that fired this step |
+| `target_lv[X]` | Targets hit by **any** drone this step |
+| `other_agents_lv[i]` | Drones that fired this step |
 
-Targets nobody hit → no update. Learning is focused on observed outcomes, not speculation.
-
-**Important:** `other_agents_lv` is used **only for learning**, not for target selection. When drone_0 picks a target, it uses:
+**Important:** `other_agents_lv` is used **only for learning**, not for target selection. Action selection uses only:
 
 ```
-predicted_reward = dot(agent_lv, target_lv[target_idx])
+predicted_reward = (1 + agent_lv · target_lv[target_idx]) / 2
 ```
 
 So `other_agents_lv` affects decisions **indirectly** — by improving `target_lv` estimates through observed rewards from other drones.

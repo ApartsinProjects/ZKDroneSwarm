@@ -1,10 +1,161 @@
 # Part 2: The Math Foundation
 
-This section derives the SGD update rules from first principles. We'll start with the general matrix factorization framework, then show exactly how the code implements it.
+This section provides the rigorous mathematical derivation of the Collaborative Filtering (CF) policy. Each formula is derived from first principles and connected to its role in the learning cycle.
+
+**Document Structure:**
+
+| Section | Content | Role |
+|---------|---------|------|
+| **0. Reward Calculation** | 3 reward modes | Environment input |
+| **1. Vectors** | agent_lv, target_lv, other_agents_lv | Building blocks |
+| **2. Prediction** | Dot product formula, scaling | Policy predicts |
+| **3. SGD Update** | The learning step | Policy learns |
+| ↳ 3.1 Loss Function | MSE definition | *Why we update* |
+| ↳ 3.2 Gradient Derivation | Chain rule for u, v | *How to update* |
+| ↳ 3.3 Update Formulas | Final formulas + normalization | *What to apply* |
+| **4. Learning from Others** | Prediction for others, update rules | Collaborative aspect |
+| **5. Summary** | Key equations table | Quick reference |
+
+**Runtime Flow:**
+```
+[Reward Calculation] ──reward──► [Prediction] ──error──► [SGD Update]
+    (Section 0)                   (Section 2)            (Section 3)
+                                       ▲                      │
+                                       │                      ▼
+                                  [Vectors]            [Normalization]
+                                 (Section 1)            (Section 3.3)
+```
+
+**SGD Update Derivation (Section 3):**
+```
+[Loss Function] ──────► [Gradient Derivation] ──────► [Update Formulas]
+  (Section 3.1)            (Section 3.2)               (Section 3.3)
+```
+
+**Vector Data Flow:**
+```
+                    ┌─────────────────────────────────────────────┐
+                    │           PREDICTION (Section 2)            │
+                    │                                             │
+  agent_lv ────────►│  predicted = (1 + agent_lv · target_lv) / 2 │
+  target_lv[j] ────►│                                             │
+                    └─────────────────────────────────────────────┘
+                                       │
+                                       ▼
+                    ┌─────────────────────────────────────────────┐
+                    │   LEARNING - Own Action (Section 3)         │
+                    │                                             │
+  agent_lv ◄───────│  agent_lv += η × error × target_lv          │
+  target_lv[j] ◄───│  target_lv += η × error × agent_lv          │
+                    └─────────────────────────────────────────────┘
+
+                    ┌─────────────────────────────────────────────┐
+                    │   LEARNING - From Others (Section 4)        │
+                    │                                             │
+  other_agents_lv[m]◄──│ other_agents_lv[m] += η × error × target_lv  │
+  target_lv[j] ◄───────│ target_lv[j] += η × error × other_agents_lv[m]│
+                    └─────────────────────────────────────────────┘
+```
 
 ---
 
-## 1. Matrix Factorization Setup
+## 0. Reward Calculation (Environment Side)
+
+**Purpose:** Define what the agent learns *from*. The reward signal is the ground truth that drives all learning.
+
+**Flow context:** This is the INPUT to the learning cycle — the environment computes a reward after each action.
+
+### The Three Reward Modes
+
+The environment supports three reward calculation modes. Each produces a scalar reward $r \in [0, 1]$.
+
+#### 0.1 HP_REDUCTION (Default, ZK-MRTA Compliant)
+
+Rewards proportional to total HP reduced relative to HP before the shot.
+
+$$r = \frac{HP_{before} - HP_{after}}{HP_{before}}$$
+
+**Properties:**
+- Uses only aggregate HP (scalars)
+- No per-attribute information leaks to the agent
+- **ZK-MRTA compliant** — pure black-box outcome
+
+#### 0.2 DOMINANT_ATTRIBUTE
+
+Rewards damage dealt to the target's currently highest attribute.
+
+$$r = \frac{d_{dominant}}{\max_k(D_k)}$$
+
+Where:
+- $d_{dominant}$ = weapon's damage to the dominant attribute
+- $\max_k(D_k)$ = maximum single-attribute damage across all weapons
+
+**Properties:**
+- Encodes per-attribute weapon damage in reward signal
+- **Not ZK-MRTA compliant** — reward pattern leaks weapon profile
+
+#### 0.3 ATTRIBUTE_ALIGNMENT
+
+Rewards based on damage efficiency weighted by cosine similarity.
+
+$$r = \text{DamageEfficiency} \times \cos(\vec{w}, \vec{h})$$
+
+Where:
+
+$$\text{DamageEfficiency} = \frac{\sum_i \min(w_i, h_i)}{\sum_i w_i}$$
+
+$$\cos(\vec{w}, \vec{h}) = \frac{\vec{w} \cdot \vec{h}}{\|\vec{w}\| \|\vec{h}\|}$$
+
+- $\vec{w}$ = weapon damage profile vector
+- $\vec{h}$ = target HP profile vector
+
+**Properties:**
+- Uses full weapon and target vectors
+- **Not ZK-MRTA compliant** — reward pattern leaks weapon profile
+
+---
+
+## 1. Vectors (Building Blocks)
+
+**Purpose:** Define the latent vectors that store learned knowledge and enable predictions.
+
+**Flow context:** These vectors are the CORE DATA STRUCTURES. They're initialized at start, used for prediction, and updated during learning.
+
+### Vector Definitions
+
+Each agent maintains three sets of latent vectors:
+
+| Vector | Notation | Dimension | Description |
+|--------|----------|-----------|-------------|
+| **Agent vector** | $\mathbf{u}_i$ | $k \times 1$ | This agent's latent representation (encodes learned "weapon signature") |
+| **Target vectors** | $\mathbf{v}_j$ | $k \times 1$ each | This agent's estimate of each target's vulnerability |
+| **Other agent vectors** | $\mathbf{u}_m^{\text{est}}$ | $k \times 1$ each | This agent's estimate of other agents' signatures |
+
+Where $k$ is the latent dimension (typically 2-3).
+
+### Initialization
+
+All vectors are initialized as random unit vectors:
+
+$$\mathbf{x} = \text{normalize}(\text{uniform}(-1, 1)^k)$$
+
+### Vector Usage
+
+| Vector | Used in Prediction? | Updated by Own Action? | Updated by Others' Actions? |
+|--------|---------------------|------------------------|----------------------------|
+| `agent_lv` | ✅ Yes | ✅ Yes | ❌ No |
+| `target_lv[j]` | ✅ Yes | ✅ Yes | ✅ Yes |
+| `other_agents_lv[m]` | ❌ No | ❌ No | ✅ Yes |
+
+**Key insight:** `target_lv` is refined from MULTIPLE sources (own + others), while `agent_lv` only learns from own actions.
+
+---
+
+## 2. Prediction
+
+**Purpose:** Define how the agent estimates expected rewards using latent vectors.
+
+**Flow context:** This is the PREDICTION step. Before acting, the agent predicts which target will yield the highest reward.
 
 ### The Goal
 
@@ -41,7 +192,13 @@ $$\hat{r}_{ij} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}$$
 
 ---
 
-## 2. Loss Function
+## 3. SGD Update
+
+**Purpose:** Apply Stochastic Gradient Descent to adjust latent vectors, reducing future prediction errors.
+
+**Flow context:** This is the LEARNING step. After observing an actual reward, we compute the error and update vectors to improve future predictions.
+
+### 3.1 Loss Function
 
 We use **squared error loss** for a single observation:
 
@@ -49,27 +206,21 @@ $$L = \frac{1}{2}(r_{ij} - \hat{r}_{ij})^2$$
 
 The $\frac{1}{2}$ is a convenience factor that simplifies the gradient.
 
-### Expanded Form
-
-Substituting the prediction formula:
+**Expanded form** (substituting prediction formula):
 
 $$L = \frac{1}{2}\left(r_{ij} - \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}\right)^2$$
 
----
+**Error definition:**
 
-## 3. Gradient Derivation
+$$e_{ij} = r_{ij} - \hat{r}_{ij}$$
 
-We want to minimize $L$ by adjusting $\mathbf{u}_i$ and $\mathbf{v}_j$ using gradient descent.
+Then: $L = \frac{1}{2} e_{ij}^2$
 
-### Step 3.1: Define the Error
+### 3.2 Gradient Derivation
 
-Let:
-$$e_{ij} = r_{ij} - \hat{r}_{ij} = r_{ij} - \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}$$
+We want to minimize $L$ by adjusting $\mathbf{u}_i$ and $\mathbf{v}_j$. The gradient tells us the direction and magnitude of adjustment.
 
-Then:
-$$L = \frac{1}{2} e_{ij}^2$$
-
-### Step 3.2: Gradient with Respect to $\mathbf{u}_i$
+#### Gradient with Respect to $\mathbf{u}_i$
 
 Using the chain rule:
 
@@ -84,159 +235,99 @@ $$\frac{\partial L}{\partial \mathbf{u}_i} = \frac{\partial L}{\partial e_{ij}} 
 **Combined:**
 $$\frac{\partial L}{\partial \mathbf{u}_i} = e_{ij} \cdot (-1) \cdot \frac{\mathbf{v}_j}{2} = -\frac{e_{ij} \cdot \mathbf{v}_j}{2}$$
 
-### Step 3.3: Gradient with Respect to $\mathbf{v}_j$
+#### Gradient with Respect to $\mathbf{v}_j$
 
-By symmetry:
+Using the chain rule (same structure):
 
-$$\frac{\partial L}{\partial \mathbf{v}_j} = -\frac{e_{ij} \cdot \mathbf{u}_i}{2}$$
+$$\frac{\partial L}{\partial \mathbf{v}_j} = \frac{\partial L}{\partial e_{ij}} \cdot \frac{\partial e_{ij}}{\partial \hat{r}_{ij}} \cdot \frac{\partial \hat{r}_{ij}}{\partial \mathbf{v}_j}$$
 
----
+**Term 1:** $\frac{\partial L}{\partial e_{ij}} = e_{ij}$
 
-## 4. SGD Update Rules
+**Term 2:** $\frac{\partial e_{ij}}{\partial \hat{r}_{ij}} = -1$
+
+**Term 3:** $\frac{\partial \hat{r}_{ij}}{\partial \mathbf{v}_j} = \frac{\partial}{\partial \mathbf{v}_j}\left(\frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}\right) = \frac{\mathbf{u}_i}{2}$
+
+**Combined:**
+$$\frac{\partial L}{\partial \mathbf{v}_j} = e_{ij} \cdot (-1) \cdot \frac{\mathbf{u}_i}{2} = -\frac{e_{ij} \cdot \mathbf{u}_i}{2}$$
+
+### 3.3 Update Formulas + Normalization
 
 Gradient descent updates parameters in the **opposite direction** of the gradient:
 
-$$\mathbf{u}_i \leftarrow \mathbf{u}_i - \eta \cdot \frac{\partial L}{\partial \mathbf{u}_i}$$
+$$\mathbf{u}_i \leftarrow \mathbf{u}_i - \eta \cdot \frac{\partial L}{\partial \mathbf{u}_i} = \mathbf{u}_i + \frac{\eta}{2} \cdot e_{ij} \cdot \mathbf{v}_j$$
 
-Substituting:
+The implementation absorbs the $\frac{1}{2}$ into the learning rate, yielding:
 
-$$\mathbf{u}_i \leftarrow \mathbf{u}_i - \eta \cdot \left(-\frac{e_{ij} \cdot \mathbf{v}_j}{2}\right) = \mathbf{u}_i + \frac{\eta}{2} \cdot e_{ij} \cdot \mathbf{v}_j$$
+$$\mathbf{u}_i \leftarrow \mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j$$
 
-### Simplification in Code
-
-The implementation absorbs the $\frac{1}{2}$ factor into the learning rate. Effectively:
-
-$$\mathbf{u}_i \leftarrow \mathbf{u}_i + \eta' \cdot e_{ij} \cdot \mathbf{v}_j$$
-
-Where $\eta' = \frac{\eta}{2}$. In the code, `learning_rate = 0.05` already accounts for this.
-
-### Final Update Rules
-
-**For agent's own action:**
+#### Final Update Rules (with Normalization)
 
 $$\mathbf{u}_i^{\text{new}} = \text{normalize}\left(\mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j\right)$$
 
 $$\mathbf{v}_j^{\text{new}} = \text{normalize}\left(\mathbf{v}_j + \eta \cdot e_{ij} \cdot \mathbf{u}_i\right)$$
 
-**For other agent's action** (agent $i$ observing agent $m$'s reward):
-
-$$\mathbf{u}_m^{\text{est, new}} = \text{normalize}\left(\mathbf{u}_m^{\text{est}} + \eta \cdot e_{mj} \cdot \mathbf{v}_j\right)$$
-
-$$\mathbf{v}_j^{\text{new}} = \text{normalize}\left(\mathbf{v}_j + \eta \cdot e_{mj} \cdot \mathbf{u}_m^{\text{est}}\right)$$
-
-Where $\mathbf{u}_m^{\text{est}}$ is agent $i$'s **estimate** of agent $m$'s latent vector.
-
----
-
-## 5. Normalization
-
-After each update, vectors are normalized to unit length:
+#### Why Normalize?
 
 $$\text{normalize}(\mathbf{x}) = \frac{\mathbf{x}}{\|\mathbf{x}\|}$$
-
-### Why Normalize?
 
 1. **Bounded predictions**: Keeps $\hat{r}_{ij} \in [0, 1]$
 2. **Numerical stability**: Prevents vectors from growing unboundedly
 3. **Geometric interpretation**: Vectors live on the unit hypersphere; learning adjusts their **direction**, not magnitude
 
----
+#### Geometric Intuition
 
-## 6. Code Mapping
-
-Here's how the math maps to the actual implementation:
-
-### Prediction (`BaseCFPolicy.predict_reward`)
-
-```python
-def predict_reward(self, target_idx: int) -> float:
-    dot = np.dot(self.agent_lv, self.target_lv[target_idx])
-    return (1 + dot) / 2  # Maps [-1, 1] to [0, 1]
-```
-
-**Math:** $\hat{r}_{ij} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}$
-
-### Update for Own Action (`BaseCFPolicy.update`)
-
-```python
-def update(self, target_idx: int, observed_reward: float) -> None:
-    if target_idx < 0 or observed_reward < 0:
-        return  # Skip NoOp or wasted shots
-    
-    predicted = self.predict_reward(target_idx)
-    error = observed_reward - predicted  # e_ij
-    
-    # Store copies before update (simultaneous update)
-    agent_vec = self.agent_lv.copy()
-    target_vec = self.target_lv[target_idx].copy()
-    
-    # SGD updates
-    self.agent_lv += self.learning_rate * error * target_vec
-    self.target_lv[target_idx] += self.learning_rate * error * agent_vec
-    
-    # Normalize to unit sphere
-    self.agent_lv = normalize(self.agent_lv)
-    self.target_lv[target_idx] = normalize(self.target_lv[target_idx])
-```
-
-**Math:**
-- $e_{ij} = r_{ij} - \hat{r}_{ij}$
-- $\mathbf{u}_i \leftarrow \text{normalize}(\mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j)$
-- $\mathbf{v}_j \leftarrow \text{normalize}(\mathbf{v}_j + \eta \cdot e_{ij} \cdot \mathbf{u}_i)$
-
-### Update from Other's Action (`BaseCFPolicy._update_from_other`)
-
-```python
-def _update_from_other(self, other_agent_idx: int, target_idx: int, observed_reward: float) -> None:
-    if target_idx < 0 or observed_reward < 0:
-        return
-    
-    predicted = self._predict_reward_for_other(other_agent_idx, target_idx)
-    error = observed_reward - predicted
-    
-    other_agent_vec = self.other_agents_lv[other_agent_idx].copy()
-    target_vec = self.target_lv[target_idx].copy()
-    
-    self.other_agents_lv[other_agent_idx] += self.learning_rate * error * target_vec
-    self.target_lv[target_idx] += self.learning_rate * error * other_agent_vec
-    
-    self.other_agents_lv[other_agent_idx] = normalize(self.other_agents_lv[other_agent_idx])
-    self.target_lv[target_idx] = normalize(self.target_lv[target_idx])
-```
-
-**Key difference:** Updates `other_agents_lv[m]` (this agent's estimate of agent $m$) instead of `agent_lv`.
+| Error | Meaning | Vector Movement | Future Prediction |
+|-------|---------|-----------------|-------------------|
+| $e > 0$ | Underestimated | Vectors rotate **toward** each other | Higher |
+| $e < 0$ | Overestimated | Vectors rotate **away** from each other | Lower |
+| $e = 0$ | Perfect | No change | Same |
 
 ---
 
-## 7. Intuition: What Do the Updates Do?
+## 4. Learning from Others
 
-### Positive Error ($r > \hat{r}$): "Underestimated"
+**Purpose:** Extend the update rules to learn from observed actions of other agents.
 
-The actual reward was **higher** than predicted. We should:
-- Move $\mathbf{u}_i$ **toward** $\mathbf{v}_j$ (increase alignment)
-- Move $\mathbf{v}_j$ **toward** $\mathbf{u}_i$
+**Flow context:** When agent $i$ observes agent $m$ fire at target $j$ and receive reward $r_{mj}$, agent $i$ updates its **mental models** of both agent $m$ and target $j$.
 
-This increases the dot product, raising future predictions for this pair.
+### Prediction for Other Agent
 
-### Negative Error ($r < \hat{r}$): "Overestimated"
+Agent $i$ predicts what reward agent $m$ should get:
 
-The actual reward was **lower** than predicted. We should:
-- Move $\mathbf{u}_i$ **away from** $\mathbf{v}_j$ (decrease alignment)
-- Move $\mathbf{v}_j$ **away from** $\mathbf{u}_i$
+$$\hat{r}_{mj} = \frac{1 + \mathbf{u}_m^{\text{est}} \cdot \mathbf{v}_j}{2}$$
 
-This decreases the dot product, lowering future predictions for this pair.
+Where $\mathbf{u}_m^{\text{est}}$ is agent $i$'s **estimate** of agent $m$'s latent vector.
 
-### Geometric View
+### Error
 
-On the unit hypersphere:
-- **High reward** → Vectors rotate toward each other
-- **Low reward** → Vectors rotate away from each other
+$$e_{mj} = r_{mj} - \hat{r}_{mj}$$
 
-Over time, agent vectors cluster with targets they're effective against.
+### Update Rules
+
+$$\mathbf{u}_m^{\text{est, new}} = \text{normalize}\left(\mathbf{u}_m^{\text{est}} + \eta \cdot e_{mj} \cdot \mathbf{v}_j\right)$$
+
+$$\mathbf{v}_j^{\text{new}} = \text{normalize}\left(\mathbf{v}_j + \eta \cdot e_{mj} \cdot \mathbf{u}_m^{\text{est}}\right)$$
+
+### Key Insight
+
+The agent's own latent vector $\mathbf{u}_i$ is **NOT** updated when learning from others. Only `other_agents_lv[m]` and `target_lv[j]` change.
+
+This means:
+- `target_lv` gets refined from MULTIPLE sources (own actions + all observed actions)
+- `other_agents_lv` is used ONLY for learning, never for action selection
+
+### The Indirect Learning Chain
+
+If agent $m$ has a similar weapon to agent $i$:
+1. Agent $m$ gets similar rewards to agent $i$ on similar targets
+2. Agent $i$'s $\mathbf{u}_m^{\text{est}}$ converges toward $\mathbf{u}_i$
+3. When agent $m$ gets high reward on target $j$, agent $i$'s $\mathbf{v}_j$ aligns with $\mathbf{u}_m^{\text{est}}$
+4. Since $\mathbf{u}_m^{\text{est}} \approx \mathbf{u}_i$, this means $\mathbf{v}_j$ aligns with agent $i$'s signature too
+5. **Result:** Agent $i$ learns target $j$ is good for it, without ever firing at it!
 
 ---
 
-## 8. Summary of Key Equations
+## 5. Summary of Key Equations
 
 | Quantity | Formula |
 |----------|---------|
@@ -245,6 +336,7 @@ Over time, agent vectors cluster with targets they're effective against.
 | Agent update | $\mathbf{u}_i \leftarrow \text{norm}(\mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j)$ |
 | Target update | $\mathbf{v}_j \leftarrow \text{norm}(\mathbf{v}_j + \eta \cdot e_{ij} \cdot \mathbf{u}_i)$ |
 | Other agent update | $\mathbf{u}_m^{\text{est}} \leftarrow \text{norm}(\mathbf{u}_m^{\text{est}} + \eta \cdot e_{mj} \cdot \mathbf{v}_j)$ |
+| Target update (from other) | $\mathbf{v}_j \leftarrow \text{norm}(\mathbf{v}_j + \eta \cdot e_{mj} \cdot \mathbf{u}_m^{\text{est}})$ |
 
 ---
 
