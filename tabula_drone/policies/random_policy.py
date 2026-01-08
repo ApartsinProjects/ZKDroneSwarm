@@ -5,7 +5,7 @@ Implements uniform random selection over active targets, compliant with
 Zero-Knowledge Multi-Robot Task Allocation constraints.
 """
 
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 
@@ -84,8 +84,8 @@ class RandomPolicy:
     
     def select_actions(
         self,
-        observations: Dict[str, np.ndarray],
-        num_targets: int,
+        obs: Dict[str, Any],
+        info: Dict[str, Any],
     ) -> Dict[str, int]:
         """
         Select random actions for all agents.
@@ -94,16 +94,29 @@ class RandomPolicy:
         (NoOp + active targets). Actions are independent - no coordination.
         
         Args:
-            observations: Dict of {agent_id: observation_array}
-            num_targets: Total number of targets in environment
+            obs: Dict of {agent_id: observation_array}
+            info: Environment info dict (unused by this policy)
         
         Returns:
             actions: Dict of {agent_id: action}
         """
+        num_targets = len(info.get("target_active", []))
         actions = {}
         
-        for agent_id, observation in observations.items():
+        for agent_id, observation in obs.items():
             action = self.select_action(observation, num_targets)
             actions[agent_id] = action
         
         return actions
+
+    def update(self, obs: Dict[str, Any]) -> None:
+        """No-op: RandomPolicy does not learn."""
+        pass
+
+    def soft_reset(self) -> None:
+        """No-op: RandomPolicy has no episode-level state."""
+        pass
+
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+        """Returns None: RandomPolicy has no learning state."""
+        return None

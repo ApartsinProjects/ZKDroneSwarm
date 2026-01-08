@@ -8,7 +8,7 @@ constraints (at most one drone per target).
 Privileged baseline (not ZK-compliant): uses true target attribute values.
 """
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -179,9 +179,8 @@ class OptimalAssignmentOracle:
     
     def select_actions(
         self,
-        observations: Dict[str, np.ndarray],
-        num_targets: int,
-        targets_state: List[Dict[str, float]],
+        obs: Dict[str, Any],
+        info: Dict[str, Any],
     ) -> Dict[str, int]:
         """
         Select globally optimal actions for all agents.
@@ -189,10 +188,8 @@ class OptimalAssignmentOracle:
         Computes one-to-one assignment maximizing total dot-product score.
         
         Args:
-            observations: Dict of {agent_id: observation_array}
-            num_targets: Total number of targets in environment
-            targets_state: Privileged list of target attribute dicts.
-                          Each dict maps attribute names to remaining values.
+            obs: Dict of {agent_id: observation_array}
+            info: Environment info dict containing 'target_attributes'
         
         Returns:
             actions: Dict of {agent_id: action}
@@ -200,7 +197,10 @@ class OptimalAssignmentOracle:
                     1 to num_targets = Fire at target (1-indexed)
                     Note: Unassigned drones get 0 if allow_noop, else -1
         """
-        first_obs = next(iter(observations.values()))
+        num_targets = len(info.get("target_active", []))
+        targets_state = info.get("target_attributes", [])
+        
+        first_obs = next(iter(obs.values()))
         active_mask = self._parse_active_mask(first_obs, num_targets)
         
         attribute_names = self._get_attribute_names(targets_state)
@@ -223,3 +223,15 @@ class OptimalAssignmentOracle:
                 result[agent_id] = 0
         
         return result
+
+    def update(self, obs: Dict[str, Any]) -> None:
+        """No-op: OptimalAssignmentOracle does not learn."""
+        pass
+
+    def soft_reset(self) -> None:
+        """No-op: OptimalAssignmentOracle has no episode-level state."""
+        pass
+
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+        """Returns None: OptimalAssignmentOracle has no learning state."""
+        return None

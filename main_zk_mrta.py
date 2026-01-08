@@ -24,10 +24,10 @@ from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 from tabula_drone.policies.selfish_ep_greedy_cf_policy import SelfishEpGreedyCFPolicy
 from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
+from tabula_drone.policies.decentralized_wrapper import DecentralizedPolicyWrapper
+from tabula_drone.policies.base import Policy
 
 CONFIG_PATH = "config/scenario.json"
-
-PolicyType = Union[RandomPolicy, OracleTimeToKillPolicy, OptimalAssignmentOracle, UCBCFPolicy, SelfishEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy, Dict[str, SelfishEpGreedyCFPolicy], Dict[str, CoordinatedEpGreedyCFPolicy]]
 
 # "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
 def print_episode_summary(
@@ -141,7 +141,7 @@ def create_policy(
     config: Any,
     drones_config: List[Dict[str, Any]],
     num_targets: Optional[int] = None,
-) -> PolicyType:
+) -> Policy:
     """
     Factory function to create a policy instance.
     
@@ -212,7 +212,7 @@ def create_policy(
                 epsilon_min=selfish_cfg.epsilon_min if selfish_cfg.epsilon_min else 0.05,
                 seed=config.seed + agent_idx if config.seed else None,
             )
-        return policies
+        return DecentralizedPolicyWrapper(policies)
     elif policy_type == "coordinated_ep_greedy_cf":
         if num_targets is None:
             raise ValueError("num_targets is required for coordinated_ep_greedy_cf policy")
@@ -236,14 +236,14 @@ def create_policy(
                 epsilon_min=coord_cfg.epsilon_min if coord_cfg.epsilon_min else 0.05,
                 seed=config.seed + agent_idx if config.seed else None,
             )
-        return policies
+        return DecentralizedPolicyWrapper(policies)
     else:
         return RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
 
 
 def run_episode(
     env: DroneEngageZKMRTA,
-    policy: PolicyType,
+    policy: Policy,
     episode_num: int,
     verbose: bool = False,
     logger: Optional[EpisodeLogger] = None,
@@ -291,24 +291,9 @@ def run_episode(
     while not done:
         step_count += 1
         
-        # Policy selects actions for all agents
-        if isinstance(policy, (OracleTimeToKillPolicy, OptimalAssignmentOracle)):
-            actions = policy.select_actions(obs, env.num_targets, info["target_attributes"])
-        elif isinstance(policy, UCBCFPolicy):
-            actions = policy.select_actions(obs)
-            # CF policy learns from observations
-            for agent_id, agent_obs in obs.items():
-                policy.update_from_observation(agent_obs, agent_id)
-        elif isinstance(policy, dict) and all(isinstance(p, (SelfishEpGreedyCFPolicy, CoordinatedEpGreedyCFPolicy)) for p in policy.values()):
-            # Decentralized CF: each agent has its own policy instance
-            actions = {}
-            for agent_id, agent_obs in obs.items():
-                actions[agent_id] = policy[agent_id].select_action(agent_obs)
-            # Each agent learns from its own observation (which includes all agents' rewards)
-            for agent_id, agent_obs in obs.items():
-                policy[agent_id].update_from_observation(agent_obs)
-        else:
-            actions = policy.select_actions(obs, env.num_targets)
+        # Policy selects actions for all agents (uniform interface)
+        actions = policy.select_actions(obs, info)
+        policy.update(obs)
         
         # Environment step
         obs, rewards, terminations, truncations, info = env.step(actions)
@@ -570,30 +555,16 @@ def main():
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
             if is_cf and episode_num > 1:
-                if is_ep_greedy_cf:
-                    for p in policy.values():
-                        p.soft_reset()
-                else:
-                    policy.soft_reset()
+                policy.soft_reset()
             
             # Snapshot latent vectors BEFORE episode (for correct learning_path capture)
             if is_ep_greedy_cf:
-                # For decentralized: collect each agent's full private state
-                agent_lv = np.array([policy[f"drone_{i}"].agent_lv.copy() for i in range(len(policy))])
-                target_lv = policy["drone_0"].target_lv.copy()  # Use first agent's target estimates (for alignment score)
+                # For decentralized: use get_learning_state() for state capture
+                pre_episode_state = policy.get_learning_state()
+                # Extract agent_lv and target_lv for alignment score computation
+                agent_lv = np.array([agent["agent_lv"] for agent in pre_episode_state["agents"]])
+                target_lv = np.array(pre_episode_state["agents"][0]["target_lv"])
                 pre_episode_lv = (agent_lv, target_lv)
-                # Full pre-episode state for learning state file
-                pre_episode_state = {
-                    "agents": [
-                        {
-                            "id": f"drone_{i}",
-                            "agent_lv": policy[f"drone_{i}"].agent_lv.tolist(),
-                            "target_lv": policy[f"drone_{i}"].target_lv.tolist(),
-                            "other_agents_lv": policy[f"drone_{i}"].other_agents_lv.tolist(),
-                        }
-                        for i in range(len(policy))
-                    ]
-                }
             elif is_cf:
                 pre_episode_lv = (policy.agent_lv.copy(), policy.target_lv.copy())
             else:
@@ -613,17 +584,7 @@ def main():
             
             # Capture post-episode state for decentralized CF policies
             if is_ep_greedy_cf:
-                post_episode_state = {
-                    "agents": [
-                        {
-                            "id": f"drone_{i}",
-                            "agent_lv": policy[f"drone_{i}"].agent_lv.tolist(),
-                            "target_lv": policy[f"drone_{i}"].target_lv.tolist(),
-                            "other_agents_lv": policy[f"drone_{i}"].other_agents_lv.tolist(),
-                        }
-                        for i in range(len(policy))
-                    ]
-                }
+                post_episode_state = policy.get_learning_state()
             
             # Compute alignment score for CF policies (used by both trackers)
             alignment_score = None
@@ -634,14 +595,13 @@ def main():
             
             # Save decentralized learning state using RunManager (every episode)
             if is_ep_greedy_cf:
-                first_policy = next(iter(policy.values()))
                 run_manager.save_learning_state(
                     pre_state=pre_episode_state,
                     post_state=post_episode_state,
                     episode_num=episode_num,
-                    num_agents=len(policy),
-                    num_targets=first_policy.num_targets,
-                    latent_dim=first_policy.latent_dim,
+                    num_agents=policy.num_agents,
+                    num_targets=policy.num_targets,
+                    latent_dim=policy.latent_dim,
                 )
             
             # Get episode data and add learning path for CF policies

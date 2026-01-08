@@ -220,6 +220,21 @@ class BaseCFPolicy(ABC):
                 else:
                     self._update_from_other(other_agent_idx, target_idx, reward)
     
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+        """
+        Return learning state for logging/visualization.
+        
+        Returns:
+            Dict with this agent's latent vectors
+        """
+        return {
+            "agent_idx": self.agent_idx,
+            "agent_lv": self.agent_lv.tolist(),
+            "target_lv": self.target_lv.tolist(),
+            "other_agents_lv": self.other_agents_lv.tolist(),
+            "epsilon": self.epsilon,
+        }
+
     @abstractmethod
     def select_action(
         self,

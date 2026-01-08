@@ -229,22 +229,48 @@ class UCBCFPolicy:
     
     def select_actions(
         self,
-        observations: Dict[str, Dict[str, Any]],
-        allow_noop: bool = False,
+        obs: Dict[str, Any],
+        info: Dict[str, Any],
     ) -> Dict[str, int]:
         """
         Select actions for all agents.
         
         Args:
-            observations: Dict of {agent_id: observation}
-            allow_noop: If True, include NoOp as valid action
+            obs: Dict of {agent_id: observation}
+            info: Environment info dict (unused by this policy)
         
         Returns:
             Dict of {agent_id: action}
         """
         actions = {}
-        for agent_id, obs in observations.items():
+        for agent_id, agent_obs in obs.items():
             agent_idx = int(agent_id.split('_')[1])
-            actions[agent_id] = self.select_action(agent_idx, obs, allow_noop)
+            actions[agent_id] = self.select_action(agent_idx, agent_obs, allow_noop=False)
         self.total_steps += 1  # Increment once per tick, not per agent
         return actions
+
+    def update(self, obs: Dict[str, Any]) -> None:
+        """
+        Update latent vectors from observations.
+        
+        Learns from all agents' observed rewards (full CF).
+        
+        Args:
+            obs: Dict of {agent_id: observation}
+        """
+        for agent_id, agent_obs in obs.items():
+            self.update_from_observation(agent_obs, agent_id)
+
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+        """
+        Return learning state for logging/visualization.
+        
+        Returns:
+            Dict with agent and target latent vectors
+        """
+        return {
+            "agent_lv": self.agent_lv.tolist(),
+            "target_lv": self.target_lv.tolist(),
+            "visit_counts": self.visit_counts.tolist(),
+            "total_steps": self.total_steps,
+        }

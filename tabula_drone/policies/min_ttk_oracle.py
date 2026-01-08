@@ -6,7 +6,7 @@ weapon damage profile. Not ZK-compliant by design (uses privileged state).
 """
 
 import math
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -171,9 +171,8 @@ class OracleTimeToKillPolicy:
     
     def select_actions(
         self,
-        observations: Dict[str, np.ndarray],
-        num_targets: int,
-        targets_state: List[Dict[str, float]],
+        obs: Dict[str, Any],
+        info: Dict[str, Any],
     ) -> Dict[str, int]:
         """
         Select actions for all agents using privileged target state.
@@ -183,15 +182,27 @@ class OracleTimeToKillPolicy:
         Actions are independent - no coordination between agents.
         
         Args:
-            observations: Dict of {agent_id: observation_array}
-            num_targets: Total number of targets in environment
-            targets_state: Privileged list of target attribute dicts.
-                          Each dict maps attribute names to remaining values.
+            obs: Dict of {agent_id: observation_array}
+            info: Environment info dict containing 'target_attributes'
         
         Returns:
             actions: Dict of {agent_id: action}
         """
+        num_targets = len(info.get("target_active", []))
+        targets_state = info.get("target_attributes", [])
         return {
-            agent_id: self.select_action(agent_id, obs, num_targets, targets_state)
-            for agent_id, obs in observations.items()
+            agent_id: self.select_action(agent_id, observation, num_targets, targets_state)
+            for agent_id, observation in obs.items()
         }
+
+    def update(self, obs: Dict[str, Any]) -> None:
+        """No-op: OracleTimeToKillPolicy does not learn."""
+        pass
+
+    def soft_reset(self) -> None:
+        """No-op: OracleTimeToKillPolicy has no episode-level state."""
+        pass
+
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+        """Returns None: OracleTimeToKillPolicy has no learning state."""
+        return None
