@@ -36,7 +36,6 @@ class SelfishEpGreedyCFPolicy(BaseCFPolicy):
     """
     
     is_deterministic: bool = False
-    is_ep_greedy_cf: bool = True
     
     def select_action(
         self,

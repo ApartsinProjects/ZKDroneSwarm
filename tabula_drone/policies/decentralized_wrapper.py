@@ -43,7 +43,6 @@ class DecentralizedPolicyWrapper:
         self.latent_dim = first_policy.latent_dim
         # Expose metadata attributes from wrapped policies
         self.is_deterministic = first_policy.is_deterministic
-        self.is_ep_greedy_cf = first_policy.is_ep_greedy_cf
     
     def select_actions(
         self,

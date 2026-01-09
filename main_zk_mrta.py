@@ -575,7 +575,6 @@ def main():
         
         # Get policy metadata from policy attributes
         is_deterministic = policy.is_deterministic
-        is_ep_greedy_cf = policy.is_ep_greedy_cf
         effective_episodes = 1 if is_deterministic else num_episodes
         logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
@@ -588,15 +587,13 @@ def main():
                 policy.soft_reset()
             
             # Snapshot latent vectors BEFORE episode (for correct learning_path capture)
-            if is_ep_greedy_cf:
-                # For decentralized: use get_learning_state() for state capture
+            if not is_deterministic:
+                # For CF policies: use get_learning_state() for state capture
                 pre_episode_state = policy.get_learning_state()
                 # Extract agent_lv and target_lv for alignment score computation
                 agent_lv = np.array([agent["agent_lv"] for agent in pre_episode_state["agents"]])
                 target_lv = np.array(pre_episode_state["agents"][0]["target_lv"])
                 pre_episode_lv = (agent_lv, target_lv)
-            elif not is_deterministic:
-                pre_episode_lv = (policy.agent_lv.copy(), policy.target_lv.copy())
             else:
                 pre_episode_lv = None
             
@@ -612,8 +609,8 @@ def main():
             metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
             
-            # Capture post-episode state for decentralized CF policies
-            if is_ep_greedy_cf:
+            # Capture post-episode state for CF policies
+            if not is_deterministic:
                 post_episode_state = policy.get_learning_state()
             
             # Compute alignment score for CF policies (used by both trackers)
@@ -623,8 +620,8 @@ def main():
                     pre_episode_lv[0], pre_episode_lv[1], drones_config, targets_config
                 )
             
-            # Save decentralized learning state using RunManager (every episode)
-            if is_ep_greedy_cf:
+            # Save learning state using RunManager (every episode)
+            if not is_deterministic:
                 run_manager.save_learning_state(
                     pre_state=pre_episode_state,
                     post_state=post_episode_state,
@@ -634,22 +631,8 @@ def main():
                     latent_dim=policy.latent_dim,
                 )
             
-            # Get episode data and add learning path for CF policies
+            # Get episode data
             episode_data = logger.to_dict()
-            if not is_deterministic and not is_ep_greedy_cf:
-                episode_data["learning_path"] = {
-                    "alignment_score": alignment_score,
-                    "agents": [
-                        {"id": f"A{i}", "weapon_type": d["weapon_type"],
-                         "latent_vector": pre_episode_lv[0][i].tolist()}
-                        for i, d in enumerate(drones_config)
-                    ],
-                    "targets": [
-                        {"id": f"T{i}", "class_type": t["class_type"],
-                         "latent_vector": pre_episode_lv[1][i].tolist()}
-                        for i, t in enumerate(targets_config)
-                    ]
-                }
             
             # Get analysis data for engagement tracking and save per-episode
             analysis_data = logger.get_analysis_data()
