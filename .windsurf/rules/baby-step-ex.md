@@ -1,6 +1,7 @@
 ---
 trigger: model_decision
 description: description: Enforce the Baby Steps methodology. All work must progress in small, atomic, validated increments with full documentation and clear outcomes.
+globs: 
 ---
 
 # 1: Smallest Possible Meaningful Change
@@ -13,6 +14,8 @@ Produce:
 Guardrails:
 - Never attempt multiple accomplishments at once.
 - If a step feels too big, refine it until it is truly minimal.
+- Prefer steps that keep the codebase buildable; if dependencies are missing, use minimal stubs instead of deferring compile errors.
+
 
 # 2: The Process is the Product
 Purpose: Treat the way we work as part of the deliverable.

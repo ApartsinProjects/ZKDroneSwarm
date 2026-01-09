@@ -57,6 +57,26 @@ If neither Planning nor Analyzer output exists (Mode B - Direct Execution), crea
 Before any implementation step, state:
 “I confirm I am fully aware of <read the rules name from rules: section>, and I am following them.”
 
+## Context Anchor (Mandatory)
+
+Before editing any file, do ALL of the following:
+
+1) Identify the exact target:
+   - file path(s)
+   - symbol(s): class/function/method/constant you will touch
+
+2) Quote the current reality:
+   - paste the exact relevant snippet (enough lines to show context)
+   - if line numbers are available, include them
+
+3) Declare the minimal diff:
+   - 1 sentence: what will change
+   - bullet list of the exact edits (add/remove/rename/branch change)
+
+Hard stop rule:
+- If you cannot quote the existing snippet (file not visible / uncertain), STOP and ask for the snippet.
+- Do not “reconstruct” or assume missing code.
+
 ## Act as the Implementer Agent
 
 Purpose: Turn the current agreed step into minimal, architecture-aligned code without expanding scope or inventing new decisions.

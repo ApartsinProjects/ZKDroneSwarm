@@ -50,6 +50,7 @@ When choices are equivalent, pick the change that:
 
 Guardrails:
 - If a fix requires multiple edits, split into smaller approved steps.
+- No edits without a Context Anchor: quote the existing snippet (or stop and request it). Never assume file contents.
 
 # 7: Encapsulate Variation
 When the caller must decide *how* to handle something based on *what kind* of thing it is, move that decision into the thing itself.

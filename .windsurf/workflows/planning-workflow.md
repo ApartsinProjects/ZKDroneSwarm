@@ -1,6 +1,5 @@
 ---
 description: Define, refine, and approve what will be done. No code generation allowed.
-auto_execution_mode: 1
 ---
 
 # Planning Workflow
@@ -90,6 +89,13 @@ Produce:
 - Side-Effects: expected logs, events, configs, CLI impacts.
 - Testing Touchpoints: which areas need coverage (unit/integration).
 
+Dependency-Safe Baby Step Ordering (Mandatory):
+- Order steps so each step is dependency-complete enough to compile/run.
+- Prefer adding independent code first, then layer-by-layer add dependents.
+- If a future dependency is needed, introduce a minimal stub/no-op adapter so the step remains buildable (real behavior can come later).
+- Each step must include: prerequisites (what must already exist), and a validation command (how we prove this step works).
+
+
 Guardrails:
 - No code or test implementation.
 - Keep diffs minimal, reuse existing code.
@@ -105,7 +111,7 @@ Purpose: Validate the approved plan against rules and design principles.
 
 Produce:
 - Review Verdict: either Approved or Change Requests.
-- Checkpoints: both rules [baby-step-ex, architecture-principles] can be implemented correctly
+- Checkpoints: both rules [baby-steps-ex, architecture-principles] can be implemented correctly
 
 Guardrails:
 - Do not continue beyond review.
