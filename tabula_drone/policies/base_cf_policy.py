@@ -41,7 +41,6 @@ class BaseCFPolicy(ABC):
     """
     
     is_deterministic: bool = False
-    is_cf: bool = True
     is_ep_greedy_cf: bool = False
     
     def __init__(

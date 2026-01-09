@@ -41,7 +41,6 @@ class CoordinatedEpGreedyCFPolicy(BaseCFPolicy):
     """
     
     is_deterministic: bool = False
-    is_cf: bool = True
     is_ep_greedy_cf: bool = True
     
     def _select_action_greedy(

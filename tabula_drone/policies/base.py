@@ -13,12 +13,10 @@ class Policy(Protocol):
     
     Class Attributes:
         is_deterministic: True if policy produces deterministic actions (no randomness)
-        is_cf: True if policy uses collaborative filtering / learning
         is_ep_greedy_cf: True if policy is a decentralized epsilon-greedy CF variant
     """
     
     is_deterministic: bool
-    is_cf: bool
     is_ep_greedy_cf: bool
 
     def select_actions(

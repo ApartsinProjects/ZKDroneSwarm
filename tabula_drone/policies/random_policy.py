@@ -26,7 +26,6 @@ class RandomPolicy:
     """
     
     is_deterministic: bool = True
-    is_cf: bool = False
     is_ep_greedy_cf: bool = False
     
     def __init__(self, seed: Optional[int] = None, allow_noop: bool = True):

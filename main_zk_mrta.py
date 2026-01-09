@@ -575,7 +575,6 @@ def main():
         
         # Get policy metadata from policy attributes
         is_deterministic = policy.is_deterministic
-        is_cf = policy.is_cf
         is_ep_greedy_cf = policy.is_ep_greedy_cf
         effective_episodes = 1 if is_deterministic else num_episodes
         logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
@@ -585,7 +584,7 @@ def main():
         
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
-            if is_cf and episode_num > 1:
+            if not is_deterministic and episode_num > 1:
                 policy.soft_reset()
             
             # Snapshot latent vectors BEFORE episode (for correct learning_path capture)
@@ -596,7 +595,7 @@ def main():
                 agent_lv = np.array([agent["agent_lv"] for agent in pre_episode_state["agents"]])
                 target_lv = np.array(pre_episode_state["agents"][0]["target_lv"])
                 pre_episode_lv = (agent_lv, target_lv)
-            elif is_cf:
+            elif not is_deterministic:
                 pre_episode_lv = (policy.agent_lv.copy(), policy.target_lv.copy())
             else:
                 pre_episode_lv = None
@@ -619,7 +618,7 @@ def main():
             
             # Compute alignment score for CF policies (used by both trackers)
             alignment_score = None
-            if is_cf:
+            if not is_deterministic:
                 alignment_score = compute_alignment_score(
                     pre_episode_lv[0], pre_episode_lv[1], drones_config, targets_config
                 )
@@ -637,7 +636,7 @@ def main():
             
             # Get episode data and add learning path for CF policies
             episode_data = logger.to_dict()
-            if is_cf and not is_ep_greedy_cf:
+            if not is_deterministic and not is_ep_greedy_cf:
                 episode_data["learning_path"] = {
                     "alignment_score": alignment_score,
                     "agents": [
@@ -667,11 +666,11 @@ def main():
                   f"Reward={total_reward:.0f}")
             
             # Print learning path for CF policies
-            if is_cf and config.execution.verbose:
+            if not is_deterministic and config.execution.verbose:
                 print_learning_path(policy, drones_config, targets_config)
             
             # Debug: Analyze agent clustering for CF policies
-            if False and is_cf:
+            if False and not is_deterministic:
                 drone_weapons = [d["weapon_type"] for d in drones_config]
                 analyze_agent_clustering(policy, drone_weapons)
         
