@@ -58,4 +58,4 @@ class Policy(Protocol):
         Returns:
             Dict with learning state (e.g., latent vectors), or None if not a learning policy.
         """
-        ...
+        return None

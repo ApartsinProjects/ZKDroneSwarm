@@ -239,7 +239,3 @@ class OptimalAssignmentOracle:
     def soft_reset(self) -> None:
         """No-op: OptimalAssignmentOracle has no episode-level state."""
         pass
-
-    def get_learning_state(self) -> Optional[Dict[str, Any]]:
-        """Returns None: OptimalAssignmentOracle has no learning state."""
-        return None

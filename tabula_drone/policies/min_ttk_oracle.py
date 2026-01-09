@@ -211,7 +211,3 @@ class OracleTimeToKillPolicy:
     def soft_reset(self) -> None:
         """No-op: OracleTimeToKillPolicy has no episode-level state."""
         pass
-
-    def get_learning_state(self) -> Optional[Dict[str, Any]]:
-        """Returns None: OracleTimeToKillPolicy has no learning state."""
-        return None

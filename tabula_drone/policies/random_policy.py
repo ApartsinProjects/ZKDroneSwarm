@@ -125,7 +125,3 @@ class RandomPolicy:
     def soft_reset(self) -> None:
         """No-op: RandomPolicy has no episode-level state."""
         pass
-
-    def get_learning_state(self) -> Optional[Dict[str, Any]]:
-        """Returns None: RandomPolicy has no learning state."""
-        return None
