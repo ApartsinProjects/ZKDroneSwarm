@@ -15,10 +15,10 @@ from typing import Dict, Optional, Any
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from .base_cf_policy import BaseCFPolicy
+from .base_cf_agent_policy import BaseCFAgentPolicy
 
 
-class CoordinatedEpGreedyCFPolicy(BaseCFPolicy):
+class CoordinatedEpGreedyCFPolicy(BaseCFAgentPolicy):
     """
     Coordinated Collaborative Filtering policy using SGD matrix factorization
     with Hungarian algorithm-based action selection.
@@ -37,10 +37,8 @@ class CoordinatedEpGreedyCFPolicy(BaseCFPolicy):
     Designed for use with DroneEngageZKMRTA in collaborative observation mode.
     One instance per agent in the swarm.
     
-    Inherits from BaseCFPolicy. Implements Hungarian algorithm action selection.
+    Inherits from BaseCFAgentPolicy. Implements Hungarian algorithm action selection.
     """
-    
-    is_deterministic: bool = False
     
     def _select_action_greedy(
         self,

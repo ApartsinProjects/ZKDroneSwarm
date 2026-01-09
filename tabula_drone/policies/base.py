@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Protocol, runtime_checkable
 
 
 @runtime_checkable
-class Policy(Protocol):
+class IPolicy(Protocol):
     """
     Protocol defining the interface all policies must implement.
     

@@ -24,8 +24,8 @@ from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 from tabula_drone.policies.selfish_ep_greedy_cf_policy import SelfishEpGreedyCFPolicy
 from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
-from tabula_drone.policies.decentralized_wrapper import DecentralizedPolicyWrapper
-from tabula_drone.policies.base import Policy
+from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
+from tabula_drone.policies.base import IPolicy
 
 CONFIG_PATH = "config/scenario.json"
 
@@ -141,7 +141,7 @@ def create_policy(
     config: Any,
     drones_config: List[Dict[str, Any]],
     num_targets: Optional[int] = None,
-) -> Policy:
+) -> IPolicy:
     """
     Factory function to create a policy instance.
     
@@ -212,7 +212,7 @@ def create_policy(
                 epsilon_min=selfish_cfg.epsilon_min if selfish_cfg.epsilon_min else 0.05,
                 seed=config.seed + agent_idx if config.seed else None,
             )
-        return DecentralizedPolicyWrapper(policies)
+        return MultiAgentPolicy(policies)
     elif policy_type == "coordinated_ep_greedy_cf":
         if num_targets is None:
             raise ValueError("num_targets is required for coordinated_ep_greedy_cf policy")
@@ -236,7 +236,7 @@ def create_policy(
                 epsilon_min=coord_cfg.epsilon_min if coord_cfg.epsilon_min else 0.05,
                 seed=config.seed + agent_idx if config.seed else None,
             )
-        return DecentralizedPolicyWrapper(policies)
+        return MultiAgentPolicy(policies)
     else:
         return RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
 
@@ -245,7 +245,7 @@ def create_all_policies(
     config: Any,
     drones_config: List[Dict[str, Any]],
     num_targets: int,
-) -> Dict[str, Policy]:
+) -> Dict[str, IPolicy]:
     """
     Create all policy instances upfront.
     
@@ -265,7 +265,7 @@ def create_all_policies(
 
 def run_episode(
     env: DroneEngageZKMRTA,
-    policy: Policy,
+    policy: IPolicy,
     episode_num: int,
     verbose: bool = False,
     logger: Optional[EpisodeLogger] = None,

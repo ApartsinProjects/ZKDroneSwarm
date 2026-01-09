@@ -1,5 +1,5 @@
 """
-Base Collaborative Filtering Policy for ZK-MRTA Environment.
+Base Collaborative Filtering Agent Policy for ZK-MRTA Environment.
 
 Abstract base class containing shared CF logic for SGD-based matrix factorization
 policies. Subclasses implement their own action selection strategies.
@@ -10,6 +10,8 @@ from typing import Dict, Optional, Any
 
 import numpy as np
 
+from .base import IPolicy
+
 
 def normalize(v: np.ndarray) -> np.ndarray:
     """Normalize a vector to unit length."""
@@ -19,9 +21,9 @@ def normalize(v: np.ndarray) -> np.ndarray:
     return v / norm
 
 
-class BaseCFPolicy(ABC):
+class BaseCFAgentPolicy(ABC, IPolicy):
     """
-    Abstract base class for Collaborative Filtering policies using SGD matrix factorization.
+    Abstract base class for Collaborative Filtering agent policies using SGD matrix factorization.
     
     Each agent maintains its own private latent vectors:
     - agent_lv: This agent's latent vector (1D)
@@ -35,6 +37,11 @@ class BaseCFPolicy(ABC):
     
     Designed for use with DroneEngageZKMRTA in collaborative observation mode.
     One instance per agent in the swarm.
+    
+    NOTE: This is a per-agent CF policy. To use with multi-agent environments,
+    wrap instances in MultiAgentPolicy.
+    
+    All CF policies are non-deterministic due to learning and exploration.
     
     Subclasses must implement:
     - select_action(): Action selection strategy (e.g., ε-greedy, Hungarian)
@@ -236,6 +243,28 @@ class BaseCFPolicy(ABC):
             "other_agents_lv": self.other_agents_lv.tolist(),
             "epsilon": self.epsilon,
         }
+
+    def select_actions(
+        self, obs: Dict[str, Any], info: Dict[str, Any]
+    ) -> Dict[str, int]:
+        """
+        IPolicy protocol interface - NOT directly usable for per-agent CF policies.
+        
+        BaseCFAgentPolicy is designed for single-agent use. To use with multi-agent
+        environments, wrap instances in MultiAgentPolicy.
+        
+        Args:
+            obs: Observations dict keyed by agent_id
+            info: Environment info dict
+        
+        Raises:
+            NotImplementedError: Always raised - use MultiAgentPolicy instead
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} is a per-agent CF policy and does not implement "
+            "select_actions() directly. Use MultiAgentPolicy to aggregate "
+            "per-agent policies into a multi-agent IPolicy interface."
+        )
 
     @abstractmethod
     def select_action(

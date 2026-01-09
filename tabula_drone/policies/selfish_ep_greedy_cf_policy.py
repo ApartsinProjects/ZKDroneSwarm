@@ -13,10 +13,10 @@ from typing import Dict, Optional, Any
 
 import numpy as np
 
-from .base_cf_policy import BaseCFPolicy
+from .base_cf_agent_policy import BaseCFAgentPolicy
 
 
-class SelfishEpGreedyCFPolicy(BaseCFPolicy):
+class SelfishEpGreedyCFPolicy(BaseCFAgentPolicy):
     """
     Selfish Collaborative Filtering policy using SGD matrix factorization.
     
@@ -32,10 +32,8 @@ class SelfishEpGreedyCFPolicy(BaseCFPolicy):
     Designed for use with DroneEngageZKMRTA in collaborative observation mode.
     One instance per agent in the swarm.
     
-    Inherits from BaseCFPolicy. Implements ε-greedy action selection.
+    Inherits from BaseCFAgentPolicy. Implements ε-greedy action selection.
     """
-    
-    is_deterministic: bool = False
     
     def select_action(
         self,

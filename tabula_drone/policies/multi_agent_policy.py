@@ -1,18 +1,19 @@
 """
-Decentralized Policy Wrapper for ZK-MRTA Environment.
+Multi-Agent Policy for ZK-MRTA Environment.
 
-Wraps a dict of per-agent policies into a single Policy-compliant object,
+Aggregates per-agent policies into a single IPolicy-compliant object,
 enabling uniform interaction from orchestration code.
 """
 
 from typing import Any, Dict, Optional
 
-from .base_cf_policy import BaseCFPolicy
+from .base import IPolicy
+from .base_cf_agent_policy import BaseCFAgentPolicy
 
 
-class DecentralizedPolicyWrapper:
+class MultiAgentPolicy(IPolicy):
     """
-    Wrapper that aggregates per-agent policies into a single Policy interface.
+    Aggregates per-agent CF policies into a single IPolicy interface.
     
     Takes a dict of {agent_id: policy} where each policy has:
     - select_action(observation) -> int
@@ -20,14 +21,14 @@ class DecentralizedPolicyWrapper:
     - soft_reset() -> None
     - get_learning_state() -> Optional[Dict]
     
-    Provides the unified Policy interface:
+    Provides the unified IPolicy interface:
     - select_actions(obs, info) -> Dict[str, int]
     - update(obs) -> None
     - soft_reset() -> None
     - get_learning_state() -> Optional[Dict]
     """
     
-    def __init__(self, policies: Dict[str, BaseCFPolicy]):
+    def __init__(self, policies: Dict[str, BaseCFAgentPolicy]):
         """
         Initialize wrapper with per-agent policies.
         
