@@ -40,6 +40,10 @@ class CoordinatedEpGreedyCFPolicy(BaseCFPolicy):
     Inherits from BaseCFPolicy. Implements Hungarian algorithm action selection.
     """
     
+    is_deterministic: bool = False
+    is_cf: bool = True
+    is_ep_greedy_cf: bool = True
+    
     def _select_action_greedy(
         self,
         observation: Dict[str, Any],

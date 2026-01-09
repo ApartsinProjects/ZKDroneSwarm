@@ -8,7 +8,7 @@ constraints (at most one drone per target).
 Privileged baseline (not ZK-compliant): uses true target attribute values.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -34,6 +34,10 @@ class OptimalAssignmentOracle:
     - 1 to N: Fire at target index (1-indexed)
     - -1: Unassigned (when more drones than active targets)
     """
+    
+    is_deterministic: bool = True
+    is_cf: bool = False
+    is_ep_greedy_cf: bool = False
     
     def __init__(
         self,
@@ -108,24 +112,30 @@ class OptimalAssignmentOracle:
     
     def _parse_active_mask(
         self,
-        observation: np.ndarray,
+        observation: Union[np.ndarray, Dict[str, Any]],
         num_targets: int,
     ) -> np.ndarray:
         """
         Parse observation to extract active mask for targets.
         
         Args:
-            observation: ZK observation array with shape (3 * num_targets,)
-                        Format: [target_0_x, target_0_y, target_0_active, ...]
+            observation: ZK observation Dict with 'targets' key containing
+                        array of shape (3 * num_targets,)
             num_targets: Total number of targets
         
         Returns:
             Boolean array of shape (num_targets,), True = active
         """
+        # Extract targets array from dict observation
+        if isinstance(observation, dict):
+            target_array = observation["targets"]
+        else:
+            target_array = observation
+
         active = np.zeros(num_targets, dtype=bool)
         for target_idx in range(num_targets):
             obs_idx = target_idx * 3 + 2
-            active[target_idx] = observation[obs_idx] > 0.5
+            active[target_idx] = target_array[obs_idx] > 0.5
         return active
     
     def _solve_assignment(

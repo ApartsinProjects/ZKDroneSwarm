@@ -6,7 +6,7 @@ weapon damage profile. Not ZK-compliant by design (uses privileged state).
 """
 
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
@@ -27,6 +27,10 @@ class OracleTimeToKillPolicy:
     - 0: NoOp (do nothing) - only when allow_noop=True
     - 1 to N: Fire at target index (1-indexed)
     """
+    
+    is_deterministic: bool = True
+    is_cf: bool = False
+    is_ep_greedy_cf: bool = False
     
     def __init__(
         self,
@@ -53,24 +57,31 @@ class OracleTimeToKillPolicy:
     
     def _parse_active_targets_from_obs(
         self,
-        observation: np.ndarray,
+        observation: Union[np.ndarray, Dict[str, Any]],
         num_targets: int,
     ) -> List[bool]:
         """
         Parse observation to extract active status for each target.
         
         Args:
-            observation: ZK observation array with shape (3 * num_targets,)
+            observation: ZK observation Dict with 'targets' key containing
+                        array of shape (3 * num_targets,)
                         Format: [target_0_x, target_0_y, target_0_active, ...]
             num_targets: Total number of targets in environment
         
         Returns:
             List of booleans indicating active status per target
         """
+        # Extract targets array from dict observation
+        if isinstance(observation, dict):
+            target_array = observation["targets"]
+        else:
+            target_array = observation
+            
         active = []
         for target_idx in range(num_targets):
             obs_idx = target_idx * 3 + 2  # Index of active field
-            active.append(observation[obs_idx] > 0.5)
+            active.append(target_array[obs_idx] > 0.5)
         return active
     
     def _estimated_hits_to_kill(

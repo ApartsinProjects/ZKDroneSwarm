@@ -60,7 +60,6 @@ class DroneEngageZKMRTA(ParallelEnv):
         class_attribute_mapping: Dict[str, Dict[str, float]] = None,
         weapon_damage_profile_mapping: Dict[str, Dict[str, float]] = None,
         policy_type: str = "random",
-        observation_mode: str = "minimal",
         reward_noise: float = 0.0,
         observation_noise: float = 0.0,
     ):
@@ -81,29 +80,18 @@ class DroneEngageZKMRTA(ParallelEnv):
                 Required - must be provided.
             weapon_damage_profile_mapping: Dict mapping weapon types to damage profile dicts.
                 Required - must be provided.
-            observation_mode: Observation mode - "minimal" (default) or "collaborative".
-                - minimal: Target positions + active status only
-                - collaborative: Adds other agents' actions and rewards
+            policy_type: str = "random",
             reward_noise: Gaussian noise σ added to actual rewards (default 0.0)
             observation_noise: Additional Gaussian noise σ when observing other
                 agents' rewards in collaborative mode (default 0.0)
         """
         super().__init__()
         
-        # Validate observation_mode
-        valid_modes = ("minimal", "collaborative")
-        if observation_mode not in valid_modes:
-            raise ValueError(
-                f"observation_mode must be one of {valid_modes}. "
-                f"Got: '{observation_mode}'"
-            )
-        
         # Configuration
         self.world_size = world_size
         self.max_steps = max_steps
         self.scenario_id = scenario_id
         self.policy_type = policy_type
-        self.observation_mode = observation_mode
         self.reward_noise = reward_noise
         self.observation_noise = observation_noise
         
@@ -192,45 +180,31 @@ class DroneEngageZKMRTA(ParallelEnv):
         }
         
         # Define observation spaces based on mode
-        if self.observation_mode == "minimal":
-            # Minimal mode: Box(shape=(3 * num_targets,))
-            # Each target contributes: [x, y, active] (3 values)
-            obs_dim = 3 * self.num_targets
-            self.observation_spaces = {
-                agent_id: spaces.Box(
+        # Always use Dict space (contains targets, actions, rewards)
+        obs_dim = 3 * self.num_targets
+        self.observation_spaces = {
+            agent_id: spaces.Dict({
+                "targets": spaces.Box(
                     low=0.0,
                     high=np.inf,
                     shape=(obs_dim,),
                     dtype=np.float32
-                )
-                for agent_id in self.possible_agents
-            }
-        else:
-            # Collaborative mode: Dict space with targets, actions, rewards
-            obs_dim = 3 * self.num_targets
-            self.observation_spaces = {
-                agent_id: spaces.Dict({
-                    "targets": spaces.Box(
-                        low=0.0,
-                        high=np.inf,
-                        shape=(obs_dim,),
-                        dtype=np.float32
-                    ),
-                    "selected_targets": spaces.Box(
-                        low=0,
-                        high=self.num_targets,
-                        shape=(self.num_drones,),
-                        dtype=np.int32
-                    ),
-                    "observed_rewards": spaces.Box(
-                        low=-np.inf,
-                        high=np.inf,
-                        shape=(self.num_drones,),
-                        dtype=np.float32
-                    ),
-                })
-                for agent_id in self.possible_agents
-            }
+                ),
+                "selected_targets": spaces.Box(
+                    low=0,
+                    high=self.num_targets,
+                    shape=(self.num_drones,),
+                    dtype=np.int32
+                ),
+                "observed_rewards": spaces.Box(
+                    low=-np.inf,
+                    high=np.inf,
+                    shape=(self.num_drones,),
+                    dtype=np.float32
+                ),
+            })
+            for agent_id in self.possible_agents
+        }
         
         # State (will be initialized in reset)
         self.drones: Optional[List[DroneState]] = None
@@ -378,10 +352,6 @@ class DroneEngageZKMRTA(ParallelEnv):
             is_active_float = 1.0 if target.is_active else 0.0
             target_obs.extend([x, y, is_active_float])
         target_array = np.array(target_obs, dtype=np.float32)
-        
-        if self.observation_mode == "minimal":
-            # All agents receive identical observations
-            return {agent_id: target_array.copy() for agent_id in self.agents}
         
         # Collaborative mode: build Dict observations with noise
         observations = {}

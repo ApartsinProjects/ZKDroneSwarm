@@ -35,6 +35,10 @@ class SelfishEpGreedyCFPolicy(BaseCFPolicy):
     Inherits from BaseCFPolicy. Implements ε-greedy action selection.
     """
     
+    is_deterministic: bool = False
+    is_cf: bool = True
+    is_ep_greedy_cf: bool = True
+    
     def select_action(
         self,
         observation: Dict[str, Any],

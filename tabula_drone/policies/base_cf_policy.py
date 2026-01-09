@@ -40,6 +40,10 @@ class BaseCFPolicy(ABC):
     - select_action(): Action selection strategy (e.g., ε-greedy, Hungarian)
     """
     
+    is_deterministic: bool = False
+    is_cf: bool = True
+    is_ep_greedy_cf: bool = False
+    
     def __init__(
         self,
         num_targets: int,

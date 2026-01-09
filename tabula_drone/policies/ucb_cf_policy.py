@@ -36,6 +36,10 @@ class UCBCFPolicy:
     Designed for use with DroneEngageZKMRTA in collaborative observation mode.
     """
     
+    is_deterministic: bool = False
+    is_cf: bool = True
+    is_ep_greedy_cf: bool = False
+    
     def __init__(
         self,
         num_agents: int,

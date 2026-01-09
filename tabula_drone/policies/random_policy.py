@@ -5,7 +5,7 @@ Implements uniform random selection over active targets, compliant with
 Zero-Knowledge Multi-Robot Task Allocation constraints.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import numpy as np
 
@@ -25,6 +25,10 @@ class RandomPolicy:
     - Treats all active targets identically
     """
     
+    is_deterministic: bool = True
+    is_cf: bool = False
+    is_ep_greedy_cf: bool = False
+    
     def __init__(self, seed: Optional[int] = None, allow_noop: bool = True):
         """
         Initialize random policy with optional seed.
@@ -39,7 +43,7 @@ class RandomPolicy:
     
     def select_action(
         self,
-        observation: np.ndarray,
+        observation: Union[np.ndarray, Dict[str, Any]],
         num_targets: int,
     ) -> int:
         """
@@ -51,7 +55,8 @@ class RandomPolicy:
         only includes [active target indices (1-N)].
         
         Args:
-            observation: ZK observation array with shape (3 * num_targets,)
+            observation: ZK observation Dict with 'targets' key containing
+                        array of shape (3 * num_targets,)
                         Format: [target_0_x, target_0_y, target_0_active, ...]
             num_targets: Total number of targets in environment
         
@@ -61,13 +66,19 @@ class RandomPolicy:
                    0 = NoOp (only when allow_noop=True)
                    1 to num_targets = Fire at target (1-indexed)
         """
+        # Extract targets array from dict observation
+        if isinstance(observation, dict):
+            target_array = observation["targets"]
+        else:
+            target_array = observation
+        
         # Parse observation to extract active status
         # Observation structure: [x, y, active] * num_targets
         # Active status is every 3rd element starting at index 2
         active_states = []
         for target_idx in range(num_targets):
             obs_idx = target_idx * 3 + 2  # Index of active field
-            is_active = observation[obs_idx] > 0.5  # Binary: 1.0 or 0.0
+            is_active = target_array[obs_idx] > 0.5  # Binary: 1.0 or 0.0
             active_states.append(is_active)
         
         # Build list of valid actions: conditionally include NoOp

@@ -41,6 +41,10 @@ class DecentralizedPolicyWrapper:
         first_policy = next(iter(policies.values()))
         self.num_targets = first_policy.num_targets
         self.latent_dim = first_policy.latent_dim
+        # Expose metadata attributes from wrapped policies
+        self.is_deterministic = first_policy.is_deterministic
+        self.is_cf = first_policy.is_cf
+        self.is_ep_greedy_cf = first_policy.is_ep_greedy_cf
     
     def select_actions(
         self,

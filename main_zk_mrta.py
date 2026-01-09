@@ -241,6 +241,28 @@ def create_policy(
         return RandomPolicy(seed=config.seed, allow_noop=config.policy.allow_noop)
 
 
+def create_all_policies(
+    config: Any,
+    drones_config: List[Dict[str, Any]],
+    num_targets: int,
+) -> Dict[str, Policy]:
+    """
+    Create all policy instances upfront.
+    
+    Args:
+        config: ScenarioConfig with seed and policy settings
+        drones_config: List of drone configurations for weapon profiles
+        num_targets: Number of targets in the environment
+    
+    Returns:
+        Dict mapping policy_type to Policy instance
+    """
+    policies = {}
+    for policy_type in config.policy.type:
+        policies[policy_type] = create_policy(policy_type, config, drones_config, num_targets)
+    return policies
+
+
 def run_episode(
     env: DroneEngageZKMRTA,
     policy: Policy,
@@ -517,36 +539,45 @@ def main():
         scenario_id=config.environment.scenario_id
     )
     
-    # Run each policy type
-    for policy_type in config.policy.type:
+    # Determine if any policy requires CF noise settings
+    has_cf_policy = any("cf" in policy_type for policy_type in config.policy.type)
+    if has_cf_policy:
+        # Use CF noise settings from config
+        cf_config = getattr(config, 'collaborative_filtering', None)
+        reward_noise = cf_config.reward_noise if cf_config else 0.1
+        observation_noise = cf_config.observation_noise if cf_config else 0.05
+    else:
+        # No CF policies - use zero noise
+        reward_noise = 0.0
+        observation_noise = 0.0
+    
+    # Create single environment (reused across all policies)
+    num_targets = len(targets_config)
+    env = DroneEngageZKMRTA(
+        world_size=config.world.size,
+        max_steps=config.environment.max_steps,
+        drones_config=drones_config,
+        targets_config=targets_config,
+        scenario_id=config.environment.scenario_id,
+        class_attribute_mapping=config.mappings.class_attribute_mapping,
+        weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
+        policy_type="random",  # Default value, not used for single env
+        reward_noise=reward_noise,
+        observation_noise=observation_noise,
+    )
+    
+    # Create all policies upfront
+    policies = create_all_policies(config, drones_config, num_targets)
+    
+    # Run each policy
+    for policy_type, policy in policies.items():
         print(f"\n>>> Running policy: {policy_type}")
         
-        # Determine episode count and logging strategy based on policy type
-        # Deterministic policies: run 1 episode (results are reproducible)
-        # CF policies: run all episodes but only log the last one
-        is_deterministic = policy_type in ("min_ttk_oracle", "max_damage_oracle", "random")
-        is_cf = policy_type in ("ep_greedy_cf", "ucb_cf", "selfish_ep_greedy_cf", "coordinated_ep_greedy_cf")
-        is_ep_greedy_cf = policy_type in ("selfish_ep_greedy_cf", "coordinated_ep_greedy_cf")
+        # Get policy metadata from policy attributes
+        is_deterministic = policy.is_deterministic
+        is_cf = policy.is_cf
+        is_ep_greedy_cf = policy.is_ep_greedy_cf
         effective_episodes = 1 if is_deterministic else num_episodes
-        
-        # Create environment with appropriate observation mode per policy
-        
-        env = DroneEngageZKMRTA(
-            world_size=config.world.size,
-            max_steps=config.environment.max_steps,
-            drones_config=drones_config,
-            targets_config=targets_config,
-            scenario_id=config.environment.scenario_id,
-            class_attribute_mapping=config.mappings.class_attribute_mapping,
-            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-            policy_type=policy_type,
-            observation_mode="collaborative" if is_cf else "minimal",
-            reward_noise=reward_noise if is_cf else 0.0,
-            observation_noise=observation_noise if is_cf else 0.0,
-        )
-        
-        # Create policy (pass num_targets for CF policy)
-        policy = create_policy(policy_type, config, drones_config, num_targets=env.num_targets)
         logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
         # Start policy run in RunManager
