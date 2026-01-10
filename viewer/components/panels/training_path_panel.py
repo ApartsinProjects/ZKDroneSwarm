@@ -97,6 +97,25 @@ class TrainingPathPanel(BaseComponent):
 
         return {"topk": topk, "best_target": best_target}
 
+    def _compute_topk_from_match(
+        self,
+        predicted_rewards: Optional[List[float]],
+        k: int,
+        match_best_target: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        if not predicted_rewards or k <= 0:
+            return {"topk": [], "best_target": match_best_target}
+
+        scored = [(int(i), float(r)) for i, r in enumerate(predicted_rewards)]
+        scored.sort(key=lambda x: x[1], reverse=True)
+        topk = scored[: min(k, len(scored))]
+
+        best_target = match_best_target
+        if best_target is None and topk:
+            best_target = int(topk[0][0])
+
+        return {"topk": topk, "best_target": best_target}
+
     def render_display(self) -> None:
         """
         Render the training path panel with latent space scatter chart.
@@ -476,10 +495,10 @@ class TrainingPathPanel(BaseComponent):
         
         match = agent_data.get("match", {})
         match_best_target = match.get("best_target", None) if isinstance(match, dict) else None
+        predicted_rewards = match.get("predicted_rewards", None) if isinstance(match, dict) else None
 
-        overlay = self._compute_topk_private_predictions(
-            agent_lv=agent_lv,
-            target_lv_private=target_lv,
+        overlay = self._compute_topk_from_match(
+            predicted_rewards=predicted_rewards,
             k=6,
             match_best_target=match_best_target,
         )
@@ -502,7 +521,7 @@ class TrainingPathPanel(BaseComponent):
             )
             class_types_plotted.add(class_type)
 
-            if best_target is not None and i == int(best_target):
+            if predicted_rewards is not None and best_target is not None and i == int(best_target):
                 ax.scatter(
                     x, y, s=60, facecolors='none', edgecolors='#f1c40f', linewidths=1.5,
                     marker='o', zorder=11, alpha=0.95
@@ -522,7 +541,11 @@ class TrainingPathPanel(BaseComponent):
             tx = t_vec[0] if len(t_vec) > 0 else 0
             ty = t_vec[1] if len(t_vec) > 1 else 0
 
-            is_best = best_target is not None and int(target_idx) == int(best_target)
+            is_best = (
+                predicted_rewards is not None
+                and best_target is not None
+                and int(target_idx) == int(best_target)
+            )
             line_color = '#f1c40f' if is_best else '#7f8c8d'
             line_width = 1.6 if is_best else 0.8
             line_alpha = 0.85 if is_best else 0.35
