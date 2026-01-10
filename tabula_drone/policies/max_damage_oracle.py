@@ -218,6 +218,9 @@ class OptimalAssignmentOracle:
         
         agent_vectors = self._build_agent_vectors(attribute_names)
         target_vectors = self._build_target_vectors(targets_state, attribute_names)
+        active_indices = np.where(active_mask)[0]
+        has_active_targets = active_indices.size > 0
+        score_matrix = agent_vectors @ target_vectors.T
         
         actions_arr, assigned_mask, total_score = self._solve_assignment(
             agent_vectors, target_vectors, active_mask
@@ -228,7 +231,12 @@ class OptimalAssignmentOracle:
             if assigned_mask[i]:
                 result[agent_id] = int(actions_arr[i]) + 1
             else:
-                result[agent_id] = 0
+                if self.allow_noop or not has_active_targets:
+                    result[agent_id] = 0
+                else:
+                    agent_scores = score_matrix[i, active_indices]
+                    best_target_idx = int(active_indices[int(np.argmax(agent_scores))])
+                    result[agent_id] = best_target_idx + 1
         
         return result
 

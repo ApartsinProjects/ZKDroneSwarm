@@ -692,6 +692,7 @@ def main():
     policies = create_all_policies(config, drones_config, num_targets)
     
     # Run each policy
+    engagement_tables = {}
     for policy_type, policy in policies.items():
         print(f"\n>>> Running policy: {policy_type}")
         
@@ -800,19 +801,9 @@ def main():
                 engagement_headers, engagement_rows = build_target_x_drone_table(
                     drone_engagement_counts
                 )
-                print("\nActual Engagement Summary (Best Episode):")
-                print(
-                    tabulate(
-                        engagement_rows,
-                        headers=engagement_headers,
-                        tablefmt="simple",
-                    )
-                )
-                print()
+                engagement_tables[policy_type] = (engagement_headers, engagement_rows)
             else:
-                print("\nActual Engagement Summary (Best Episode):")
-                print(f"Analysis file not found: {analysis_path}")
-                print()
+                engagement_tables[policy_type] = (None, f"Analysis file not found: {analysis_path}")
 
     if config.execution.verbose:
         # Aggregate statistics across all episodes (all policies)
@@ -939,6 +930,19 @@ def main():
         print(tabulate(cmp_data, headers=["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"], tablefmt="grid"))
         print("="*60)
     
+    # Print all engagement tables at the end (requested ordering)
+    print_order = ["random", "max_damage_oracle", "selfish_ep_greedy_cf"]
+    for pt in print_order:
+        if pt not in engagement_tables:
+            continue
+        headers, payload = engagement_tables[pt]
+        print(f"\nActual Engagement Summary (Best Episode) - {pt}:")
+        if headers is None:
+            print(payload)
+        else:
+            print(tabulate(payload, headers=headers, tablefmt="simple"))
+        print()
+
     print("\nDemo complete! ✓")
 
 
