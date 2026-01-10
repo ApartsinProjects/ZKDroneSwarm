@@ -330,6 +330,11 @@ def create_policy(
                 epsilon=selfish_cfg.epsilon if selfish_cfg.epsilon else 0.3,
                 epsilon_decay=selfish_cfg.epsilon_decay if selfish_cfg.epsilon_decay else 0.99,
                 epsilon_min=selfish_cfg.epsilon_min if selfish_cfg.epsilon_min else 0.05,
+                social_trust_factor=selfish_cfg.social_trust_factor if getattr(selfish_cfg, "social_trust_factor", None) is not None else 0.3,
+                divergence_threshold=selfish_cfg.divergence_threshold if getattr(selfish_cfg, "divergence_threshold", None) is not None else 0.5,
+                confidence_threshold=selfish_cfg.confidence_threshold if getattr(selfish_cfg, "confidence_threshold", None) is not None else 0.8,
+                social_reward_clip_min=selfish_cfg.social_reward_clip_min if getattr(selfish_cfg, "social_reward_clip_min", None) is not None else -0.5,
+                max_episodes=selfish_cfg.max_episodes if getattr(selfish_cfg, "max_episodes", None) is not None else 100,
                 seed=config.seed + agent_idx if config.seed else None,
             )
         return MultiAgentPolicy(policies)
@@ -354,6 +359,11 @@ def create_policy(
                 epsilon=coord_cfg.epsilon if coord_cfg.epsilon else 0.3,
                 epsilon_decay=coord_cfg.epsilon_decay if coord_cfg.epsilon_decay else 0.99,
                 epsilon_min=coord_cfg.epsilon_min if coord_cfg.epsilon_min else 0.05,
+                social_trust_factor=coord_cfg.social_trust_factor if getattr(coord_cfg, "social_trust_factor", None) is not None else 0.3,
+                divergence_threshold=coord_cfg.divergence_threshold if getattr(coord_cfg, "divergence_threshold", None) is not None else 0.5,
+                confidence_threshold=coord_cfg.confidence_threshold if getattr(coord_cfg, "confidence_threshold", None) is not None else 0.8,
+                social_reward_clip_min=coord_cfg.social_reward_clip_min if getattr(coord_cfg, "social_reward_clip_min", None) is not None else -0.5,
+                max_episodes=coord_cfg.max_episodes if getattr(coord_cfg, "max_episodes", None) is not None else 100,
                 seed=config.seed + agent_idx if config.seed else None,
             )
         return MultiAgentPolicy(policies)

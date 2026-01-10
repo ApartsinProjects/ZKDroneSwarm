@@ -79,6 +79,11 @@ class EpGreedyCFConfig:
     epsilon: Optional[float] = None
     epsilon_decay: Optional[float] = None
     epsilon_min: Optional[float] = None
+    social_trust_factor: Optional[float] = None
+    divergence_threshold: Optional[float] = None
+    confidence_threshold: Optional[float] = None
+    social_reward_clip_min: Optional[float] = None
+    max_episodes: Optional[int] = None
 
 
 @dataclass
@@ -234,6 +239,11 @@ def _parse_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
     epsilon = data.get("epsilon")
     epsilon_decay = data.get("epsilon_decay")
     epsilon_min = data.get("epsilon_min")
+    social_trust_factor = data.get("social_trust_factor")
+    divergence_threshold = data.get("divergence_threshold")
+    confidence_threshold = data.get("confidence_threshold")
+    social_reward_clip_min = data.get("social_reward_clip_min")
+    max_episodes = data.get("max_episodes")
     
     # Log defaults
     if latent_dim is None:
@@ -270,6 +280,11 @@ def _parse_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
         epsilon=float(epsilon) if epsilon is not None else None,
         epsilon_decay=float(epsilon_decay) if epsilon_decay is not None else None,
         epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
+        social_trust_factor=float(social_trust_factor) if social_trust_factor is not None else None,
+        divergence_threshold=float(divergence_threshold) if divergence_threshold is not None else None,
+        confidence_threshold=float(confidence_threshold) if confidence_threshold is not None else None,
+        social_reward_clip_min=float(social_reward_clip_min) if social_reward_clip_min is not None else None,
+        max_episodes=int(max_episodes) if max_episodes is not None else None,
     )
 
 
@@ -287,6 +302,11 @@ def _parse_selfish_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
     epsilon = data.get("epsilon")
     epsilon_decay = data.get("epsilon_decay")
     epsilon_min = data.get("epsilon_min")
+    social_trust_factor = data.get("social_trust_factor")
+    divergence_threshold = data.get("divergence_threshold")
+    confidence_threshold = data.get("confidence_threshold")
+    social_reward_clip_min = data.get("social_reward_clip_min")
+    max_episodes = data.get("max_episodes")
     
     # Log defaults
     if latent_dim is None:
@@ -299,6 +319,16 @@ def _parse_selfish_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
         print("Note, using default value 0.99 for hyperparameter epsilon_decay (selfish_ep_greedy_cf)")
     if epsilon_min is None:
         print("Note, using default value 0.05 for hyperparameter epsilon_min (selfish_ep_greedy_cf)")
+    if social_trust_factor is None:
+        print("Note, using default value 0.3 for hyperparameter social_trust_factor (selfish_ep_greedy_cf)")
+    if divergence_threshold is None:
+        print("Note, using default value 0.5 for hyperparameter divergence_threshold (selfish_ep_greedy_cf)")
+    if confidence_threshold is None:
+        print("Note, using default value 0.8 for hyperparameter confidence_threshold (selfish_ep_greedy_cf)")
+    if social_reward_clip_min is None:
+        print("Note, using default value -0.5 for hyperparameter social_reward_clip_min (selfish_ep_greedy_cf)")
+    if max_episodes is None:
+        print("Note, using default value 100 for hyperparameter max_episodes (selfish_ep_greedy_cf)")
     
     # Validate bounds
     if latent_dim is not None:
@@ -316,6 +346,21 @@ def _parse_selfish_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
     if epsilon_min is not None:
         if not isinstance(epsilon_min, (int, float)) or epsilon_min < 0 or epsilon_min > 1:
             raise ValueError("selfish_ep_greedy_cf.epsilon_min must be in [0, 1]")
+    if social_trust_factor is not None:
+        if not isinstance(social_trust_factor, (int, float)) or social_trust_factor < 0 or social_trust_factor > 1:
+            raise ValueError("selfish_ep_greedy_cf.social_trust_factor must be in [0, 1]")
+    if divergence_threshold is not None:
+        if not isinstance(divergence_threshold, (int, float)) or divergence_threshold < 0 or divergence_threshold > 1:
+            raise ValueError("selfish_ep_greedy_cf.divergence_threshold must be in [0, 1]")
+    if confidence_threshold is not None:
+        if not isinstance(confidence_threshold, (int, float)) or confidence_threshold < 0 or confidence_threshold > 1:
+            raise ValueError("selfish_ep_greedy_cf.confidence_threshold must be in [0, 1]")
+    if social_reward_clip_min is not None:
+        if not isinstance(social_reward_clip_min, (int, float)):
+            raise ValueError("selfish_ep_greedy_cf.social_reward_clip_min must be a number")
+    if max_episodes is not None:
+        if not isinstance(max_episodes, int) or max_episodes < 1:
+            raise ValueError("selfish_ep_greedy_cf.max_episodes must be an integer >= 1")
     
     return EpGreedyCFConfig(
         latent_dim=latent_dim,
@@ -323,6 +368,11 @@ def _parse_selfish_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
         epsilon=float(epsilon) if epsilon is not None else None,
         epsilon_decay=float(epsilon_decay) if epsilon_decay is not None else None,
         epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
+        social_trust_factor=float(social_trust_factor) if social_trust_factor is not None else None,
+        divergence_threshold=float(divergence_threshold) if divergence_threshold is not None else None,
+        confidence_threshold=float(confidence_threshold) if confidence_threshold is not None else None,
+        social_reward_clip_min=float(social_reward_clip_min) if social_reward_clip_min is not None else None,
+        max_episodes=int(max_episodes) if max_episodes is not None else None,
     )
 
 
@@ -340,6 +390,11 @@ def _parse_coordinated_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
     epsilon = data.get("epsilon")
     epsilon_decay = data.get("epsilon_decay")
     epsilon_min = data.get("epsilon_min")
+    social_trust_factor = data.get("social_trust_factor")
+    divergence_threshold = data.get("divergence_threshold")
+    confidence_threshold = data.get("confidence_threshold")
+    social_reward_clip_min = data.get("social_reward_clip_min")
+    max_episodes = data.get("max_episodes")
     
     # Log defaults
     if latent_dim is None:
@@ -352,6 +407,16 @@ def _parse_coordinated_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
         print("Note, using default value 0.99 for hyperparameter epsilon_decay (coordinated_ep_greedy_cf)")
     if epsilon_min is None:
         print("Note, using default value 0.05 for hyperparameter epsilon_min (coordinated_ep_greedy_cf)")
+    if social_trust_factor is None:
+        print("Note, using default value 0.3 for hyperparameter social_trust_factor (coordinated_ep_greedy_cf)")
+    if divergence_threshold is None:
+        print("Note, using default value 0.5 for hyperparameter divergence_threshold (coordinated_ep_greedy_cf)")
+    if confidence_threshold is None:
+        print("Note, using default value 0.8 for hyperparameter confidence_threshold (coordinated_ep_greedy_cf)")
+    if social_reward_clip_min is None:
+        print("Note, using default value -0.5 for hyperparameter social_reward_clip_min (coordinated_ep_greedy_cf)")
+    if max_episodes is None:
+        print("Note, using default value 100 for hyperparameter max_episodes (coordinated_ep_greedy_cf)")
     
     # Validate bounds
     if latent_dim is not None:
@@ -369,6 +434,21 @@ def _parse_coordinated_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
     if epsilon_min is not None:
         if not isinstance(epsilon_min, (int, float)) or epsilon_min < 0 or epsilon_min > 1:
             raise ValueError("coordinated_ep_greedy_cf.epsilon_min must be in [0, 1]")
+    if social_trust_factor is not None:
+        if not isinstance(social_trust_factor, (int, float)) or social_trust_factor < 0 or social_trust_factor > 1:
+            raise ValueError("coordinated_ep_greedy_cf.social_trust_factor must be in [0, 1]")
+    if divergence_threshold is not None:
+        if not isinstance(divergence_threshold, (int, float)) or divergence_threshold < 0 or divergence_threshold > 1:
+            raise ValueError("coordinated_ep_greedy_cf.divergence_threshold must be in [0, 1]")
+    if confidence_threshold is not None:
+        if not isinstance(confidence_threshold, (int, float)) or confidence_threshold < 0 or confidence_threshold > 1:
+            raise ValueError("coordinated_ep_greedy_cf.confidence_threshold must be in [0, 1]")
+    if social_reward_clip_min is not None:
+        if not isinstance(social_reward_clip_min, (int, float)):
+            raise ValueError("coordinated_ep_greedy_cf.social_reward_clip_min must be a number")
+    if max_episodes is not None:
+        if not isinstance(max_episodes, int) or max_episodes < 1:
+            raise ValueError("coordinated_ep_greedy_cf.max_episodes must be an integer >= 1")
     
     return EpGreedyCFConfig(
         latent_dim=latent_dim,
@@ -376,6 +456,11 @@ def _parse_coordinated_ep_greedy_cf_config(data: dict) -> EpGreedyCFConfig:
         epsilon=float(epsilon) if epsilon is not None else None,
         epsilon_decay=float(epsilon_decay) if epsilon_decay is not None else None,
         epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
+        social_trust_factor=float(social_trust_factor) if social_trust_factor is not None else None,
+        divergence_threshold=float(divergence_threshold) if divergence_threshold is not None else None,
+        confidence_threshold=float(confidence_threshold) if confidence_threshold is not None else None,
+        social_reward_clip_min=float(social_reward_clip_min) if social_reward_clip_min is not None else None,
+        max_episodes=int(max_episodes) if max_episodes is not None else None,
     )
 
 
