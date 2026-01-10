@@ -10,6 +10,8 @@ Demonstrates:
 
 from typing import Dict, Any, List, Optional, Union
 
+import os
+
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from tabulate import tabulate
@@ -17,6 +19,11 @@ from tabulate import tabulate
 from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, REWARD_MODE
 from tabula_drone.logging import EpisodeLogger, RunManager
+from tabula_drone.logging.engagement_summary import (
+    build_target_x_drone_table,
+    extract_drone_engagement_counts,
+    load_analysis,
+)
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
@@ -101,31 +108,31 @@ def print_learning_path(
     print()
 
 
-def print_scenario_config(
-    drones_config: List[Dict[str, Any]],
+def print_target_class_profile(
     class_attribute_mapping: Dict[str, Dict[str, float]],
-    weapon_damage_profile_mapping: Dict[str, Dict[str, float]],
 ) -> None:
-    """Print scenario configuration tables for agents, target classes, and weapon profiles."""
-    # Table 1: Agent Configuration
-    print("\nAgent Configuration:")
-    agent_headers = ["Agent", "Weapon"]
-    agent_rows = [[f"A{i}", cfg["weapon_type"]] for i, cfg in enumerate(drones_config)]
-    print(tabulate(agent_rows, headers=agent_headers, tablefmt="simple"))
-    
-    # Table 2: Target Class Attributes (HP)
-    print("\nTarget Class Attributes (HP):")
+    """Print target class HP attributes profile."""
+    print("\nTarget Class Profile (HP):")
     attributes = list(next(iter(class_attribute_mapping.values())).keys())
-    attr_short = [a[:6] for a in attributes]  # Abbreviate column names
-    class_headers = ["Class"] + attr_short
+    attr_short = [a[:6] for a in attributes]
+    class_headers = ["Class"] + attr_short + ["Dominant Attr"]
     class_rows = []
     for cls, attrs in sorted(class_attribute_mapping.items()):
-        row = [cls] + [int(attrs[a]) for a in attributes]
+        dominant_attr = max(attrs.items(), key=lambda x: x[1])[0]
+        row = [cls] + [int(attrs[a]) for a in attributes] + [dominant_attr[:6]]
         class_rows.append(row)
     print(tabulate(class_rows, headers=class_headers, tablefmt="simple"))
-    
-    # Table 3: Weapon Damage Profiles
-    print("\nWeapon Damage Profiles:")
+    print()
+
+
+def print_weapon_damage_profile(
+    weapon_damage_profile_mapping: Dict[str, Dict[str, float]],
+    class_attribute_mapping: Dict[str, Dict[str, float]],
+) -> None:
+    """Print weapon damage profile per attribute."""
+    print("\nWeapon Damage Profile:")
+    attributes = list(next(iter(class_attribute_mapping.values())).keys())
+    attr_short = [a[:6] for a in attributes]
     weapon_headers = ["Weapon"] + attr_short
     weapon_rows = []
     for weapon, profile in sorted(weapon_damage_profile_mapping.items()):
@@ -134,6 +141,106 @@ def print_scenario_config(
     print(tabulate(weapon_rows, headers=weapon_headers, tablefmt="simple"))
     print()
 
+
+def print_drone_setup(
+    drones_config: List[Dict[str, Any]],
+) -> None:
+    """Print drone setup showing ID and weapon assignment."""
+    print("\nDrone Setup:")
+    drone_headers = ["Drone", "Weapon"]
+    drone_rows = [[f"D{i}", cfg["weapon_type"]] for i, cfg in enumerate(drones_config)]
+    print(tabulate(drone_rows, headers=drone_headers, tablefmt="simple"))
+    print()
+
+
+def print_target_setup(
+    targets_config: List[Dict[str, Any]],
+    class_attribute_mapping: Dict[str, Dict[str, float]],
+) -> None:
+    """Print target setup showing ID, class, and dominant attribute."""
+    print("\nTarget Setup:")
+    target_headers = ["Target", "Class", "Dominant Attr"]
+    target_rows = []
+    for i, target_cfg in enumerate(targets_config):
+        class_type = target_cfg["class_type"]
+        attributes = class_attribute_mapping[class_type]
+        dominant_attr = max(attributes.items(), key=lambda x: x[1])[0]
+        row = [f"T{i}", class_type, dominant_attr[:6]]
+        target_rows.append(row)
+    print(tabulate(target_rows, headers=target_headers, tablefmt="simple"))
+    print()
+
+
+def print_optimal_engagement_prediction(
+    drones_config: List[Dict[str, Any]],
+    targets_config: List[Dict[str, Any]],
+    class_attribute_mapping: Dict[str, Dict[str, float]],
+    weapon_damage_profile_mapping: Dict[str, Dict[str, float]],
+) -> None:
+    """Print optimal engagement prediction based on weapon-target attribute matching."""
+    print("\nOptimal Engagement Prediction (Greedy):")
+    
+    # Calculate damage efficiency for each drone-target pair
+    assignments = []
+    for drone_idx, drone_cfg in enumerate(drones_config):
+        weapon_type = drone_cfg["weapon_type"]
+        weapon_damage = weapon_damage_profile_mapping[weapon_type]
+        
+        for target_idx, target_cfg in enumerate(targets_config):
+            class_type = target_cfg["class_type"]
+            target_attrs = class_attribute_mapping[class_type]
+            dominant_attr = max(target_attrs.items(), key=lambda x: x[1])[0]
+            
+            # Calculate damage to dominant attribute
+            damage_to_dominant = weapon_damage[dominant_attr]
+            total_target_hp = sum(target_attrs.values())
+            
+            # Efficiency score: damage to dominant attribute
+            efficiency = damage_to_dominant
+            
+            assignments.append({
+                'drone_id': f"D{drone_idx}",
+                'target_id': f"T{target_idx}",
+                'weapon': weapon_type,
+                'target_class': class_type,
+                'dominant_attr': dominant_attr[:6],
+                'damage': damage_to_dominant,
+                'efficiency': efficiency
+            })
+    
+    # Greedy assignment: best match first
+    assigned_drones = set()
+    assigned_targets = set()
+    optimal_assignments = []
+    
+    # Sort by efficiency (descending)
+    assignments.sort(key=lambda x: x['efficiency'], reverse=True)
+    
+    for assignment in assignments:
+        if assignment['drone_id'] not in assigned_drones and assignment['target_id'] not in assigned_targets:
+            optimal_assignments.append(assignment)
+            assigned_drones.add(assignment['drone_id'])
+            assigned_targets.add(assignment['target_id'])
+            
+            if len(optimal_assignments) == min(len(drones_config), len(targets_config)):
+                break
+    
+    # Display prediction table
+    headers = ["Drone", "→", "Target", "Target Class", "Weapon", "Target Attr", "Damage"]
+    rows = []
+    for assignment in sorted(optimal_assignments, key=lambda x: x['drone_id']):
+        rows.append([
+            assignment['drone_id'],
+            "→",
+            assignment['target_id'],
+            assignment['target_class'],
+            assignment['weapon'][:6],
+            assignment['dominant_attr'],
+            int(assignment['damage'])
+        ])
+    
+    print(tabulate(rows, headers=headers, tablefmt="simple"))
+    print()
 
 
 def create_policy(
@@ -526,8 +633,23 @@ def main():
     print(f"Random Seed: {config.seed}")
     print(f"Policy Types: {config.policy.type}")
     print(f"Episodes per Policy: {num_episodes}")
-    print_scenario_config(
+    print_target_class_profile(
+        config.mappings.class_attribute_mapping,
+    )
+    print_weapon_damage_profile(
+        config.mappings.weapon_damage_profile_mapping,
+        config.mappings.class_attribute_mapping,
+    )
+    print_drone_setup(
         drones_config,
+    )
+    print_target_setup(
+        targets_config,
+        config.mappings.class_attribute_mapping,
+    )
+    print_optimal_engagement_prediction(
+        drones_config,
+        targets_config,
         config.mappings.class_attribute_mapping,
         config.mappings.weapon_damage_profile_mapping,
     )
@@ -665,6 +787,32 @@ def main():
             print(f"  Steps: first={steps['first']}, best={steps['best']}, mid={steps['mid']}")
         else:
             print(f"  Steps: first={steps['first']}")
+
+        best_episode_num = result.get("best_episode_num")
+        if best_episode_num is not None:
+            analysis_path = os.path.join(
+                run_manager.get_analysis_dir(),
+                f"analysis_ep{best_episode_num:02d}.json",
+            )
+            if os.path.exists(analysis_path):
+                analysis_data = load_analysis(analysis_path)
+                drone_engagement_counts = extract_drone_engagement_counts(analysis_data)
+                engagement_headers, engagement_rows = build_target_x_drone_table(
+                    drone_engagement_counts
+                )
+                print("\nActual Engagement Summary (Best Episode):")
+                print(
+                    tabulate(
+                        engagement_rows,
+                        headers=engagement_headers,
+                        tablefmt="simple",
+                    )
+                )
+                print()
+            else:
+                print("\nActual Engagement Summary (Best Episode):")
+                print(f"Analysis file not found: {analysis_path}")
+                print()
 
     if config.execution.verbose:
         # Aggregate statistics across all episodes (all policies)

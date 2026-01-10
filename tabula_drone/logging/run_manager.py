@@ -209,6 +209,7 @@ class RunManager:
         episodes_dir = self.get_episodes_dir()
         saved_files = []
         steps_info = {}
+        best_episode_num = self._first_episode_num
         
         if self._is_deterministic:
             # Single episode: save with episode number
@@ -230,6 +231,7 @@ class RunManager:
             )
             saved_files.append(f".../episode_best_ep{self._best_episode_num:02d}.json")
             steps_info["best"] = self._best_steps
+            best_episode_num = self._best_episode_num
             
             mid_data, mid_steps, mid_episode_num = self._select_mid_episode()
             filepath = self._save_episode(
@@ -238,7 +240,7 @@ class RunManager:
             saved_files.append(f".../episode_mid_ep{mid_episode_num:02d}.json")
             steps_info["mid"] = mid_steps
         
-        return {"files": saved_files, "steps": steps_info}
+        return {"files": saved_files, "steps": steps_info, "best_episode_num": best_episode_num}
     
     def _select_mid_episode(self) -> tuple:
         """
