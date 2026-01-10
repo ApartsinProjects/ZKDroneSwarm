@@ -85,3 +85,23 @@ class SelfishEpGreedyCFPolicy(BaseCFAgentPolicy):
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
         
         return int(action)
+
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+        state = super().get_learning_state()
+        if state is None:
+            return None
+
+        predicted_rewards = [float(self.predict_reward(t)) for t in range(self.num_targets)]
+        ranked_targets = [
+            int(x)
+            for x in np.argsort(-np.asarray(predicted_rewards, dtype=np.float32)).tolist()
+        ]
+        best_target = int(ranked_targets[0]) if ranked_targets else None
+
+        state["match"] = {
+            "predicted_rewards": predicted_rewards,
+            "ranked_targets": ranked_targets,
+            "best_target": best_target,
+        }
+
+        return state

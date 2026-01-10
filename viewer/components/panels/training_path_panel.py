@@ -68,6 +68,35 @@ class TrainingPathPanel(BaseComponent):
         if self.decentralized_learning_state:
             self.current_episode_num = self.decentralized_learning_state.get("episode_num", 1)
 
+    def _compute_topk_private_predictions(
+        self,
+        agent_lv: List[float],
+        target_lv_private: List[List[float]],
+        k: int,
+        match_best_target: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        if not agent_lv or not target_lv_private or k <= 0:
+            return {"topk": [], "best_target": match_best_target}
+
+        def _dot(a: List[float], b: List[float]) -> float:
+            n = min(len(a), len(b))
+            return float(sum(float(a[i]) * float(b[i]) for i in range(n)))
+
+        scored = []
+        for idx, t_vec in enumerate(target_lv_private):
+            dot = _dot(agent_lv, t_vec)
+            pred = (1.0 + dot) / 2.0
+            scored.append((idx, float(pred)))
+
+        scored.sort(key=lambda x: x[1], reverse=True)
+        topk = scored[: min(k, len(scored))]
+
+        best_target = match_best_target
+        if best_target is None and topk:
+            best_target = int(topk[0][0])
+
+        return {"topk": topk, "best_target": best_target}
+
     def render_display(self) -> None:
         """
         Render the training path panel with latent space scatter chart.
@@ -435,7 +464,8 @@ class TrainingPathPanel(BaseComponent):
             title: Chart title.
         """
         agent_lv = agent_data.get("agent_lv", [0, 0])
-        target_lv = agent_data.get("target_lv", [])
+        target_lv_private = agent_data.get("target_lv_private", None)
+        target_lv = target_lv_private if target_lv_private is not None else agent_data.get("target_lv", [])
         
         # Plot agent position (triangle)
         ax.scatter(
@@ -444,6 +474,17 @@ class TrainingPathPanel(BaseComponent):
             s=80, c='#1a5276', marker='^', zorder=10, label='Agent'
         )
         
+        match = agent_data.get("match", {})
+        match_best_target = match.get("best_target", None) if isinstance(match, dict) else None
+
+        overlay = self._compute_topk_private_predictions(
+            agent_lv=agent_lv,
+            target_lv_private=target_lv,
+            k=6,
+            match_best_target=match_best_target,
+        )
+        best_target = overlay.get("best_target", None)
+
         # Plot target positions (circles)
         class_types_plotted = set()
         for i, target_vec in enumerate(target_lv):
@@ -460,10 +501,43 @@ class TrainingPathPanel(BaseComponent):
                 label=f"C:{class_type}" if class_type not in class_types_plotted else None
             )
             class_types_plotted.add(class_type)
+
+            if best_target is not None and i == int(best_target):
+                ax.scatter(
+                    x, y, s=60, facecolors='none', edgecolors='#f1c40f', linewidths=1.5,
+                    marker='o', zorder=11, alpha=0.95
+                )
             
             ax.annotate(
                 f"T{i}", (x, y), textcoords="offset points",
-                xytext=(3, -8), fontsize=5, color=color, alpha=0.6
+                xytext=(3, -8), fontsize=6, color="#000000", alpha=1
+            )
+
+        agent_x = agent_lv[0] if len(agent_lv) > 0 else 0
+        agent_y = agent_lv[1] if len(agent_lv) > 1 else 0
+        for target_idx, pred in overlay.get("topk", []):
+            if target_idx >= len(target_lv):
+                continue
+            t_vec = target_lv[target_idx]
+            tx = t_vec[0] if len(t_vec) > 0 else 0
+            ty = t_vec[1] if len(t_vec) > 1 else 0
+
+            is_best = best_target is not None and int(target_idx) == int(best_target)
+            line_color = '#f1c40f' if is_best else '#7f8c8d'
+            line_width = 1.6 if is_best else 0.8
+            line_alpha = 0.85 if is_best else 0.35
+
+            ax.plot(
+                [agent_x, tx], [agent_y, ty],
+                color=line_color, linewidth=line_width, alpha=line_alpha, zorder=8
+            )
+
+            mx = (agent_x + tx) / 2
+            my = (agent_y + ty) / 2
+            ax.text(
+                mx, my, f"{pred:.2f}",
+                fontsize=7, color="#000000", alpha=min(1.0, line_alpha + 0.1),
+                ha='center', va='center', zorder=12
             )
         
         ax.set_title(title, fontsize=9, fontweight='bold')

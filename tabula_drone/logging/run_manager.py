@@ -333,6 +333,7 @@ class RunManager:
         num_agents: int,
         num_targets: int,
         latent_dim: int,
+        entities: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Save learning state for a CF policy episode.
@@ -371,6 +372,9 @@ class RunManager:
             "pre_episode": pre_state,
             "post_episode": post_state,
         }
+
+        if entities is not None:
+            learning_state["entities"] = entities
         
         with open(filepath, "w") as f:
             json.dump(learning_state, f, indent=2)

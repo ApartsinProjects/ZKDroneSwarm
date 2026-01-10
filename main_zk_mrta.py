@@ -893,6 +893,37 @@ def main():
             
             # Save learning state using RunManager (every episode)
             if not is_deterministic:
+                entities = None
+                if policy_type == "selfish_ep_greedy_cf":
+                    entities = {
+                        "agents": [
+                            {
+                                "agent_idx": i,
+                                "agent_id": f"drone_{i}",
+                                "weapon_type": drones_config[i]["weapon_type"],
+                                "weapon_damage_profile": dict(
+                                    config.mappings.weapon_damage_profile_mapping[
+                                        drones_config[i]["weapon_type"]
+                                    ]
+                                ),
+                            }
+                            for i in range(len(drones_config))
+                        ],
+                        "targets": [
+                            {
+                                "target_idx": j,
+                                "target_id": f"target_{j}",
+                                "class_type": targets_config[j]["class_type"],
+                                "class_attributes": dict(
+                                    config.mappings.class_attribute_mapping[
+                                        targets_config[j]["class_type"]
+                                    ]
+                                ),
+                            }
+                            for j in range(len(targets_config))
+                        ],
+                    }
+
                 run_manager.save_learning_state(
                     pre_state=pre_episode_state,
                     post_state=post_episode_state,
@@ -900,6 +931,7 @@ def main():
                     num_agents=policy.num_agents,
                     num_targets=policy.num_targets,
                     latent_dim=policy.latent_dim,
+                    entities=entities,
                 )
             
             # Get episode data

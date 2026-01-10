@@ -1,6 +1,6 @@
 {
   "mappings_file": "mappings_cf_friendly.json",
-  "seed": 42,
+  "seed": 52,
   "world": {
     "size": [
       1000.0,
@@ -12,7 +12,7 @@
     "verbose": false
   },
   "drones": {
-    "count": 9,
+    "count": 3,
     "weapon_distribution": {
       "breach": 0.33,
       "structural": 0.33,
@@ -31,7 +31,7 @@
     "min_distance_between_drones": 25.0
   },
   "targets": {
-    "count": 50,
+    "count": 3,
     "region": {
       "x_fraction": [
         0.1,
@@ -43,10 +43,9 @@
       ]
     },
     "class_distribution": {
-      "A": 0.25,
-      "B": 0.25,
-      "C": 0.25,
-      "D": 0.20
+      "A": 0.33,
+      "B": 0.33,
+      "C": 0.33
     },
     "min_distance_from_drones": 50.0,
     "min_distance_between_targets": 25.0
@@ -72,11 +71,16 @@
     "reward_noise": 0.05,
     "observation_noise": 0.05,
     "selfish_ep_greedy_cf": {
-      "latent_dim": 5,
+      "latent_dim": 3,
       "learning_rate": 0.05,
       "epsilon": 0.3,
       "epsilon_decay": 0.995,
-      "epsilon_min": 0.05
+      "epsilon_min": 0.05,
+      "social_trust_factor": 0,
+      "divergence_threshold": 0.5,
+      "confidence_threshold": 0.8,
+      "social_reward_clip_min": -0.5,
+      "max_episodes": 10
     },
     "ucb_cf": {
       "latent_dim": 2,
