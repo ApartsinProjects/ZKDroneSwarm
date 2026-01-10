@@ -159,14 +159,27 @@ def print_target_setup(
 ) -> None:
     """Print target setup showing ID, class, and dominant attribute."""
     print("\nTarget Setup:")
-    target_headers = ["Target", "Class", "Dominant Attr"]
-    target_rows = []
+    target_headers = ["Class", "Targets", "Count", "Sum", "Dominant Attr"]
+    class_to_targets: Dict[str, List[str]] = {}
     for i, target_cfg in enumerate(targets_config):
         class_type = target_cfg["class_type"]
+        class_to_targets.setdefault(class_type, []).append(f"T{i}")
+
+    target_rows = []
+    for class_type in sorted(class_to_targets.keys()):
+        targets = class_to_targets[class_type]
         attributes = class_attribute_mapping[class_type]
         dominant_attr = max(attributes.items(), key=lambda x: x[1])[0]
-        row = [f"T{i}", class_type, dominant_attr[:6]]
-        target_rows.append(row)
+        class_total_hp = sum(attributes.values())
+        total_hp = len(targets) * class_total_hp
+        target_rows.append([
+            class_type,
+            ", ".join(targets),
+            len(targets),
+            int(total_hp) if float(total_hp).is_integer() else total_hp,
+            dominant_attr[:6],
+        ])
+
     print(tabulate(target_rows, headers=target_headers, tablefmt="simple"))
     print()
 
@@ -581,6 +594,131 @@ def analyze_agent_clustering(policy, drone_weapon_map):
             print(f"Agent {i}({w1[:4]}) vs Agent {j}({w2[:4]}): {similarity:.4f} {match_status}")
 
 
+def print_policy_performance_summary(
+    config: Any,
+    all_metrics: List[Dict[str, Any]],
+) -> None:
+    table_data = []
+    for policy_type in config.policy.type:
+        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
+        if policy_metrics:
+            n = len(policy_metrics)
+            avg_steps = sum(m["steps"] for m in policy_metrics) / n
+            avg_targets = sum(m["targets_neutralized"] for m in policy_metrics) / n
+            avg_ammo = sum(m["total_ammo_used"] for m in policy_metrics) / n
+            avg_overkill = sum(m["total_overkill"] for m in policy_metrics) / n
+            avg_reward = sum(sum(m["agent_rewards"].values()) for m in policy_metrics) / n
+            success_count = sum(1 for m in policy_metrics if m["done_reason"] == "all_targets_neutralized")
+            success_rate = (success_count / n) * 100
+            ammo_eff = avg_targets / avg_ammo if avg_ammo > 0 else 0.0
+            avg_eff_dmg = sum(m["total_effective_damage"] for m in policy_metrics) / n
+            avg_pot_dmg = sum(m["total_potential_damage"] for m in policy_metrics) / n
+            dmg_eff = avg_eff_dmg / avg_pot_dmg if avg_pot_dmg > 0 else 0.0
+            table_data.append([
+                policy_type,
+                avg_steps,
+                f"{avg_targets:.1f}",
+                f"{avg_ammo:.1f}",
+                f"{avg_overkill:.1f}",
+                f"{avg_reward:.1f}",
+                f"{success_rate:.0f}%",
+                f"{ammo_eff:.3f}",
+                f"{dmg_eff:.1%}",
+            ])
+
+    table_data.sort(key=lambda row: row[1])
+    for row in table_data:
+        row[1] = f"{row[1]:.1f}"
+
+    print("\n" + "="*60)
+    print("POLICY PERFORMANCE SUMMARY")
+    print("="*60)
+    headers = ["Policy", "Avg Steps", "Avg Targets", "Avg Ammo", "Avg Overkill", "Avg Reward", "Success %", "Ammo Eff", "Dmg Eff"]
+    print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    print("="*60)
+
+
+def print_policy_best_episode_performance_vs_random(
+    config: Any,
+    all_metrics: List[Dict[str, Any]],
+) -> None:
+    policy_best_metrics = {}
+    for policy_type in config.policy.type:
+        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
+        if policy_metrics:
+            best_ep = min(policy_metrics, key=lambda m: m["steps"])
+            best_ammo = best_ep["total_ammo_used"]
+            best_targets = best_ep["targets_neutralized"]
+            best_eff_dmg = best_ep["total_effective_damage"]
+            best_pot_dmg = best_ep["total_potential_damage"]
+            policy_best_metrics[policy_type] = {
+                "steps": best_ep["steps"],
+                "ammo_eff": best_targets / best_ammo if best_ammo > 0 else 0.0,
+                "dmg_eff": best_eff_dmg / best_pot_dmg if best_pot_dmg > 0 else 0.0,
+                "shots_per_target": best_ammo / best_targets if best_targets > 0 else 0.0,
+            }
+
+    if "random" in policy_best_metrics and len(policy_best_metrics) > 1:
+        print("\n" + "="*60)
+        print("POLICY BEST EPISODE PERFORMANCE (vs Random Baseline)")
+        print("="*60)
+        print(f"Reward Mode: {REWARD_MODE}")
+        print(f"Mappings File: {config.mappings_file}")
+        print("Ammo Eff = targets / ammo (higher = fewer wasted shots)")
+        print("Dmg Eff  = effective_dmg / potential_dmg (higher = less overkill)")
+        rand = policy_best_metrics["random"]
+
+        def fmt_pct(val, base, fmt, higher_better=True):
+            if base == 0:
+                return fmt.format(val)
+            pct = ((val - base) / base) * 100
+            if not higher_better:
+                pct = -pct
+            sign = "+" if pct > 0 else ""
+            return f"{fmt.format(val)} ({sign}{pct:.0f}%)"
+
+        cmp_data = []
+        for pt in config.policy.type:
+            if pt in policy_best_metrics:
+                m = policy_best_metrics[pt]
+                if pt == "random":
+                    cmp_data.append([
+                        pt,
+                        f"{m['steps']} (baseline)",
+                        f"{m['shots_per_target']:.1f} (baseline)",
+                        f"{m['ammo_eff']:.3f} (baseline)",
+                        f"{m['dmg_eff']:.1%} (baseline)",
+                    ])
+                else:
+                    cmp_data.append([
+                        pt,
+                        fmt_pct(m["steps"], rand["steps"], "{}", False),
+                        fmt_pct(m["shots_per_target"], rand["shots_per_target"], "{:.1f}", False),
+                        fmt_pct(m["ammo_eff"], rand["ammo_eff"], "{:.3f}", True),
+                        fmt_pct(m["dmg_eff"], rand["dmg_eff"], "{:.1%}", True),
+                    ])
+
+        cmp_data.sort(key=lambda r: int(r[1].split()[0]))
+        print(tabulate(cmp_data, headers=["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"], tablefmt="grid"))
+        print("="*60)
+
+
+def print_engagement_tables(
+    engagement_tables: Dict[str, Any],
+) -> None:
+    print_order = ["random", "max_damage_oracle", "selfish_ep_greedy_cf"]
+    for pt in print_order:
+        if pt not in engagement_tables:
+            continue
+        headers, payload = engagement_tables[pt]
+        print(f"\nActual Engagement Summary (Best Episode) - {pt}:")
+        if headers is None:
+            print(payload)
+        else:
+            print(tabulate(payload, headers=headers, tablefmt="simple"))
+        print()
+
+
 def main():
     """Main demo execution."""
     
@@ -839,109 +977,11 @@ def main():
 
         print("="*60)
     
-    # Policy Performance Summary Table
-    table_data = []
-    for policy_type in config.policy.type:
-        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
-        if policy_metrics:
-            n = len(policy_metrics)
-            avg_steps = sum(m["steps"] for m in policy_metrics) / n
-            avg_targets = sum(m["targets_neutralized"] for m in policy_metrics) / n
-            avg_ammo = sum(m["total_ammo_used"] for m in policy_metrics) / n
-            avg_overkill = sum(m["total_overkill"] for m in policy_metrics) / n
-            avg_reward = sum(sum(m["agent_rewards"].values()) for m in policy_metrics) / n
-            success_count = sum(1 for m in policy_metrics if m["done_reason"] == "all_targets_neutralized")
-            success_rate = (success_count / n) * 100
-            ammo_eff = avg_targets / avg_ammo if avg_ammo > 0 else 0.0
-            avg_eff_dmg = sum(m["total_effective_damage"] for m in policy_metrics) / n
-            avg_pot_dmg = sum(m["total_potential_damage"] for m in policy_metrics) / n
-            dmg_eff = avg_eff_dmg / avg_pot_dmg if avg_pot_dmg > 0 else 0.0
-            table_data.append([
-                policy_type,
-                avg_steps,
-                f"{avg_targets:.1f}",
-                f"{avg_ammo:.1f}",
-                f"{avg_overkill:.1f}",
-                f"{avg_reward:.1f}",
-                f"{success_rate:.0f}%",
-                f"{ammo_eff:.3f}",
-                f"{dmg_eff:.1%}",
-            ])
-    
-    # Sort by Avg Steps ascending
-    table_data.sort(key=lambda row: row[1])
-    # Format Avg Steps for display after sorting
-    for row in table_data:
-        row[1] = f"{row[1]:.1f}"
-    
-    print("\n" + "="*60)
-    print("POLICY PERFORMANCE SUMMARY")
-    print("="*60)
-    headers = ["Policy", "Avg Steps", "Avg Targets", "Avg Ammo", "Avg Overkill", "Avg Reward", "Success %", "Ammo Eff", "Dmg Eff"]
-    print(tabulate(table_data, headers=headers, tablefmt="grid"))
-    print("="*60)
-    
-    # Policy Best Episode Performance (comparison to random baseline)
-    policy_best_metrics = {}
-    for policy_type in config.policy.type:
-        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
-        if policy_metrics:
-            best_ep = min(policy_metrics, key=lambda m: m["steps"])
-            best_ammo = best_ep["total_ammo_used"]
-            best_targets = best_ep["targets_neutralized"]
-            best_eff_dmg = best_ep["total_effective_damage"]
-            best_pot_dmg = best_ep["total_potential_damage"]
-            policy_best_metrics[policy_type] = {
-                "steps": best_ep["steps"],
-                "ammo_eff": best_targets / best_ammo if best_ammo > 0 else 0.0,
-                "dmg_eff": best_eff_dmg / best_pot_dmg if best_pot_dmg > 0 else 0.0,
-                "shots_per_target": best_ammo / best_targets if best_targets > 0 else 0.0,
-            }
-    
-    if "random" in policy_best_metrics and len(policy_best_metrics) > 1:
-        print("\n" + "="*60)
-        print("POLICY BEST EPISODE PERFORMANCE (vs Random Baseline)")
-        print("="*60)
-        print(f"Reward Mode: {REWARD_MODE}")
-        print(f"Mappings File: {config.mappings_file}")
-        print("Ammo Eff = targets / ammo (higher = fewer wasted shots)")
-        print("Dmg Eff  = effective_dmg / potential_dmg (higher = less overkill)")
-        rand = policy_best_metrics["random"]
-        
-        def fmt_pct(val, base, fmt, higher_better=True):
-            if base == 0:
-                return fmt.format(val)
-            pct = ((val - base) / base) * 100
-            if not higher_better:
-                pct = -pct
-            sign = "+" if pct > 0 else ""
-            return f"{fmt.format(val)} ({sign}{pct:.0f}%)"
-        
-        cmp_data = []
-        for pt in config.policy.type:
-            if pt in policy_best_metrics:
-                m = policy_best_metrics[pt]
-                if pt == "random":
-                    cmp_data.append([pt, f"{m['steps']} (baseline)", f"{m['shots_per_target']:.1f} (baseline)", f"{m['ammo_eff']:.3f} (baseline)", f"{m['dmg_eff']:.1%} (baseline)"])
-                else:
-                    cmp_data.append([pt, fmt_pct(m["steps"], rand["steps"], "{}", False), fmt_pct(m["shots_per_target"], rand["shots_per_target"], "{:.1f}", False), fmt_pct(m["ammo_eff"], rand["ammo_eff"], "{:.3f}", True), fmt_pct(m["dmg_eff"], rand["dmg_eff"], "{:.1%}", True)])
-        
-        cmp_data.sort(key=lambda r: int(r[1].split()[0]))
-        print(tabulate(cmp_data, headers=["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"], tablefmt="grid"))
-        print("="*60)
-    
-    # Print all engagement tables at the end (requested ordering)
-    print_order = ["random", "max_damage_oracle", "selfish_ep_greedy_cf"]
-    for pt in print_order:
-        if pt not in engagement_tables:
-            continue
-        headers, payload = engagement_tables[pt]
-        print(f"\nActual Engagement Summary (Best Episode) - {pt}:")
-        if headers is None:
-            print(payload)
-        else:
-            print(tabulate(payload, headers=headers, tablefmt="simple"))
-        print()
+    # print_policy_performance_summary(config, all_metrics)
+
+    print_policy_best_episode_performance_vs_random(config, all_metrics)
+
+    # print_engagement_tables(engagement_tables)
 
     print("\nDemo complete! ✓")
 

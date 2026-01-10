@@ -217,17 +217,17 @@ class BaseCFAgentPolicy(ABC, IPolicy):
         selected_targets = observation['selected_targets']
         observed_rewards = observation['observed_rewards']
         
-        for other_agent_idx in range(self.num_agents):
-            target_action = selected_targets[other_agent_idx]
-            reward = observed_rewards[other_agent_idx]
+        for agent_idx in range(self.num_agents):
+            target_action = selected_targets[agent_idx]
+            reward = observed_rewards[agent_idx]
             
             if target_action > 0:
                 target_idx = target_action - 1
                 
-                if other_agent_idx == self.agent_idx:
+                if agent_idx == self.agent_idx:
                     self.update(target_idx, reward)
                 else:
-                    self._update_from_other(other_agent_idx, target_idx, reward)
+                    self._update_from_other(agent_idx, target_idx, reward)
     
     def get_learning_state(self) -> Optional[Dict[str, Any]]:
         """
