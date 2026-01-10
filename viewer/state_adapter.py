@@ -51,6 +51,10 @@ def extract_initial_state(
             - learning_state_folder: relative path to learning state folder (if decentralized)
     """
     version = episode_data.get("version", "1.0")
+    if version != "1.2":
+        raise ValueError(
+            f"Unsupported episode log version '{version}'. Viewer supports version '1.2' only."
+        )
     scenario = episode_data.get("scenario", {})
     config = episode_data.get("config", {})
     

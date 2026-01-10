@@ -85,16 +85,10 @@ Purpose: Draft a minimal, concrete plan for the change.
 Produce:
 - Files/Modules/Classes to Modify: list existing ones; add new only if absolutely necessary.
 - Step-by-Step Outline: where each step plugs into the current flow.  
-  - Direct Start note: if assumptions were deferred, include Step 0 – Assumption Validation as a minimal, non-behavioral validation step.
+  - Direct Start note: 
+     if assumptions were deferred, include Step 0 – Assumption Validation as a minimal, non-behavioral validation step.
 - Side-Effects: expected logs, events, configs, CLI impacts.
 - Testing Touchpoints: which areas need coverage (unit/integration).
-
-Dependency-Safe Baby Step Ordering (Mandatory):
-- Order steps so each step is dependency-complete enough to compile/run.
-- Prefer adding independent code first, then layer-by-layer add dependents.
-- If a future dependency is needed, introduce a minimal stub/no-op adapter so the step remains buildable (real behavior can come later).
-- Each step must include: prerequisites (what must already exist), and a validation command (how we prove this step works).
-
 
 Guardrails:
 - No code or test implementation.
@@ -108,6 +102,12 @@ Stop here.
 ## Act as the Reviewer Agent (no code)
 
 Purpose: Validate the approved plan against rules and design principles.
+
+# Dependency-Safe Baby Step Ordering (Mandatory):
+- Order steps so each step is dependency-complete enough to compile/run.
+- Prefer adding independent code first, then layer-by-layer add dependents.
+- If a future dependency is needed, introduce a minimal stub/no-op adapter so the step remains buildable (real behavior can come later).
+- Each step must include: prerequisites (what must already exist), and a validation command (how we prove this step works).
 
 Produce:
 - Review Verdict: either Approved or Change Requests.

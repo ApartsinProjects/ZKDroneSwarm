@@ -68,7 +68,7 @@ def draw_engagements(
     """
     for drone_id, target_index in actions.items():
         drone_idx = int(drone_id.split("_")[1])
-        if drone_idx >= len(drones) or target_index >= len(targets):
+        if drone_idx >= len(drones) or target_index < 0 or target_index >= len(targets):
             continue
         
         drone_pos = drones[drone_idx]["position"]

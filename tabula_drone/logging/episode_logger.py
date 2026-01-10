@@ -48,7 +48,7 @@ class EpisodeLogger:
         }
     """
     
-    VERSION = "1.1"
+    VERSION = "1.2"
     
     def __init__(self, output_dir: str = "logs/", policy_type: Optional[str] = None):
         """
@@ -327,7 +327,7 @@ class EpisodeLogger:
             step_info["overkill"] = info["overkill"]
         
         actions_0indexed = {
-            agent_id: action - 1 if action > 0 else action
+            agent_id: action - 1 if action > 0 else -1
             for agent_id, action in actions.items()
         }
         
