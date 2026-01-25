@@ -1,6 +1,5 @@
 ---
 description: Inspect the current design, reason about change paths, and identify the simplest conceptual direction before planning.
-auto_execution_mode: 1
 ---
 
 # Analyzer Workflow
@@ -54,12 +53,24 @@ Guardrails:
 - No file listings or pseudo-code.
 - Focus strictly on existing structure and behavior.
 
-## Approval Gate: Resolve Unknowns
+## Approval Gate: Resolve Unknowns (HARD STOP)
 
-If the Assumption Ledger contains open questions or unknowns, pause here.  
-List them clearly and wait for my answers or clarifications, before continuing to the next phase.
+If the Assumption Ledger contains open questions or unknowns, STOP this workflow here.
 
-Only proceed to “Act as the Path Modeler” once all relevant unknowns are addressed or explicitly deferred (with justification).
+Output ONLY:
+- Gate Status: BLOCKED
+- A numbered list of the open questions/unknowns (clear + concise)
+- “Waiting for your answers. Do not proceed to Path Modeler.”
+
+Do NOT:
+- Continue to any later section
+- Output “Act as the Path Modeler”
+- Speculate / fill gaps
+
+Only once all relevant unknowns are answered or explicitly deferred (with justification),
+you may proceed to:
+
+## Act as the Path Modeler (no code)
 
 
 ## Act as the Path Modeler (no code)

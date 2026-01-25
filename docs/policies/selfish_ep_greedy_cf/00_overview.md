@@ -36,7 +36,8 @@ Each drone maintains **private latent vectors**:
 
 ```
 agent_lv      : This drone's learned "weapon signature" (k-dimensional)
-target_lv[j]  : This drone's estimate of target j's "vulnerability signature"
+target_lv_private[j] : This drone's estimate of target j's "vulnerability signature" learned from its own actions
+target_lv_social[j]  : This drone's estimate of target j's "vulnerability signature" learned from other drones' outcomes
 other_agents_lv[i] : This drone's estimate of drone i's "weapon signature"
 ```
 
@@ -45,8 +46,8 @@ other_agents_lv[i] : This drone's estimate of drone i's "weapon signature"
 ### Learning Signal
 
 After each step, drones observe:
-1. **Their own reward** → Update `agent_lv` and `target_lv`
-2. **Other drones' rewards** → Update `other_agents_lv` and `target_lv`
+1. **Their own reward** → Update `agent_lv` and `target_lv_private`
+2. **Other drones' rewards** → Update `other_agents_lv` and `target_lv_social`
 
 This is **collaborative learning without communication** — each drone builds its own model of the world, refined by observing others' outcomes.
 
@@ -78,7 +79,7 @@ When you fire and get a reward, you perform a **Symmetric Update**.
 This is where `other_agents_lv` becomes critical. It acts as a proxy or a "simulation" of your teammates.
 
 - **The Flow:** Drone A watches Drone B hit Target X.
-- **The Logic:** Drone A thinks: "I don't know exactly what Drone B's weapon is, but I saw the result. I will update my 'mental model' of Drone B (`other_agents_lv`) and my 'mental model' of Target X (`target_lv`) so they better explain that result."
+- **The Logic:** Drone A thinks: "I don't know exactly what Drone B's weapon is, but I saw the result. I will update my 'mental model' of Drone B (`other_agents_lv`) and my 'mental model' of Target X (`target_lv_social`) so they better explain that result."
 - **The Importance:** This allows Drone A to learn about Target X's vulnerability even if it hasn't touched it yet.
 
 #### C. The Indirect "Aha!" Moment (Self ↔ Other)
@@ -87,7 +88,7 @@ This is the "magic" of the latent space.
 
 If Drone A and Drone B happen to have similar weapons, their `other_agents_lv` and `agent_lv` will eventually end up in the same "neighborhood" of the latent space.
 
-Because the `target_lv` is being updated by everyone, it becomes an **emergent consensus** (each drone has its own private copy, but they converge toward similar values).
+Because each drone learns from the same observed outcomes, the target models tend to converge. In the implementation there are two separate target models: a private one (from self experience) and a social one (from other agents' outcomes).
 
 **The Chain Reaction:**
 1. Drone B (Physical) hits Target X → Target X vector moves.
@@ -216,26 +217,37 @@ drone_2: efficiency = 37/42 = 0.881, cosine([5,35,2], [10,30,25]) = 0.806  →  
 
 ### Step 1: Prediction
 
-Each drone predicts how good a target will be using a **dot product** of two vectors:
+Each drone predicts how good a target will be using two **dot products** (private and social) and then blending them:
 
-$$\text{predicted reward} = \frac{1 + (\text{drone vector} \cdot \text{target vector})}{2}$$
+$$\hat{r}^{private} = \frac{1 + (\text{drone vector} \cdot \text{private target vector})}{2}$$
+
+$$\hat{r}^{social} = \frac{1 + (\text{drone vector} \cdot \text{social target vector})}{2}$$
+
+$$\hat{r} = (1-\beta) \cdot \hat{r}^{private} + \beta \cdot \hat{r}^{social}$$
 
 **Predicted reward range:** [0, 1]
 
 Since vectors are normalized (unit length), the dot product ranges from -1 (opposite directions) to +1 (same direction). The `(1 + x) / 2` transformation maps this to [0, 1] to match the reward scale.
 
-**Simple example with 2D vectors:**
+ **Simple example with 2D vectors:**
 
-```
-drone_0 vector  = [0.8, 0.2]    (points mostly "right")
-target_5 vector = [0.6, 0.8]    (points "up-right")
+ ```
+ drone_0 vector  = [0.8, 0.2]    (points mostly "right")
+ target_5 vector = [0.6, 0.8]    (points "up-right")
 
 dot product = (0.8 × 0.6) + (0.2 × 0.8) = 0.48 + 0.16 = 0.64
 
 predicted reward = (1 + 0.64) / 2 = 0.82
 ```
 
-**Intuition:** Vectors pointing in similar directions → high dot product → high predicted reward.
+ **Intuition:** Vectors pointing in similar directions → high dot product → high predicted reward.
+
+ The example above illustrates a single dot-product prediction term. In the implementation, the final prediction is the private/social blend shown earlier.
+
+**How $\beta$ is chosen:**
+- Base value comes from `social_trust_factor` (how much to trust the social target model)
+- At the start of each episode, $\beta$ is annealed based on episode progress using `max_episodes` (gradually reducing reliance on the social model)
+- If private and social predictions diverge strongly and the private model is confident, $\beta$ is reduced further for that target (guardrail against misleading social information)
 
 ### Step 2: Learning from Reality
 
@@ -312,8 +324,8 @@ target_new = target + η × error × drone
 #### The Update Formulas
 
 ```
-new_drone  = normalize(drone  + learning_rate × error × target)
-new_target = normalize(target + learning_rate × error × drone)
+drone_new  = normalize(drone  + learning_rate × error × target)
+target_new = normalize(target + learning_rate × error × drone)
 ```
 
 #### Example (learning_rate = 0.1)
@@ -379,20 +391,20 @@ So far we've seen how drone_0 learns from its **own** action. But drone_0 also o
 drone_0 predicts what reward drone_4 should get using its **mental models**:
 
 ```
-predicted = (1 + other_agents_lv[4] · target_lv[1]) / 2
+predicted = (1 + other_agents_lv[4] · target_lv_social[1]) / 2
 ```
 
 This uses:
 - `other_agents_lv[4]` — drone_0's estimate of drone_4's "weapon signature"
-- `target_lv[1]` — drone_0's estimate of target_1's "vulnerability"
+- `target_lv_social[1]` — drone_0's estimate of target_1's "vulnerability"
 
 #### The Update Rule
 
 Same SGD formula as Step 3, but updates different vector pairs:
 
 ```
-new_other_agents_lv[4] = normalize(other_agents_lv[4] + η × error × target_lv[1])
-new_target_lv[1]       = normalize(target_lv[1] + η × error × other_agents_lv[4])
+new_other_agents_lv[4] = normalize(other_agents_lv[4] + η × error × target_lv_social[1])
+new_target_lv_social[1]       = normalize(target_lv_social[1] + η × error × other_agents_lv[4])
 ```
 
 #### Example (learning_rate = 0.1)
@@ -400,7 +412,7 @@ new_target_lv[1]       = normalize(target_lv[1] + η × error × other_agents_lv
 **1. Starting State — drone_0's Mental Models**
 ```
 other_agents_lv[4] = [0.8, 0.6]     (drone_0's estimate of drone_4)
-target_lv[1]       = [0.2, 0.98]    (drone_0's estimate of target_1)
+target_lv_social[1]       = [0.2, 0.98]    (drone_0's estimate of target_1)
 ```
 
 **2. How Close Are They? (Before Learning)**
@@ -426,10 +438,10 @@ error = 1.0 - 0.874 = +0.126  (underestimated!)
 **5. Calculate Updates**
 ```
 other_agents_lv[4] adjustment = 0.1 × 0.126 × [0.2, 0.98] = [0.0025, 0.0123]
-target_lv[1] adjustment       = 0.1 × 0.126 × [0.8, 0.6]  = [0.0101, 0.0076]
+target_lv_social[1] adjustment       = 0.1 × 0.126 × [0.8, 0.6]  = [0.0101, 0.0076]
 
 other_agents_lv[4]: [0.8, 0.6]    → [0.8025, 0.6123] → normalized → [0.795, 0.607]
-target_lv[1]:       [0.2, 0.98]   → [0.2101, 0.9876] → normalized → [0.208, 0.978]
+target_lv_social[1]:       [0.2, 0.98]   → [0.2101, 0.9876] → normalized → [0.208, 0.978]
 ```
 
 **6. How Close Are They? (After Learning)**
@@ -453,8 +465,8 @@ angle = arccos(0.759) = 40.6°
 Over time, if drone_4 has the same weapon type as drone_0:
 1. drone_4 gets similar rewards to drone_0 on similar targets
 2. drone_0's `other_agents_lv[4]` converges toward drone_0's own `agent_lv`
-3. When drone_4 gets high reward on target_1, drone_0's `target_lv[1]` aligns with `other_agents_lv[4]`
-4. Since `other_agents_lv[4] ≈ agent_lv`, this means `target_lv[1]` aligns with drone_0's signature too
+3. When drone_4 gets high reward on target_1, drone_0's `target_lv_social[1]` aligns with `other_agents_lv[4]`
+4. Since `other_agents_lv[4] ≈ agent_lv`, this means `target_lv_social[1]` aligns with drone_0's signature too
 5. **Result:** drone_0 learns target_1 is good for it, without ever firing at it!
 
 #### What Gets Updated Each Step
@@ -462,16 +474,18 @@ Over time, if drone_4 has the same weapon type as drone_0:
 | Vector Type | Updated For |
 |-------------|-------------|
 | `agent_lv` | Only from own action (1 update max) |
-| `target_lv[X]` | Targets hit by **any** drone this step |
-| `other_agents_lv[i]` | Drones that fired this step |
+| `target_lv_private[X]` | Targets hit by **this** drone |
+| `target_lv_social[X]` | Targets hit by **other** drones |
+| `other_agents_lv[i]` | Other drones that fired this step |
 
-**Important:** `other_agents_lv` is used **only for learning**, not for target selection. Action selection uses only:
+**Important:** `other_agents_lv` is used **only for learning**, not for target selection. Action selection uses a blended prediction:
 
 ```
-predicted_reward = (1 + agent_lv · target_lv[target_idx]) / 2
+predicted_reward = (1-β) * ((1 + agent_lv · target_lv_private[target_idx]) / 2)
+                + β    * ((1 + agent_lv · target_lv_social[target_idx]) / 2)
 ```
 
-So `other_agents_lv` affects decisions **indirectly** — by improving `target_lv` estimates through observed rewards from other drones.
+So `other_agents_lv` affects decisions **indirectly** — by improving `target_lv_social` estimates through observed rewards from other drones.
 
 ### Why This Works
 

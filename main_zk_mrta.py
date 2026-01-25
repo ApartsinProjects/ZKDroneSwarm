@@ -8,7 +8,7 @@ Demonstrates:
 - Metrics collection and logging
 """
 
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, cast
 
 import os
 
@@ -27,12 +27,12 @@ from tabula_drone.logging.engagement_summary import (
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
-from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 from tabula_drone.policies.selfish_ep_greedy_cf_policy import SelfishEpGreedyCFPolicy
 from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.base import IPolicy
+from tabula_drone.scenarios import ScenarioBuilder
 
 CONFIG_PATH = "config/scenario.json"
 
@@ -64,7 +64,7 @@ def print_episode_summary(
 
 
 def print_learning_path(
-    policy: Union["UCBCFPolicy", Dict[str, "SelfishEpGreedyCFPolicy"]],
+    policy: Union[IPolicy, Dict[str, "SelfishEpGreedyCFPolicy"]],
     drones_config: List[Dict[str, Any]],
     targets_config: List[Dict[str, Any]],
 ) -> None:
@@ -80,9 +80,10 @@ def print_learning_path(
         # Use first agent's target estimates (they may differ between agents)
         target_lv = first_policy.target_lv
     else:
-        latent_dim = policy.latent_dim
-        agent_lv = policy.agent_lv
-        target_lv = policy.target_lv
+        cf_policy = cast(Any, policy)
+        latent_dim = cf_policy.latent_dim
+        agent_lv = cf_policy.agent_lv
+        target_lv = cf_policy.target_lv
     
     # Agent latent vectors
     agent_headers = ["Agent", "Weapon"] + [f"d{i}" for i in range(latent_dim)]
@@ -445,11 +446,13 @@ def run_episode(
         
         # Policy selects actions for all agents (uniform interface)
         actions = policy.select_actions(obs, info)
-        policy.update(obs)
-        
+
         # Environment step
         obs, rewards, terminations, truncations, info = env.step(actions)
-        
+
+        # Update policy
+        policy.update(obs)
+
         # Check termination
         terminated = terminations[env.agents[0]]
         truncated = truncations[env.agents[0]]
@@ -857,6 +860,9 @@ def main():
             if not is_deterministic and episode_num > 1:
                 policy.soft_reset()
             
+            pre_episode_state = None
+            post_episode_state = None
+            
             # Snapshot latent vectors BEFORE episode (for correct learning_path capture)
             if not is_deterministic:
                 # For CF policies: use get_learning_state() for state capture
@@ -928,9 +934,9 @@ def main():
                     pre_state=pre_episode_state,
                     post_state=post_episode_state,
                     episode_num=episode_num,
-                    num_agents=policy.num_agents,
-                    num_targets=policy.num_targets,
-                    latent_dim=policy.latent_dim,
+                    num_agents=getattr(policy, "num_agents", len(drones_config)),
+                    num_targets=getattr(policy, "num_targets", len(targets_config)),
+                    latent_dim=getattr(policy, "latent_dim", None),
                     entities=entities,
                 )
             
@@ -952,13 +958,17 @@ def main():
                   f"Reward={total_reward:.0f}")
             
             # Print learning path for CF policies
-            if not is_deterministic and config.execution.verbose:
+            if (
+                not is_deterministic
+                and config.execution.verbose
+                and callable(getattr(policy, "get_learning_state", None))
+            ):
                 print_learning_path(policy, drones_config, targets_config)
             
             # Debug: Analyze agent clustering for CF policies
-            if False and not is_deterministic:
-                drone_weapons = [d["weapon_type"] for d in drones_config]
-                analyze_agent_clustering(policy, drone_weapons)
+            # if False and not is_deterministic:
+            #     drone_weapons = [d["weapon_type"] for d in drones_config]
+            #     analyze_agent_clustering(policy, drone_weapons)
         
         # Finalize policy run - saves selected episodes (first/best/mid or only)
         result = run_manager.finalize_policy()

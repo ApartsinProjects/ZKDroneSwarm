@@ -9,8 +9,10 @@ from typing import Any, Dict, Optional, Union
 
 import numpy as np
 
+from .base import IPolicy
 
-class RandomPolicy:
+
+class RandomPolicy(IPolicy):
     """
     Random policy baseline for ZK-MRTA environment.
     
@@ -125,3 +127,6 @@ class RandomPolicy:
     def soft_reset(self) -> None:
         """No-op: RandomPolicy has no episode-level state."""
         pass
+
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+        return None

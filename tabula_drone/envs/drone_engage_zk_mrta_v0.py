@@ -466,7 +466,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             elif REWARD_MODE == "ATTRIBUTE_ALIGNMENT":
                 rewards[agent_id] += self._reward_attribute_alignment(hp_before_dict, damage_profile)
             else:  # HP_REDUCTION (default)
-                rewards[agent_id] += self._reward_hp_reduction(hp_before, hp_after, damage_profile)
+                rewards[agent_id] += self._reward_hp_reduction(hp_before, hp_after)
             
             # Check if target became inactive
             if target.attributes.is_depleted():
@@ -694,10 +694,10 @@ class DroneEngageZKMRTA(ParallelEnv):
 
         return float(reward)
 
-    def _reward_hp_reduction(self, hp_before: float, hp_after: float, damage_profile: Dict[str, float]) -> float:
+    def _reward_hp_reduction(self, hp_before: float, hp_after: float) -> float:
         """Reward based on total HP reduction, normalized by firing drone's weapon damage."""
         actual_damage = hp_before - hp_after
-        drone_weapon_damage = sum(damage_profile.values())
+        # drone_weapon_damage = sum(damage_profile.values())
         return actual_damage / hp_before
 
     def _reward_attribute_alignment(self, hp_before_dict: Dict[str, float], damage_profile: Dict[str, float]) -> float:

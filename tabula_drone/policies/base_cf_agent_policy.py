@@ -216,7 +216,7 @@ class BaseCFAgentPolicy(ABC, IPolicy):
         dot = np.dot(self.other_agents_lv[other_agent_idx], self.target_lv_social[target_idx])
         return (1 + dot) / 2
     
-    def update(self, target_idx: int, observed_reward: float) -> None:
+    def _update_from_own_reward(self, target_idx: int, observed_reward: float) -> None:
         """
         Update this agent's latent vectors based on its own observed reward.
         
@@ -241,6 +241,18 @@ class BaseCFAgentPolicy(ABC, IPolicy):
         
         self.agent_lv = normalize(self.agent_lv)
         self.target_lv_private[target_idx] = normalize(self.target_lv_private[target_idx])
+
+    def update(self, obs: Dict[str, Any]) -> None:
+        """
+        Update policy state from observations.
+        
+        Args:
+            obs: Observations dict keyed by agent_id
+        """
+        agent_obs = obs.get(f"drone_{self.agent_idx}")
+        if agent_obs is None:
+            return
+        self.update_from_observation(agent_obs)
     
     def _update_from_other(
         self, other_agent_idx: int, target_idx: int, observed_reward: float
@@ -296,7 +308,7 @@ class BaseCFAgentPolicy(ABC, IPolicy):
                 target_idx = target_action - 1
                 
                 if agent_idx == self.agent_idx:
-                    self.update(target_idx, reward)
+                    self._update_from_own_reward(target_idx, reward)
                 else:
                     self._update_from_other(agent_idx, target_idx, reward)
     

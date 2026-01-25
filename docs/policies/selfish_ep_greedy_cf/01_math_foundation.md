@@ -185,12 +185,13 @@ def _reward_attribute_alignment(self, hp_before_dict: Dict[str, float], damage_p
 
 ### Vector Definitions
 
-Each agent maintains three sets of latent vectors:
+Each agent maintains multiple sets of latent vectors:
 
 | Vector | Notation | Dimension | Description |
 |--------|----------|-----------|-------------|
 | **Agent vector** | $\mathbf{u}_i$ | $k \times 1$ | This agent's latent representation (encodes learned "weapon signature") |
-| **Target vectors** | $\mathbf{v}_j$ | $k \times 1$ each | This agent's estimate of each target's vulnerability |
+| **Private target vectors** | $\mathbf{v}_j^{private}$ | $k \times 1$ each | This agent's private estimate of each target's vulnerability (learned from its own actions) |
+| **Social target vectors** | $\mathbf{v}_j^{social}$ | $k \times 1$ each | This agent's social estimate of each target's vulnerability (learned from other agents' outcomes) |
 | **Other agent vectors** | $\mathbf{u}_m^{\text{est}}$ | $k \times 1$ each | This agent's estimate of other agents' signatures |
 
 Where $k$ is the latent dimension (typically 2-3).
@@ -206,21 +207,23 @@ $$\mathbf{x} = \text{normalize}(\text{uniform}(-1, 1)^k)$$
 | Vector | Used in Prediction? | Updated by Own Action? | Updated by Others' Actions? |
 |--------|---------------------|------------------------|----------------------------|
 | `agent_lv` | ✅ Yes | ✅ Yes | ❌ No |
-| `target_lv[j]` | ✅ Yes | ✅ Yes | ✅ Yes |
+| `target_lv_private[j]` | ✅ Yes | ✅ Yes | ❌ No |
+| `target_lv_social[j]` | ✅ Yes | ❌ No | ✅ Yes |
 | `other_agents_lv[m]` | ❌ No | ❌ No | ✅ Yes |
 
-**Key insight:** `target_lv` is refined from MULTIPLE sources (own + others), while `agent_lv` only learns from own actions.
+**Key insight:** the policy learns a private target model from self experience and a social target model from observed outcomes of other agents, and blends them at action time.
 
 ### Code Snapshot
 
 ```python
-# BaseCFPolicy.__init__ (lines 81-88)
+# BaseCFAgentPolicy.__init__ (conceptual)
 # Initialize private latent vectors
 self.agent_lv = self._init_latent_vector()
-self.target_lv = self._init_latent_vectors(num_targets)
+self.target_lv_private = self._init_latent_vectors(num_targets)
+self.target_lv_social = self._init_latent_vectors(num_targets)
 self.other_agents_lv = self._init_latent_vectors(num_agents)
 
-# BaseCFPolicy._init_latent_vector (lines 90-93)
+# BaseCFAgentPolicy._init_latent_vector
 def _init_latent_vector(self) -> np.ndarray:
     vector = self.rng.uniform(-1, 1, self.latent_dim)
     return normalize(vector).astype(np.float32)
@@ -240,17 +243,23 @@ We want to predict the reward $r_{ij}$ that agent $i$ will receive when engaging
 
 In a traditional recommender system, we'd have a **rating matrix** $R$ where $R_{ij}$ is user $i$'s rating of item $j$. Here, our "rating" is the reward.
 
-### Latent Factor Model
+### Latent Factor Model (Dual-Track)
 
-We approximate the reward using **latent vectors**:
+The implementation maintains two target models and blends them.
 
-$$\hat{r}_{ij} = f(\mathbf{u}_i \cdot \mathbf{v}_j)$$
+Private prediction (from self experience):
 
-Where:
-- $\mathbf{u}_i \in \mathbb{R}^k$ is agent $i$'s latent vector (encodes "weapon characteristics")
-- $\mathbf{v}_j \in \mathbb{R}^k$ is target $j$'s latent vector (encodes "vulnerability characteristics")
-- $k$ is the latent dimension (in our scenario, $k = 3$)
-- $f(\cdot)$ is a scaling function to bound predictions
+$$\hat{r}_{ij}^{private} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j^{private}}{2}$$
+
+Social prediction (from others' outcomes):
+
+$$\hat{r}_{ij}^{social} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j^{social}}{2}$$
+
+Blended prediction used for action selection:
+
+$$\hat{r}_{ij} = (1-\beta)\,\hat{r}_{ij}^{private} + \beta\,\hat{r}_{ij}^{social}$$
+
+Where $\beta \in [0,1]$ is controlled by the scenario hyperparameters and updated across episodes.
 
 ### The Scaling Function
 
@@ -260,7 +269,7 @@ Since we normalize vectors to unit length ($\|\mathbf{u}\| = \|\mathbf{v}\| = 1$
 
 To map this to the reward range $[0, 1]$:
 
-$$\hat{r}_{ij} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}$$
+$$\hat{r} = \frac{1 + (\cdot)}{2}$$
 
 **Interpretation:**
 - Dot product = +1 (perfectly aligned) → Predicted reward = 1.0
@@ -270,11 +279,27 @@ $$\hat{r}_{ij} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}$$
 ### Code Snapshot
 
 ```python
-# BaseCFPolicy.predict_reward (lines 113-126)
+# BaseCFAgentPolicy.predict_reward (conceptual)
 def predict_reward(self, target_idx: int) -> float:
-    dot = np.dot(self.agent_lv, self.target_lv[target_idx])
-    return (1 + dot) / 2
+    private_dot = np.dot(self.agent_lv, self.target_lv_private[target_idx])
+    private_pred = (1 + private_dot) / 2
+
+    social_dot = np.dot(self.agent_lv, self.target_lv_social[target_idx])
+    social_pred = (1 + social_dot) / 2
+
+    beta = self._compute_effective_beta(target_idx, float(private_pred), float(social_pred))
+    return (1 - beta) * private_pred + beta * social_pred
 ```
+
+### Episode-Based Annealing of $\beta$
+
+At the start of each episode, the policy sets a base $\beta$ value (stored as `current_beta`) using the episode count:
+
+$$progress = \text{clip}(\frac{episode\_count}{max\_episodes}, 0, 1)$$
+
+$$\beta_{episode} = (1-progress)\cdot social\_trust\_factor + progress\cdot \beta_{min}$$
+
+In the current implementation, $\beta_{min}$ is a small constant floor, and `max_episodes` controls how quickly the trust shifts from social-heavy early training to more private reliance later.
 
 ---
 
@@ -294,7 +319,7 @@ The $\frac{1}{2}$ is a convenience factor that simplifies the gradient.
 
 **Expanded form** (substituting prediction formula):
 
-$$L = \frac{1}{2}\left(r_{ij} - \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}\right)^2$$
+$$L = \frac{1}{2}\left(r_{ij} - \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j^{private}}{2}\right)^2$$
 
 **Error definition:**
 
@@ -304,7 +329,7 @@ Then: $L = \frac{1}{2} e_{ij}^2$
 
 ### 3.2 Gradient Derivation
 
-We want to minimize $L$ by adjusting $\mathbf{u}_i$ and $\mathbf{v}_j$. The gradient tells us the direction and magnitude of adjustment.
+We want to minimize $L$ by adjusting $\mathbf{u}_i$ and $\mathbf{v}_j^{private}$. The gradient tells us the direction and magnitude of adjustment.
 
 #### Gradient with Respect to $\mathbf{u}_i$
 
@@ -316,41 +341,41 @@ $$\frac{\partial L}{\partial \mathbf{u}_i} = \frac{\partial L}{\partial e_{ij}} 
 
 **Term 2:** $\frac{\partial e_{ij}}{\partial \hat{r}_{ij}} = -1$
 
-**Term 3:** $\frac{\partial \hat{r}_{ij}}{\partial \mathbf{u}_i} = \frac{\partial}{\partial \mathbf{u}_i}\left(\frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}\right) = \frac{\mathbf{v}_j}{2}$
+**Term 3:** $\frac{\partial \hat{r}_{ij}}{\partial \mathbf{u}_i} = \frac{\partial}{\partial \mathbf{u}_i}\left(\frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j^{private}}{2}\right) = \frac{\mathbf{v}_j^{private}}{2}$
 
 **Combined:**
-$$\frac{\partial L}{\partial \mathbf{u}_i} = e_{ij} \cdot (-1) \cdot \frac{\mathbf{v}_j}{2} = -\frac{e_{ij} \cdot \mathbf{v}_j}{2}$$
+$$\frac{\partial L}{\partial \mathbf{u}_i} = e_{ij} \cdot (-1) \cdot \frac{\mathbf{v}_j^{private}}{2} = -\frac{e_{ij} \cdot \mathbf{v}_j^{private}}{2}$$
 
-#### Gradient with Respect to $\mathbf{v}_j$
+#### Gradient with Respect to $\mathbf{v}_j^{private}$
 
 Using the chain rule (same structure):
 
-$$\frac{\partial L}{\partial \mathbf{v}_j} = \frac{\partial L}{\partial e_{ij}} \cdot \frac{\partial e_{ij}}{\partial \hat{r}_{ij}} \cdot \frac{\partial \hat{r}_{ij}}{\partial \mathbf{v}_j}$$
+$$\frac{\partial L}{\partial \mathbf{v}_j^{private}} = \frac{\partial L}{\partial e_{ij}} \cdot \frac{\partial e_{ij}}{\partial \hat{r}_{ij}} \cdot \frac{\partial \hat{r}_{ij}}{\partial \mathbf{v}_j^{private}}$$
 
 **Term 1:** $\frac{\partial L}{\partial e_{ij}} = e_{ij}$
 
 **Term 2:** $\frac{\partial e_{ij}}{\partial \hat{r}_{ij}} = -1$
 
-**Term 3:** $\frac{\partial \hat{r}_{ij}}{\partial \mathbf{v}_j} = \frac{\partial}{\partial \mathbf{v}_j}\left(\frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}\right) = \frac{\mathbf{u}_i}{2}$
+**Term 3:** $\frac{\partial \hat{r}_{ij}}{\partial \mathbf{v}_j^{private}} = \frac{\partial}{\partial \mathbf{v}_j^{private}}\left(\frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j^{private}}{2}\right) = \frac{\mathbf{u}_i}{2}$
 
 **Combined:**
-$$\frac{\partial L}{\partial \mathbf{v}_j} = e_{ij} \cdot (-1) \cdot \frac{\mathbf{u}_i}{2} = -\frac{e_{ij} \cdot \mathbf{u}_i}{2}$$
+$$\frac{\partial L}{\partial \mathbf{v}_j^{private}} = e_{ij} \cdot (-1) \cdot \frac{\mathbf{u}_i}{2} = -\frac{e_{ij} \cdot \mathbf{u}_i}{2}$$
 
 ### 3.3 Update Formulas + Normalization
 
 Gradient descent updates parameters in the **opposite direction** of the gradient:
 
-$$\mathbf{u}_i \leftarrow \mathbf{u}_i - \eta \cdot \frac{\partial L}{\partial \mathbf{u}_i} = \mathbf{u}_i + \frac{\eta}{2} \cdot e_{ij} \cdot \mathbf{v}_j$$
+$$\mathbf{u}_i \leftarrow \mathbf{u}_i - \eta \cdot \frac{\partial L}{\partial \mathbf{u}_i} = \mathbf{u}_i + \frac{\eta}{2} \cdot e_{ij} \cdot \mathbf{v}_j^{private}$$
 
 The implementation absorbs the $\frac{1}{2}$ into the learning rate, yielding:
 
-$$\mathbf{u}_i \leftarrow \mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j$$
+$$\mathbf{u}_i \leftarrow \mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j^{private}$$
 
 #### Final Update Rules (with Normalization)
 
-$$\mathbf{u}_i^{\text{new}} = \text{normalize}\left(\mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j\right)$$
+$$\mathbf{u}_i^{\text{new}} = \text{normalize}\left(\mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j^{private}\right)$$
 
-$$\mathbf{v}_j^{\text{new}} = \text{normalize}\left(\mathbf{v}_j + \eta \cdot e_{ij} \cdot \mathbf{u}_i\right)$$
+$$\mathbf{v}_j^{private, new} = \text{normalize}\left(\mathbf{v}_j^{private} + \eta \cdot e_{ij} \cdot \mathbf{u}_i\right)$$
 
 #### Why Normalize?
 
@@ -371,7 +396,7 @@ $$\text{normalize}(\mathbf{x}) = \frac{\mathbf{x}}{\|\mathbf{x}\|}$$
 ### Code Snapshot
 
 ```python
-# BaseCFPolicy.update (lines 144-165)
+# BaseCFAgentPolicy.update (lines 144-165)
 def update(self, target_idx: int, observed_reward: float) -> None:
     if target_idx < 0 or observed_reward < 0:
         return
@@ -380,13 +405,13 @@ def update(self, target_idx: int, observed_reward: float) -> None:
     error = observed_reward - predicted
     
     agent_vec = self.agent_lv.copy()
-    target_vec = self.target_lv[target_idx].copy()
+    target_vec_private = self.target_lv_private[target_idx].copy()
     
-    self.agent_lv += self.learning_rate * error * target_vec
-    self.target_lv[target_idx] += self.learning_rate * error * agent_vec
+    self.agent_lv += self.learning_rate * error * target_vec_private
+    self.target_lv_private[target_idx] += self.learning_rate * error * agent_vec
     
     self.agent_lv = normalize(self.agent_lv)
-    self.target_lv[target_idx] = normalize(self.target_lv[target_idx])
+    self.target_lv_private[target_idx] = normalize(self.target_lv_private[target_idx])
 ```
 
 ---
@@ -401,7 +426,7 @@ def update(self, target_idx: int, observed_reward: float) -> None:
 
 Agent $i$ predicts what reward agent $m$ should get:
 
-$$\hat{r}_{mj} = \frac{1 + \mathbf{u}_m^{\text{est}} \cdot \mathbf{v}_j}{2}$$
+$$\hat{r}_{mj} = \frac{1 + \mathbf{u}_m^{\text{est}} \cdot \mathbf{v}_j^{social}}{2}$$
 
 Where $\mathbf{u}_m^{\text{est}}$ is agent $i$'s **estimate** of agent $m$'s latent vector.
 
@@ -411,16 +436,16 @@ $$e_{mj} = r_{mj} - \hat{r}_{mj}$$
 
 ### Update Rules
 
-$$\mathbf{u}_m^{\text{est, new}} = \text{normalize}\left(\mathbf{u}_m^{\text{est}} + \eta \cdot e_{mj} \cdot \mathbf{v}_j\right)$$
+$$\mathbf{u}_m^{\text{est, new}} = \text{normalize}\left(\mathbf{u}_m^{\text{est}} + \eta \cdot e_{mj} \cdot \mathbf{v}_j^{social}\right)$$
 
-$$\mathbf{v}_j^{\text{new}} = \text{normalize}\left(\mathbf{v}_j + \eta \cdot e_{mj} \cdot \mathbf{u}_m^{\text{est}}\right)$$
+$$\mathbf{v}_j^{social, new} = \text{normalize}\left(\mathbf{v}_j^{social} + \eta \cdot e_{mj} \cdot \mathbf{u}_m^{\text{est}}\right)$$
 
 ### Key Insight
 
-The agent's own latent vector $\mathbf{u}_i$ is **NOT** updated when learning from others. Only `other_agents_lv[m]` and `target_lv[j]` change.
+The agent's own latent vector $\mathbf{u}_i$ is **NOT** updated when learning from others. Only `other_agents_lv[m]` and `target_lv_social[j]` change.
 
 This means:
-- `target_lv` gets refined from MULTIPLE sources (own actions + all observed actions)
+- `target_lv_social` gets refined from observed actions of other agents
 - `other_agents_lv` is used ONLY for learning, never for action selection
 
 ### The Indirect Learning Chain
@@ -435,12 +460,12 @@ If agent $m$ has a similar weapon to agent $i$:
 ### Code Snapshot
 
 ```python
-# BaseCFPolicy._predict_reward_for_other (lines 128-142)
+# BaseCFAgentPolicy._predict_reward_for_other (conceptual)
 def _predict_reward_for_other(self, other_agent_idx: int, target_idx: int) -> float:
-    dot = np.dot(self.other_agents_lv[other_agent_idx], self.target_lv[target_idx])
+    dot = np.dot(self.other_agents_lv[other_agent_idx], self.target_lv_social[target_idx])
     return (1 + dot) / 2
 
-# BaseCFPolicy._update_from_other (lines 167-194)
+# BaseCFAgentPolicy._update_from_other (conceptual)
 def _update_from_other(self, other_agent_idx: int, target_idx: int, observed_reward: float) -> None:
     if target_idx < 0 or observed_reward < 0:
         return
@@ -449,13 +474,13 @@ def _update_from_other(self, other_agent_idx: int, target_idx: int, observed_rew
     error = observed_reward - predicted
     
     other_agent_vec = self.other_agents_lv[other_agent_idx].copy()
-    target_vec = self.target_lv[target_idx].copy()
+    target_vec = self.target_lv_social[target_idx].copy()
     
     self.other_agents_lv[other_agent_idx] += self.learning_rate * error * target_vec
-    self.target_lv[target_idx] += self.learning_rate * error * other_agent_vec
+    self.target_lv_social[target_idx] += self.learning_rate * error * other_agent_vec
     
     self.other_agents_lv[other_agent_idx] = normalize(self.other_agents_lv[other_agent_idx])
-    self.target_lv[target_idx] = normalize(self.target_lv[target_idx])
+    self.target_lv_social[target_idx] = normalize(self.target_lv_social[target_idx])
 ```
 
 ---
@@ -464,12 +489,14 @@ def _update_from_other(self, other_agent_idx: int, target_idx: int, observed_rew
 
 | Quantity | Formula |
 |----------|---------|
-| Predicted reward | $\hat{r}_{ij} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j}{2}$ |
-| Error | $e_{ij} = r_{ij} - \hat{r}_{ij}$ |
-| Agent update | $\mathbf{u}_i \leftarrow \text{norm}(\mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j)$ |
-| Target update | $\mathbf{v}_j \leftarrow \text{norm}(\mathbf{v}_j + \eta \cdot e_{ij} \cdot \mathbf{u}_i)$ |
-| Other agent update | $\mathbf{u}_m^{\text{est}} \leftarrow \text{norm}(\mathbf{u}_m^{\text{est}} + \eta \cdot e_{mj} \cdot \mathbf{v}_j)$ |
-| Target update (from other) | $\mathbf{v}_j \leftarrow \text{norm}(\mathbf{v}_j + \eta \cdot e_{mj} \cdot \mathbf{u}_m^{\text{est}})$ |
+| Private predicted reward | $\hat{r}_{ij}^{private} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j^{private}}{2}$ |
+| Social predicted reward | $\hat{r}_{ij}^{social} = \frac{1 + \mathbf{u}_i \cdot \mathbf{v}_j^{social}}{2}$ |
+| Blended predicted reward | $\hat{r}_{ij} = (1-\beta)\,\hat{r}_{ij}^{private} + \beta\,\hat{r}_{ij}^{social}$ |
+| Error (own action) | $e_{ij} = r_{ij} - \hat{r}_{ij}$ |
+| Agent update (own action) | $\mathbf{u}_i \leftarrow \text{norm}(\mathbf{u}_i + \eta \cdot e_{ij} \cdot \mathbf{v}_j^{private})$ |
+| Private target update (own action) | $\mathbf{v}_j^{private} \leftarrow \text{norm}(\mathbf{v}_j^{private} + \eta \cdot e_{ij} \cdot \mathbf{u}_i)$ |
+| Other agent update (from other) | $\mathbf{u}_m^{\text{est}} \leftarrow \text{norm}(\mathbf{u}_m^{\text{est}} + \eta \cdot e_{mj} \cdot \mathbf{v}_j^{social})$ |
+| Social target update (from other) | $\mathbf{v}_j^{social} \leftarrow \text{norm}(\mathbf{v}_j^{social} + \eta \cdot e_{mj} \cdot \mathbf{u}_m^{\text{est}})$ |
 
 ---
 

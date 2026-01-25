@@ -10,8 +10,10 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
+from .base import IPolicy
 
-class OracleTimeToKillPolicy:
+
+class OracleTimeToKillPolicy(IPolicy):
     """
     Oracle baseline (upper bound): choose the target that can be eliminated
     in the fewest estimated hits, given the agent's weapon profile.
@@ -211,3 +213,6 @@ class OracleTimeToKillPolicy:
     def soft_reset(self) -> None:
         """No-op: OracleTimeToKillPolicy has no episode-level state."""
         pass
+
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+        return None

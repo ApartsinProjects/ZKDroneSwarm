@@ -13,8 +13,10 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
+from .base import IPolicy
 
-class OptimalAssignmentOracle:
+
+class OptimalAssignmentOracle(IPolicy):
     """
     Oracle policy that computes globally optimal drone-to-target assignments.
     
@@ -247,3 +249,6 @@ class OptimalAssignmentOracle:
     def soft_reset(self) -> None:
         """No-op: OptimalAssignmentOracle has no episode-level state."""
         pass
+
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+        return None
