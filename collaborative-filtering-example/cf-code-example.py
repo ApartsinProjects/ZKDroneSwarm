@@ -1,108 +1,192 @@
 import random
-import math  # not really used here, but harmless to keep
+import math  # harmless to keep
 
 
 # ============================================================
-# MATRIX FACTORIZATION FOR EXPLICIT RATINGS
+# MATRIX FACTORIZATION FOR EXPLICIT RATINGS (LARGER EXAMPLE)
 # ------------------------------------------------------------
-# Big idea:
-# We start from a sparse rating matrix I0:
+# We keep ratings in the range 1..5 for learning purposes.
 #
-#        items →
-# users   Shrek   Memento   DarkKnight
-# Alice     5        1         ?
-# Bob       4        ?         5
-# Cara      ?        5         4
+# Core collaborative-filtering idea remains the same:
+# - each user gets a latent vector
+# - each item gets a latent vector
+# - prediction = dot(user_vector, item_vector)
 #
-# ? means "missing / unknown"
-#
-# We want to learn:
-#   I_hat = P · U
-#
-# where:
-#   P = user latent-factor matrix
-#   U = item latent-factor matrix
-#
-# "latent" = hidden
-# "latent factors" = hidden dimensions that explain preferences
-#
-# Example interpretation (just intuition, not given to the model):
-#   factor 1 = likes fun/light movies
-#   factor 2 = likes dark/complex movies
-#
-# The model is NOT told these meanings.
-# It learns useful hidden dimensions from the ratings.
+# We will:
+# 1) define a FULL rating table (ground truth)
+# 2) intentionally hide some entries
+# 3) train only on the remaining observed ratings
+# 4) compare predictions against the hidden true ratings
 # ============================================================
 
 
 # ============================================================
-# 1) Define users and items
+# 1) Users and items
 # ------------------------------------------------------------
-# Users are the people giving ratings.
-# Items are the things being rated.
+# We make a larger example:
+# - 10 users
+# - 12 movies
 #
-# In collaborative filtering:
-# - rows usually represent users
-# - columns usually represent items
+# The movie set is designed to have broad taste groups:
+# - family / animation
+# - crime / thriller
+# - sci-fi / action
+# - a few bridge movies
 # ============================================================
 
-users = ["Alice", "Bob", "Cara"]
-items = ["Shrek", "Memento", "DarkKnight"]
+users = [
+    "Alice", "Bob", "Cara", "Dan", "Eve",
+    "Frank", "Grace", "Hank", "Ivy", "Jake"
+]
+
+items = [
+    "Shrek",
+    "ToyStory",
+    "FindingNemo",
+    "Memento",
+    "Se7en",
+    "DarkKnight",
+    "Inception",
+    "Matrix",
+    "Interstellar",
+    "Avengers",
+    "Up",
+    "PulpFiction",
+]
 
 
 # ============================================================
-# 2) Define the observed ratings
+# 2) Full ground-truth rating matrix
 # ------------------------------------------------------------
-# This is explicit feedback:
-# users directly gave ratings (1..5)
+# This is the COMPLETE table before hiding any test entries.
 #
-# We store only the known ratings.
-# This is a sparse representation because many ratings are missing.
+# Rows = users
+# Cols = movies
+#
+# We handcraft it so the preference structure is visible:
+#
+# - Alice, Bob: family/animation lovers
+# - Cara, Dan: crime/thriller lovers
+# - Eve, Frank: sci-fi/action lovers
+# - Grace, Hank, Ivy, Jake: mixed profiles
+#
+# Ratings are on a 1..5 scale.
 # ============================================================
 
-observed = {
-    ("Alice", "Shrek"): 5.0,
-    ("Alice", "Memento"): 1.0,
-    ("Bob", "Shrek"): 4.0,
-    ("Bob", "DarkKnight"): 5.0,
-    ("Cara", "Memento"): 5.0,
-    ("Cara", "DarkKnight"): 4.0,
+full_ratings = {
+    "Alice": {
+        "Shrek": 5, "ToyStory": 5, "FindingNemo": 5, "Memento": 1,
+        "Se7en": 1, "DarkKnight": 2, "Inception": 2, "Matrix": 2,
+        "Interstellar": 3, "Avengers": 3, "Up": 5, "PulpFiction": 1,
+    },
+    "Bob": {
+        "Shrek": 5, "ToyStory": 4, "FindingNemo": 5, "Memento": 1,
+        "Se7en": 2, "DarkKnight": 2, "Inception": 2, "Matrix": 1,
+        "Interstellar": 2, "Avengers": 3, "Up": 5, "PulpFiction": 1,
+    },
+    "Cara": {
+        "Shrek": 1, "ToyStory": 2, "FindingNemo": 1, "Memento": 5,
+        "Se7en": 5, "DarkKnight": 4, "Inception": 4, "Matrix": 2,
+        "Interstellar": 3, "Avengers": 2, "Up": 1, "PulpFiction": 5,
+    },
+    "Dan": {
+        "Shrek": 1, "ToyStory": 1, "FindingNemo": 2, "Memento": 5,
+        "Se7en": 5, "DarkKnight": 5, "Inception": 4, "Matrix": 3,
+        "Interstellar": 3, "Avengers": 2, "Up": 1, "PulpFiction": 4,
+    },
+    "Eve": {
+        "Shrek": 2, "ToyStory": 2, "FindingNemo": 2, "Memento": 3,
+        "Se7en": 2, "DarkKnight": 4, "Inception": 5, "Matrix": 5,
+        "Interstellar": 5, "Avengers": 4, "Up": 2, "PulpFiction": 2,
+    },
+    "Frank": {
+        "Shrek": 2, "ToyStory": 1, "FindingNemo": 2, "Memento": 3,
+        "Se7en": 2, "DarkKnight": 4, "Inception": 5, "Matrix": 5,
+        "Interstellar": 4, "Avengers": 5, "Up": 1, "PulpFiction": 2,
+    },
+    "Grace": {
+        "Shrek": 4, "ToyStory": 4, "FindingNemo": 4, "Memento": 2,
+        "Se7en": 2, "DarkKnight": 3, "Inception": 3, "Matrix": 3,
+        "Interstellar": 4, "Avengers": 4, "Up": 4, "PulpFiction": 2,
+    },
+    "Hank": {
+        "Shrek": 2, "ToyStory": 2, "FindingNemo": 2, "Memento": 4,
+        "Se7en": 4, "DarkKnight": 5, "Inception": 4, "Matrix": 4,
+        "Interstellar": 4, "Avengers": 3, "Up": 2, "PulpFiction": 4,
+    },
+    "Ivy": {
+        "Shrek": 3, "ToyStory": 3, "FindingNemo": 4, "Memento": 3,
+        "Se7en": 2, "DarkKnight": 3, "Inception": 4, "Matrix": 4,
+        "Interstellar": 5, "Avengers": 4, "Up": 4, "PulpFiction": 2,
+    },
+    "Jake": {
+        "Shrek": 3, "ToyStory": 2, "FindingNemo": 3, "Memento": 4,
+        "Se7en": 4, "DarkKnight": 4, "Inception": 4, "Matrix": 3,
+        "Interstellar": 3, "Avengers": 3, "Up": 2, "PulpFiction": 5,
+    },
 }
 
 
 # ============================================================
-# 3) Build index maps
+# 3) Choose entries to hide for evaluation
 # ------------------------------------------------------------
-# Matrices use integer row/column indices, not names.
+# These are TRUE ratings that we intentionally hide from training.
 #
-# Example:
-#   Alice -> row 0
-#   Bob   -> row 1
-#   Cara  -> row 2
+# The point:
+# - the model does not see them during training
+# - after training, we compare prediction vs truth
 #
-#   Shrek      -> col 0
-#   Memento    -> col 1
-#   DarkKnight -> col 2
+# Try to hide values that are interesting but still somewhat guessable
+# from the overall taste structure.
 # ============================================================
 
-u2i = {u: r for r, u in enumerate(users)}   # user name -> row index
-i2j = {it: c for c, it in enumerate(items)} # item name -> column index
+hidden_pairs = [
+    ("Alice", "ToyStory"),       # true rating should be high
+    ("Bob", "Up"),               # true rating should be high
+    ("Cara", "PulpFiction"),     # true rating should be high
+    ("Dan", "DarkKnight"),       # true rating should be high
+    ("Eve", "Matrix"),           # true rating should be high
+    ("Frank", "Avengers"),       # true rating should be high
+    ("Grace", "Memento"),        # moderate/low
+    ("Hank", "Se7en"),           # high
+    ("Ivy", "Interstellar"),     # high
+    ("Jake", "ToyStory"),        # lower/moderate
+]
 
-m = len(users)  # number of users = number of rows
-n = len(items)  # number of items = number of columns
+hidden_truth = {(u, it): float(full_ratings[u][it]) for (u, it) in hidden_pairs}
 
 
 # ============================================================
-# 4) Build the original sparse rating matrix I0
+# 4) Build observed ratings
 # ------------------------------------------------------------
-# I0 is the observed rating matrix.
-#
-# Shape:
-#   I0 is (m x n)
-#   rows = users
-#   cols = items
-#
-# Missing ratings are stored as None.
+# observed = all ratings EXCEPT the intentionally hidden test cells
+# ============================================================
+
+observed = {}
+
+for u in users:
+    for it in items:
+        if (u, it) not in hidden_truth:
+            observed[(u, it)] = float(full_ratings[u][it])
+
+
+# ============================================================
+# 5) Build index maps
+# ============================================================
+
+u2i = {u: r for r, u in enumerate(users)}
+i2j = {it: c for c, it in enumerate(items)}
+
+m = len(users)
+n = len(items)
+
+
+# ============================================================
+# 6) Build sparse matrix I0
+# ------------------------------------------------------------
+# I0 contains:
+# - observed ratings as floats
+# - hidden test entries as None
 # ============================================================
 
 I0 = [[None for _ in range(n)] for _ in range(m)]
@@ -110,286 +194,161 @@ I0 = [[None for _ in range(n)] for _ in range(m)]
 for (u, it), r in observed.items():
     I0[u2i[u]][i2j[it]] = r
 
-# K = list of known ratings only.
-# Each entry is:
-#   (user_index, item_index, true_rating)
-#
-# This matters because we train ONLY on observed entries.
-# We do NOT try to match missing entries.
 K = [(u2i[u], i2j[it], r) for (u, it), r in observed.items()]
 
 
 # ============================================================
-# 5) Hyperparameters
+# 7) Hyperparameters
 # ------------------------------------------------------------
-# d      = number of latent factors
-# lr     = learning rate (step size)
-# reg    = regularization strength
-# epochs = how many times to pass over the known ratings
-#
-# d = 2 means:
-# every user is represented by 2 hidden numbers
-# every item is represented by 2 hidden numbers
-#
-# This 2D hidden representation is the latent space.
+# d can be larger now because the matrix is larger.
 # ============================================================
 
-d = 2
-lr = 0.05
+d = 7
+lr = 0.01
 reg = 0.02
-epochs = 500
+epochs = 5000
 
 
 # ============================================================
-# 6) Helper to create a random matrix
-# ------------------------------------------------------------
-# We start from random guesses for the latent factors.
-# At the beginning, the model does not know anything.
-# Learning gradually improves these values.
+# 8) Random initialization
 # ============================================================
 
 def rand_matrix(rows, cols, scale=0.1):
     return [[random.uniform(-scale, scale) for _ in range(cols)] for _ in range(rows)]
 
-
-# ============================================================
-# 7) Create the factor matrices P and U
-# ------------------------------------------------------------
-# Goal:
-#   I_hat = P · U
-#
-# Shapes:
-#   P is (m x d) = users x latent_factors
-#   U is (d x n) = latent_factors x items
-#
-# So:
-#   (m x d) · (d x n) = (m x n)
-#
-# That matches the shape of the original rating matrix I0.
-#
-# Meaning of P:
-#   Each row P[u] is the latent vector for user u
-#   -> hidden taste / preference profile
-#
-# Meaning of U:
-#   Each column U[:, i] is the latent vector for item i
-#   -> hidden attribute / feature profile
-#
-# This is the "user space vs item space" idea:
-# - users live in latent space
-# - items live in latent space
-# - ratings come from how well they match
-# ============================================================
-
-P = rand_matrix(m, d)   # user matrix: users x latent factors
-U = rand_matrix(d, n)   # item matrix: latent factors x items
+P = rand_matrix(m, d)
+U = rand_matrix(d, n)
 
 
 # ============================================================
-# 8) Prediction function
-# ------------------------------------------------------------
-# For one user u and one item i:
-#
-#   prediction = (P·U)[u,i]
-#              = sum_k P[u,k] * U[k,i]
-#
-# This is the dot product between:
-# - the user's latent vector
-# - the item's latent vector
-#
-# Intuition:
-# - if user preferences align well with item properties -> high score
-# - if they do not align -> low score
+# 9) Prediction and loss
 # ============================================================
 
 def predict_entry(u, i):
     return sum(P[u][k] * U[k][i] for k in range(d))
 
-
-# ============================================================
-# 9) Loss functions
-# ------------------------------------------------------------
-# We want P and U such that:
-#   P·U approximates I0
-#
-# But only on observed ratings.
-#
-# Data loss:
-#   sum over known ratings of:
-#       (predicted - true)^2
-#
-# That is:
-#   Σ_(u,i in K) ( (P·U)[u,i] - I0[u,i] )^2
-#
-# This is the squared reconstruction error.
-#
-# Regularization is added to keep values from becoming too large.
-# ============================================================
-
 def frob_sq(M):
-    # Frobenius norm squared:
-    # sum of squares of all numbers in matrix M
     return sum(x * x for row in M for x in row)
 
 def loss_only_data():
-    # Sum of squared errors over OBSERVED entries only
     return sum((predict_entry(u, i) - r) ** 2 for (u, i, r) in K)
 
 def loss_with_reg():
-    # Full objective:
-    # data loss + regularization
     return loss_only_data() + reg * (frob_sq(P) + frob_sq(U))
 
 
 # ============================================================
-# 10) Training loop (SGD = stochastic gradient descent)
-# ------------------------------------------------------------
-# Learning idea:
-# For each known rating (u, i, r):
-#
-#   pred = current predicted rating
-#   err  = pred - true_rating
-#
-# Then update:
-#   P[u, :]   -> user vector
-#   U[:, i]   -> item vector
-#
-# Why only these?
-# Because only these values affect prediction (u, i).
-#
-# If prediction is too high:
-#   move factors so prediction goes down
-#
-# If prediction is too low:
-#   move factors so prediction goes up
-#
-# This is the "learning" in the model.
+# 10) Training loop (SGD)
 # ============================================================
 
 for epoch in range(1, epochs + 1):
-    # Shuffle the observed examples each epoch.
-    # This is common in SGD and helps learning.
     random.shuffle(K)
 
-    # Process one known rating at a time
     for u, i, r in K:
-        # Current predicted rating for user u and item i
         pred = predict_entry(u, i)
-
-        # Error = prediction - truth
-        # positive -> predicted too high
-        # negative -> predicted too low
         err = pred - r
 
-        # Save old user vector before updating it
-        # so the item update uses the old value consistently
         Pu_old = P[u][:]
 
-        # Update each latent factor dimension separately
         for k in range(d):
-            # Gradient step for the user latent factor P[u][k]
-            #
-            # Main error gradient part:
-            #   2 * err * U[k][i]
-            #
-            # Regularization part:
-            #   reg * P[u][k]
-            #
-            # Then gradient descent subtracts:
-            #   lr * gradient
             P[u][k] -= lr * (2 * err * U[k][i] + reg * P[u][k])
-
-            # Gradient step for the item latent factor U[k][i]
-            #
-            # Main error gradient part:
-            #   2 * err * old_user_value
-            #
-            # Regularization part:
-            #   reg * U[k][i]
             U[k][i] -= lr * (2 * err * Pu_old[k] + reg * U[k][i])
 
-    # Print progress at a few checkpoints
-    # As learning works, data_loss should usually go down.
-    if epoch in {1, 10, 50, 100, 200, 500}:
+    if epoch in {1, 10, 50, 100, 500, 1000, 1500, 2000, 3000, 5000}:
         print(
-            f"epoch={epoch:3d}  "
+            f"epoch={epoch:4d}  "
             f"data_loss={loss_only_data():.4f}  "
-            f"total_loss(data+reg)={loss_with_reg():.4f}"
+            f"total_loss={loss_with_reg():.4f}"
         )
 
 
 # ============================================================
-# 11) Print the reconstructed matrix I_hat = P·U
-# ------------------------------------------------------------
-# After training, P and U define a full predicted matrix:
-#
-#   I_hat = P·U
-#
-# This includes:
-# - approximations of known ratings
-# - predictions for missing ratings
-#
-# This is the core of recommendation:
-# filling in the unknown cells of the user-item matrix.
+# 11) Print observed matrix with hidden cells marked
+# ============================================================
+
+def print_observed_matrix():
+    print("\nObserved matrix I0 (None = intentionally hidden for testing):")
+    header = " " * 10 + " ".join(f"{it[:8]:8s}" for it in items)
+    print(header)
+
+    for u in users:
+        row = []
+        for it in items:
+            val = I0[u2i[u]][i2j[it]]
+            if val is None:
+                row.append(f"{'None':>8s}")
+            else:
+                row.append(f"{val:8.0f}")
+        print(f"{u:10s}" + " " + " ".join(row))
+
+
+# ============================================================
+# 12) Print reconstructed matrix I_hat = P·U
 # ============================================================
 
 def print_matrix_hat():
     print("\nReconstructed (predicted) matrix I_hat = P·U:")
-    header = " " * 10 + "  ".join(f"{it:10s}" for it in items)
+    header = " " * 10 + " ".join(f"{it[:8]:8s}" for it in items)
     print(header)
 
-    for u_name in users:
-        u = u2i[u_name]
-        row_preds = [predict_entry(u, i2j[it]) for it in items]
-        print(f"{u_name:10s}" + "  " + "  ".join(f"{x:10.3f}" for x in row_preds))
+    for u in users:
+        uu = u2i[u]
+        row_preds = [predict_entry(uu, i2j[it]) for it in items]
+        print(f"{u:10s}" + " " + " ".join(f"{x:8.1f}" for x in row_preds))
 
 
+# ============================================================
+# 13) Evaluate on hidden test entries
+# ------------------------------------------------------------
+# This is the key addition:
+# compare predicted values to the true hidden ratings
+# ============================================================
+
+def evaluate_hidden():
+    print("\nHidden-entry evaluation:")
+    print(f"{'User':12s} {'Movie':15s} {'True':>8s} {'Pred':>10s} {'AbsErr':>10s}")
+
+    abs_errors = []
+    sq_errors = []
+
+    for (u, it), true_r in hidden_truth.items():
+        pred = predict_entry(u2i[u], i2j[it])
+        abs_err = abs(pred - true_r)
+        sq_err = (pred - true_r) ** 2
+
+        abs_errors.append(abs_err)
+        sq_errors.append(sq_err)
+
+        print(f"{u:12s} {it:15s} {true_r:8.0f} {pred:10.3f} {abs_err:10.3f}")
+
+    mae = sum(abs_errors) / len(abs_errors)
+    rmse = (sum(sq_errors) / len(sq_errors)) ** 0.5
+
+    print(f"\nMAE on hidden entries : {mae:.4f}")
+    print(f"RMSE on hidden entries: {rmse:.4f}")
+
+
+# ============================================================
+# 14) Show some learned factors
+# ============================================================
+
+def print_latent_vectors():
+    print("\nLearned P (users x factors):")
+    for u in users:
+        print(f"  {u:12s}: {['%+.3f' % x for x in P[u2i[u]]]}")
+
+    print("\nLearned item vectors from U (items as columns):")
+    for it in items:
+        j = i2j[it]
+        col = [U[k][j] for k in range(d)]
+        print(f"  {it:12s}: {['%+.3f' % x for x in col]}")
+
+
+# ============================================================
+# 15) Run outputs
+# ============================================================
+
+print_observed_matrix()
 print_matrix_hat()
-
-
-# ============================================================
-# 12) Example: predict one unseen rating
-# ------------------------------------------------------------
-# Alice never rated DarkKnight in the observed data.
-#
-# But now the model can estimate it using:
-# - Alice's learned latent vector
-# - DarkKnight's learned latent vector
-#
-# This is exactly how matrix factorization predicts missing entries.
-# ============================================================
-
-u = u2i["Alice"]
-i = i2j["DarkKnight"]
-print(f"\nUnseen pair prediction (Alice, DarkKnight): {predict_entry(u, i):.3f}")
-
-
-# ============================================================
-# 13) Show learned user latent vectors
-# ------------------------------------------------------------
-# Each row in P is a user representation in latent space.
-#
-# These numbers do NOT have explicit labels.
-# They are hidden learned coordinates.
-#
-# Still, they summarize each user's taste in compressed form.
-# ============================================================
-
-print("\nLearned P (users x factors):")
-for u_name in users:
-    print(f"  {u_name:5s}: {['%+.3f' % x for x in P[u2i[u_name]]]}")
-
-
-# ============================================================
-# 14) Show learned item latent vectors
-# ------------------------------------------------------------
-# Each item is also represented in the same latent space.
-#
-# In U, each item corresponds to one column.
-#
-# These numbers summarize hidden item properties learned from data.
-# ============================================================
-
-print("\nLearned U (factors x items):")
-for k in range(d):
-    print(f"  factor {k}: {['%+.3f' % U[k][i2j[it]] for it in items]}")
+evaluate_hidden()
+print_latent_vectors()
