@@ -206,7 +206,7 @@ K = [(u2i[u], i2j[it], r) for (u, it), r in observed.items()]
 d = 7
 lr = 0.01
 reg = 0.02
-epochs = 5000
+epochs = 3000
 
 
 # ============================================================
@@ -333,15 +333,17 @@ def evaluate_hidden():
 # ============================================================
 
 def print_latent_vectors():
-    print("\nLearned P (users x factors):")
+    print("\nLearned P (matrix P: m×d, users as rows):")
     for u in users:
         print(f"  {u:12s}: {['%+.3f' % x for x in P[u2i[u]]]}")
 
-    print("\nLearned item vectors from U (items as columns):")
-    for it in items:
-        j = i2j[it]
-        col = [U[k][j] for k in range(d)]
-        print(f"  {it:12s}: {['%+.3f' % x for x in col]}")
+    print("\nLearned U (matrix U: d×n, items as columns):")
+    header = " " * 8 + " ".join(f"{it[:8]:8s}" for it in items)
+    print(header)
+
+    for k in range(d):
+        row_vals = [U[k][i2j[it]] for it in items]
+        print(f"U[{k}]     " + " ".join(f"{x:8.3f}" for x in row_vals))
 
 
 # ============================================================
