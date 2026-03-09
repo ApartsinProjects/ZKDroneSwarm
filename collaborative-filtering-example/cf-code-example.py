@@ -206,7 +206,7 @@ K = [(u2i[u], i2j[it], r) for (u, it), r in observed.items()]
 d = 7
 lr = 0.01
 reg = 0.02
-epochs = 3000
+epochs = 20000
 
 
 # ============================================================
@@ -238,6 +238,68 @@ def loss_with_reg():
 
 
 # ============================================================
+# 6) The Learning Loop (SGD Algorithm)
+# ------------------------------------------------------------
+# This section documents how the Stochastic Gradient Descent
+# algorithm maps mathematical formulas to code.
+#
+# For each observed rating (u, i, r_ui):
+#
+# 1. PREDICT: Compute dot product of user and item latent vectors
+#    Formula:    r_hat_ui = P_u^T * U_i = sum_k(P[u][k] * U[k][i])
+#    Code:       pred = sum(P[u][k] * U[k][i] for k in range(d))
+#
+# 2. ERROR: Calculate prediction error
+#    Formula:    e_ui = r_hat_ui - r_ui
+#    Code:       err = pred - r
+#
+# 3. GRADIENT DESCENT UPDATE: Adjust vectors to reduce error
+#    The gradient of squared error (r_hat - r)^2 gives the
+#    update direction. The factor of 2 comes from differentiation.
+#
+#    Formula for P:    P_u <- P_u - gamma * (2 * e_ui * U_i + lambda * P_u)
+#    Code for P:       P[u][k] -= lr * (2 * err * U[k][i] + reg * P[u][k])
+#
+#    Formula for U:    U_i <- U_i - gamma * (2 * e_ui * P_u + lambda * U_i)
+#    Code for U:       U[k][i] -= lr * (2 * err * Pu_old[k] + reg * U[k][i])
+#
+#    Where:
+#    - gamma  = lr  (learning rate = 0.01)
+#    - lambda = reg (regularization = 0.02)
+#    - Pu_old ensures we use pre-update P for consistent gradients
+#
+# 4. EPOCH: Repeat for all observed ratings, shuffle, repeat
+#    Code:       for epoch in range(1, epochs + 1):
+#                   random.shuffle(K)
+#                   for u, i, r in K:
+#                       ... update as above ...
+#
+# 5. CONVERGE: Continue until loss stabilizes at minimum
+# ============================================================
+
+
+# ============================================================
+# 9.5) Print full truth & summary before training
+# ============================================================
+
+print("\n=== Full Ground-Truth Rating Matrix ===")
+header = " " * 10 + " ".join(f"{it[:8]:8s}" for it in items)
+print(header)
+for u in users:
+    row = [f"{full_ratings[u][it]:8.0f}" for it in items]
+    print(f"{u:10s}" + " " + " ".join(row))
+
+print("\n=== Taste Group Summary ===")
+print("- Alice & Bob : Family / Animation lovers (Shrek, ToyStory, FindingNemo, Up)")
+print("- Cara & Dan  : Crime / Thriller lovers   (Memento, Se7en, PulpFiction, DarkKnight)")
+print("- Eve & Frank : Sci-Fi / Action lovers    (Inception, Matrix, Interstellar, Avengers)")
+print("- Grace, Hank,")
+print("  Ivy, Jake   : Mixed / Bridging profiles")
+print("===========================================\n")
+
+print("Starting training...")
+
+# ============================================================
 # 10) Training loop (SGD)
 # ============================================================
 
@@ -254,7 +316,7 @@ for epoch in range(1, epochs + 1):
             P[u][k] -= lr * (2 * err * U[k][i] + reg * P[u][k])
             U[k][i] -= lr * (2 * err * Pu_old[k] + reg * U[k][i])
 
-    if epoch in {1, 10, 50, 100, 500, 1000, 1500, 2000, 3000, 5000}:
+    if epoch % 1000 == 0:
         print(
             f"epoch={epoch:4d}  "
             f"data_loss={loss_only_data():.4f}  "
@@ -354,3 +416,13 @@ print_observed_matrix()
 print_matrix_hat()
 evaluate_hidden()
 print_latent_vectors()
+
+# ============================================================
+# 16) Visualize Embeddings with t-SNE
+# ============================================================
+
+from embedding_visualizer import EmbeddingVisualizer
+
+print("\nGenerating t-SNE visualization of latent spaces...")
+visualizer = EmbeddingVisualizer(perplexity=5)
+visualizer.visualize(P, U, users, items, layout='joint', save_path='embeddings_tsne.png')

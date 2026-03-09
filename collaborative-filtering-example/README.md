@@ -109,6 +109,131 @@ If the alignment is weak, the predicted rating is low.
 
 ---
 
+### The Learning Loop
+
+The model learns these latent vectors through an iterative process called Stochastic Gradient Descent (SGD). The mechanics work like this:
+
+1. **Initialize**: Start with completely random numbers in both the user matrix ($P$) and the item matrix ($U$). At this point, predictions are just noise.
+2. **Predict & Compare**: For one known rating at a time $(u, i, r_{ui})$ (e.g., Alice rated Shrek a 5), compute the dot product of Alice's random vector and Shrek's random vector:
+   $$
+   \hat{r}_{ui} = P_u^\top U_i
+   $$
+   Compare this prediction against the true rating to find the error:
+   $$
+   e_{ui} = \hat{r}_{ui} - r_{ui}
+   $$
+3. **Nudge (Gradient Descent)**: Slightly adjust both Alice's vector ($P_u$) and Shrek's vector ($U_i$) in the direction that would have made the error smaller, scaled by a learning rate ($\gamma$) and penalized by a regularization term ($\lambda$) to prevent values from growing too large:
+   $$
+   P_u \leftarrow P_u - \gamma \cdot (e_{ui} U_i + \lambda P_u)
+   $$
+   $$
+   U_i \leftarrow U_i - \gamma \cdot (e_{ui} P_u + \lambda U_i)
+   $$
+   If the prediction was too low, this nudges their vectors to align more closely; if too high, it nudges them apart.
+4. **Repeat**: Do this for every known rating in the dataset. This completes one "epoch". 
+5. **Converge**: Repeat the entire dataset for thousands of epochs. Over time, the constant nudging forces the vectors to organize themselves into meaningful patterns (like "animation lovers") until the total prediction error settles at a minimum.
+
+---
+
+### The SGD Algorithm (Code Walkthrough)
+
+This section maps the mathematical formulas to their code implementation in `cf-code-example.py`:
+
+#### Step 1: PREDICT
+Compute the dot product of user and item latent vectors:
+
+**Formula:**
+$$
+\hat{r}_{ui} = P_u^\top U_i = \sum_{k=1}^{d} P_{u,k} \cdot U_{k,i}
+$$
+
+**Code:**
+```python
+pred = sum(P[u][k] * U[k][i] for k in range(d))
+```
+
+#### Step 2: ERROR
+Calculate the prediction error:
+
+**Formula:**
+$$
+e_{ui} = \hat{r}_{ui} - r_{ui}
+$$
+
+**Code:**
+```python
+err = pred - r
+```
+
+#### Step 3: GRADIENT DESCENT UPDATE
+Adjust vectors to reduce error. The gradient of squared error $(\hat{r} - r)^2$ gives the update direction (the factor of 2 comes from differentiation):
+
+**Formula for P:**
+$$
+P_u \leftarrow P_u - \gamma \cdot (2 \cdot e_{ui} \cdot U_i + \lambda \cdot P_u)
+$$
+
+**Code for P:**
+```python
+P[u][k] -= lr * (2 * err * U[k][i] + reg * P[u][k])
+```
+
+**Formula for U:**
+$$
+U_i \leftarrow U_i - \gamma \cdot (2 \cdot e_{ui} \cdot P_u + \lambda \cdot U_i)
+$$
+
+**Code for U:**
+```python
+Pu_old = P[u][:]  # Save pre-update state for consistent gradients
+U[k][i] -= lr * (2 * err * Pu_old[k] + reg * U[k][i])
+```
+
+Where:
+- $\gamma$ = `lr` (learning rate = 0.01)
+- $\lambda$ = `reg` (regularization = 0.02)
+- `Pu_old` ensures we use pre-update P for consistent gradient computation
+
+#### Step 4: EPOCH
+Repeat for all observed ratings, shuffle, and repeat:
+
+**Code:**
+```python
+for epoch in range(1, epochs + 1):
+    random.shuffle(K)  # Shuffle training data each epoch
+    for u, i, r in K:
+        # ... predict, error, update as above ...
+```
+
+#### Step 5: CONVERGE
+Continue until the total loss stabilizes at a minimum. The loss decreases as vectors organize into meaningful patterns (like "animation lovers" vs "crime lovers").
+
+---
+
+### Why the Factor of 2 Exists in the Gradient
+
+In Step 3, you might notice a `2` in the gradient update formulas and code (e.g., `2 * err * U[k][i]`). This comes from basic calculus, specifically applying the chain rule (power rule) to the **squared error** loss function.
+
+The algorithm is trying to minimize the squared prediction error:
+$$ \text{Error} = ( \hat{r}_{ui} - r_{ui} )^2 $$
+
+Since $\hat{r}_{ui} = P_u^\top U_i$, we substitute that in:
+$$ \text{Error} = ( P_u^\top U_i - r_{ui} )^2 $$
+
+To find the gradient (the direction to update the vector), we take the derivative of this error with respect to the user vector $P_u$. 
+
+Using the power rule ($ \frac{d}{dx}[x^2] = 2x $), the `2` comes down to the front:
+$$ \frac{\partial \text{Error}}{\partial P_u} = 2 \cdot (P_u^\top U_i - r_{ui}) \cdot U_i $$
+
+Substitute the inner term back to $e_{ui}$:
+$$ \frac{\partial \text{Error}}{\partial P_u} = 2 \cdot e_{ui} \cdot U_i $$
+
+This is exactly what maps to the code: `2 * err * U[k][i]`. The exact same math applies when taking the derivative with respect to the item vector $U_i$.
+
+*(Note: In many machine learning frameworks, you might see the `2` omitted. That usually happens because the designers define the original loss function as $\frac{1}{2}(\hat{r} - r)^2$ specifically so the $\frac{1}{2}$ and the $2$ cancel out during the derivative. This specific implementation uses the raw squared error, so the $2$ remains).*
+
+---
+
 ### Observed Ratings Only
 
 In collaborative filtering, many entries in $I_0$ are missing.  
@@ -727,7 +852,7 @@ reg = 0.02      # regularization strength
 epochs = 5000   # training iterations
 ```
 
-### 6. Evaluation on Hidden Test Entries
+### 7. Evaluation on Hidden Test Entries
 
 ```python
 def evaluate_hidden():
