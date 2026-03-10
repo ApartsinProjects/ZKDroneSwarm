@@ -387,26 +387,6 @@ It is an **online decentralized latent-utility learner**.
 
 ---
 
-# Reward Interpretation
-
-The policy itself does not define the reward.  
-The reward is defined by the environment.
-
-However, for the learned latent scores to be meaningful, the reward should encode some notion of engagement effectiveness.
-
-A general interpretation is:
-
-$$
-r^{(a)}_t = \text{observed effectiveness of drone } a \text{ on target } t
-$$
-
-If rewards reflect damage efficiency, target neutralization contribution, or another operational utility measure, then the latent predictions inherit that semantic meaning.
-
-Thus, the model does not estimate preference; it estimates expected operational effectiveness under the environment's reward contract.
-
-
----
-
 ## Reward Interpretation
 
 The policy itself does not define the reward. The reward is defined by the environment.
