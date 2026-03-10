@@ -82,13 +82,13 @@ where:
 - $P^{(a)}$ is drone $a$'s local drone latent matrix,
 - $U^{(a)}$ is drone $a$'s local target latent matrix.
 
-For any drone $b$, the row
+For any drone $i$, the row
 
 $$
-P^{(a)}_b \in \mathbb{R}^d
+P^{(a)}_i \in \mathbb{R}^d
 $$
 
-is drone $a$'s current local estimate of drone $b$'s latent profile.
+is drone $a$'s current local estimate of drone $i$'s latent profile.
 
 For any target $t$, the column-vector
 
@@ -110,10 +110,10 @@ This initialization serves three purposes:
 
 # Step 2: Local Prediction of Drone-Target Utility
 
-Inside drone $a$'s local model, the predicted utility of drone $b$ engaging target $t$ is:
+Inside drone $a$'s local model, the predicted utility of drone $i$ engaging target $t$ is:
 
 $$
-\hat{r}^{(a)}_{b,t} = \left(P^{(a)}_b\right)^\top U^{(a)}_t
+\hat{r}^{(a)}_{i,t} = \left(P^{(a)}_i\right)^\top U^{(a)}_t
 $$
 
 This is the direct decentralized analogue of the classical matrix-factorization prediction rule:
@@ -124,9 +124,9 @@ $$
 
 Interpretation:
 
-- $P^{(a)}_b$ captures drone $a$'s current latent belief about drone $b$,
+- $P^{(a)}_i$ captures drone $a$'s current latent belief about drone $i$,
 - $U^{(a)}_t$ captures drone $a$'s current latent belief about target $t$,
-- the dot product gives drone $a$'s current estimate of the effectiveness of assigning drone $b$ to target $t$.
+- the dot product gives drone $a$'s current estimate of the effectiveness of assigning drone $i$ to target $t$.
 
 So each drone maintains a full local predictive model over the entire drone-target interaction space.
 
@@ -164,25 +164,25 @@ At each environment step, drones observe public interaction outcomes generated b
 A public event has the form:
 
 $$
-(b, t, r^{(b)}_t)
+(i, t, r^{(i)}_t)
 $$
 
 where:
 
-- $b$ is the drone that acted,
+- $i$ is the drone that acted,
 - $t$ is the selected target,
-- $r^{(b)}_t$ is the observed engagement outcome or reward.
+- $r^{(i)}_t$ is the observed engagement outcome or reward.
 
 This is the direct analogue of an observed rating event $(u,i,r_{ui})$ in classical collaborative filtering.
 
 The critical structural point is that the event belongs to the pair:
 
-- drone $b$,
+- drone $i$,
 - target $t$.
 
 Therefore, in matrix-factorization terms, the event should update:
 
-- the row associated with drone $b$,
+- the row associated with drone $i$,
 - the column associated with target $t$.
 
 ---
@@ -435,7 +435,6 @@ with interpretation:
 
 Under this reward contract, the latent model learns to predict expected **damage efficiency** rather than abstract preference.
 
-
 ---
 
 # How the Environment Connects to the Policy
@@ -463,7 +462,7 @@ Each drone returns one valid discrete action:
 After actions are executed, the environment must expose enough public information to construct interaction events of the form:
 
 $$
-(b,t,r^{(b)}_t)
+(i,t,r^{(i)}_t)
 $$
 
 These events are the decentralized equivalent of observed ratings in collaborative filtering.
@@ -625,7 +624,7 @@ At initialization, all entries of $P^{(a)}$ and $U^{(a)}$ should be drawn indepe
 A recommended default is:
 
 $$
-P^{(a)}_{b,k} \sim \mathcal{N}(0,\,0.01^2)
+P^{(a)}_{i,k} \sim \mathcal{N}(0,\,0.01^2)
 \qquad\text{and}\qquad
 U^{(a)}_{k,t} \sim \mathcal{N}(0,\,0.01^2)
 $$
@@ -635,7 +634,7 @@ for all valid indices.
 Equivalently, an implementation may use a small symmetric uniform initialization such as:
 
 $$
-P^{(a)}_{b,k},\,U^{(a)}_{k,t} \sim \mathrm{Uniform}(-0.05,\,0.05)
+P^{(a)}_{i,k},\,U^{(a)}_{k,t} \sim \mathrm{Uniform}(-0.05,\,0.05)
 $$
 
 provided the scale remains small.

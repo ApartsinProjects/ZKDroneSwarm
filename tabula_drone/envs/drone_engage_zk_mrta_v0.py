@@ -24,8 +24,8 @@ from ..core.states import (
     AttributeProfile,
 )
 
-# Reward mode: "HP_REDUCTION" | "DOMINANT_ATTRIBUTE" | "ATTRIBUTE_ALIGNMENT"
-REWARD_MODE = "HP_REDUCTION"
+# Reward mode: "DAMAGE_EFFICIENCY" | "HP_REDUCTION" | "DOMINANT_ATTRIBUTE" | "ATTRIBUTE_ALIGNMENT"
+REWARD_MODE = "DAMAGE_EFFICIENCY"
 
 class DroneEngageZKMRTA(ParallelEnv):
     """
@@ -461,11 +461,13 @@ class DroneEngageZKMRTA(ParallelEnv):
 
             # Compute reward based on selected mode
             hp_after = target.hp_current
-            if REWARD_MODE == "DOMINANT_ATTRIBUTE":
+            if REWARD_MODE == "DAMAGE_EFFICIENCY":
+                rewards[agent_id] += self._reward_damage_efficiency(hp_before_dict, damage_profile)
+            elif REWARD_MODE == "DOMINANT_ATTRIBUTE":
                 rewards[agent_id] += self._reward_dynamic_dominant_attribute(damage_profile, target)
             elif REWARD_MODE == "ATTRIBUTE_ALIGNMENT":
                 rewards[agent_id] += self._reward_attribute_alignment(hp_before_dict, damage_profile)
-            else:  # HP_REDUCTION (default)
+            else:  # HP_REDUCTION
                 rewards[agent_id] += self._reward_hp_reduction(hp_before, hp_after)
             
             # Check if target became inactive
@@ -733,6 +735,24 @@ class DroneEngageZKMRTA(ParallelEnv):
             cosine_sim = 0
         
         return damage_efficiency * cosine_sim
+
+    def _reward_damage_efficiency(self, hp_before_dict: Dict[str, float], damage_profile: Dict[str, float]) -> float:
+        """
+        Reward based on damage efficiency: actual effective damage divided by max weapon potential.
+        
+        This implements the policy's reward contract:
+        r = sum(min(h_before, w)) / sum(w)
+        
+        where:
+        - h_before = remaining health of target in each attribute before the hit
+        - w = weapon damage in each attribute
+        
+        Returns:
+            Reward in range [0, 1] where 1 = full weapon potential used effectively
+        """
+        actual_damage = sum(min(hp_before_dict.get(k, 0), v) for k, v in damage_profile.items())
+        max_weapon_potential = sum(damage_profile.values())
+        return actual_damage / max_weapon_potential if max_weapon_potential > 0 else 0
 
     def _validate_actions(self, actions: Dict[str, int]) -> None:
         """
