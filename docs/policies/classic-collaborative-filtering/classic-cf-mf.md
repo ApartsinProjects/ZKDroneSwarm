@@ -1,385 +1,510 @@
-# High-Level Flow of the Decentralized Collaborative Filtering Matrix Factorization Policy
+# Decentralized Collaborative Matrix-Factorization Policy for ZK-MRTA
 
-## Decentralized Policy Assumption
+## Purpose of This Policy
 
-This policy is decentralized.
+This policy reinterprets **classical collaborative filtering with matrix factorization** as a decentralized latent-utility learning mechanism for Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA).
 
-Each drone maintains its own private latent-factor model and selects actions independently.
+The classical recommendation analogy is:
 
-For each drone $a$, the local model contains:
+- **users** correspond to **drones**
+- **items** correspond to **targets**
+- **ratings** correspond to **observed engagement outcomes**
+- **predicted score** corresponds to **expected engagement effectiveness**
 
-- a private drone latent vector
-- a private target latent matrix
+The objective is therefore not to predict preference, but to estimate the hidden utility of assigning a drone to a target under strict zero-knowledge constraints.
 
-These latent parameters are not shared across drones.
+Unlike a standard recommender system, this policy is not used as an offline batch predictor.  
+It is embedded inside an **online sequential decision loop**, where drones repeatedly:
 
-Each drone updates its model only from information available through its own observation stream from the environment.
+1. observe the current environment,
+2. score available targets,
+3. choose an action,
+4. receive publicly observable outcomes, and
+5. update their local latent model.
 
-Therefore:
+---
 
-- there is no global shared latent matrix
-- there is no centralized optimizer
-- there is no joint swarm-level assignment step
-- each drone acts according to its own learned local utility estimates
+## Why Matrix Factorization Is Appropriate Here
 
-# Step 1: Latent Vector Initialization (Initial Phase)
+In this setting, drones do not know:
 
-The policy begins by assuming that hidden compatibility between drones and targets can be represented in a low-dimensional latent space.
+- the true class of each target,
+- the hidden attributes of each target,
+- the true compatibility between drone capabilities and target vulnerabilities,
+- or the latent structure governing successful engagements.
 
-For each drone $a$, the policy maintains a private local latent model:
+Instead, they must infer this structure indirectly from sparse interaction outcomes.
+
+This makes matrix factorization a natural modeling choice.  
+It provides a compact latent representation of hidden drone-target compatibility that can be learned from observed experience, even when symbolic task features are unavailable.
+
+---
+
+## Decentralized Interpretation
+
+The classical matrix-factorization model learns a single global user-item interaction structure.  
+In the present setting, such a centralized shared model is not assumed.
+
+Instead, each drone maintains its **own local estimate** of the hidden drone-target interaction matrix.
+
+Thus, the policy is decentralized in the following sense:
+
+- each drone stores its own private local latent model,
+- each drone updates that model independently,
+- no latent vectors are exchanged directly,
+- no centralized optimizer is used,
+- and collaboration arises through **shared public interaction events**, not parameter sharing.
+
+So the policy is collaborative because all drones learn from the same observable swarm experience, but decentralized because each drone reconstructs the latent interaction structure locally.
+
+---
+
+# Step 1: Local Latent Model Initialization
+
+Let:
+
+- $N_d$ be the number of drones,
+- $N_t$ be the number of targets,
+- $d$ be the latent dimension.
+
+Each drone $a$ maintains its own local matrix-factorization model:
 
 $$
-p^{(a)} \in \mathbb{R}^{d}
+P^{(a)} \in \mathbb{R}^{N_d \times d}
 $$
 
 $$
 U^{(a)} \in \mathbb{R}^{d \times N_t}
 $$
 
-Where:
+where:
 
-- $p^{(a)}$ = private latent vector of drone $a$
-- $U^{(a)}$ = private local target latent matrix maintained by drone $a$
-- $N_t$ = number of targets
-- $d$ = number of latent factors
+- $P^{(a)}$ is drone $a$'s local drone latent matrix,
+- $U^{(a)}$ is drone $a$'s local target latent matrix.
 
-At initialization, the true latent vectors are unknown, so all entries in $p^{(a)}$ and $U^{(a)}$ are set to **small random values**.
-
-Conceptually:
-
-- each drone starts with its own random latent representation
-- each drone starts with its own random local estimates of all targets
-- these positions do not yet have learned meaning
-
-Why small random values matter:
-
-- **Randomness breaks symmetry** so all latent values do not start identically
-- **Small values keep early predictions stable** and help learning begin smoothly
-
-So the purpose of the initial phase is:
-
-- create the private latent representation for each drone
-- start with no prior knowledge
-- prepare the model for learning from future interaction outcomes
-
-# Step 2: Prediction / Scoring
-
-After initialization, each drone uses its own private latent model to estimate how good each target is.
-
-For drone $a$ and target $t$, the predicted score is:
+For any drone $b$, the row
 
 $$
-\hat{r}^{(a)}_{t} = \left(p^{(a)}\right)^\top u^{(a)}_{t}
+P^{(a)}_b \in \mathbb{R}^d
 $$
 
-Where:
+is drone $a$'s current local estimate of drone $b$'s latent profile.
 
-- $p^{(a)} \in \mathbb{R}^{d}$ = private latent vector of drone $a$
-- $u^{(a)}_{t} \in \mathbb{R}^{d}$ = drone $a$'s private latent vector for target $t$
-- $\hat{r}^{(a)}_{t}$ = drone $a$'s predicted score for target $t$
+For any target $t$, the column-vector
 
-This score represents drone $a$'s current estimate of how effective or useful it would be to attack target $t$.
+$$
+U^{(a)}_t \in \mathbb{R}^d
+$$
 
-The purpose of this step is to turn the local latent representation into estimated utilities that can later be used for ranking and action selection.
+is drone $a$'s current local estimate of target $t$'s latent profile.
+
+At initialization, all entries of $P^{(a)}$ and $U^{(a)}$ are set to small random values.
+
+This initialization serves three purposes:
+
+1. it provides a complete latent representation over all drones and all targets,
+2. it encodes the fact that the true compatibility structure is initially unknown,
+3. and it prepares the model for online learning through stochastic gradient updates.
+
+---
+
+# Step 2: Local Prediction of Drone-Target Utility
+
+Inside drone $a$'s local model, the predicted utility of drone $b$ engaging target $t$ is:
+
+$$
+\hat{r}^{(a)}_{b,t} = \left(P^{(a)}_b\right)^\top U^{(a)}_t
+$$
+
+This is the direct decentralized analogue of the classical matrix-factorization prediction rule:
+
+$$
+\hat{r}_{ui} = P_u^\top U_i
+$$
+
+Interpretation:
+
+- $P^{(a)}_b$ captures drone $a$'s current latent belief about drone $b$,
+- $U^{(a)}_t$ captures drone $a$'s current latent belief about target $t$,
+- the dot product gives drone $a$'s current estimate of the effectiveness of assigning drone $b$ to target $t$.
+
+So each drone maintains a full local predictive model over the entire drone-target interaction space.
+
+---
 
 # Step 3: Action Selection
 
-After computing predicted scores, each drone must choose one target as its action.
-
-For a given drone, the policy:
-
-1. considers only the currently active targets
-2. looks at their predicted scores
-3. selects one target independently
-
-In the most classic recommendation-style version, the action rule is:
+When drone $a$ must choose its own next action, it uses its own row in its local drone matrix:
 
 $$
-t_a^* = \arg\max_{t \in \mathcal{A}} \hat{r}^{(a)}_{t}
+P^{(a)}_a
 $$
 
-Where:
-
-- $\mathcal{A}$ = set of currently active targets
-- $\hat{r}^{(a)}_{t}$ = drone $a$'s predicted score for target $t$
-- $t_a^*$ = target selected by drone $a$
-
-This means drone $a$ chooses the active target with the highest predicted score according to its own local model.
-
-Optionally, the policy can use $\varepsilon$-greedy exploration:
-
-- with probability $1-\varepsilon$, choose the highest-scoring active target
-- with probability $\varepsilon$, choose a random active target
-
-The purpose of this step is to convert local predicted utilities into an actual decision that the drone can execute in the environment.
-
-# Step 4: Environment Feedback / Observed Outcome
-
-After the drone selects and executes an action, the environment returns the actual result of that interaction.
-
-## Reward Signal
-
-For the decentralized classic MF-style policy, the recommended reward signal is:
+For every currently active target $t$, drone $a$ computes:
 
 $$
-r^{(a)}_{t} =
-\begin{cases}
--1 & \text{if drone } a \text{ fires at an already inactive target} \\
-0 & \text{if drone } a \text{ chooses NoOp} \\
-\frac{\text{actual damage dealt}}{\text{max weapon potential of drone } a} & \text{otherwise}
-\end{cases}
+\hat{r}^{(a)}_{a,t} = \left(P^{(a)}_a\right)^\top U^{(a)}_t
 $$
 
-Where:
+Drone $a$ then selects the target with the highest predicted score among the currently valid candidates.
 
-- $r^{(a)}_{t}$ = observed reward for drone $a$ on target $t$
-- actual damage dealt = total damage truly absorbed by the target after the hit
-- max weapon potential of drone $a$ = total damage the drone could deliver across all attributes in a single shot
+Thus, decision-making is self-specific:
 
-For a valid shot on an active target, this can be written as:
+- learning may involve observations about many drones,
+- but action selection uses only the acting drone's own row inside its local model.
 
-$$
-r^{(a)}_{t} =
-\frac{\sum_k \min\left(h^{\text{before}}_{t,k},\; w_{a,k}\right)}
-{\sum_k w_{a,k}}
-$$
+This preserves independent decentralized control while still allowing collaborative latent learning.
 
-Where:
+---
 
-- $h^{\text{before}}_{t,k}$ = target $t$ remaining HP in attribute $k$ before the hit
-- $w_{a,k}$ = drone $a$ weapon damage in attribute $k$
+# Step 4: Public Interaction Events
 
-for drone $a$ and its chosen target $t$, the policy receives an observed outcome:
+At each environment step, drones observe public interaction outcomes generated by the swarm.
+
+A public event has the form:
 
 $$
-r^{(a)}_{t}
+(b, t, r^{(b)}_t)
 $$
 
-Where:
+where:
 
-- $r^{(a)}_{t}$ = observed reward or outcome for drone $a$ interacting with target $t$
+- $b$ is the drone that acted,
+- $t$ is the selected target,
+- $r^{(b)}_t$ is the observed engagement outcome or reward.
 
-This value represents what actually happened in the environment after the action was taken.
+This is the direct analogue of an observed rating event $(u,i,r_{ui})$ in classical collaborative filtering.
 
-Conceptually:
+The critical structural point is that the event belongs to the pair:
 
-- the local model predicts a score
-- the drone chooses a target
-- the environment returns the real outcome
+- drone $b$,
+- target $t$.
 
-The purpose of this step is to provide the learning signal that will later be compared against the predicted score.
+Therefore, in matrix-factorization terms, the event should update:
 
-So this step turns the selected interaction into an observed training example.
+- the row associated with drone $b$,
+- the column associated with target $t$.
 
-# Step 5: Model Update / Learning
+---
 
-This is the phase where each drone learns its own private latent space.
+# Step 5: Collaborative Local Update / Learning
 
-For an observed interaction between drone $a$ and target $t$, the local model first predicts:
+This is the core learning phase.
 
-$$
-\hat{r}^{(a)}_{t} = \left(p^{(a)}\right)^\top u^{(a)}_{t}
-$$
+At each environment step, drone $a$ observes a set of newly available public interaction events generated by the swarm.
 
-Where:
-
-- $p^{(a)} \in \mathbb{R}^{d}$ = private latent vector of drone $a$
-- $u^{(a)}_{t} \in \mathbb{R}^{d}$ = drone $a$'s private latent vector for target $t$
-- $\hat{r}^{(a)}_{t}$ = predicted outcome
-
-After the environment returns the actual observed outcome $r^{(a)}_{t}$, the model computes the prediction error:
+Each observed event has the form:
 
 $$
-e^{(a)}_{t} = \hat{r}^{(a)}_{t} - r^{(a)}_{t}
+(i, t, r^{(i)}_t)
 $$
 
-## Loss Function
+where:
 
-Drone $a$ learns by minimizing squared prediction error over its own observed interactions:
+- $i$ is the acting drone,
+- $t$ is the engaged target,
+- $r^{(i)}_t$ is the observed engagement outcome or reward.
 
-$$
-\mathcal{L}^{(a)}_{\text{data}}=\sum_{t \in \Omega^{(a)}}\left(\left(p^{(a)}\right)^\top u^{(a)}_{t}-r^{(a)}_{t}\right)^2
-$$
+Drone $a$ treats each such public event as a local supervised training sample.
 
-Where:
-
-- $\Omega^{(a)}$ = set of drone-target interactions observed by drone $a$
-
-To keep latent vectors from growing too large, regularization is added:
+Using its own local matrices, drone $a$ predicts the observed outcome as:
 
 $$
-\mathcal{L}^{(a)}=\sum_{t \in \Omega^{(a)}}\left(\left(p^{(a)}\right)^\top u^{(a)}_{t}-r^{(a)}_{t}\right)^2+\lambda\left(\|p^{(a)}\|^2+\|U^{(a)}\|_F^2\right)
+\hat{r}^{(a)}_{i,t} = \left(P^{(a)}_i\right)^\top U^{(a)}_t
 $$
 
-Where:
+and computes the local prediction error:
 
-- $\lambda$ = regularization strength
-- $\|p^{(a)}\|^2$ = squared norm of drone $a$'s latent vector
-- $\|U^{(a)}\|_F^2$ = sum of squares of all entries in drone $a$'s private target matrix
+$$
+e^{(a)}_{i,t} = \hat{r}^{(a)}_{i,t} - r^{(i)}_t
+$$
+
+This is the proper decentralized analogue of the classical MF learning rule:
+
+- the observation concerns acting drone $i$ and target $t$,
+- so drone $a$ updates its local row for drone $i$,
+- and its local vector for target $t$.
+
+This formulation includes both cases naturally:
+
+- if $i=a$, the event corresponds to drone $a$'s own action,
+- if $i \neq a$, the event corresponds to another drone's public action.
+
+So there is only one update rule.  
+It applies to **whoever acted**.
+
+---
+
+## Local Objective Function
+
+For a single observed event $(i,t,r^{(i)}_t)$, drone $a$'s local per-sample loss is:
+
+$$
+\ell^{(a)}_{i,t}
+=
+\left(
+\left(P^{(a)}_i\right)^\top U^{(a)}_t - r^{(i)}_t
+\right)^2
++
+\lambda
+\left(
+\|P^{(a)}_i\|^2 + \|U^{(a)}_t\|^2
+\right)
+$$
+
+where:
+
+- the first term is the squared prediction error,
+- the second term is L2 regularization,
+- and $\lambda > 0$ is the regularization strength.
+
+Over the full set of public interaction events visible to drone $a$, the local training objective is:
+
+$$
+\mathcal{L}^{(a)}(P^{(a)},U^{(a)})
+=
+\sum_{(i,t)\in\Omega^{(a)}}
+\left(
+\left(P^{(a)}_i\right)^\top U^{(a)}_t - r^{(i)}_t
+\right)^2
++
+\lambda
+\left(
+\|P^{(a)}\|_F^2 + \|U^{(a)}\|_F^2
+\right)
+$$
+
+where $\Omega^{(a)}$ denotes the set of public interaction events visible to drone $a$.
+
+Thus, each drone minimizes local reconstruction error over the public swarm interaction stream available to it.
+
+---
 
 ## SGD Update Rule
 
-The model uses Stochastic Gradient Descent (SGD), which means each drone updates its own latent vectors one observed interaction at a time.
+At a given environment step, drone $a$ first receives the newly revealed public event set from that step.
 
-For one observed pair $(a,t)$, the gradients are:
+Only after those events are observed does drone $a$ update its local model.
+
+This means the causal order is:
+
+1. action selection uses the current local model,
+2. the environment executes all drone actions,
+3. public outcomes are revealed,
+4. drone $a$ updates its local matrices from those outcomes,
+5. the updated model is used at the next decision step.
+
+So no event update is conceptually privileged for the current step's action.  
+All newly observed events contribute to learning **after** the step is completed, and their effect appears in the **next** step.
+
+For a single observed event $(i,t,r^{(i)}_t)$, drone $a$ computes:
 
 $$
-\frac{\partial \mathcal{L}^{(a)}}{\partial p^{(a)}} = 2 e^{(a)}_{t} u^{(a)}_{t} + \lambda p^{(a)}
+\hat{r}^{(a)}_{i,t} = \left(P^{(a)}_i\right)^\top U^{(a)}_t
 $$
 
 $$
-\frac{\partial \mathcal{L}^{(a)}}{\partial u^{(a)}_{t}} = 2 e^{(a)}_{t} p^{(a)} + \lambda u^{(a)}_{t}
+e^{(a)}_{i,t} = \hat{r}^{(a)}_{i,t} - r^{(i)}_t
 $$
 
-The gradient descent updates are:
+It then updates the corresponding row and column of its local model:
 
 $$
-p^{(a)} \leftarrow p^{(a)} - \gamma \left(2 e^{(a)}_{t} u^{(a)}_{t} + \lambda p^{(a)}\right)
+P^{(a)}_i
+\leftarrow
+P^{(a)}_i
+-
+\eta
+\left(
+2 e^{(a)}_{i,t} U^{(a)}_t + \lambda P^{(a)}_i
+\right)
 $$
 
 $$
-u^{(a)}_{t} \leftarrow u^{(a)}_{t} - \gamma \left(2 e^{(a)}_{t} p^{(a)} + \lambda u^{(a)}_{t}\right)
+U^{(a)}_t
+\leftarrow
+U^{(a)}_t
+-
+\eta
+\left(
+2 e^{(a)}_{i,t} P^{(a)}_i + \lambda U^{(a)}_t
+\right)
 $$
 
-Where:
+where:
 
-- $\gamma$ = learning rate
+- $\eta$ is the learning rate,
+- $\lambda$ is the regularization coefficient.
 
-## Intuition
+These are standard stochastic-gradient updates applied locally by each drone.
 
-- If the observed outcome is higher than predicted, the update increases compatibility between drone $a$ and target $t$ in drone $a$'s local latent space
-- If the observed outcome is lower than predicted, the update decreases compatibility
-- Repeating this over many observed interactions gradually organizes each drone's private latent space into meaningful patterns
+In practice, if multiple public events are revealed in the same step, drone $a$ may process them sequentially in any fixed order using SGD.
 
-So this step is the core learning mechanism: each drone reshapes its own latent vectors so future predictions better match observed outcomes.
+So the implementation may be sequential, but the policy interpretation remains:
 
-## How the Environment Plugs Into the 5 Steps
-
-### Step 1: Initialization
-
-This step happens inside each drone's policy instance, not inside the environment.
-
-The environment provides the structural information needed to initialize the local latent model:
-
-- the number of drones
-- the number of targets
-- the action space size
-
-This allows each drone to create:
-
-- its own private latent vector
-- its own private latent representation of all targets
-
-So the environment defines the problem dimensions, and each drone initializes its own local latent model accordingly.
+- first observe the step's public outcomes,
+- then learn from them,
+- then use the updated model at the next step.
 
 ---
 
-### Step 2: Prediction / Scoring
+## Interpretation of Learning
 
-At each decision step, the environment provides an observation for each drone.
+The learning interpretation is therefore:
 
-In collaborative mode, the observation contains:
+> When drone $a$ observes that acting drone $i$ engaged target $t$ and obtained reward $r^{(i)}_t$, drone $a$ uses that event to refine its own local belief about the latent interaction between drone $i$ and target $t$.
 
-- `targets`
-- `selected_targets`
-- `observed_rewards`
+So drone $a$ updates:
 
-For a classic recommendation-style policy, the most important part for prediction is:
+- the local latent row $P^{(a)}_i$,
+- the local latent vector $U^{(a)}_t$.
 
-- `targets`
+If $i=a$, this is drone $a$'s self-update.  
+If $i \neq a$, this is drone $a$'s update based on another drone's public action.
 
-The `targets` field contains, for every target:
+This means that every drone is reconstructing its own local version of the hidden interaction matrix from the same public evidence stream.
 
-- x-position
-- y-position
-- active flag
-
-The active flag is what matters most here, because each drone should score only targets that are still valid candidates.
-
-So in this step, the environment supplies the current candidate set, and each drone computes local predicted scores for the active targets.
+Collaboration therefore occurs through **common observable experience**, while decentralization is preserved because no hidden states are exchanged.
 
 ---
 
-### Step 3: Action Selection
+# Step 6: Online Learning and Control Loop
 
-After scoring the active targets, each drone must return one valid environment action.
+The overall loop for drone $a$ is:
 
-The environment expects a discrete action per drone:
+1. observe the current environment state and public swarm trace,
+2. use $P^{(a)}_a$ and $U^{(a)}$ to score active targets,
+3. select one valid action,
+4. observe new public engagement outcomes,
+5. convert each public event into a local MF training sample,
+6. update $P^{(a)}$ and $U^{(a)}$ using SGD,
+7. repeat at the next step.
+
+Thus, the recommendation-style model is embedded inside a sequential decentralized control process.
+
+This is not a static recommender.  
+It is an **online decentralized latent-utility learner**.
+
+---
+
+# Reward Interpretation
+
+The policy itself does not define the reward.  
+The reward is defined by the environment.
+
+However, for the learned latent scores to be meaningful, the reward should encode some notion of engagement effectiveness.
+
+A general interpretation is:
+
+$$
+r^{(a)}_t = \text{observed effectiveness of drone } a \text{ on target } t
+$$
+
+If rewards reflect damage efficiency, target neutralization contribution, or another operational utility measure, then the latent predictions inherit that semantic meaning.
+
+Thus, the model does not estimate preference; it estimates expected operational effectiveness under the environment's reward contract.
+
+
+---
+
+## Reward Interpretation
+
+The policy itself does not define the reward. The reward is defined by the environment.
+
+However, for the learned latent scores to be meaningful, the reward should encode some notion of engagement effectiveness.
+
+A general interpretation is:
+
+$$
+r^{(a)}_t = \text{observed effectiveness of drone } a \text{ on target } t
+$$
+
+A natural reward contract consistent with this interpretation is:
+
+$$
+r^{(a)}_t =
+\begin{cases}
+-1, & \text{if drone } a \text{ fires at an already inactive target} \\[6pt]
+0, & \text{if drone } a \text{ chooses NoOp} \\[6pt]
+\displaystyle
+\frac{\sum_{k} \min\!\left(h^{\text{before}}_{t,k},\, w_{a,k}\right)}
+{\sum_{k} w_{a,k}},
+& \text{if drone } a \text{ fires at an active target}
+\end{cases}
+$$
+
+where:
+
+- $h^{\text{before}}_{t,k}$ = remaining health of target $t$ in attribute $k$ before the hit
+- $w_{a,k}$ = drone $a$'s weapon damage in attribute $k$
+
+The numerator measures the **actual effective damage dealt**, since damage beyond the remaining target health is wasted.  
+The denominator measures the drone's **maximum possible weapon output**.
+
+Therefore, for a valid shot on an active target:
+
+$$
+r^{(a)}_t \in [0,1]
+$$
+
+with interpretation:
+
+- $r^{(a)}_t = 1$ = the drone used its full weapon potential effectively
+- $r^{(a)}_t \approx 0$ = the engagement produced little useful effect
+- intermediate values = partial effectiveness
+
+Under this reward contract, the latent model learns to predict expected **damage efficiency** rather than abstract preference.
+
+
+---
+
+# How the Environment Connects to the Policy
+
+The environment is responsible for supplying the information needed to drive the latent-learning cycle.
+
+## Environment-Side Requirements
+
+At minimum, the environment must define:
+
+- the number of drones $N_d$,
+- the number of targets $N_t$,
+- the discrete action interface,
+- and a public stream of observable interaction outcomes.
+
+## Action Interface
+
+Each drone returns one valid discrete action:
 
 - `0` = NoOp
-- `1..N` = fire at target index (1-indexed)
+- `1..N_t` = fire at target index
 
-So each drone takes its internal target choice and converts it into the environment action format.
+## Learning Interface
 
-This means:
-
-- internally, the drone selects the best target according to its own local model
-- externally, it returns the corresponding action expected by the environment
-
----
-
-### Step 4: Environment Feedback / Observed Outcome
-
-After receiving the actions, the environment executes them inside `step(actions)`.
-
-The environment then returns:
-
-- next observations
-- rewards
-- terminations
-- truncations
-- infos
-
-For the learning cycle, the most important output for drone $a$ is:
-
-- `rewards[agent_id]`
-
-This is the actual scalar outcome of the action that was just taken by that drone. It is the direct feedback signal for the selected drone-target interaction.
-
-So this step is where the environment provides the real result that can be compared against the local prediction.
-
----
-
-### Step 5: Model Update / Learning
-
-Drone $a$ uses the environment's returned reward to build an observed interaction:
+After actions are executed, the environment must expose enough public information to construct interaction events of the form:
 
 $$
-(a, t, r^{(a)}_{t})
+(b,t,r^{(b)}_t)
 $$
 
-Where:
+These events are the decentralized equivalent of observed ratings in collaborative filtering.
 
-- $a$ = drone index
-- $t$ = selected target index
-- $r^{(a)}_{t}$ = reward returned by the environment for that drone
-
-This observed interaction becomes the training sample used in drone $a$'s local latent-factor update step.
-
-In a faithful decentralized classic-MF-style policy, the main learning signal should come from:
-
-- the chosen target
-- the direct reward returned by `step()`
-
-The observation fields:
-
-- `selected_targets`
-- `observed_rewards`
-
-can be treated as optional locally observed context, but they are not required for the most classical version of the policy.
+Once such events are available, each drone can locally perform the MF prediction-error update cycle.
 
 ---
 
-## Summary Mapping
+# Final Interpretation
 
-- **Step 1:** environment provides problem dimensions
-- **Step 2:** environment provides current valid targets through `targets`
-- **Step 3:** each drone returns a valid discrete action to the environment
-- **Step 4:** environment returns the actual reward for the chosen action
-- **Step 5:** each drone uses that reward as the observed signal for local learning
+This policy can be summarized as follows:
 
-So the environment plugs into the decentralized CF cycle by providing:
+> Each drone behaves like a decentralized collaborative matrix-factorization learner. It does not know the true target class, hidden target attributes, or true drone-target compatibility. Instead, it maintains a local latent model over all drones and all targets, updates that model from publicly observable swarm interaction events, and chooses actions using its own row within that local latent model.
 
-- the candidate set for scoring
-- the action interface for execution
-- the reward signal for local learning
+This formulation preserves the core logic of classical matrix factorization while adapting it to the decentralized, sequential, and zero-knowledge constraints of ZK-MRTA.
+
+Its main properties are:
+
+- it preserves the user-item factorization structure,
+- it replaces preference with operational utility,
+- it learns online from sparse experience,
+- it remains decentralized,
+- it requires no direct communication,
+- and it produces independent per-drone action selection from a collaboratively informed local model.
