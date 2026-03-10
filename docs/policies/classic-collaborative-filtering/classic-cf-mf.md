@@ -22,7 +22,7 @@ Therefore:
 - there is no joint swarm-level assignment step
 - each drone acts according to its own learned local utility estimates
 
-# Step 1: Latent Vector Initialization (Initial Phase))
+# Step 1: Latent Vector Initialization (Initial Phase)
 
 The policy begins by assuming that hidden compatibility between drones and targets can be represented in a low-dimensional latent space.
 
