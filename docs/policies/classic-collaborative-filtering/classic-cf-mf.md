@@ -508,3 +508,244 @@ Its main properties are:
 - it remains decentralized,
 - it requires no direct communication,
 - and it produces independent per-drone action selection from a collaboratively informed local model.
+
+---
+
+## Recommended Hyperparameters and Initialization Defaults
+
+The core matrix-factorization policy is defined in symbolic form above.  
+For implementation consistency, the following defaults are recommended as a practical baseline.
+
+These values are not mathematically mandatory, but they provide a stable starting point for online decentralized learning in the present setting.
+
+### Latent Dimension
+
+Let:
+
+$$
+d \in \mathbb{N}
+$$
+
+denote the latent dimension used in each local factorization model.
+
+A recommended default is:
+
+$$
+d = 8
+$$
+
+A practical tuning range is:
+
+$$
+d \in [4,16]
+$$
+
+with interpretation:
+
+- smaller values may underfit the hidden compatibility structure,
+- larger values may represent more nuanced structure,
+- but overly large values may increase noise sensitivity and overfitting under sparse interaction data.
+
+Thus, the default recommendation is to begin with a **small-to-moderate latent dimension** rather than a large expressive model.
+
+### Learning Rate
+
+Let:
+
+$$
+\eta > 0
+$$
+
+denote the SGD learning rate.
+
+A recommended default is:
+
+$$
+\eta = 0.01
+$$
+
+A practical tuning range is:
+
+$$
+\eta \in [0.001,\,0.05]
+$$
+
+with interpretation:
+
+- lower values are more stable but slower,
+- higher values adapt more quickly,
+- but values that are too large may cause oscillation or divergence in the online update process.
+
+For this reason, a conservative learning rate is preferred as the baseline.
+
+### Regularization Coefficient
+
+Let:
+
+$$
+\lambda > 0
+$$
+
+denote the L2 regularization coefficient.
+
+A recommended default is:
+
+$$
+\lambda = 0.02
+$$
+
+A practical tuning range is:
+
+$$
+\lambda \in [10^{-4},\,10^{-1}]
+$$
+
+with interpretation:
+
+- smaller values allow more flexible fitting,
+- larger values suppress large latent vectors more aggressively,
+- and excessive regularization may cause underfitting.
+
+In sparse online interaction settings, some regularization is strongly recommended in order to prevent unstable growth of latent factors.
+
+### Exploration Rate
+
+If an exploration policy is used, let:
+
+$$
+\varepsilon_s \in [0,1]
+$$
+
+denote the exploration probability at decision step $s$.
+
+A recommended default schedule is:
+
+$$
+\varepsilon_{\text{start}} = 0.20
+\qquad
+\varepsilon_{\min} = 0.02
+$$
+
+with linear decay over the early phase of training.
+
+This gives the practical rule:
+
+- begin with moderate exploration,
+- reduce exploration gradually as experience accumulates,
+- and retain a small nonzero exploration floor.
+
+This prevents the policy from becoming prematurely greedy before the latent estimates are informative.
+
+---
+
+## Initialization Strategy
+
+At initialization, all entries of $P^{(a)}$ and $U^{(a)}$ should be drawn independently from a small zero-centered distribution.
+
+A recommended default is:
+
+$$
+P^{(a)}_{b,k} \sim \mathcal{N}(0,\,0.01^2)
+\qquad\text{and}\qquad
+U^{(a)}_{k,t} \sim \mathcal{N}(0,\,0.01^2)
+$$
+
+for all valid indices.
+
+Equivalently, an implementation may use a small symmetric uniform initialization such as:
+
+$$
+P^{(a)}_{b,k},\,U^{(a)}_{k,t} \sim \mathrm{Uniform}(-0.05,\,0.05)
+$$
+
+provided the scale remains small.
+
+The purpose of this recommendation is:
+
+- to break symmetry between latent factors,
+- to keep early predicted scores near zero,
+- and to avoid large unstable updates at the beginning of learning.
+
+Thus, the policy should not use large random initial values.  
+A **small zero-centered initialization** is the intended baseline.
+
+---
+
+## Recommended Exploration Schedule
+
+At decision step $s$, drone $a$ selects its action as follows:
+
+- with probability $\varepsilon_s$, choose a random valid target,
+- with probability $1-\varepsilon_s$, choose the valid target with highest predicted score.
+
+A recommended linear schedule is:
+
+$$
+\varepsilon_s
+=
+\max
+\left(
+\varepsilon_{\min},
+\;
+\varepsilon_{\text{start}}
+-
+\left(
+\varepsilon_{\text{start}}-\varepsilon_{\min}
+\right)
+\frac{s}{S_{\text{decay}}}
+\right)
+$$
+
+for
+
+$$
+s \le S_{\text{decay}}
+$$
+
+and
+
+$$
+\varepsilon_s = \varepsilon_{\min}
+\qquad\text{for}\qquad
+s > S_{\text{decay}}
+$$
+
+where:
+
+- $\varepsilon_{\text{start}} = 0.20$,
+- $\varepsilon_{\min} = 0.02$,
+- and $S_{\text{decay}}$ is the number of steps over which exploration is reduced.
+
+A practical default is to set $S_{\text{decay}}$ to approximately the first one-half of the expected training horizon.
+
+The intended interpretation is:
+
+- early in learning, exploration is useful because latent estimates are still unreliable,
+- later in learning, the policy should increasingly exploit its learned utility model,
+- but a small exploration floor is retained so that the policy can continue correcting mistaken beliefs.
+
+If exploration is not desired, one may set:
+
+$$
+\varepsilon_s = 0
+\qquad \forall s
+$$
+
+and recover the purely greedy baseline.
+
+---
+
+## Practical Default Summary
+
+For a baseline implementation, the following default choices are recommended:
+
+- $d = 8$
+- $\eta = 0.01$
+- $\lambda = 0.02$
+- initialize all latent entries from $\mathcal{N}(0,\,0.01^2)$
+- use $\varepsilon$-greedy exploration with:
+  - $\varepsilon_{\text{start}} = 0.20$
+  - $\varepsilon_{\min} = 0.02$
+  - linear decay over the first half of training
+
+These defaults are intended to make the policy **concrete, reproducible, and stable** while remaining fully consistent with the classical matrix-factorization interpretation developed above.
