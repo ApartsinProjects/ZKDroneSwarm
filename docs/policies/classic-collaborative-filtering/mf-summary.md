@@ -180,3 +180,69 @@ $$
 with the interpretation that higher values mean more effective use of the drone’s weapon against that target.
 
 Under this reward contract, the latent model learns expected **operational effectiveness**, not preference.
+
+---
+
+## Noise Embedding
+
+To preserve swarm diversity and prevent premature behavioral collapse, drones may inject controlled noise at four possible injection points, listed by practical priority:
+
+### 1. Exploration Score Noise (Highest Priority)
+**Where:** At target scoring, before action selection.
+
+Perturb predicted scores directly:
+
+$$
+\tilde{r}^{(a)}_{a,t} = \hat{r}^{(a)}_{a,t} + \xi^{(a)}_{t,s}, \qquad \xi^{(a)}_{t,s} \sim \mathcal{N}(0,\sigma_s^2)
+$$
+
+Then select: $t_a^\star = \arg\max_{t \in \mathcal{A}_s} \tilde{r}^{(a)}_{a,t}$
+
+**Purpose:** Prevent all drones from repeatedly choosing the same attractive target; increases exploration diversity.
+
+---
+
+### 2. Parameter Noise (High Priority)
+**Where:** Before target scoring, by adding noise to the acting drone's latent row.
+
+$$
+\tilde{P}^{(a)}_a = P^{(a)}_a + \epsilon^{(a)}_s, \qquad \epsilon^{(a)}_s \sim \mathcal{N}(0,\sigma_s^2 I_d)
+$$
+
+Then score: $\tilde{r}^{(a)}_{a,t} = \left(\tilde{P}^{(a)}_a\right)^\top U^{(a)}_t$
+
+**Purpose:** Maintain distinct local decision profiles across drones with similar training histories.
+
+---
+
+### 3. Update Noise (Medium Priority)
+**Where:** At the latent update step, after prediction error computation.
+
+Standard updates:
+$$
+P^{(a)}_i \leftarrow P^{(a)}_i + \gamma \left( e^{(a)}_{i,t} U^{(a)}_t - \lambda P^{(a)}_i \right)
+$$
+$$
+U^{(a)}_t \leftarrow U^{(a)}_t + \gamma \left( e^{(a)}_{i,t} P^{(a)}_i - \lambda U^{(a)}_t \right)
+$$
+
+Noisy variant adds: $\eta^{(a)}_{P,s}, \eta^{(a)}_{U,s} \sim \mathcal{N}(0,\tau_s^2 I_d)$
+
+**Purpose:** Reduce brittle convergence and maintain learning flexibility (non-convex optimization aid).
+
+---
+
+### 4. Observation/Reward Noise (Lowest Priority)
+**Where:** At the public event observation step, before learning updates.
+
+$$
+\tilde{r}_t^{(i)} = r_t^{(i)} + \zeta_{r,s}, \qquad \zeta_{r,s} \sim \mathcal{N}(0,\nu_r^2)
+$$
+
+**Purpose:** Robustness testing under imperfect sensing or corrupted public signals-not a primary learning mechanism.
+
+---
+
+### Recommendation
+
+<TBD>
