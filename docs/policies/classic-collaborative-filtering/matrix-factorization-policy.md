@@ -605,7 +605,7 @@ $$
 \varepsilon_{\min} = 0.02
 $$
 
-with linear decay over the early phase of training.
+with multiplicative decay over the early phase of training.
 
 This gives the practical rule:
 
@@ -657,45 +657,25 @@ At decision step $s$, drone $a$ selects its action as follows:
 - with probability $\varepsilon_s$, choose a random valid target,
 - with probability $1-\varepsilon_s$, choose the valid target with highest predicted score.
 
-A recommended linear schedule is:
+A recommended multiplicative schedule is:
 
 $$
-\varepsilon_s
-=
-\max
-\left(
-\varepsilon_{\min},
-\;
-\varepsilon_{\text{start}}
--
-\left(
-\varepsilon_{\text{start}}-\varepsilon_{\min}
-\right)
-\frac{s}{S_{\text{decay}}}
-\right)
-$$
-
-for
-
-$$
-s \le S_{\text{decay}}
-$$
-
-and
-
-$$
-\varepsilon_s = \varepsilon_{\min}
-\qquad\text{for}\qquad
-s > S_{\text{decay}}
+\varepsilon_{s+1} = \max(\varepsilon_{\min}, \, \varepsilon_s \cdot \gamma)
 $$
 
 where:
 
 - $\varepsilon_{\text{start}} = 0.20$,
 - $\varepsilon_{\min} = 0.02$,
-- and $S_{\text{decay}}$ is the number of steps over which exploration is reduced.
+- and $\gamma$ is the multiplicative decay factor (e.g., $0.9995$).
 
-A practical default is to set $S_{\text{decay}}$ to approximately the first one-half of the expected training horizon.
+This yields an exponential decay of exploration over time:
+
+$$
+\varepsilon_s = \max(\varepsilon_{\min}, \, \varepsilon_{\text{start}} \cdot \gamma^s)
+$$
+
+A practical default is to set $\gamma$ such that $\varepsilon$ reaches $\varepsilon_{\min}$ approximately near the expected training horizon.
 
 The intended interpretation is:
 
@@ -725,6 +705,6 @@ For a baseline implementation, the following default choices are recommended:
 - use $\varepsilon$-greedy exploration with:
   - $\varepsilon_{\text{start}} = 0.20$
   - $\varepsilon_{\min} = 0.02$
-  - linear decay over the first half of training
+  - multiplicative decay (e.g., $\gamma = 0.9995$) over the training horizon
 
 These defaults are intended to make the policy **concrete, reproducible, and stable** while remaining fully consistent with the classical matrix-factorization interpretation developed above.

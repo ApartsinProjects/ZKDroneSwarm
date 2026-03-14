@@ -30,7 +30,7 @@ class MatrixFactorizationPolicy:
 
     Learning uses SGD with L2 regularization on public swarm interaction events.
     Action selection uses the drone's own row (P[agent_idx]) with ε-greedy
-    exploration using a linear decay schedule.
+    exploration using a multiplicative decay schedule.
 
     ZK-MRTA Compliant: No shared state between drone instances.
     Designed for use with MultiAgentPolicy wrapper.
@@ -65,6 +65,7 @@ class MatrixFactorizationPolicy:
             epsilon: Initial exploration rate (default 0.20)
             epsilon_decay: Multiplicative decay factor for ε (default 1.0)
             epsilon_min: Minimum exploration rate (default 0.02)
+            anti_signal_weight: Weight applied to negative reward updates (default 0.1)
             seed: Random seed for reproducibility
         """
         self.num_targets = num_targets
@@ -195,6 +196,7 @@ class MatrixFactorizationPolicy:
         Processes all public interaction events from the swarm.
         For each event (drone i, target t, reward r):
             - Compute prediction error: e = P[i].T @ U[:, t] - r
+            - If r < 0, error is weighted by anti_signal_weight
             - Update: P[i] -= η * (2*e*U[:, t] + λ*P[i])
             - Update: U[:, t] -= η * (2*e*P[i] + λ*U[:, t])
 
