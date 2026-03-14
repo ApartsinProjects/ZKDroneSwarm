@@ -488,9 +488,9 @@ def run_episode(
         # Update total rewards and track effective damage
         for agent_id in env.agents:
             total_rewards[agent_id] += rewards[agent_id]
-            # Positive rewards represent actual_damage / 10.0
-            if rewards[agent_id] > 0:
-                total_effective_damage += rewards[agent_id] * 10.0
+            
+        # Sum absolute effective damage from ground truth (info)
+        total_effective_damage += sum(info["effective_damage"].values())
         
         # Track overkill
         if "overkill" in info:

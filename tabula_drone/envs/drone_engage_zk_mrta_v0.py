@@ -427,8 +427,9 @@ class DroneEngageZKMRTA(ParallelEnv):
         processing_order = list(self.agents)
         self.rng.shuffle(processing_order)
 
-        # Track overkill across all drones
+        # Track metrics across all drones
         overkill_map: Dict[int, float] = {}
+        step_effective_damage: Dict[str, float] = {agent_id: 0.0 for agent_id in self.agents}
 
         # Process each drone sequentially
         for agent_id in processing_order:
@@ -457,6 +458,11 @@ class DroneEngageZKMRTA(ParallelEnv):
             hp_before = target.hp_current
             hp_before_dict = dict(target.attributes.attributes)
             damage_profile = drone.damage_profile
+            
+            # Calculate absolute effective damage (ground truth)
+            eff_dmg = sum(min(hp_before_dict.get(k, 0), v) for k, v in damage_profile.items())
+            step_effective_damage[agent_id] = eff_dmg
+            
             target.attributes.apply_damage(damage_profile)
 
             # Compute reward based on selected mode
@@ -496,6 +502,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Build info dict
         infos = self._build_info_dict(actions)
         infos["processing_order"] = processing_order
+        infos["effective_damage"] = step_effective_damage
         if overkill_map:
             infos["overkill"] = overkill_map
         if done_reason:
