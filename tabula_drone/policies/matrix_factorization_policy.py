@@ -75,6 +75,7 @@ class MatrixFactorizationPolicy:
         self.learning_rate = learning_rate
         self.lambda_reg = lambda_reg
         self.epsilon = epsilon
+        self.initial_epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
         self.anti_signal_weight = anti_signal_weight
@@ -247,10 +248,11 @@ class MatrixFactorizationPolicy:
         pass
 
     def reset(self) -> None:
-        """Full reset: reinitialize all latent matrices and step counter."""
+        """Full reset: reinitialize all latent matrices, step counter, and exploration state."""
         self.rng = np.random.RandomState(self.seed)
         self._init_matrices()
         self.step_count = 0
+        self.epsilon = self.initial_epsilon
 
     def get_learning_state(self) -> Optional[Dict[str, Any]]:
         """
