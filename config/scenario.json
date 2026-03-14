@@ -104,7 +104,8 @@
     "epsilon_decay": 0.9995,
     "epsilon_min": 0.02,
     "reward_noise": 0.0,
-    "observation_noise": 0.0
+    "observation_noise": 0.0,
+    "anti_signal_weight": 0.1
   },
   "logging": {
     "output_dir": "logs/"

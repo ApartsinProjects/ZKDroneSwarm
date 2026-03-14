@@ -105,6 +105,7 @@ class MFPolicyConfig:
     epsilon_min: Optional[float] = None
     reward_noise: Optional[float] = None
     observation_noise: Optional[float] = None
+    anti_signal_weight: Optional[float] = None
 
 
 @dataclass
@@ -533,6 +534,7 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     epsilon_min = data.get("epsilon_min")
     reward_noise = data.get("reward_noise")
     observation_noise = data.get("observation_noise")
+    anti_signal_weight = data.get("anti_signal_weight")
 
     # Log defaults
     if latent_dim is None:
@@ -551,6 +553,8 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         print("Note, using default value 0.05 for hyperparameter reward_noise (matrix_factorization_cf)")
     if observation_noise is None:
         print("Note, using default value 0.05 for hyperparameter observation_noise (matrix_factorization_cf)")
+    if anti_signal_weight is None:
+        print("Note, using default value 0.1 for hyperparameter anti_signal_weight (matrix_factorization_cf)")
 
     # Validate bounds
     if latent_dim is not None:
@@ -577,6 +581,9 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     if observation_noise is not None:
         if not isinstance(observation_noise, (int, float)) or observation_noise < 0:
             raise ValueError("matrix_factorization_cf.observation_noise must be >= 0")
+    if anti_signal_weight is not None:
+        if not isinstance(anti_signal_weight, (int, float)) or anti_signal_weight < 0:
+            raise ValueError("matrix_factorization_cf.anti_signal_weight must be >= 0")
 
     return MFPolicyConfig(
         latent_dim=latent_dim,
@@ -587,6 +594,7 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
         reward_noise=float(reward_noise) if reward_noise is not None else None,
         observation_noise=float(observation_noise) if observation_noise is not None else None,
+        anti_signal_weight=float(anti_signal_weight) if anti_signal_weight is not None else None,
     )
 
 

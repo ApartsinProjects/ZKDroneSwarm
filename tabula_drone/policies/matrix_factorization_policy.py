@@ -49,6 +49,7 @@ class MatrixFactorizationPolicy:
         epsilon: float = 0.20,
         epsilon_decay: float = 1.0,
         epsilon_min: float = 0.02,
+        anti_signal_weight: float = 0.1,
         seed: Optional[int] = None,
     ):
         """
@@ -75,6 +76,7 @@ class MatrixFactorizationPolicy:
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
+        self.anti_signal_weight = anti_signal_weight
         self.seed = seed
 
         self.rng = np.random.RandomState(seed)
@@ -212,14 +214,13 @@ class MatrixFactorizationPolicy:
 
             target_idx = int(target_action) - 1
 
-            # Skip negative rewards (wasted shots — timing issue, not
-            # reflective of true compatibility)
-            if reward < 0:
-                continue
-
             # Compute prediction and error
             predicted = self._predict_for_drone(drone_idx, target_idx)
             error = predicted - float(reward)
+
+            # Weight the anti-signal (contention/wasted shots)
+            if reward < 0:
+                error *= self.anti_signal_weight
 
             # Snapshot vectors before update (for simultaneous update)
             p_i = self.P[drone_idx].copy()
@@ -272,6 +273,7 @@ class MatrixFactorizationPolicy:
             "P": self.P.tolist(),
             "U": self.U.tolist(),
             "epsilon": self.epsilon,
+            "anti_signal_weight": self.anti_signal_weight,
             "step_count": self.step_count,
             "match": {
                 "predicted_rewards": predicted_rewards,
