@@ -443,7 +443,9 @@ def run_episode(
         Episode metrics dictionary
     """
     # Reset environment
-    obs, info = env.reset()
+    # ???
+    # obs, info = env.reset()
+    obs, info = env.reset(seed=seed)
     
     if logger:
         logger.start_episode(env, info, seed, episode_num, total_episodes)
@@ -903,13 +905,17 @@ def main():
             else:
                 pre_episode_lv = None
             
+            # Generate a unique but deterministic seed for this episode's environment
+            # This ensures that ENV noise/ordering is reproducible across runs
+            episode_seed = config.seed + episode_num if config.seed is not None else None
+
             metrics = run_episode(
                 env=env,
                 policy=policy,
                 episode_num=episode_num,
                 verbose=config.execution.verbose,
                 logger=logger,
-                seed=config.seed,
+                seed=episode_seed,  #config.seed
                 total_episodes=num_episodes,
             )
             metrics["policy_type"] = policy_type
