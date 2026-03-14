@@ -100,9 +100,9 @@ class MFPolicyConfig:
     latent_dim: Optional[int] = None
     learning_rate: Optional[float] = None
     lambda_reg: Optional[float] = None
-    epsilon_start: Optional[float] = None
+    epsilon: Optional[float] = None
+    epsilon_decay: Optional[float] = None
     epsilon_min: Optional[float] = None
-    decay_steps: Optional[int] = None
 
 
 @dataclass
@@ -114,7 +114,6 @@ class CollaborativeFilteringConfig:
     ucb_cf: Optional[UCBCFConfig] = None
     coordinated_ep_greedy_cf: Optional[EpGreedyCFConfig] = None
     selfish_ep_greedy_cf: Optional[EpGreedyCFConfig] = None
-    matrix_factorization_cf: Optional["MFPolicyConfig"] = None
 
 
 @dataclass
@@ -131,6 +130,7 @@ class ScenarioConfig:
     mappings: MappingsConfig
     mappings_file: str = None
     collaborative_filtering: CollaborativeFilteringConfig = None
+    matrix_factorization_cf: MFPolicyConfig = None
 
 
 def _validate_required_keys(data: dict, required_keys: List[str], context: str) -> None:
@@ -526,9 +526,9 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     latent_dim = data.get("latent_dim")
     learning_rate = data.get("learning_rate")
     lambda_reg = data.get("lambda_reg")
-    epsilon_start = data.get("epsilon_start")
+    epsilon = data.get("epsilon")
+    epsilon_decay = data.get("epsilon_decay")
     epsilon_min = data.get("epsilon_min")
-    decay_steps = data.get("decay_steps")
 
     # Log defaults
     if latent_dim is None:
@@ -537,12 +537,12 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         print("Note, using default value 0.01 for hyperparameter learning_rate (matrix_factorization_cf)")
     if lambda_reg is None:
         print("Note, using default value 0.02 for hyperparameter lambda_reg (matrix_factorization_cf)")
-    if epsilon_start is None:
-        print("Note, using default value 0.20 for hyperparameter epsilon_start (matrix_factorization_cf)")
+    if epsilon is None:
+        print("Note, using default value 0.20 for hyperparameter epsilon (matrix_factorization_cf)")
+    if epsilon_decay is None:
+        print("Note, using default value 1.0 for hyperparameter epsilon_decay (matrix_factorization_cf)")
     if epsilon_min is None:
         print("Note, using default value 0.02 for hyperparameter epsilon_min (matrix_factorization_cf)")
-    if decay_steps is None:
-        print("Note, using default value None for hyperparameter decay_steps (matrix_factorization_cf)")
 
     # Validate bounds
     if latent_dim is not None:
@@ -554,23 +554,23 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     if lambda_reg is not None:
         if not isinstance(lambda_reg, (int, float)) or lambda_reg < 0:
             raise ValueError("matrix_factorization_cf.lambda_reg must be >= 0")
-    if epsilon_start is not None:
-        if not isinstance(epsilon_start, (int, float)) or epsilon_start < 0 or epsilon_start > 1:
-            raise ValueError("matrix_factorization_cf.epsilon_start must be in [0, 1]")
+    if epsilon is not None:
+        if not isinstance(epsilon, (int, float)) or epsilon < 0 or epsilon > 1:
+            raise ValueError("matrix_factorization_cf.epsilon must be in [0, 1]")
+    if epsilon_decay is not None:
+        if not isinstance(epsilon_decay, (int, float)) or epsilon_decay < 0 or epsilon_decay > 1:
+            raise ValueError("matrix_factorization_cf.epsilon_decay must be in [0, 1]")
     if epsilon_min is not None:
         if not isinstance(epsilon_min, (int, float)) or epsilon_min < 0 or epsilon_min > 1:
             raise ValueError("matrix_factorization_cf.epsilon_min must be in [0, 1]")
-    if decay_steps is not None:
-        if not isinstance(decay_steps, int) or decay_steps < 1:
-            raise ValueError("matrix_factorization_cf.decay_steps must be an integer >= 1")
 
     return MFPolicyConfig(
         latent_dim=latent_dim,
         learning_rate=float(learning_rate) if learning_rate is not None else None,
         lambda_reg=float(lambda_reg) if lambda_reg is not None else None,
-        epsilon_start=float(epsilon_start) if epsilon_start is not None else None,
+        epsilon=float(epsilon) if epsilon is not None else None,
+        epsilon_decay=float(epsilon_decay) if epsilon_decay is not None else None,
         epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
-        decay_steps=int(decay_steps) if decay_steps is not None else None,
     )
 
 
@@ -585,7 +585,6 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
     ucb_cf = _parse_ucb_cf_config(data.get("ucb_cf"))
     selfish_ep_greedy_cf = _parse_selfish_ep_greedy_cf_config(data.get("selfish_ep_greedy_cf"))
     coordinated_ep_greedy_cf = _parse_coordinated_ep_greedy_cf_config(data.get("coordinated_ep_greedy_cf"))
-    matrix_factorization_cf = _parse_mf_policy_config(data.get("matrix_factorization_cf"))
     
     return CollaborativeFilteringConfig(
         reward_noise=float(data["reward_noise"]),
@@ -594,7 +593,6 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
         ucb_cf=ucb_cf,
         selfish_ep_greedy_cf=selfish_ep_greedy_cf,
         coordinated_ep_greedy_cf=coordinated_ep_greedy_cf,
-        matrix_factorization_cf=matrix_factorization_cf,
     )
 
 
@@ -776,6 +774,9 @@ def load_config(path: str) -> ScenarioConfig:
     # Parse optional collaborative_filtering config
     cf_config = _parse_collaborative_filtering_config(data.get("collaborative_filtering"))
     
+    # Parse optional matrix_factorization_cf config
+    mf_config = _parse_mf_policy_config(data.get("matrix_factorization_cf"))
+    
     return ScenarioConfig(
         seed=seed,
         world=_parse_world_config(data["world"]),
@@ -787,5 +788,6 @@ def load_config(path: str) -> ScenarioConfig:
         logging=_parse_logging_config(data["logging"]),
         mappings=mappings,
         mappings_file=mappings_file,
-        collaborative_filtering=cf_config
+        collaborative_filtering=cf_config,
+        matrix_factorization_cf=mf_config
     )

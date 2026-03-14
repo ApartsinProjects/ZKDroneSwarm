@@ -372,10 +372,8 @@ def create_policy(
     elif policy_type == "matrix_factorization_cf":
         if num_targets is None:
             raise ValueError("num_targets is required for matrix_factorization_cf policy")
-        # Extract hyperparameters from dedicated config section
-        mf_cfg = None
-        if config.collaborative_filtering:
-            mf_cfg = config.collaborative_filtering.matrix_factorization_cf
+        # Extract hyperparameters from dedicated top-level config section
+        mf_cfg = config.matrix_factorization_cf
         # Create one policy instance per agent (true decentralization)
         num_agents = len(drones_config)
         policies = {}
@@ -388,9 +386,9 @@ def create_policy(
                 latent_dim=mf_cfg.latent_dim if mf_cfg and mf_cfg.latent_dim else 8,
                 learning_rate=mf_cfg.learning_rate if mf_cfg and mf_cfg.learning_rate else 0.01,
                 lambda_reg=mf_cfg.lambda_reg if mf_cfg and mf_cfg.lambda_reg is not None else 0.02,
-                epsilon_start=mf_cfg.epsilon_start if mf_cfg and mf_cfg.epsilon_start is not None else 0.20,
+                epsilon=mf_cfg.epsilon if mf_cfg and mf_cfg.epsilon is not None else 0.20,
+                epsilon_decay=mf_cfg.epsilon_decay if mf_cfg and mf_cfg.epsilon_decay is not None else 1.0,
                 epsilon_min=mf_cfg.epsilon_min if mf_cfg and mf_cfg.epsilon_min is not None else 0.02,
-                decay_steps=mf_cfg.decay_steps if mf_cfg and mf_cfg.decay_steps else None,
                 seed=config.seed + agent_idx if config.seed else None,
             )
         return MultiAgentPolicy(policies)

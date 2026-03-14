@@ -46,9 +46,9 @@ class MatrixFactorizationPolicy:
         latent_dim: int = 8,
         learning_rate: float = 0.01,
         lambda_reg: float = 0.02,
-        epsilon_start: float = 0.20,
+        epsilon: float = 0.20,
+        epsilon_decay: float = 1.0,
         epsilon_min: float = 0.02,
-        decay_steps: Optional[int] = None,
         seed: Optional[int] = None,
     ):
         """
@@ -61,10 +61,9 @@ class MatrixFactorizationPolicy:
             latent_dim: Dimension of latent vectors (default 8)
             learning_rate: SGD learning rate η (default 0.01)
             lambda_reg: L2 regularization coefficient λ (default 0.02)
-            epsilon_start: Initial exploration rate (default 0.20)
+            epsilon: Initial exploration rate (default 0.20)
+            epsilon_decay: Multiplicative decay factor for ε (default 1.0)
             epsilon_min: Minimum exploration rate (default 0.02)
-            decay_steps: Steps over which ε decays linearly (default: None,
-                         computed as half of expected training horizon if not set)
             seed: Random seed for reproducibility
         """
         self.num_targets = num_targets
@@ -73,9 +72,9 @@ class MatrixFactorizationPolicy:
         self.latent_dim = latent_dim
         self.learning_rate = learning_rate
         self.lambda_reg = lambda_reg
-        self.epsilon_start = epsilon_start
+        self.epsilon = epsilon
+        self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
-        self.decay_steps = decay_steps
         self.seed = seed
 
         self.rng = np.random.RandomState(seed)
@@ -85,7 +84,7 @@ class MatrixFactorizationPolicy:
         self.U: np.ndarray = None  # (latent_dim, num_targets)
         self._init_matrices()
 
-        # Step counter for linear ε-decay
+        # Action counter for logging
         self.step_count = 0
 
     def _init_matrices(self) -> None:
@@ -106,17 +105,6 @@ class MatrixFactorizationPolicy:
     def target_lv(self) -> np.ndarray:
         """Visualization alias: target latent vectors transposed. Shape: (num_targets, latent_dim)."""
         return self.U.T
-
-    @property
-    def epsilon(self) -> float:
-        """Current exploration rate based on linear decay schedule."""
-        if self.decay_steps is None or self.decay_steps <= 0:
-            return self.epsilon_start
-        return max(
-            self.epsilon_min,
-            self.epsilon_start
-            - (self.epsilon_start - self.epsilon_min) * self.step_count / self.decay_steps,
-        )
 
     def predict_reward(self, target_idx: int) -> float:
         """
@@ -152,7 +140,7 @@ class MatrixFactorizationPolicy:
         allow_noop: bool = False,
     ) -> int:
         """
-        Select action using ε-greedy with linear decay over predicted scores.
+        Select action using ε-greedy with multiplicative decay over predicted scores.
 
         Args:
             observation: Dict observation from collaborative mode with 'targets' key
@@ -174,29 +162,29 @@ class MatrixFactorizationPolicy:
         if not active_targets:
             return 0
 
-        current_epsilon = self.epsilon
-
         # ε-greedy: Explore
-        if self.rng.random() < current_epsilon:
+        if self.rng.random() < self.epsilon:
             valid_actions = [t + 1 for t in active_targets]
             if allow_noop:
                 valid_actions = [0] + valid_actions
-            action = self.rng.choice(valid_actions)
-            self.step_count += 1
-            return int(action)
+            action = int(self.rng.choice(valid_actions))
+        else:
+            # ε-greedy: Exploit — choose target with highest predicted score
+            best_action = active_targets[0] + 1
+            best_score = -np.inf
 
-        # ε-greedy: Exploit — choose target with highest predicted score
-        best_action = active_targets[0] + 1
-        best_score = -np.inf
+            for t_idx in active_targets:
+                score = self.predict_reward(t_idx)
+                if score > best_score:
+                    best_score = score
+                    best_action = t_idx + 1
+            action = int(best_action)
 
-        for t_idx in active_targets:
-            score = self.predict_reward(t_idx)
-            if score > best_score:
-                best_score = score
-                best_action = t_idx + 1
-
+        # Apply multiplicative decay
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
         self.step_count += 1
-        return int(best_action)
+        
+        return action
 
     def update_from_observation(self, observation: Dict[str, Any]) -> None:
         """
