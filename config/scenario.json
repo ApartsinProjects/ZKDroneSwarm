@@ -55,15 +55,15 @@
   },
   "policy": {
     "type": [
-      "max_damage_oracle",
       "random",
-      "selfish_ep_greedy_cf"
+      "matrix_factorization_cf"
     ],
     "all_types": [
       "max_damage_oracle",
       "random",
       "selfish_ep_greedy_cf",
-      "coordinated_ep_greedy_cf"
+      "coordinated_ep_greedy_cf",
+      "matrix_factorization_cf"
     ],
     "allow_noop": false
   },

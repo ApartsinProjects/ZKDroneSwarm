@@ -8,12 +8,11 @@ enabling uniform interaction from orchestration code.
 from typing import Any, Dict, Optional
 
 from .base import IPolicy
-from .base_cf_agent_policy import BaseCFAgentPolicy
 
 
 class MultiAgentPolicy(IPolicy):
     """
-    Aggregates per-agent CF policies into a single IPolicy interface.
+    Aggregates per-agent policies into a single IPolicy interface.
     
     Takes a dict of {agent_id: policy} where each policy has:
     - select_action(observation) -> int
@@ -28,7 +27,7 @@ class MultiAgentPolicy(IPolicy):
     - get_learning_state() -> Optional[Dict]
     """
     
-    def __init__(self, policies: Dict[str, BaseCFAgentPolicy]):
+    def __init__(self, policies: Dict[str, Any]):
         """
         Initialize wrapper with per-agent policies.
         

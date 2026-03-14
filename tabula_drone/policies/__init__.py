@@ -8,6 +8,7 @@ from .ucb_cf_policy import UCBCFPolicy
 from .base_cf_agent_policy import BaseCFAgentPolicy
 from .selfish_ep_greedy_cf_policy import SelfishEpGreedyCFPolicy
 from .coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
+from .matrix_factorization_policy import MatrixFactorizationPolicy
 from .multi_agent_policy import MultiAgentPolicy
 
-__all__ = ["IPolicy", "RandomPolicy", "OracleTimeToKillPolicy", "OptimalAssignmentOracle", "UCBCFPolicy", "BaseCFAgentPolicy", "SelfishEpGreedyCFPolicy", "CoordinatedEpGreedyCFPolicy", "MultiAgentPolicy"]
+__all__ = ["IPolicy", "RandomPolicy", "OracleTimeToKillPolicy", "OptimalAssignmentOracle", "UCBCFPolicy", "BaseCFAgentPolicy", "SelfishEpGreedyCFPolicy", "CoordinatedEpGreedyCFPolicy", "MatrixFactorizationPolicy", "MultiAgentPolicy"]

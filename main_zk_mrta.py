@@ -30,6 +30,7 @@ from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
 from tabula_drone.policies.selfish_ep_greedy_cf_policy import SelfishEpGreedyCFPolicy
 from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
+from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.base import IPolicy
 from tabula_drone.scenarios import ScenarioBuilder
@@ -365,6 +366,31 @@ def create_policy(
                 confidence_threshold=coord_cfg.confidence_threshold if getattr(coord_cfg, "confidence_threshold", None) is not None else 0.8,
                 social_reward_clip_min=coord_cfg.social_reward_clip_min if getattr(coord_cfg, "social_reward_clip_min", None) is not None else -0.5,
                 max_episodes=coord_cfg.max_episodes if getattr(coord_cfg, "max_episodes", None) is not None else 100,
+                seed=config.seed + agent_idx if config.seed else None,
+            )
+        return MultiAgentPolicy(policies)
+    elif policy_type == "matrix_factorization_cf":
+        if num_targets is None:
+            raise ValueError("num_targets is required for matrix_factorization_cf policy")
+        # Extract hyperparameters from dedicated config section
+        mf_cfg = None
+        if config.collaborative_filtering:
+            mf_cfg = config.collaborative_filtering.matrix_factorization_cf
+        # Create one policy instance per agent (true decentralization)
+        num_agents = len(drones_config)
+        policies = {}
+        for agent_idx in range(num_agents):
+            agent_id = f"drone_{agent_idx}"
+            policies[agent_id] = MatrixFactorizationPolicy(
+                num_targets=num_targets,
+                agent_idx=agent_idx,
+                num_agents=num_agents,
+                latent_dim=mf_cfg.latent_dim if mf_cfg and mf_cfg.latent_dim else 8,
+                learning_rate=mf_cfg.learning_rate if mf_cfg and mf_cfg.learning_rate else 0.01,
+                lambda_reg=mf_cfg.lambda_reg if mf_cfg and mf_cfg.lambda_reg is not None else 0.02,
+                epsilon_start=mf_cfg.epsilon_start if mf_cfg and mf_cfg.epsilon_start is not None else 0.20,
+                epsilon_min=mf_cfg.epsilon_min if mf_cfg and mf_cfg.epsilon_min is not None else 0.02,
+                decay_steps=mf_cfg.decay_steps if mf_cfg and mf_cfg.decay_steps else None,
                 seed=config.seed + agent_idx if config.seed else None,
             )
         return MultiAgentPolicy(policies)
