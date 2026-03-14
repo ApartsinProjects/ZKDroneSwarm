@@ -103,6 +103,8 @@ class MFPolicyConfig:
     epsilon: Optional[float] = None
     epsilon_decay: Optional[float] = None
     epsilon_min: Optional[float] = None
+    reward_noise: Optional[float] = None
+    observation_noise: Optional[float] = None
 
 
 @dataclass
@@ -529,6 +531,8 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     epsilon = data.get("epsilon")
     epsilon_decay = data.get("epsilon_decay")
     epsilon_min = data.get("epsilon_min")
+    reward_noise = data.get("reward_noise")
+    observation_noise = data.get("observation_noise")
 
     # Log defaults
     if latent_dim is None:
@@ -543,6 +547,10 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         print("Note, using default value 1.0 for hyperparameter epsilon_decay (matrix_factorization_cf)")
     if epsilon_min is None:
         print("Note, using default value 0.02 for hyperparameter epsilon_min (matrix_factorization_cf)")
+    if reward_noise is None:
+        print("Note, using default value 0.05 for hyperparameter reward_noise (matrix_factorization_cf)")
+    if observation_noise is None:
+        print("Note, using default value 0.05 for hyperparameter observation_noise (matrix_factorization_cf)")
 
     # Validate bounds
     if latent_dim is not None:
@@ -563,6 +571,12 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     if epsilon_min is not None:
         if not isinstance(epsilon_min, (int, float)) or epsilon_min < 0 or epsilon_min > 1:
             raise ValueError("matrix_factorization_cf.epsilon_min must be in [0, 1]")
+    if reward_noise is not None:
+        if not isinstance(reward_noise, (int, float)) or reward_noise < 0:
+            raise ValueError("matrix_factorization_cf.reward_noise must be >= 0")
+    if observation_noise is not None:
+        if not isinstance(observation_noise, (int, float)) or observation_noise < 0:
+            raise ValueError("matrix_factorization_cf.observation_noise must be >= 0")
 
     return MFPolicyConfig(
         latent_dim=latent_dim,
@@ -571,6 +585,8 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         epsilon=float(epsilon) if epsilon is not None else None,
         epsilon_decay=float(epsilon_decay) if epsilon_decay is not None else None,
         epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
+        reward_noise=float(reward_noise) if reward_noise is not None else None,
+        observation_noise=float(observation_noise) if observation_noise is not None else None,
     )
 
 

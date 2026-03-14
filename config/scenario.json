@@ -102,7 +102,9 @@
     "lambda_reg": 0.02,
     "epsilon": 0.3,
     "epsilon_decay": 0.9995,
-    "epsilon_min": 0.02
+    "epsilon_min": 0.02,
+    "reward_noise": 0.0,
+    "observation_noise": 0.0
   },
   "logging": {
     "output_dir": "logs/"

@@ -836,15 +836,19 @@ def main():
         scenario_id=config.environment.scenario_id
     )
     
-    # Determine if any policy requires CF noise settings
-    has_cf_policy = any("cf" in policy_type for policy_type in config.policy.type)
-    if has_cf_policy:
-        # Use CF noise settings from config
-        cf_config = getattr(config, 'collaborative_filtering', None)
-        reward_noise = cf_config.reward_noise if cf_config else 0.1
-        observation_noise = cf_config.observation_noise if cf_config else 0.05
+    # Determine noise settings based on active policies
+    mf_config = getattr(config, 'matrix_factorization_cf', None)
+    cf_config = getattr(config, 'collaborative_filtering', None)
+    
+    # Priority: Dedicated noise settings in the specific policy section
+    # Default to 0.0 if neither is provided.
+    if mf_config and (mf_config.reward_noise is not None or mf_config.observation_noise is not None):
+        reward_noise = mf_config.reward_noise if mf_config.reward_noise is not None else 0.05
+        observation_noise = mf_config.observation_noise if mf_config.observation_noise is not None else 0.05
+    elif cf_config:
+        reward_noise = cf_config.reward_noise if cf_config.reward_noise is not None else 0.1
+        observation_noise = cf_config.observation_noise if cf_config.observation_noise is not None else 0.05
     else:
-        # No CF policies - use zero noise
         reward_noise = 0.0
         observation_noise = 0.0
     
