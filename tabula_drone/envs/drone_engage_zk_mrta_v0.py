@@ -423,15 +423,15 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Initialize rewards
         rewards = {agent_id: 0.0 for agent_id in self.agents}
         
-        # Process drones in fixed order (deterministic)
-        agent_ids = list(self.agents)
-        processing_order = agent_ids.copy()
-        
+        # Process drones in random order (stochastic but seed-deterministic)
+        processing_order = list(self.agents)
+        self.rng.shuffle(processing_order)
+
         # Track overkill across all drones
         overkill_map: Dict[int, float] = {}
-        
+
         # Process each drone sequentially
-        for agent_id in agent_ids:
+        for agent_id in processing_order:
             action = actions[agent_id]
             drone_idx = int(agent_id.split('_')[1])
             drone = self.drones[drone_idx]
