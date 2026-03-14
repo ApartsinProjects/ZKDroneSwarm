@@ -367,16 +367,23 @@ class DroneEngageZKMRTA(ParallelEnv):
             for other_agent_id in self.possible_agents:
                 base_reward = self.last_rewards.get(other_agent_id, 0.0)
                 
-                # Apply noise
-                if other_agent_id == agent_id:
-                    # Own reward: only reward_noise
-                    noise = self.rng.normal(0, self.reward_noise) if self.reward_noise > 0 else 0.0
+                # Semantic Bounding: Process noise only for valid shots (base_reward >= 0)
+                if base_reward >= 0.0:
+                    # Apply noise
+                    if other_agent_id == agent_id:
+                        # Own reward: only reward_noise
+                        noise = self.rng.normal(0, self.reward_noise) if self.reward_noise > 0 else 0.0
+                    else:
+                        # Other's reward: reward_noise + observation_noise
+                        total_noise_std = (self.reward_noise ** 2 + self.observation_noise ** 2) ** 0.5
+                        noise = self.rng.normal(0, total_noise_std) if total_noise_std > 0 else 0.0
+                    
+                    # Clip to semantic bounds [0.0, 1.0]
+                    noisy_reward = np.clip(base_reward + noise, 0.0, 1.0)
+                    observed_rewards.append(noisy_reward)
                 else:
-                    # Other's reward: reward_noise + observation_noise
-                    total_noise_std = (self.reward_noise ** 2 + self.observation_noise ** 2) ** 0.5
-                    noise = self.rng.normal(0, total_noise_std) if total_noise_std > 0 else 0.0
-                
-                observed_rewards.append(base_reward + noise)
+                    # Wasted shot penalty (strictly < 0.0): pass through without noise
+                    observed_rewards.append(base_reward)
             
             observed_rewards_array = np.array(observed_rewards, dtype=np.float32)
             
