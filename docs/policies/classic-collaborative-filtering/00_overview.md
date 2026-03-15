@@ -66,64 +66,47 @@ This is how the **Main Loop**, the **Environment**, and the **Policy** interact 
      ```python
      obs, rewards, terminations, truncations, info = env.step(actions)
      ```
-   - **`env.py`**: Processes damage and prepares the ground truth in `step()`.
+   - **`env.py`**: Processes damage and prepares the feedback signal in `step()`.
      ```python
-     # Apply damage per drone weapon profile
-     target.apply_damage(drone.damage_profile)
-     # Compute reward (e.g. Damage Efficiency)
-     rewards[drone_i] = actual_damage / max_weapon_potential
+     # Inside env.step()
+     reward = self._calculate_reward(drone, target)
+     self.last_rewards[drone_id] = reward # Stored for next step's observation
      ```
 
-### The Interaction Loop
+   **Reward Modes (The Feedback Signal):**
+   The environment computes the "Label" for the SGD update using one of four modes:
+
+   *   **Damage Efficiency (Default)**: $R = \frac{\sum \min(h_k, w_k)}{\sum w_k}$
+       *Measures how much of the drone's weapon potential ($w$) was actually effective against the target's remaining HP ($h$) across all attributes ($k$).*
+   *   **HP Reduction**: $R = \frac{HP_{before} - HP_{after}}{HP_{before}}$
+       *Measures the percentage of total target health removed by the shot, focusing on the target's survival rather than weapon potential.*
+   *   **Dominant Attribute**: $R = \frac{w_{dominant}}{\max(w_{global})}$
+       *Rewards damaging the target's currently healthiest attribute, encouraging drones to pivot as the target's vulnerability profile changes.*
+   *   **Attribute Alignment**: $R = \text{Efficiency} \times \text{CosineSimilarity}(\vec{w}, \vec{h})$
+       *Multiplies damage efficiency by the geometric alignment of the weapon profile and target HP profile, rewarding "surgical" compatibility.*
+
+### How Information Flows
+The environment acts as the authoritative source of truth, providing **Observations** of active targets. In **Collaborative Mode**, it additionally reveals a public swarm trace (actions and rewards of all drones). The policy treats these rewards as the **Ground Truth** (the "Label") used to compute prediction errors and refine its latent model via SGD.
 
 ### The Interaction Loop
 
 ```text
-+---------------------------+                    +-------------------------------+
-|        Environment        |                    |            Policy             |
-|                           |                    |                               |
-|  +---------------------+  |                    |  +-------------------------+  |
-|  | Observation:        |  |                    |  | Predict Utility: P * U  |  |
-|  | Active Targets      |  +------------------->|  |                         |  |
-|  +---------------------+  |                    |  +-------------------------+  |
-|                           |                    |               |               |
-|  +---------------------+  |                    |               v               |
-|  | Public Interaction  |  |                    |  +-------------------------+  |
-|  | Events: Drone,      |  |                    |  | Action Selection:       |  |
-|  | Target, Reward      |  |                    |  | epsilon-Greedy          |  |
-|  +---------------------+  |                    |  +-------------------------+  |
-+---------------------------+                    |               |               |
-                                                 |               | Action        |
-                                                 +---------------|---------------+
-                                                                 |
-                                                                 v
-                                                        +-------------------+
-                                                        |    Environment    |
-                                                        +-------------------+
-                                                                 |
-                                                                 | Reward Signal
-                                                                 v
-+---------------------------+                    +-------------------------------+
-|        Environment        |                    |            Policy             |
-|                           |                    |                               |
-|  +---------------------+  |                    |  +-------------------------+  |
-|  | Public Interaction  |  +------------------->|  | SGD Training:          |   |
-|  | Events: Drone,      |  |                    |  | Local Latent Model     |   |
-|  | Target, Reward      |  |                    |  | Update                 |   |
-|  +---------------------+  |                    |  +-------------------------+  |
-+---------------------------+                    |               |               |
-                                                 |               | Refined Model |
-                                                 |               v               |
-                                                 |  +-------------------------+  |
-                                                 |  | Predict Utility: P * U  |  |
-                                                 |  +-------------------------+  |
-                                                 +-------------------------------+
++---------------------------+                       +-------------------------------+
+|        Environment        |                       |            Policy             |
+|                           |                       |                               |
+|  +---------------------+  |   1. Feedback (obs)   |  +-------------------------+  |
+|  | Public Swarm Trace  |------------------------->|  | SGD: Predict vs. Reward |  |
+|  | (Last Action+Reward)|  |   (The "Label")       |  | (Local Model Update)    |  |
+|  +---------------------+  |                       |  +-------------------------+  |
+|             ^             |                       |               |               |
+|             |             |                       |               v               |
+|             |             |                       |  +-------------------------+  |
+|  +---------------------+  |                       |  | Target Selection:       |  |
+|  | Physics Engine:     |  |   2. Action Selection |  | Scoring & epsilon-greedy|  |
+|  | Hit -> Calc Reward  | |<-----------------------|  |                         |  |
+|  +---------------------+  |                       |  +-------------------------+  |
++---------------------------+                       +-------------------------------+
 ```
-
-### 1. Information Flow
-*   **Observations**: The environment provides a list of currently active targets. 
-*   **Collaborative Mode**: Crucially, the policy relies on the **Collaborative Observation Mode** (OBS-C), where each drone sees every other drone's actions and rewards from the previous step.
-*   **Rewards**: The environment calculates scalar rewards (e.g., HP reduction). The policy consumes these as ground truth for training.
 
 ---
 
