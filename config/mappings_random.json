@@ -5,8 +5,8 @@
     "C": { "structural_integrity": 88.0, "envelope_integrity": 141.0, "utilities_lifesafety": 63.0 }
   },
   "weapon_damage_profile_mapping": {
-    "structural": { "structural_integrity": 7, "envelope_integrity": 11, "utilities_lifesafety": 4 },
-    "breach": { "structural_integrity": 9, "envelope_integrity": 6, "utilities_lifesafety": 13 },
-    "systems": { "structural_integrity": 5, "envelope_integrity": 8, "utilities_lifesafety": 10 }
+    "_A": { "structural_integrity": 7, "envelope_integrity": 11, "utilities_lifesafety": 4 },
+    "_B": { "structural_integrity": 9, "envelope_integrity": 6, "utilities_lifesafety": 13 },
+    "_C": { "structural_integrity": 5, "envelope_integrity": 8, "utilities_lifesafety": 10 }
   }
 }

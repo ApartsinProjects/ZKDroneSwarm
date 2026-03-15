@@ -24,8 +24,8 @@ from ..core.states import (
     AttributeProfile,
 )
 
-# Reward mode: "DAMAGE_EFFICIENCY" | "HP_REDUCTION" | "DOMINANT_ATTRIBUTE" | "ATTRIBUTE_ALIGNMENT"
-REWARD_MODE = "DAMAGE_EFFICIENCY"
+# Reward mode: "ATTRIBUTE_ALIGNMENT" | "DAMAGE_EFFICIENCY" | "HP_REDUCTION" | "DOMINANT_ATTRIBUTE" 
+REWARD_MODE = "ATTRIBUTE_ALIGNMENT"
 
 class DroneEngageZKMRTA(ParallelEnv):
     """
