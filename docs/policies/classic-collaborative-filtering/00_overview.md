@@ -46,11 +46,11 @@ Even if **Drone A** has never fired at **Target X**, it can learn about Target X
 
 ---
 
-## 3. Environment-Policy Relationship
+## 3. System Workflow: The Policy in Action
 
-The policy operates within a tight feedback loop with the `DroneEngageZKMRTA` environment.
+The theory of Matrix Factorization is realized through a continuous, high-speed interaction loop between the drones and their environment. This workflow is the "heartbeat" of the system, where local latent models are incrementally updated based on real-world outcomes, bridging the gap between mathematical prediction and physical execution.
 
-### The Full Interaction Cycle (Code Trace)
+### 3.1 The Full Interaction Cycle (Code Trace)
 
 This is how the **Main Loop**, the **Environment**, and the **Policy** interact at every time step.
 
@@ -112,10 +112,10 @@ This is how the **Main Loop**, the **Environment**, and the **Policy** interact 
    *   **Attribute Alignment**: $R = \text{Efficiency} \times \text{CosineSimilarity}(\vec{w}, \vec{h})$
        *Multiplies damage efficiency by the geometric alignment of the weapon profile and target HP profile, rewarding "surgical" compatibility.*
 
-### How Information Flows
+### 3.2 How Information Flows
 The environment acts as the authoritative source of truth, providing **Observations** of active targets. In **Collaborative Mode**, it additionally reveals a public swarm trace (actions and rewards of all drones). The policy treats these rewards as the **Ground Truth** (the "Label") used to compute prediction errors and refine its latent model via SGD.
 
-### The Interaction Loop
+### 3.3 The Interaction Loop
 
 ```text
 +---------------------------+                       +-------------------------------+
@@ -137,7 +137,7 @@ The environment acts as the authoritative source of truth, providing **Observati
 
 ---
 
-## 4. The Mathematical Model
+### 3.4 The Mathematical Model
 
 The policy represents the environment's complexity using two **Latent Matrices** stored locally in each drone:
 
@@ -154,7 +154,7 @@ $$\hat{r}_{i,t} = P_i \cdot U_t = \sum_{k=1}^{d} P_{i,k} \cdot U_{k,t}$$
 
 ---
 
-## 5. The Training Process (Math)
+### 3.5 The Training Process (Math)
 
 The "learning" happens by adjusting the entries in $P$ and $U$ to minimize the difference between predicted utility ($\hat{r}$) and the actual reward ($r$) received from the environment.
 
@@ -182,7 +182,7 @@ Where $\eta$ is the `learning_rate`.
 
 ---
 
-## 6. Decision Making: Exploration vs. Exploitation
+### 3.6 Decision Making: Exploration vs. Exploitation
 
 The policy uses an **$\epsilon$-Greedy Strategy** with a multiplicative decay schedule:
 
@@ -193,7 +193,7 @@ The policy uses an **$\epsilon$-Greedy Strategy** with a multiplicative decay sc
 
 ---
 
-## 7. Summary of Properties
+## 4. Summary of Properties
 
 | Feature | Implementation | Purpose |
 | :--- | :--- | :--- |
