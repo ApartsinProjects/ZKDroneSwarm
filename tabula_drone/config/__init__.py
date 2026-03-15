@@ -12,7 +12,6 @@ from .config_loader import (
     TargetsConfig,
     EnvironmentConfig,
     PolicyConfig,
-    ExecutionConfig,
     LoggingConfig,
 )
 
@@ -24,6 +23,5 @@ __all__ = [
     "TargetsConfig",
     "EnvironmentConfig",
     "PolicyConfig",
-    "ExecutionConfig",
     "LoggingConfig",
 ]

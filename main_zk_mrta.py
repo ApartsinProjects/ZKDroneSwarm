@@ -799,7 +799,7 @@ def main():
     observation_noise = cf_config.observation_noise if cf_config else 0.05
     
     # Run episodes
-    num_episodes = config.execution.num_episodes
+    num_episodes = config.environment.num_episodes
     all_metrics = []
     
     print("\n" + "="*60)
@@ -913,7 +913,7 @@ def main():
                 env=env,
                 policy=policy,
                 episode_num=episode_num,
-                verbose=config.execution.verbose,
+                verbose=config.environment.verbose,
                 logger=logger,
                 seed=episode_seed,  #config.seed
                 total_episodes=num_episodes,
@@ -995,7 +995,7 @@ def main():
             # Print learning path for CF policies
             if (
                 not is_deterministic
-                and config.execution.verbose
+                and config.environment.verbose
                 and callable(getattr(policy, "get_learning_state", None))
             ):
                 print_learning_path(policy, drones_config, targets_config)
@@ -1030,7 +1030,7 @@ def main():
             else:
                 engagement_tables[policy_type] = (None, f"Analysis file not found: {analysis_path}")
 
-    if config.execution.verbose:
+    if config.environment.verbose:
         # Aggregate statistics across all episodes (all policies)
         total_episodes = len(all_metrics)
         print("\n" + "="*60)

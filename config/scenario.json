@@ -7,12 +7,13 @@
       1000.0
     ]
   },
-  "execution": {
+  "environment": {
+    "max_steps": 500,
     "num_episodes": 25,
     "verbose": false
-  },
+  },  
   "drones": {
-    "count": 6,
+    "count": 3,
     "weapon_distribution": {
       "breach": 0.33,
       "structural": 0.33,
@@ -50,9 +51,6 @@
     "min_distance_from_drones": 50.0,
     "min_distance_between_targets": 25.0
   },
-  "environment": {
-    "max_steps": 500
-  },
   "policy": {
     "type": [
       "random",
@@ -68,6 +66,17 @@
     ],
     "allow_noop": false
   },
+  "matrix_factorization_cf": {
+    "latent_dim": 8,
+    "learning_rate": 0.01,
+    "lambda_reg": 0.02,
+    "epsilon": 0.3,
+    "epsilon_decay": 0.9995,
+    "epsilon_min": 0.02,
+    "reward_noise": 0.0,
+    "observation_noise": 0.0,
+    "anti_signal_weight": 0.1
+  },  
   "collaborative_filtering": {
     "reward_noise": 0.05,
     "observation_noise": 0.05,
@@ -95,17 +104,6 @@
       "epsilon_decay": 0.99,
       "epsilon_min": 0.05
     }
-  },
-  "matrix_factorization_cf": {
-    "latent_dim": 8,
-    "learning_rate": 0.01,
-    "lambda_reg": 0.02,
-    "epsilon": 0.3,
-    "epsilon_decay": 0.9995,
-    "epsilon_min": 0.02,
-    "reward_noise": 0.0,
-    "observation_noise": 0.0,
-    "anti_signal_weight": 0.1
   },
   "logging": {
     "output_dir": "logs/"

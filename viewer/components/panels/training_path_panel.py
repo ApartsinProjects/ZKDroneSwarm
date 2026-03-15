@@ -322,9 +322,9 @@ class TrainingPathPanel(BaseComponent):
         self.chart_ax.axhline(y=0, color='gray', linewidth=0.5, alpha=0.5)
         self.chart_ax.axvline(x=0, color='gray', linewidth=0.5, alpha=0.5)
 
-        self.chart_ax.set_xlim(-1.2, 1.2)
-        self.chart_ax.set_ylim(-1.2, 1.2)
-        self.chart_ax.set_aspect('equal', adjustable='box')
+        self.chart_ax.autoscale()
+        self.chart_ax.margins(0.1)
+        self.chart_ax.set_aspect('equal', adjustable='datalim')
 
     def _render_decentralized(self) -> None:
         """
@@ -570,9 +570,9 @@ class TrainingPathPanel(BaseComponent):
         ax.grid(True, linestyle='--', alpha=0.3)
         ax.axhline(y=0, color='gray', linewidth=0.5, alpha=0.5)
         ax.axvline(x=0, color='gray', linewidth=0.5, alpha=0.5)
-        ax.set_xlim(-1.2, 1.2)
-        ax.set_ylim(-1.2, 1.2)
-        ax.set_aspect('equal', adjustable='box')
+        ax.autoscale()
+        ax.margins(0.1)
+        ax.set_aspect('equal', adjustable='datalim')
         
     def clear(self) -> None:
         """

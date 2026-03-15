@@ -41,6 +41,8 @@ class TargetsConfig:
 class EnvironmentConfig:
     """Environment configuration."""
     max_steps: int
+    num_episodes: int
+    verbose: bool
     scenario_id: str
 
 
@@ -51,11 +53,7 @@ class PolicyConfig:
     allow_noop: bool
 
 
-@dataclass
-class ExecutionConfig:
-    """Execution configuration."""
-    num_episodes: int
-    verbose: bool
+
 
 
 @dataclass
@@ -128,7 +126,6 @@ class ScenarioConfig:
     targets: TargetsConfig
     environment: EnvironmentConfig
     policy: PolicyConfig
-    execution: ExecutionConfig
     logging: LoggingConfig
     mappings: MappingsConfig
     mappings_file: str = None
@@ -213,16 +210,24 @@ def _parse_targets_config(data: dict) -> TargetsConfig:
 
 def _parse_environment_config(data: dict) -> EnvironmentConfig:
     """Parse environment configuration section."""
-    _validate_required_keys(data, ["max_steps"], "environment")
+    _validate_required_keys(data, ["max_steps", "num_episodes", "verbose"], "environment")
     
     max_steps = data["max_steps"]
     if not isinstance(max_steps, int) or max_steps <= 0:
         raise ValueError("environment.max_steps must be a positive integer")
     
+    num_episodes = data["num_episodes"]
+    if not isinstance(num_episodes, int) or num_episodes <= 0:
+        raise ValueError("environment.num_episodes must be a positive integer")
+    
+    verbose = bool(data["verbose"])
+    
     scenario_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
     
     return EnvironmentConfig(
         max_steps=max_steps,
+        num_episodes=num_episodes,
+        verbose=verbose,
         scenario_id=scenario_id
     )
 
@@ -620,18 +625,7 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
     )
 
 
-def _parse_execution_config(data: dict) -> ExecutionConfig:
-    """Parse execution configuration section."""
-    _validate_required_keys(data, ["num_episodes", "verbose"], "execution")
-    
-    num_episodes = data["num_episodes"]
-    if not isinstance(num_episodes, int) or num_episodes <= 0:
-        raise ValueError("execution.num_episodes must be a positive integer")
-    
-    return ExecutionConfig(
-        num_episodes=num_episodes,
-        verbose=bool(data["verbose"])
-    )
+
 
 
 def _parse_logging_config(data: dict) -> LoggingConfig:
@@ -777,7 +771,7 @@ def load_config(path: str) -> ScenarioConfig:
     
     _validate_required_keys(
         data,
-        ["seed", "world", "drones", "targets", "environment", "policy", "execution", "logging"],
+        ["seed", "world", "drones", "targets", "environment", "policy", "logging"],
         "root"
     )
     
@@ -801,17 +795,24 @@ def load_config(path: str) -> ScenarioConfig:
     # Parse optional matrix_factorization_cf config
     mf_config = _parse_mf_policy_config(data.get("matrix_factorization_cf"))
     
+    # Parse required configs
+    world_config = _parse_world_config(data["world"])
+    drones_config = _parse_drones_config(data["drones"])
+    targets_config = _parse_targets_config(data["targets"])
+    env_config = _parse_environment_config(data["environment"])
+    policy_config = _parse_policy_config(data["policy"])
+    logging_config = _parse_logging_config(data["logging"])
+    
     return ScenarioConfig(
         seed=seed,
-        world=_parse_world_config(data["world"]),
-        drones=_parse_drones_config(data["drones"]),
-        targets=_parse_targets_config(data["targets"]),
-        environment=_parse_environment_config(data["environment"]),
-        policy=_parse_policy_config(data["policy"]),
-        execution=_parse_execution_config(data["execution"]),
-        logging=_parse_logging_config(data["logging"]),
-        mappings=mappings,
+        world=world_config,
+        drones=drones_config,
+        targets=targets_config,
+        environment=env_config,
+        policy=policy_config,
+        logging=logging_config,
         mappings_file=mappings_file,
+        mappings=mappings,
         collaborative_filtering=cf_config,
         matrix_factorization_cf=mf_config
     )
