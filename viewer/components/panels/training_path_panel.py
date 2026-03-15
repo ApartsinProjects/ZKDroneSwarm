@@ -51,6 +51,7 @@ class TrainingPathPanel(BaseComponent):
         self.drones: List[Dict[str, Any]] = []
         self.target_classes: List[str] = []
         self.current_episode_num: int = 1
+        self._cid: Optional[int] = None # Event connection ID
 
     def process_data(self, data: Dict[str, Any]) -> None:
         """
@@ -242,14 +243,20 @@ class TrainingPathPanel(BaseComponent):
                 bbox=bbox, picker=True
             )
             text.agent_index = i
+            text.panel_type = "training_path" # Unique identifier
             self.agent_buttons.append(text)
         
-        # Connect click event
-        self.fig.canvas.mpl_connect('pick_event', self._on_agent_click)
+        # Connect click event once
+        if self._cid is None:
+            self._cid = self.fig.canvas.mpl_connect('pick_event', self._on_agent_click)
     
     def _on_agent_click(self, event) -> None:
         """Handle click on agent button."""
-        if hasattr(event.artist, 'agent_index'):
+        # Only handle if this panel is visible and the click is on our own buttons
+        if not self.is_visible():
+            return
+            
+        if hasattr(event.artist, 'agent_index') and getattr(event.artist, 'panel_type', None) == "training_path":
             new_agent = event.artist.agent_index
             if new_agent != self.selected_agent:
                 self.selected_agent = new_agent

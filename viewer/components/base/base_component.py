@@ -35,6 +35,21 @@ class BaseComponent:
         """
         return self.ax.get_visible()
 
+    def set_visible(self, visible: bool) -> None:
+        """
+        Set the visibility of the component and its subsidiary axes.
+
+        Args:
+            visible: Whether the component should be visible.
+        """
+        self.ax.set_visible(visible)
+        if hasattr(self, 'chart_ax') and self.chart_ax is not None:
+            self.chart_ax.set_visible(visible)
+        if hasattr(self, 'chart_ax_left') and self.chart_ax_left is not None:
+            self.chart_ax_left.set_visible(visible)
+        if hasattr(self, 'chart_ax_right') and self.chart_ax_right is not None:
+            self.chart_ax_right.set_visible(visible)
+
     def process_data(self, data: Dict[str, Any]) -> None:
         """
         Process data without rendering. This method should be used to update

@@ -25,7 +25,10 @@ _TARGET_FLAME_IMAGE = None
 _TARGET_DESTROYED_IMAGE_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "images", "target_destroyed.png")
 _TARGET_DESTROYED_IMAGE = None
 
-from viewer.components import TabContainer, MapPanel, EmptyPanel, InfoPanel, ResultsPanel, SummaryPanel, TrainingPathPanel
+from viewer.components import (
+    TabContainer, MapPanel, EmptyPanel, InfoPanel, ResultsPanel, 
+    TrainingPathPanel, RadarChartPanel
+)
 from viewer.state_adapter import load_episode, extract_initial_state
 
 
@@ -238,9 +241,9 @@ def display_viewer(
     info_panel = InfoPanel(fig, info_ax)
     info_panel.render(state)
     
-    summary_ax = fig.add_axes([right_panel_left, 0.08, right_panel_width, 0.84])
-    summary_panel = SummaryPanel(fig, summary_ax)
-    summary_panel.render(state)
+    radar_ax = fig.add_axes([right_panel_left, 0.08, right_panel_width, 0.84])
+    radar_panel = RadarChartPanel(fig, radar_ax)
+    radar_panel.render(state)
     
     results_ax = fig.add_axes([right_panel_left, 0.08, right_panel_width, 0.84])
     results_panel = ResultsPanel(fig, results_ax)
@@ -252,7 +255,7 @@ def display_viewer(
     
     tab_container.add_tab("Info", info_panel)
     tab_container.add_tab("Results", results_panel)
-    tab_container.add_tab("Summary", summary_panel)
+    tab_container.add_tab("Radar", radar_panel)
     tab_container.add_tab("Training Path", training_path_panel)
 
     
@@ -261,7 +264,7 @@ def display_viewer(
         
         ax_right.set_position([right_panel_left_inner, bottom_margin, right_panel_width_inner, top_margin - bottom_margin])
         
-        for panel_ax in (info_ax, summary_ax, results_ax, training_path_ax):
+        for panel_ax in (info_ax, radar_ax, results_ax, training_path_ax):
             panel_ax.set_position([right_panel_left_inner, 0.08, right_panel_width_inner, 0.84])
         
         tab_container.tab_region = (right_panel_left_inner, 0.95, right_panel_width_inner, 0.05)
@@ -287,7 +290,7 @@ def display_viewer(
             
             map_panel.refresh(new_state)
             info_panel.render(new_state)
-            summary_panel.render(new_state)
+            radar_panel.render(new_state)
             results_panel.render(new_state)
             training_path_panel.render(new_state)
         except Exception as e:
