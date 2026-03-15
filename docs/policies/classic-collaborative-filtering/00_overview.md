@@ -23,6 +23,59 @@ Even if **Drone A** has never fired at **Target X**, it can learn about Target X
 
 The policy operates within a tight feedback loop with the `DroneEngageZKMRTA` environment.
 
+### The Full Interaction Cycle (Code Trace)
+
+This is how the **Main Loop**, the **Environment**, and the **Policy** interact at every time step.
+
+1. **Observe & Update (The Swarm Intelligence)**
+   Drones learn from the *previous* step's public results stored in the `obs` object.
+   - **Ownership**: The **Environment** owns and generates `obs` at every step. It is the only authoritative source of truth.
+   - **Content**: In Collaborative Mode, the `obs` dictionary contains:
+     - `targets`: Positions and active/inactive status of all targets.
+     - `selected_targets`: The action taken by **every** drone in the swarm during the last step.
+     - `observed_rewards`: The reward obtained by **every** drone in the swarm during the last step (subject to noise).
+   - **`main.py`**: Triggers the update for all agents.
+     ```python
+     policy.update(obs) # MultiAgentPolicy fans out to all drones
+     ```
+   - **`policy.py`**: Each drone's `update_from_observation()` processes the swarm trace.
+     ```python
+     for agent_i in range(num_agents):
+         # Error = Predicted vs. Observed Reward from swarm
+         error = self._predict(agent_i, target_t) - observed_rewards[agent_i]
+         # SGD Update local P and U matrices
+         self.P[i] -= η * (2*e*u_t + λ*p_i)
+         self.U[:, t] -= η * (2*e*p_i + λ*u_t)
+     ```
+
+2. **Select Action (The Decision)**
+   - **`main.py`**: Requests actions from the policy wrapper.
+     ```python
+     actions = policy.select_actions(obs, info)
+     ```
+   - **`policy.py`**: Each drone uses its local $P$ and $U$ to score targets in `select_action()`.
+     ```python
+     # Predicted Reward = My latent row @ Target latent column
+     predicted_reward = self.P[self.agent_idx] @ self.U[:, target_t]
+     # Pick best or explore (epsilon-greedy)
+     action = np.argmax(scores) if rng.random() > epsilon else random_target
+     ```
+
+3. **Execute (The Environment Step)**
+   - **`main.py`**: Sends actions to the PettingZoo environment.
+     ```python
+     obs, rewards, terminations, truncations, info = env.step(actions)
+     ```
+   - **`env.py`**: Processes damage and prepares the ground truth in `step()`.
+     ```python
+     # Apply damage per drone weapon profile
+     target.apply_damage(drone.damage_profile)
+     # Compute reward (e.g. Damage Efficiency)
+     rewards[drone_i] = actual_damage / max_weapon_potential
+     ```
+
+### The Interaction Loop
+
 ### The Interaction Loop
 
 ```text
