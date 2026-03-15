@@ -4,22 +4,49 @@ This document provide a comprehensive overview of the `MatrixFactorizationPolicy
 
 ---
 
-## 1. The Big Picture: Collaborative Filtering for Robots
-
-In a typical ZK-MRTA scenario, drones are dropped into an environment without knowing their own capabilities (missile damage) or their targets' vulnerabilities. The `MatrixFactorizationPolicy` treats this as a **Recommendation Problem**:
-
-*   **Users** = Drones (Agents)
-*   **Items** = Targets
-*   **Ratings** = Rewards (Observed Effectiveness)
+## 1. The Mechanism: Matrix Factorization
 
 The goal of the policy is to learn a hidden structure that predicts the utility of any drone-target pairing based on sparse, noisy interactions observed by the entire swarm.
 
-### The Collaborative Insight
+### 1.1 The Classic Concept: Industrial Motivation
+Giant platforms like **Netflix**, **Amazon**, and **Google** face a massive challenge: how do you recommend the perfect movie, product, or app when each user has only interacted with a tiny fraction of the millions of available options? 
+
+To solve this, they need a system that can "guess" unknown interests by identifying hidden patterns in the behavior of millions of other users. **Matrix Factorization** is the engine behind these systems. It works by mathematically decomposing a giant, empty table of interactions into two smaller, dense ones that distill complex human behaviors into simple, predictable profiles:
+
+**The Two Hidden Matrices**  
+The math assumes that every rating is the result of hidden (**latent**) matches. It breaks the giant empty table into two smaller, dense ones:
+*   **The User Matrix ($P$):** Every user gets a row representing their **Taste Profile** (e.g., how much they like *Action*, *Romance*, or *Sci-Fi*).
+*   **The Movie Matrix ($U$):** Every movie gets a column representing its **Trait Profile** (e.g., how much that movie *is* *Action*, *Romance*, or *Sci-Fi*).
+
+### 1.2 The Mechanics (The Math in Simple Terms)
+The magic of this approach lies in how it uses these profiles to predict and learn.
+
+*   **The Prediction (The Alignment):**  
+    To guess a rating, the computer aligns a user’s tastes with a movie’s traits and calculates their "overlap" using a **Dot Product**.
+    > *Example:* If Alice's "Sci-Fi" taste is high (0.9) and the movie *The Matrix* is highly "Sci-Fi" (1.0), the resulting match is high (0.9 x 1.0 = 0.9). We sum these scores across all categories to get the final predicted rating.
+*   **The Learning (The Nudge):**  
+    When a real rating is provided, the computer compares the **Result** to its **Prediction**.
+    *   **If the prediction was too low**, it "nudges" the User's taste and the Movie's traits slightly closer together.
+    *   **If it was too high**, it pushes them apart.
+    After thousands of these tiny nudges (using **Stochastic Gradient Descent**), the matrices eventually "solve" the hidden structure of the movies and the users' preferences.
+
+## 2. Application to Drones: ZK-MRTA
+
+### 2.1 The Recommendation Problem 
+In a typical ZK-MRTA scenario, drones are dropped into an environment without knowing their own capabilities (missile damage) or their targets' vulnerabilities. The `MatrixFactorizationPolicy` treats this as a **Recommendation Problem**:
+
+*   **Users** = Drones (with hidden weapon profiles in Matrix $P$).
+*   **Items** = Targets (with hidden vulnerability profiles in Matrix $U$).
+*   **Ratings** = Rewards (observed damage efficiency).
+
+**Why it works:** By observing how every drone in the swarm hits every target, each individual drone can "triangulate" the hidden physics of the world. Even if you have never hit Target X before, you can look at the feedback from other drones and "nudge" your local understanding of Target X until your predictions become accurate.
+
+### 2.2 The Collaborative Insight
 Even if **Drone A** has never fired at **Target X**, it can learn about Target X by watching **Drone B**'s success or failure. If Drone A knows (from other interactions) that it has a similar weapon profile to Drone B, it can infer that Target X will be a good (or bad) match for itself as well.
 
 ---
 
-## 2. Environment-Policy Relationship
+## 3. Environment-Policy Relationship
 
 The policy operates within a tight feedback loop with the `DroneEngageZKMRTA` environment.
 
@@ -110,7 +137,7 @@ The environment acts as the authoritative source of truth, providing **Observati
 
 ---
 
-## 3. The Mathematical Model
+## 4. The Mathematical Model
 
 The policy represents the environment's complexity using two **Latent Matrices** stored locally in each drone:
 
@@ -127,7 +154,7 @@ $$\hat{r}_{i,t} = P_i \cdot U_t = \sum_{k=1}^{d} P_{i,k} \cdot U_{k,t}$$
 
 ---
 
-## 4. The Training Process (Math)
+## 5. The Training Process (Math)
 
 The "learning" happens by adjusting the entries in $P$ and $U$ to minimize the difference between predicted utility ($\hat{r}$) and the actual reward ($r$) received from the environment.
 
@@ -155,7 +182,7 @@ Where $\eta$ is the `learning_rate`.
 
 ---
 
-## 5. Decision Making: Exploration vs. Exploitation
+## 6. Decision Making: Exploration vs. Exploitation
 
 The policy uses an **$\epsilon$-Greedy Strategy** with a multiplicative decay schedule:
 
@@ -166,7 +193,7 @@ The policy uses an **$\epsilon$-Greedy Strategy** with a multiplicative decay sc
 
 ---
 
-## 6. Summary of Properties
+## 7. Summary of Properties
 
 | Feature | Implementation | Purpose |
 | :--- | :--- | :--- |
