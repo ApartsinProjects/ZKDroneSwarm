@@ -79,7 +79,7 @@ class MultiAgentPolicy(IPolicy):
         for policy in self.policies.values():
             policy.soft_reset()
     
-    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+    def get_learning_state(self, include_tsne: bool = False) -> Optional[Dict[str, Any]]:
         """
         Return aggregated learning state from all agent policies.
         
@@ -88,7 +88,7 @@ class MultiAgentPolicy(IPolicy):
         """
         return {
             "agents": [
-                self.policies[agent_id].get_learning_state()
+                self.policies[agent_id].get_learning_state(include_tsne=include_tsne)
                 for agent_id in self.agent_ids
             ]
         }

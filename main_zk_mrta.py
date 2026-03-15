@@ -33,6 +33,7 @@ from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpG
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.base import IPolicy
+from tabula_drone.policies.utils.visualizer_bakery import enrich_learning_state_file
 from tabula_drone.scenarios import ScenarioBuilder
 
 CONFIG_PATH = "config/scenario.json"
@@ -1009,6 +1010,19 @@ def main():
         result = run_manager.finalize_policy()
         print(f"  Saved episodes: {result['files']}")
         steps = result['steps']
+        
+        # Enrich learning state for milestone episodes with t-SNE (offline post-processing)
+        # This keeps the training loop fast while providing rich visualizations for key episodes.
+        if not is_deterministic and policy_type == "matrix_factorization_cf":
+            milestones = result.get('milestones', {})
+            milestone_episodes = list(set(milestones.values())) # unique episode numbers
+            for ep_num in milestone_episodes:
+                state_file = os.path.join(
+                    run_manager.get_learning_state_dir(),
+                    f"learning_state_ep{ep_num:02d}.json"
+                )
+                enrich_learning_state_file(state_file)
+
         if 'best' in steps:
             print(f"  Steps: first={steps['first']}, best={steps['best']}, mid={steps['mid']}")
         else:

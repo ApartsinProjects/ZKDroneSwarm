@@ -293,14 +293,18 @@ class MatrixFactorizationPolicy:
         targets_2d = embeddings_2d[1:].tolist()
         return agent_2d, targets_2d
 
-    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+    def get_learning_state(self, include_tsne: bool = False) -> Optional[Dict[str, Any]]:
         """
         Return learning state for logging/visualization.
 
+        Args:
+            include_tsne: If True, compute 2D t-SNE projection (expensive).
+                         If False, return the first 2 dimensions of raw vectors.
+
         Returns:
             Dict with this drone's latent model state.
-            agent_lv and target_lv contain 2D t-SNE projections for
-            visualization. P and U contain the full latent matrices.
+            agent_lv and target_lv contain 2D projections for visualization. 
+            P and U contain the full latent matrices.
         """
         predicted_rewards = [
             float(self.predict_reward(t)) for t in range(self.num_targets)
@@ -312,7 +316,7 @@ class MatrixFactorizationPolicy:
         best_target = int(ranked_targets[0]) if ranked_targets else None
 
         # Compute 2D visualization coordinates
-        if _HAS_SKLEARN:
+        if include_tsne and _HAS_SKLEARN:
             agent_lv_2d, target_lv_2d = self._compute_tsne_2d()
         else:
             # Fallback: use first 2 dimensions of raw vectors
