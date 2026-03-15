@@ -33,7 +33,7 @@ class RadarChartPanel(BaseComponent):
     the target class.
     """
 
-    def __init__(self, fig: plt.Figure, ax: plt.Axes, k: int = 40):
+    def __init__(self, fig: plt.Figure, ax: plt.Axes, k: int = 50):
         super().__init__(fig, ax)
         self.k = k
         self.decentralized_learning_state: Optional[Dict[str, Any]] = None
@@ -73,7 +73,7 @@ class RadarChartPanel(BaseComponent):
 
         # Title
         self.ax.text(
-            0.0, 0.98, f"Top-{self.k} Preferences (Episode {self.current_episode_num})",
+            0.0, 0.98, f"Top-{self.k} Predicted Rewards (Episode {self.current_episode_num})",
             ha="left", va="top", fontsize=12, fontweight="bold",
             transform=self.ax.transAxes,
         )
@@ -107,18 +107,16 @@ class RadarChartPanel(BaseComponent):
             if "_" in agent_id:
                 drone_idx = int(agent_id.split("_")[1])
 
-            weapon_type = "unknown"
-            if drone_idx < len(self.drones):
-                weapon_type = self.drones[drone_idx].get("weapon_type", "unknown")
-            color = WEAPON_COLORS.get(weapon_type, WEAPON_COLORS["unknown"])
+            # Use gray for all agent buttons
+            button_color = "gray"
 
             if i == self.selected_agent:
-                bbox = dict(boxstyle="round,pad=0.2", facecolor=color, alpha=0.8)
+                bbox = dict(boxstyle="round,pad=0.2", facecolor=button_color, alpha=0.8)
                 text_color = "white"
             else:
                 bbox = dict(boxstyle="round,pad=0.2", facecolor="white",
-                            edgecolor=color, alpha=0.8)
-                text_color = color
+                            edgecolor=button_color, alpha=0.8)
+                text_color = button_color
 
             txt = self.ax.text(
                 x, y, f"A{i}",
@@ -174,12 +172,14 @@ class RadarChartPanel(BaseComponent):
         self.radar_ax.plot(angles, top_rewards, color='gray', linewidth=1, linestyle='solid', alpha=0.3)
         self.radar_ax.fill(angles, top_rewards, color='gray', alpha=0.05)
 
-        # Weapon color for the selected agent
+        # Weapon type for the selected agent
         weapon_type = "unknown"
         drone_idx = self.selected_agent
         if drone_idx < len(self.drones):
             weapon_type = self.drones[drone_idx].get("weapon_type", "unknown")
-        agent_color = WEAPON_COLORS.get(weapon_type, WEAPON_COLORS["unknown"])
+        
+        # Use gray for the title
+        title_color = "gray"
 
         # Set radial limit
         rmax = max(top_rewards) * 1.25 if top_rewards else 1.0
@@ -217,7 +217,7 @@ class RadarChartPanel(BaseComponent):
         # Add a subtle grid
         self.radar_ax.grid(True, alpha=0.2)
         self.radar_ax.set_title(f"Agent {self.selected_agent} ({weapon_type})", 
-                                fontsize=10, pad=20, color=agent_color, fontweight='bold')
+                                fontsize=10, pad=20, color=title_color, fontweight='bold')
 
     def _render_no_data(self) -> None:
         self.ax.text(

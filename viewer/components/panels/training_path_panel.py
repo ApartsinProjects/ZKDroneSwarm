@@ -183,7 +183,7 @@ class TrainingPathPanel(BaseComponent):
         )
         self.ax.text(
             1.0, 0.98, f"Selected: A{self.selected_agent}",
-            ha='right', va='top', fontsize=10, color='#1a5276',
+            ha='right', va='top', fontsize=10, color='gray',
             transform=self.ax.transAxes
         )
         
@@ -218,23 +218,16 @@ class TrainingPathPanel(BaseComponent):
             x = col * col_width + col_width / 2
             y = start_y - row * row_height
             
-            agent_id = agent.get("id", f"drone_{i}")
-            drone_idx = int(agent_id.split("_")[1]) if "_" in agent_id else i
-            
-            # Get weapon type from drones list
-            weapon_type = "unknown"
-            if drone_idx < len(self.drones):
-                weapon_type = self.drones[drone_idx].get("weapon_type", "unknown")
-            
-            color = WEAPON_COLORS.get(weapon_type, WEAPON_COLORS["unknown"])
+            # Use gray for all agent buttons
+            button_color = "gray"
             
             # Highlight selected agent
             if i == self.selected_agent:
-                bbox = dict(boxstyle='round,pad=0.2', facecolor=color, alpha=0.8)
+                bbox = dict(boxstyle='round,pad=0.2', facecolor=button_color, alpha=0.8)
                 text_color = 'white'
             else:
-                bbox = dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor=color, alpha=0.8)
-                text_color = color
+                bbox = dict(boxstyle='round,pad=0.2', facecolor='white', edgecolor=button_color, alpha=0.8)
+                text_color = button_color
             
             text = self.ax.text(
                 x, y, f"A{i}",
