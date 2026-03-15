@@ -60,7 +60,7 @@ This is how the **Main Loop**, the **Environment**, and the **Policy** interact 
    - **Content**: In Collaborative Mode, the `obs` dictionary contains:
      - `targets`: Positions and active/inactive status of all targets.
      - `selected_targets`: The action taken by **every** drone in the swarm during the last step.
-     - `observed_rewards`: The reward obtained by **every** drone in the swarm during the last step (subject to noise).
+     - `observed_rewards`: The noisy "labels" for the last step. These are distorted by the environment to challenge the policy's ability to filter truth from noise.
    - **`main.py`**: Triggers the update for all agents.
      ```python
      policy.update(obs) # MultiAgentPolicy fans out to all drones
@@ -97,10 +97,31 @@ This is how the **Main Loop**, the **Environment**, and the **Policy** interact 
      ```python
      # Inside env.step()
      reward = self._calculate_reward(drone, target)
-     self.last_rewards[drone_id] = reward # Stored for next step's observation
+     self.last_rewards[drone_id] = reward # Ground Truth
      ```
 
-   **Reward Modes (The Feedback Signal):**
+4. **Noise Injection (The Fog of War)**
+   Numerical truth in the real world is rarely pure. To simulate physical reality, the environment injects uncertainty into the feedback loop. This "Fog of War" serves a dual purpose: it forces the policy to become resilient against sensor inaccuracies and creates a fundamental distinction between high-confidence **Direct Experience** (own reward) and noisier **Social Observation** (observing others). This separation is critical for testing the swarm's ability to maintain "Social Trust" and collective intelligence even when distributed data is distorted by distance or transmission.
+
+   Before the cycle repeats, the environment prepares the `observed_rewards` for the next `obs` packet. Noise is applied differently depending on who is being observed:
+
+   - **A. Internal Reward Noise**: When a drone observes its **own** result, a baseline Gaussian noise ($\sigma_{reward}$) is applied. This simulates local sensor uncertainty in measuring weapon impact.
+   - **B. Social Observation Noise**: When a drone observes **other** drones' results, an additional layer of distortion is added ($\sigma_{obs}$). The total noise follows the Root-Sum-Square (RSS) law: $\sigma_{total} = \sqrt{\sigma_{reward}^2 + \sigma_{observation}^2}$. This simulates the difficulty of gauging distant events versus local ones.
+   - **Semantic Clipping**: For hits ($R \geq 0$), the noisy reward is clipped to $[0, 1]$ to maintain mathematical sanity.
+   - **The Anti-Signal Exception**: For wasted shots ($R < 0$), noise is **skipped**. This ensures the "wasted shot" penalty remains a crisp, reliable teaching signal.
+
+   - **`env.py` logic**:
+     ```python
+     if other_agent_id == agent_id:
+         # Own reward (Sensor Noise)
+         noise = rng.normal(0, reward_noise)
+     else:
+         # Other's reward (Sensor + Distance Noise)
+         total_noise_std = (reward_noise**2 + observation_noise**2)**0.5
+         noise = rng.normal(0, total_noise_std)
+     ```
+
+5. **Reward Modes (The Feedback Signal):**
    The environment computes the "Label" for the SGD update using one of four modes:
 
    *   **Damage Efficiency (Default)**: $R = \frac{\sum \min(h_k, w_k)}{\sum w_k}$
@@ -162,6 +183,13 @@ The "learning" happens by adjusting the entries in $P$ and $U$ to minimize the d
 We minimize the squared error with **$L_2$ Regularization** to prevent the latent vectors from growing too large (which would cause over-confidence and instability):
 
 $$\mathcal{L} = (r_{i,t} - \hat{r}_{i,t})^2 + \lambda (\|P_i\|^2 + \|U_t\|^2)$$
+
+**Mechanics of the Regularization Term:**
+The term $\lambda (\|P_i\|^2 + \|U_t\|^2)$ serves to constrain the growth of latent vectors, ensuring the model generalizes weapon-target physics rather than overfitting to noisy individual interactions. This specific formula is utilized for three critical design reasons:
+
+1.  **System Symmetry & Balance**: Because the prediction is a product ($P \cdot U$), the model is sensitive to scale imbalances. The dual-penalty structure prevents states where one matrix shrinks toward zero while the other "balloons" to infinity to maintain the same product. This forces both matrices to remain at a stable, comparable scale.
+2.  **Convergence to Minimal Representations**: By penalizing the squared Euclidean distance from the origin, the system is forced to find the simplest possible latent profile that explains the reward. Large parameter values are only sustained when the observed reward signal is strong enough to outweigh the regularization penalty.
+3.  **Optimization Stability**: The squared magnitude is chosen for its smooth derivative ($2x$). In the SGD update rule, this results in a direct linear penalty (decay) proportional to the parameter's current value. This ensures continuous, stable updates and avoids the numerical oscillations or "jitter" associated with non-differentiable forms.
 
 Where $\lambda$ is the regularization coefficient (`lambda_reg`).
 
