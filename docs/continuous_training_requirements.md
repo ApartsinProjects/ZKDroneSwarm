@@ -19,11 +19,17 @@ Alongside `mode`, two new configuration objects will be added under `environment
 
 ### 2.2 Asynchronous Target Respawning
 - When `continuous_mode` is enabled, the environment's `step()` function will actively monitor for target neutralizations.
-- Upon a target's death, the environment will dynamically query the `ScenarioBuilder` mid-episode to generate a new valid coordinate and restock the target.
 - The environment will never terminate due to "all targets neutralized"; it will only terminate when the absolute `max_steps` limit is reached.
 
-### 2.3 Safe Rejection Sampling
-- Because `ScenarioBuilder` relies on rejection sampling to find collision-free coordinates, the implementation must include a safe fallback mechanism. If the board is highly dense and a valid coordinate cannot be found within the maximum attempts (e.g., 1000), the environment must handle this gracefully without crashing (e.g., by skipping the respawn for that tick or temporarily relaxing distance constraints).
+#### 2.2.1 Target Identity Semantics
+When a target is destroyed and subsequently respawned, the new target will **occupy the same internal state slot** (index) as the destroyed target. The environment will assign the new target a randomized position, health profile, and class type precisely dictated by the original distributions parsed at initialization (maintaining the total original ratio of classes). To policies and visualizers observing the environment, it will simply appear as if the target at index `i` sprang back to life at a new location with a new health profile.
+
+#### 2.2.2 Respawn Timing
+Target respawn calculations will execute at the **very end of the current engine tick** (`step()`). If a target drops to 0 HP during tick $T$, it is marked as inactive and its neutralization is recorded. Just before tick $T$ completes, the environment spawns the new target attributes into the inactive slot and flips the slot back to active. Thus, drones will observe the fully refreshed target at the very start of tick $T+1$.
+
+### 2.3 Safe Rejection Sampling & Fallbacks
+Because `ScenarioBuilder` relies on rejection sampling to find collision-free coordinates, the implementation must cap respawn attempts to maintain deterministic simulation speeds. 
+- If the board is highly dense and a valid coordinate cannot be found within the maximum attempts (e.g., 1000), the environment **will simply log a warning that a target failed to find a valid coordinate, skip the respawn for that specific slot, and continue the engine tick**. The slot will remain inactive during tick $T+1$ and the environment will re-attempt to spawn a target into that slot at the end of the next tick.
 
 ## 3. Logging & Metrics Architecture
 
