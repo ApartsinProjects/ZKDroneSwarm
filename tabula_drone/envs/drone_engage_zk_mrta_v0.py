@@ -511,9 +511,11 @@ class DroneEngageZKMRTA(ParallelEnv):
                 active_target_positions = [t.position for t in self.targets if t.is_active]
                 
                 for idx in neutralized_indices:
+                    killed_target_class = self.targets[idx].class_type
                     new_cfg = self.builder.respawn_target(
                         drone_positions,
-                        active_target_positions
+                        active_target_positions,
+                        fixed_class=killed_target_class
                     )
                     
                     if new_cfg:

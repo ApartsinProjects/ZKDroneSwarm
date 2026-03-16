@@ -633,6 +633,7 @@ class ScenarioBuilder:
         self,
         drone_positions: List[Tuple[float, float]],
         existing_target_positions: List[Tuple[float, float]],
+        fixed_class: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """
         Attempt to generate a single new target configuration.
@@ -640,6 +641,7 @@ class ScenarioBuilder:
         Args:
             drone_positions: List of current drone positions
             existing_target_positions: List of current (active) target positions
+            fixed_class: Optional class type to use for the respawned target
             
         Returns:
             Target config dict or None if respawn failed after max attempts
@@ -672,10 +674,13 @@ class ScenarioBuilder:
                 min_dist_drones,
                 min_dist_targets
             ):
-                # Pick a class
-                class_types = list(class_distribution.keys())
-                weights = list(class_distribution.values())
-                class_type = self._rng.choices(class_types, weights=weights, k=1)[0]
+                # Use fixed class if provided, otherwise pick from distribution
+                if fixed_class:
+                    class_type = fixed_class
+                else:
+                    class_types = list(class_distribution.keys())
+                    weights = list(class_distribution.values())
+                    class_type = self._rng.choices(class_types, weights=weights, k=1)[0]
                 
                 return {
                     "position": candidate_pos,
