@@ -125,6 +125,16 @@ class EngagementLogger:
         
         # Initialize eliminations tracking (None = not eliminated yet)
         self._eliminations = {target.id: None for target in env.targets}
+
+    def flush(self) -> None:
+        """
+        Clear accumulated step data to free memory.
+        Maintains episode metadata and elimination status.
+        """
+        for drone_id in self._drone_pov:
+            self._drone_pov[drone_id] = []
+        for target_id in self._target_pov:
+            self._target_pov[target_id] = []
     
     def log_engagement(
         self,

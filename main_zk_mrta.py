@@ -8,7 +8,7 @@ Demonstrates:
 - Metrics collection and logging
 """
 
-from typing import Dict, Any, List, Optional, Union, cast
+from typing import Dict, Any, List, Optional, Union, cast, Tuple, Callable
 
 import os
 
@@ -73,12 +73,14 @@ def print_learning_path(
     """Print current latent vectors for CF policy learning visualization."""
     print("    --- Learning Path ---")
     
-    # Handle decentralized policy (dict of policy instances)
-    if isinstance(policy, dict):
-        first_policy = next(iter(policy.values()))
+    # Handle MultiAgentPolicy wrapper
+    from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
+    if isinstance(policy, (dict, MultiAgentPolicy)):
+        policies_dict = policy.policies if isinstance(policy, MultiAgentPolicy) else policy
+        first_policy = next(iter(policies_dict.values()))
         latent_dim = first_policy.latent_dim
         # Collect agent vectors from each agent's private state
-        agent_lv = [policy[f"drone_{i}"].agent_lv for i in range(len(policy))]
+        agent_lv = [policies_dict[f"drone_{i}"].agent_lv for i in range(len(policies_dict))]
         # Use first agent's target estimates (they may differ between agents)
         target_lv = first_policy.target_lv
     else:
@@ -428,6 +430,8 @@ def run_episode(
     logger: Optional[EpisodeLogger] = None,
     seed: Optional[int] = None,
     total_episodes: Optional[int] = None,
+    flush_interval: Optional[int] = None,
+    on_flush: Optional[Callable[[int], None]] = None,
 ) -> Dict[str, Any]:
     """
     Run a single episode with the given policy.
@@ -487,6 +491,12 @@ def run_episode(
         
         if logger:
             logger.log_step(step_count, actions, rewards, terminated, truncated, info)
+            
+            # Periodic flush for continuous mode
+            if flush_interval and step_count % flush_interval == 0:
+                logger.flush(step_count)
+                if on_flush:
+                    on_flush(step_count)
         
         # Update total rewards and track effective damage
         for agent_id in env.agents:
@@ -518,7 +528,7 @@ def run_episode(
         logger.end_episode(total_rewards, info.get("done_reason"))
     
     # Compute final metrics
-    targets_neutralized = sum(1 for active in info['target_active'] if not active)
+    targets_neutralized = info.get("cumulative_neutralizations", sum(1 for active in info['target_active'] if not active))
     total_ammo_used = sum(info['ammo_used'].values())
     total_overkill = sum(
         sum(overkill.values()) for overkill in overkill_events
@@ -800,7 +810,11 @@ def main():
     observation_noise = cf_config.observation_noise if cf_config else 0.05
     
     # Run episodes
-    num_episodes = config.environment.num_episodes
+    if config.environment.mode == "episodic":
+        num_episodes = config.environment.episodic.num_episodes
+    else:
+        # Continuous mode is effectively 1 long episode per policy
+        num_episodes = 1
     all_metrics = []
     
     print("\n" + "="*60)
@@ -869,6 +883,8 @@ def main():
         policy_type="random",  # Default value, not used for single env
         reward_noise=reward_noise,
         observation_noise=observation_noise,
+        mode=config.environment.mode,
+        builder=builder,
     )
     
     # Create all policies upfront
@@ -882,10 +898,16 @@ def main():
         # Get policy metadata from policy attributes
         is_deterministic = policy.is_deterministic
         effective_episodes = 1 if is_deterministic else num_episodes
-        logger = EpisodeLogger(output_dir=config.logging.output_dir, policy_type=policy_type)
         
         # Start policy run in RunManager
         run_manager.start_policy(policy_type, is_deterministic=is_deterministic)
+        
+        # Get correct output dir for logger from run_manager
+        episodes_dir = run_manager.get_episodes_dir()
+        analysis_dir = run_manager.get_analysis_dir()
+        logger = EpisodeLogger(output_dir=episodes_dir, policy_type=policy_type)
+        logger.analysis_dir = analysis_dir
+        logger.mode = config.environment.mode
         
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
@@ -906,9 +928,59 @@ def main():
             else:
                 pre_episode_lv = None
             
-            # Generate a unique but deterministic seed for this episode's environment
+            # Prepare entities metadata for learning state logging
+            entities = None
+            if not is_deterministic and (policy_type == "selfish_ep_greedy_cf" or policy_type == "matrix_factorization_cf"):
+                entities = {
+                    "agents": [
+                        {
+                            "agent_idx": i,
+                            "agent_id": f"drone_{i}",
+                            "weapon_type": drones_config[i]["weapon_type"],
+                            "weapon_damage_profile": dict(
+                                config.mappings.weapon_damage_profile_mapping[
+                                    drones_config[i]["weapon_type"]
+                                ]
+                            ),
+                        }
+                        for i in range(len(drones_config))
+                    ],
+                    "targets": [
+                        {
+                            "target_idx": j,
+                            "target_id": f"target_{j}",
+                            "class_type": targets_config[j]["class_type"],
+                            "class_attributes": dict(
+                                config.mappings.class_attribute_mapping[
+                                    targets_config[j]["class_type"]
+                                ]
+                            ),
+                        }
+                        for j in range(len(targets_config))
+                    ],
+                }
             # This ensures that ENV noise/ordering is reproducible across runs
             episode_seed = config.seed + episode_num if config.seed is not None else None
+
+            # Determine flush interval for continuous mode
+            flush_interval = None
+            if config.environment.mode == "continuous":
+                flush_interval = config.environment.continuous.logging_interval_steps
+
+            # Define callback for periodic state saving in continuous mode
+            def continuous_flush_callback(step: int) -> None:
+                if not is_deterministic:
+                    current_post_state = policy.get_learning_state()
+                    run_manager.save_learning_state(
+                        pre_state=None,  # Not applicable for intermediate snapshots
+                        post_state=current_post_state,
+                        episode_num=episode_num,
+                        num_agents=getattr(policy, "num_agents", len(drones_config)),
+                        num_targets=getattr(policy, "num_targets", len(targets_config)),
+                        latent_dim=getattr(policy, "latent_dim", None),
+                        entities=entities,
+                        tag=f"continuous_step_{step:05d}"
+                    )
 
             metrics = run_episode(
                 env=env,
@@ -918,6 +990,8 @@ def main():
                 logger=logger,
                 seed=episode_seed,  #config.seed
                 total_episodes=num_episodes,
+                flush_interval=flush_interval,
+                on_flush=continuous_flush_callback if flush_interval else None
             )
             metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
@@ -927,44 +1001,8 @@ def main():
                 post_episode_state = policy.get_learning_state()
             
             # Compute alignment score for CF policies (used by both trackers)
-            alignment_score = None
-            if not is_deterministic:
-                alignment_score = compute_alignment_score(
-                    pre_episode_lv[0], pre_episode_lv[1], drones_config, targets_config
-                )
-            
             # Save learning state using RunManager (every episode)
             if not is_deterministic:
-                entities = None
-                if policy_type == "selfish_ep_greedy_cf":
-                    entities = {
-                        "agents": [
-                            {
-                                "agent_idx": i,
-                                "agent_id": f"drone_{i}",
-                                "weapon_type": drones_config[i]["weapon_type"],
-                                "weapon_damage_profile": dict(
-                                    config.mappings.weapon_damage_profile_mapping[
-                                        drones_config[i]["weapon_type"]
-                                    ]
-                                ),
-                            }
-                            for i in range(len(drones_config))
-                        ],
-                        "targets": [
-                            {
-                                "target_idx": j,
-                                "target_id": f"target_{j}",
-                                "class_type": targets_config[j]["class_type"],
-                                "class_attributes": dict(
-                                    config.mappings.class_attribute_mapping[
-                                        targets_config[j]["class_type"]
-                                    ]
-                                ),
-                            }
-                            for j in range(len(targets_config))
-                        ],
-                    }
 
                 run_manager.save_learning_state(
                     pre_state=pre_episode_state,

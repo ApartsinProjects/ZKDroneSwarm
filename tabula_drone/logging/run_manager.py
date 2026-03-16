@@ -344,6 +344,7 @@ class RunManager:
         num_targets: int,
         latent_dim: int,
         entities: Optional[Dict[str, Any]] = None,
+        tag: Optional[str] = None,
     ) -> str:
         """
         Save learning state for a CF policy episode.
@@ -368,7 +369,8 @@ class RunManager:
             raise ValueError("start_policy() must be called before save_learning_state()")
         
         learning_state_dir = self.get_learning_state_dir()
-        filename = f"learning_state_ep{episode_num:02d}.json"
+        tag_str = f"_{tag}" if tag else ""
+        filename = f"learning_state_ep{episode_num:02d}{tag_str}.json"
         filepath = os.path.join(learning_state_dir, filename)
         
         learning_state = {

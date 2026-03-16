@@ -628,3 +628,58 @@ class ScenarioBuilder:
         )
         
         return drones_config, targets_config
+
+    def respawn_target(
+        self,
+        drone_positions: List[Tuple[float, float]],
+        existing_target_positions: List[Tuple[float, float]],
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Attempt to generate a single new target configuration.
+        
+        Args:
+            drone_positions: List of current drone positions
+            existing_target_positions: List of current (active) target positions
+            
+        Returns:
+            Target config dict or None if respawn failed after max attempts
+        """
+        if self._target_params is None:
+            return None
+            
+        region = self._target_params["region"]
+        class_distribution = self._target_params["class_distribution"]
+        min_dist_drones = self._target_params["min_distance_from_drones"]
+        min_dist_targets = self._target_params["min_distance_between_targets"]
+        
+        world_width, world_height = self.world_size
+        x_min = region[0][0] * world_width
+        x_max = region[0][1] * world_width
+        y_min = region[1][0] * world_height
+        y_max = region[1][1] * world_height
+        
+        max_attempts = 1000
+        
+        for _ in range(max_attempts):
+            x = self._rng.uniform(x_min, x_max)
+            y = self._rng.uniform(y_min, y_max)
+            candidate_pos = (x, y)
+            
+            if self._is_position_valid(
+                candidate_pos,
+                drone_positions,
+                existing_target_positions,
+                min_dist_drones,
+                min_dist_targets
+            ):
+                # Pick a class
+                class_types = list(class_distribution.keys())
+                weights = list(class_distribution.values())
+                class_type = self._rng.choices(class_types, weights=weights, k=1)[0]
+                
+                return {
+                    "position": candidate_pos,
+                    "class_type": class_type
+                }
+        
+        return None

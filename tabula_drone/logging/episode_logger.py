@@ -59,6 +59,7 @@ class EpisodeLogger:
             policy_type: Policy type identifier for filename (e.g., "oracle", "random").
         """
         self.output_dir = output_dir
+        self.analysis_dir = output_dir  # Default to same as output_dir
         self.policy_type = policy_type
         self._episode_data: Optional[Dict[str, Any]] = None
         self._steps: List[Dict[str, Any]] = []
@@ -66,6 +67,10 @@ class EpisodeLogger:
         self._timestamp: Optional[str] = None
         self._engagement_logger: EngagementLogger = EngagementLogger()
         self._env: Optional[Any] = None
+        self.mode: str = "episodic"
+        self._flush_count: int = 0
+        self._cumulative_steps: int = 0
+        self._cumulative_neutralizations: int = 0
     
     def start_episode(
         self,
@@ -87,6 +92,8 @@ class EpisodeLogger:
         self._episode_id = str(uuid.uuid4())[:8]
         self._timestamp = datetime.utcnow().isoformat() + "Z"
         self._steps = []
+        self._cumulative_steps = 0
+        self._cumulative_neutralizations = 0
         self._env = env
         
         # Initialize engagement logger
@@ -136,6 +143,10 @@ class EpisodeLogger:
         
         # Forward to engagement logger
         self._engagement_logger.log_engagement(step_num, actions, rewards, info)
+        
+        # Track cumulative metrics
+        self._cumulative_steps = step_num
+        self._cumulative_neutralizations = info.get("cumulative_neutralizations", self._cumulative_neutralizations)
     
     def end_episode(
         self,
@@ -149,11 +160,51 @@ class EpisodeLogger:
             total_rewards: Dict of {agent_id: total_reward}
             done_reason: Reason for episode termination
         """
+        if self._episode_data is None:
+            return
+            
         summary = self._build_summary(total_rewards, done_reason, self._steps)
         self._episode_data["summary"] = summary
         
         # Finalize engagement logger
         self._engagement_logger.end_episode()
+
+    def flush(self, step_num: int) -> str:
+        """
+        Write current chunk of steps to disk and clear buffers.
+        Used for continuous mode to prevent OOM.
+        
+        Args:
+            step_num: Current step number for filename
+            
+        Returns:
+            Filepath of the saved chunk
+        """
+        if self._episode_data is None:
+            raise ValueError("start_episode() must be called before flush()")
+            
+        os.makedirs(self.output_dir, exist_ok=True)
+        
+        policy_part = f"{self.policy_type}_" if self.policy_type else ""
+        filename = f"episode_{policy_part}continuous_step_{step_num:05d}.json"
+        filepath = os.path.join(self.output_dir, filename)
+        
+        # Save current chunk data
+        with open(filepath, "w") as f:
+            json.dump(self._episode_data, f, indent=2)
+            
+        # Save engagement analysis chunk to analysis_dir
+        os.makedirs(self.analysis_dir, exist_ok=True)
+        analysis_filename = f"analysis_{policy_part}continuous_step_{step_num:05d}.json"
+        analysis_filepath = os.path.join(self.analysis_dir, analysis_filename)
+        self._engagement_logger.save(analysis_filepath)
+        
+        # CLEAR BUFFERS
+        self._steps.clear()
+        self._engagement_logger.flush()
+        self._flush_count += 1
+        
+        return filepath
     
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -223,8 +274,14 @@ class EpisodeLogger:
         with open(filepath, "w") as f:
             json.dump(self._episode_data, f, indent=2)
         
-        # Save engagement analysis file with _analysis suffix
-        analysis_filepath = filepath.replace(".json", "_analysis.json")
+        # Save engagement analysis file
+        if self.analysis_dir and self.analysis_dir != self.output_dir:
+            os.makedirs(self.analysis_dir, exist_ok=True)
+            analysis_filename = os.path.basename(filepath).replace(".json", "_analysis.json")
+            analysis_filepath = os.path.join(self.analysis_dir, analysis_filename)
+        else:
+            analysis_filepath = filepath.replace(".json", "_analysis.json")
+            
         self._engagement_logger.save(analysis_filepath)
         
         return filepath
@@ -362,12 +419,10 @@ class EpisodeLogger:
         Returns:
             Summary dict matching JSON schema
         """
-        total_steps = len(steps)
+        total_steps = self._cumulative_steps if self._cumulative_steps > 0 else len(steps)
+        targets_destroyed = self._cumulative_neutralizations
         
         last_info = steps[-1]["info"] if steps else {}
-        target_active = last_info.get("target_active", [])
-        targets_destroyed = sum(1 for active in target_active if not active)
-        
         ammo_used = last_info.get("ammo_used", {})
         total_ammo_used = sum(ammo_used.values())
         

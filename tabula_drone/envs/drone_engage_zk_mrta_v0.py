@@ -62,6 +62,8 @@ class DroneEngageZKMRTA(ParallelEnv):
         policy_type: str = "random",
         reward_noise: float = 0.0,
         observation_noise: float = 0.0,
+        mode: str = "episodic",
+        builder: Optional[Any] = None,
     ):
         """
         Initialize ZK-MRTA environment.
@@ -94,6 +96,9 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.policy_type = policy_type
         self.reward_noise = reward_noise
         self.observation_noise = observation_noise
+        self.mode = mode
+        self.builder = builder
+        self.cumulative_neutralizations: int = 0
         
         # Validate and store mappings (required)
         if class_attribute_mapping is None:
@@ -301,6 +306,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Build info dict (Step 7)
         infos = self._build_info_dict(actions={})
         
+        self.cumulative_neutralizations = 0
         return observations, infos
     
     def _build_info_dict(self, actions: Dict[str, int]) -> Dict[str, Any]:
@@ -492,6 +498,40 @@ class DroneEngageZKMRTA(ParallelEnv):
                 overkill = max(0.0, total_damage - hp_before)
                 if overkill > 0:
                     overkill_map[target_idx] = overkill
+
+        # Continuous Mode: Respawn targets that were neutralized this step
+        neutralized_indices = [i for i, t in enumerate(self.targets) if not t.is_active]
+        neutralizations_this_step = len(neutralized_indices)
+        self.cumulative_neutralizations += neutralizations_this_step
+
+        if self.mode == "continuous" and self.builder is not None:
+            if neutralized_indices:
+                drone_positions = [d.position for d in self.drones]
+                # Filter for active target positions
+                active_target_positions = [t.position for t in self.targets if t.is_active]
+                
+                for idx in neutralized_indices:
+                    new_cfg = self.builder.respawn_target(
+                        drone_positions,
+                        active_target_positions
+                    )
+                    
+                    if new_cfg:
+                        # Respawn in the SAME slot
+                        target = self.targets[idx]
+                        target.position = new_cfg["position"]
+                        target.class_type = new_cfg["class_type"]
+                        
+                        # Look up attribute values based on new class type
+                        attr_values = dict(self.class_attribute_mapping[target.class_type])
+                        target.attributes.attributes = attr_values
+                        target.is_active = True
+                        
+                        # Add to active_target_positions for subsequent respawns in this loop
+                        active_target_positions.append(target.position)
+                    else:
+                        import logging
+                        logging.warning(f"Failed to respawn target {idx} after max attempts.")
         
         # Time progression
         self.world.time_step += 1
@@ -506,22 +546,30 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Compute final observations
         observations = self._compute_observations()
         
+        # Count neutralizations this step (those that became inactive BEFORE respawn)
+        # However, at this point they might have been respawned.
+        # Let's count them during the respawn loop instead.
+        pass
+
         # Build info dict
         infos = self._build_info_dict(actions)
         infos["processing_order"] = processing_order
         infos["effective_damage"] = step_effective_damage
+        infos["neutralizations_this_step"] = neutralizations_this_step
+        infos["cumulative_neutralizations"] = self.cumulative_neutralizations
+        
         if overkill_map:
             infos["overkill"] = overkill_map
         if done_reason:
             infos["done_reason"] = done_reason
-        
+            
         return observations, rewards, terminations, truncations, infos
     
     def _check_termination(self) -> Tuple[Dict[str, bool], Dict[str, bool], Optional[str]]:
         """
         Check termination and truncation conditions.
         
-        Terminated: All targets neutralized
+        Terminated: All targets neutralized (Episodic only)
         Truncated: Max steps reached
         
         Returns:
@@ -535,19 +583,16 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Check if max steps reached
         max_steps_reached = self.world.time_step >= self.world.max_steps
         
-        # Determine done reason and flags
-        if all_targets_neutralized:
+        terminated = False
+        truncated = False
+        done_reason = None
+
+        if self.mode == "episodic" and all_targets_neutralized:
             terminated = True
-            truncated = False
             done_reason = "all_targets_neutralized"
         elif max_steps_reached:
-            terminated = False
             truncated = True
             done_reason = "max_steps"
-        else:
-            terminated = False
-            truncated = False
-            done_reason = None
         
         # All agents share same termination state
         terminations = {agent_id: terminated for agent_id in self.agents}

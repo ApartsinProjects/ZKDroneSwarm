@@ -9,7 +9,13 @@
   },
   "environment": {
     "max_steps": 500,
-    "num_episodes": 50,
+    "mode": "continuous",
+    "episodic": {
+      "num_episodes": 20
+    },
+    "continuous": {
+      "logging_interval_steps": 50
+    },
     "verbose": false
   },  
   "drones": {
@@ -67,7 +73,7 @@
     "allow_noop": false
   },
   "matrix_factorization_cf": {
-    "latent_dim": 16,
+    "latent_dim": 8,
     "learning_rate": 0.01,
     "lambda_reg": 0.02,
     "epsilon": 0.3,
