@@ -851,7 +851,8 @@ def main():
     # Create RunManager for structured logging
     run_manager = RunManager(
         output_dir=config.logging.output_dir,
-        scenario_id=config.environment.scenario_id
+        scenario_id=config.environment.scenario_id,
+        mode=config.environment.mode
     )
     
     # Determine noise settings based on active policies
@@ -979,7 +980,7 @@ def main():
                         num_targets=getattr(policy, "num_targets", len(targets_config)),
                         latent_dim=getattr(policy, "latent_dim", None),
                         entities=entities,
-                        tag=f"continuous_step_{step:05d}"
+                        tag=f"step_{step:05d}"
                     )
 
             metrics = run_episode(
@@ -1054,24 +1055,39 @@ def main():
         if not is_deterministic and policy_type == "matrix_factorization_cf":
             milestones = result.get('milestones', {})
             milestone_episodes = list(set(milestones.values())) # unique episode numbers
-            for ep_num in milestone_episodes:
+            for category, ep_num in milestones.items():
+                if run_manager.mode == "continuous":
+                    filename = "learning_state_continuous_final.json"
+                else:
+                    filename = f"learning_state_ep{ep_num:02d}.json"
+                    
                 state_file = os.path.join(
                     run_manager.get_learning_state_dir(),
-                    f"learning_state_ep{ep_num:02d}.json"
+                    filename
                 )
-                enrich_learning_state_file(state_file)
+                if os.path.exists(state_file):
+                    enrich_learning_state_file(state_file)
 
         if 'best' in steps:
             print(f"  Steps: first={steps['first']}, best={steps['best']}, mid={steps['mid']}")
+        elif 'final' in steps:
+            print(f"  Steps: final={steps['final']}")
         else:
-            print(f"  Steps: first={steps['first']}")
+            print(f"  Steps: first={steps.get('first', 'N/A')}")
 
         best_episode_num = result.get("best_episode_num")
         if best_episode_num is not None:
-            analysis_path = os.path.join(
-                run_manager.get_analysis_dir(),
-                f"analysis_ep{best_episode_num:02d}.json",
-            )
+            # Check for analysis file (naming depends on mode)
+            if config.environment.mode == "continuous":
+                analysis_path = os.path.join(
+                    run_manager.get_analysis_dir(),
+                    "analysis_continuous_final.json",
+                )
+            else:
+                analysis_path = os.path.join(
+                    run_manager.get_analysis_dir(),
+                    f"analysis_ep{best_episode_num:02d}.json",
+                )
             if os.path.exists(analysis_path):
                 analysis_data = load_analysis(analysis_path)
                 drone_engagement_counts = extract_drone_engagement_counts(analysis_data)

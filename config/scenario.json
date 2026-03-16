@@ -8,7 +8,7 @@
     ]
   },
   "environment": {
-    "max_steps": 500,
+    "max_steps": 50,
     "mode": "continuous",
     "episodic": {
       "num_episodes": 20
@@ -19,7 +19,7 @@
     "verbose": false
   },  
   "drones": {
-    "count": 6,
+    "count": 3,
     "weapon_distribution": {
       "_A": 0.33,
       "_B": 0.33,
@@ -38,7 +38,7 @@
     "min_distance_between_drones": 25.0
   },
   "targets": {
-    "count": 27,
+    "count": 9,
     "region": {
       "x_fraction": [
         0.1,

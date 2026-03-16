@@ -35,16 +35,18 @@ class RunManager:
         │       └── learning_state_ep{N:02d}.json
     """
     
-    def __init__(self, output_dir: str, scenario_id: str):
+    def __init__(self, output_dir: str, scenario_id: str, mode: str = "episodic"):
         """
         Initialize RunManager and create scenario folder.
         
         Args:
             output_dir: Base directory for logs (e.g., "logs/")
             scenario_id: Scenario identifier from config
+            mode: Training mode ("episodic" or "continuous")
         """
         self.output_dir = output_dir
         self.scenario_id = scenario_id
+        self.mode = mode
         self._scenario_folder = scenario_id
         self._scenario_path = os.path.join(output_dir, self._scenario_folder)
         
@@ -192,8 +194,9 @@ class RunManager:
         """
         Finalize the current policy run by selecting and saving representative episodes.
         
-        For deterministic policies: saves single episode as "episode_only.json"
+        For deterministic policies: saves single episode as "episode_first_ep01.json"
         For learning policies: saves first/best/mid episodes
+        For continuous mode: saves final snapshot as "episode_continuous_final.json"
         
         Returns:
             Dict with 'files' (list of short paths) and 'steps' (dict of category: step_count)
@@ -212,6 +215,20 @@ class RunManager:
         best_episode_num = self._first_episode_num
         mid_episode_num = self._first_episode_num
         
+        if self.mode == "continuous":
+            # Continuous mode: Save as 'final' and skip selection logic
+            filepath = self._save_episode(
+                self._first_data, "continuous", "final", episodes_dir
+            )
+            saved_files.append(".../episode_continuous_final.json")
+            steps_info["final"] = self._first_steps
+            return {
+                "files": saved_files,
+                "steps": steps_info,
+                "best_episode_num": 1,
+                "milestones": {"final": 1}
+            }
+
         if self._is_deterministic:
             # Single episode: save with episode number
             filepath = self._save_episode(
@@ -280,7 +297,7 @@ class RunManager:
         self,
         episode_data: Dict[str, Any],
         category: str,
-        episode_num: int,
+        episode_val: Any,
         episodes_dir: str
     ) -> str:
         """
@@ -288,14 +305,18 @@ class RunManager:
         
         Args:
             episode_data: Episode data dictionary
-            category: Episode category ("first", "best", "mid")
-            episode_num: Episode number (1-indexed)
+            category: Episode category ("first", "best", "mid", "continuous")
+            episode_val: Episode number (int) or tag (e.g. "final")
             episodes_dir: Directory to save to
         
         Returns:
             Filepath of saved episode file
         """
-        filename = f"episode_{category}_ep{episode_num:02d}.json"
+        if isinstance(episode_val, int):
+            filename = f"episode_{category}_ep{episode_val:02d}.json"
+        else:
+            filename = f"episode_{category}_{episode_val}.json"
+            
         filepath = os.path.join(episodes_dir, filename)
         
         with open(filepath, "w") as f:
@@ -327,7 +348,12 @@ class RunManager:
             raise ValueError("start_policy() must be called before save_analysis()")
         
         analysis_dir = self.get_analysis_dir()
-        filename = f"analysis_ep{episode_num:02d}.json"
+        if self.mode == "continuous" and episode_num == 1:
+            # If we're in continuous mode and it's the first 'episode' (which is the only one)
+            filename = f"analysis_continuous_final.json"
+        else:
+            filename = f"analysis_ep{episode_num:02d}.json"
+            
         filepath = os.path.join(analysis_dir, filename)
         
         with open(filepath, "w") as f:
@@ -369,8 +395,17 @@ class RunManager:
             raise ValueError("start_policy() must be called before save_learning_state()")
         
         learning_state_dir = self.get_learning_state_dir()
-        tag_str = f"_{tag}" if tag else ""
-        filename = f"learning_state_ep{episode_num:02d}{tag_str}.json"
+        
+        if self.mode == "continuous":
+            if tag:
+                # Remove 'ep01' prefix if tag (like step) is provided
+                filename = f"learning_state_{tag}.json"
+            else:
+                filename = f"learning_state_continuous_final.json"
+        else:
+            tag_str = f"_{tag}" if tag else ""
+            filename = f"learning_state_ep{episode_num:02d}{tag_str}.json"
+            
         filepath = os.path.join(learning_state_dir, filename)
         
         learning_state = {

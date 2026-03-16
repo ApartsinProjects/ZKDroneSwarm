@@ -185,8 +185,9 @@ class EpisodeLogger:
             
         os.makedirs(self.output_dir, exist_ok=True)
         
-        policy_part = f"{self.policy_type}_" if self.policy_type else ""
-        filename = f"episode_{policy_part}continuous_step_{step_num:05d}.json"
+        # In continuous mode, we don't need policy_type in the filename 
+        # because it's already in the parent directory path.
+        filename = f"episode_continuous_step_{step_num:05d}.json"
         filepath = os.path.join(self.output_dir, filename)
         
         # Save current chunk data
@@ -195,7 +196,7 @@ class EpisodeLogger:
             
         # Save engagement analysis chunk to analysis_dir
         os.makedirs(self.analysis_dir, exist_ok=True)
-        analysis_filename = f"analysis_{policy_part}continuous_step_{step_num:05d}.json"
+        analysis_filename = f"analysis_step_{step_num:05d}.json"
         analysis_filepath = os.path.join(self.analysis_dir, analysis_filename)
         self._engagement_logger.save(analysis_filepath)
         
