@@ -30,9 +30,30 @@ The magic of this approach lies in how it uses these profiles to predict and lea
     *   **If it was too high**, it pushes them apart.
     After thousands of these tiny nudges (using **Stochastic Gradient Descent**), the matrices eventually "solve" the hidden structure of the movies and the users' preferences.
 
-## 2. Application to Drones: ZK-MRTA
+---
 
-### 2.1 The Recommendation Problem 
+## 2. Operational Environments: Modes of Engagement
+
+The `MatrixFactorizationPolicy` is designed to operate in two distinct multi-agent configurations, each presenting a different tactical challenge.
+
+### 2.1 Episodic Mode (Strategic Clearing)
+In this mode, the mission has a finite objective: **clear the board**. 
+*   **Episode Structure**: Structured as a sequence of **short, discrete episodes**. Each episode begins with a fresh set of targets and concludes when they are all neutralized.
+*   **Execution**: Targets are removed from the active engagement list upon destruction. The episode ends when the environment is empty or the step limit is reached.
+*   **Optimization Goal**: The swarm must solve a "minimum-time" problem, minimizing the steps required to clear each episode.
+*   **Learning Persistence (Soft Reset)**: Knowledge is carried over between episodes. A **Soft Reset** is performed at the end of each episode, preserving the learned latent matrices ($P, U$) and the exploration state ($\epsilon$) while resetting the environment for a new mission. This satisfies the "Amnesia-Free" requirement, allowing the swarm to "get smarter" with every play-through.
+
+### 2.2 Continuous Mode (Persistent Engagement)
+In this mode, the mission simulates a **permanent tactical horizon**.
+*   **Episode Structure**: Executed as a **single, long-running episode** with a high step count. There is no concept of "clearing the board" to trigger an episode end.
+*   **Execution**: When a target is neutralized, it immediately **respawns** at a new random location. The simulation runs for a fixed number of steps until a global `max_steps` limit is reached.
+*   **Performance Metrics**: Success is measured by a combination of high neutralization throughput, coordination efficiency (minimizing collisions), and ammo/damage effectiveness.
+
+---
+
+## 3. Application to Drones: ZK-MRTA
+
+### 3.1 The Recommendation Problem 
 In a typical ZK-MRTA scenario, drones are dropped into an environment without knowing their own capabilities (missile damage) or their targets' vulnerabilities. The `MatrixFactorizationPolicy` treats this as a **Recommendation Problem**:
 
 *   **Users** = Drones (with hidden weapon profiles in Matrix $P$).
@@ -46,7 +67,7 @@ Even if **Drone A** has never fired at **Target X**, it can learn about Target X
 
 ---
 
-## 3. System Workflow: The Policy in Action
+## 4. System Workflow: The Policy in Action
 
 The theory of Matrix Factorization is realized through a continuous, high-speed interaction loop between the drones and their environment. This workflow is the "heartbeat" of the system, where local latent models are incrementally updated based on real-world outcomes, bridging the gap between mathematical prediction and physical execution.
 
@@ -133,10 +154,10 @@ This is how the **Main Loop**, the **Environment**, and the **Policy** interact 
    *   **Attribute Alignment**: $R = \text{Efficiency} \times \text{CosineSimilarity}(\vec{w}, \vec{h})$
        *Multiplies damage efficiency by the geometric alignment of the weapon profile and target HP profile, rewarding "surgical" compatibility.*
 
-### 3.2 How Information Flows
+### 4.2 How Information Flows
 The environment acts as the authoritative source of truth, providing **Observations** of active targets. In **Collaborative Mode**, it additionally reveals a public swarm trace (actions and rewards of all drones). The policy treats these rewards as the **Ground Truth** (the "Label") used to compute prediction errors and refine its latent model via SGD.
 
-### 3.3 The Interaction Loop
+### 4.3 The Interaction Loop
 
 ```text
 +---------------------------+                       +-------------------------------+
@@ -158,7 +179,7 @@ The environment acts as the authoritative source of truth, providing **Observati
 
 ---
 
-### 3.4 The Mathematical Model
+### 4.4 The Mathematical Model
 
 The policy represents the environment's complexity using two **Latent Matrices** stored locally in each drone:
 
@@ -175,7 +196,7 @@ $$\hat{r}_{i,t} = P_i \cdot U_t = \sum_{k=1}^{d} P_{i,k} \cdot U_{k,t}$$
 
 ---
 
-### 3.5 The Training Process (Math)
+### 4.5 The Training Process (Math)
 
 The "learning" happens by adjusting the entries in $P$ and $U$ to minimize the difference between predicted utility ($\hat{r}$) and the actual reward ($r$) received from the environment.
 
@@ -210,18 +231,48 @@ Where $\eta$ is the `learning_rate`.
 
 ---
 
-### 3.6 Decision Making: Exploration vs. Exploitation
+#### 4.6 Decision Making: Strategy Selection
 
-The policy uses an **$\epsilon$-Greedy Strategy** with a multiplicative decay schedule:
+The policy uses an **$\epsilon$-Greedy Strategy** with a multiplicative decay schedule, but adds a second layer of selection logic to manage swarm distribution.
 
-1.  **Exploration**: With probability $\epsilon$, the drone picks a random active target. This ensures the swarm discovers new weapon-target compatibilities.
-2.  **Exploitation**: With probability $1 - \epsilon$, the drone picks the target $t$ that maximizes $P_{self} \cdot U_t$.
-3.  **Decay**: After every step, $\epsilon$ is reduced:
-    $$\epsilon \leftarrow \max(\epsilon_{min}, \epsilon \cdot \epsilon_{decay})$$
+1.  **Exploration Phase**: With probability $\epsilon$, the drone picks a random active target. This ensures the swarm discovers new weapon-target compatibilities.
+    *   **Decay**: After every step, $\epsilon$ is reduced: $\epsilon \leftarrow \max(\epsilon_{min}, \epsilon \cdot \epsilon_{decay})$
+
+2.  **Exploitation Phase**: With probability $1 - \epsilon$, the drone selects a target based on the local latent model. The specific behavior is controlled by the `selection_noise` parameter:
+
+    *   **Mode A: Pure Greedy (`selection_noise = 0`)**  
+        The drone picks the target $t$ that strictly maximizes the predicted reward ($P_{self} \cdot U_t$). This is optimal for solo performance but leads to high coordination failure (collisions) in swarms.
+    
+    *   **Mode B: Softmax Proportional (`selection_noise > 0`)**  
+        The drone treats predicted rewards as probabilities using **Boltzmann (Softmax) Sampling**. The `selection_noise` acts as the **Temperature ($\tau$)**:
+        $$P(action=t) = \frac{e^{\hat{r}_t / \tau}}{\sum e^{\hat{r}_j / \tau}}$$
+        This "shatters" synchronization, allowing drones to spread across all high-value targets while still avoiding poor matches.
 
 ---
 
-## 4. Summary of Properties
+## 5. Advanced Swarm Coordination: Solving for Persistence
+
+By operating in **Continuous Mode**, we uncovered critical coordination failures that necessitated two advanced algorithmic components. These ensure the swarm acts as a distributed unit rather than a collection of selfish agents.
+
+### 5.1 The Coordination Challenge
+In Episodic mode, the environment "forces" coordination: once a target is dead, it is gone, and drones must find new tasks. In **Continuous Mode**, the "best" target stays on the board forever via respawning, which leading to a catastrophic **Synchronization Trap**.
+
+### 5.2 Solution 1: Target Identity Persistence
+For Matrix Factorization to learn in a persistent world, the environment enforces **Identity Preservation** during respawns.
+For Matrix Factorization to learn in a continuous world, the environment enforces **Identity Preservation** during respawns.
+*   **Logical Consistency**: When a target dies and respawns, it retains its **Target Class** (e.g., if Slot 3 was Class A, the new object in Slot 3 remains Class A). 
+*   **Why it Matters**: This ensures the learned "Vulnerability Profile" in the $U$ matrix remains valid across thousands of steps. Without this, the model would suffer from "Catastrophic Interference" as target profiles shifted randomly.
+
+### 5.3 Solution 2: Softmax De-Confliction
+To "shatter" agent synchronization, the policy implements **Boltzmann (Softmax) Sampling** during the exploitation phase (controlled by `selection_noise`). This allows the swarm to "spread out" across the top engageable targets, maintaining throughput and avoiding pile-ons.
+
+### 5.4 Performance Metric: Collisions
+A successful `MatrixFactorizationPolicy` is measured not just by neutralizations, but by its **Coordination Efficiency**. We explicitly track **Collisions** (multiple drones firing at the same target in a single step) as a primary metric.
+A successful `MatrixFactorizationPolicy` in Continuous mode is measured by its **Coordination Efficiency**. We explicitly track **Collisions** (multiple drones firing at the same target in a single step) as a primary metric. High collisions indicate a failure of de-confliction, while high neutralized counts with low collisions indicate a high-functioning, "Surgically Distributed" swarm.
+
+---
+
+## 6. Summary of Properties
 
 | Feature | Implementation | Purpose |
 | :--- | :--- | :--- |

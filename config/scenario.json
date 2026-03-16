@@ -8,13 +8,13 @@
     ]
   },
   "environment": {
-    "max_steps": 100,
-    "mode": "continuous",
+    "max_steps":500,
+    "mode": "episodic",
     "episodic": {
-      "num_episodes": 20
+      "num_episodes": 25
     },
     "continuous": {
-      "logging_interval_steps": 50
+      "logging_interval_steps": 500
     },
     "verbose": false
   },  
@@ -79,9 +79,10 @@
     "epsilon": 0.3,
     "epsilon_decay": 0.9995,
     "epsilon_min": 0.02,
-    "reward_noise": 0.0,
-    "observation_noise": 0.0,
-    "anti_signal_weight": 0.1
+    "reward_noise": 0.05,
+    "observation_noise": 0.05,
+    "selection_noise": 0.3,
+    "anti_signal_weight": 1.0
   },  
   "collaborative_filtering": {
     "reward_noise": 0.05,

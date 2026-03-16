@@ -443,6 +443,8 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Track metrics across all drones
         overkill_map: Dict[int, float] = {}
         step_effective_damage: Dict[str, float] = {agent_id: 0.0 for agent_id in self.agents}
+        newly_neutralized_indices: List[int] = []
+        target_selections: Dict[int, List[str]] = {}
 
         # Process each drone sequentially
         for agent_id in processing_order:
@@ -456,6 +458,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             
             # Fire at target (action is 1-indexed)
             target_idx = action - 1
+            target_selections.setdefault(target_idx, []).append(agent_id)
             target = self.targets[target_idx]
             
             # Always count ammo (even for wasted shots)
@@ -492,6 +495,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             # Check if target became inactive
             if target.attributes.is_depleted():
                 target.is_active = False
+                newly_neutralized_indices.append(target_idx)
                 
                 # Calculate overkill
                 total_damage = sum(damage_profile.values())
@@ -500,17 +504,17 @@ class DroneEngageZKMRTA(ParallelEnv):
                     overkill_map[target_idx] = overkill
 
         # Continuous Mode: Respawn targets that were neutralized this step
-        neutralized_indices = [i for i, t in enumerate(self.targets) if not t.is_active]
-        neutralizations_this_step = len(neutralized_indices)
+        neutralizations_this_step = len(newly_neutralized_indices)
         self.cumulative_neutralizations += neutralizations_this_step
 
         if self.mode == "continuous" and self.builder is not None:
-            if neutralized_indices:
+            if newly_neutralized_indices:
                 drone_positions = [d.position for d in self.drones]
-                # Filter for active target positions
+                # Filter for active target positions (including those respawned this step?)
+                # Actually, those respawned in THIS loop won't be in the list until they are processed.
                 active_target_positions = [t.position for t in self.targets if t.is_active]
                 
-                for idx in neutralized_indices:
+                for idx in newly_neutralized_indices:
                     killed_target_class = self.targets[idx].class_type
                     new_cfg = self.builder.respawn_target(
                         drone_positions,
@@ -548,10 +552,8 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Compute final observations
         observations = self._compute_observations()
         
-        # Count neutralizations this step (those that became inactive BEFORE respawn)
-        # However, at this point they might have been respawned.
-        # Let's count them during the respawn loop instead.
-        pass
+        # Count collisions
+        total_collisions = sum(max(0, len(agents) - 1) for agents in target_selections.values())
 
         # Build info dict
         infos = self._build_info_dict(actions)
@@ -559,6 +561,8 @@ class DroneEngageZKMRTA(ParallelEnv):
         infos["effective_damage"] = step_effective_damage
         infos["neutralizations_this_step"] = neutralizations_this_step
         infos["cumulative_neutralizations"] = self.cumulative_neutralizations
+        infos["collisions"] = total_collisions
+        infos["target_selections"] = target_selections
         
         if overkill_map:
             infos["overkill"] = overkill_map

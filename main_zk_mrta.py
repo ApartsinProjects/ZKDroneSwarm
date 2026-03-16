@@ -393,6 +393,7 @@ def create_policy(
                 epsilon_decay=mf_cfg.epsilon_decay if mf_cfg and mf_cfg.epsilon_decay is not None else 1.0,
                 epsilon_min=mf_cfg.epsilon_min if mf_cfg and mf_cfg.epsilon_min is not None else 0.02,
                 anti_signal_weight=mf_cfg.anti_signal_weight if mf_cfg and mf_cfg.anti_signal_weight is not None else 0.1,
+                selection_noise=mf_cfg.selection_noise if mf_cfg and hasattr(mf_cfg, 'selection_noise') and mf_cfg.selection_noise is not None else 0.0,
                 seed=config.seed + agent_idx if config.seed else None,
             )
         return MultiAgentPolicy(policies)
@@ -471,6 +472,7 @@ def run_episode(
     done = False
     overkill_events: List[Dict[int, float]] = []
     total_effective_damage = 0.0
+    total_collisions = 0
     
     # Episode loop
     while not done:
@@ -504,6 +506,9 @@ def run_episode(
             
         # Sum absolute effective damage from ground truth (info)
         total_effective_damage += sum(info["effective_damage"].values())
+        
+        # Track collisions
+        total_collisions += info.get("collisions", 0)
         
         # Track overkill
         if "overkill" in info:
@@ -565,6 +570,7 @@ def run_episode(
         "overkill_events": len(overkill_events),
         "total_effective_damage": total_effective_damage,
         "total_potential_damage": total_potential_damage,
+        "total_collisions": total_collisions,
     }
 
 
@@ -1030,12 +1036,14 @@ def main():
                 print(f"  Continuous Run Progress: Steps={metrics['steps']}, "
                       f"Total Neutralized={metrics['targets_neutralized']}, "
                       f"Total HP Damaged={metrics['total_effective_damage']:.0f}, "
-                      f"Total Wasted HP={metrics['total_overkill']:.0f}")
+                      f"Total Wasted HP={metrics['total_overkill']:.0f}, "
+                      f"Collisions={metrics['total_collisions']}")
             else:
                 total_reward = sum(metrics["agent_rewards"].values())
                 print(f"  Episode {episode_num}: Steps={metrics['steps']}, "
-                      f"Targets={metrics['targets_neutralized']}, "
-                      f"Overkill={metrics['total_overkill']:.0f}, "
+                      f"Total Neutralized={metrics['targets_neutralized']}, "
+                      f"Total HP Damaged={metrics['total_effective_damage']:.0f}, "
+                      f"Total Wasted HP={metrics['total_overkill']:.0f}, "
                       f"Reward={total_reward:.0f}")
             
             # Print learning path for CF policies
@@ -1082,7 +1090,8 @@ def main():
             print(f"  Final Summary: Steps={metrics['steps']}, "
                   f"Total Neutralized={metrics['targets_neutralized']}, "
                   f"Total HP Damaged={metrics['total_effective_damage']:.0f}, "
-                  f"Total Wasted HP={metrics['total_overkill']:.0f}")
+                  f"Total Wasted HP={metrics['total_overkill']:.0f}, "
+                  f"Collisions={metrics['total_collisions']}")
         else:
             print(f"  Steps: first={steps.get('first', 'N/A')}")
 
