@@ -1025,12 +1025,18 @@ def main():
             # Record episode in RunManager for selection
             run_manager.record_episode(episode_data, metrics["steps"])
             
-            # Per-episode summary
-            total_reward = sum(metrics["agent_rewards"].values())
-            print(f"  Episode {episode_num}: Steps={metrics['steps']}, "
-                  f"Targets={metrics['targets_neutralized']}, "
-                  f"Overkill={metrics['total_overkill']:.0f}, "
-                  f"Reward={total_reward:.0f}")
+            # Per-run summary
+            if config.environment.mode == "continuous":
+                print(f"  Continuous Run Progress: Steps={metrics['steps']}, "
+                      f"Total Neutralized={metrics['targets_neutralized']}, "
+                      f"Total HP Damaged={metrics['total_effective_damage']:.0f}, "
+                      f"Total Wasted HP={metrics['total_overkill']:.0f}")
+            else:
+                total_reward = sum(metrics["agent_rewards"].values())
+                print(f"  Episode {episode_num}: Steps={metrics['steps']}, "
+                      f"Targets={metrics['targets_neutralized']}, "
+                      f"Overkill={metrics['total_overkill']:.0f}, "
+                      f"Reward={total_reward:.0f}")
             
             # Print learning path for CF policies
             if (
@@ -1047,7 +1053,8 @@ def main():
         
         # Finalize policy run - saves selected episodes (first/best/mid or only)
         result = run_manager.finalize_policy()
-        print(f"  Saved episodes: {result['files']}")
+        if config.environment.mode != "continuous":
+            print(f"  Saved episodes: {result['files']}")
         steps = result['steps']
         
         # Enrich learning state for milestone episodes with t-SNE (offline post-processing)
@@ -1061,17 +1068,21 @@ def main():
                 else:
                     filename = f"learning_state_ep{ep_num:02d}.json"
                     
-                state_file = os.path.join(
-                    run_manager.get_learning_state_dir(),
-                    filename
-                )
-                if os.path.exists(state_file):
-                    enrich_learning_state_file(state_file)
+                    state_file = os.path.join(
+                        run_manager.get_learning_state_dir(),
+                        filename
+                    )
+                    if os.path.exists(state_file):
+                        enrich_learning_state_file(state_file)
 
         if 'best' in steps:
             print(f"  Steps: first={steps['first']}, best={steps['best']}, mid={steps['mid']}")
         elif 'final' in steps:
-            print(f"  Steps: final={steps['final']}")
+            # For continuous mode, show cumulative results at the end of the policy run
+            print(f"  Final Summary: Steps={metrics['steps']}, "
+                  f"Total Neutralized={metrics['targets_neutralized']}, "
+                  f"Total HP Damaged={metrics['total_effective_damage']:.0f}, "
+                  f"Total Wasted HP={metrics['total_overkill']:.0f}")
         else:
             print(f"  Steps: first={steps.get('first', 'N/A')}")
 
