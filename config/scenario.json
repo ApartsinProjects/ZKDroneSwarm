@@ -8,8 +8,8 @@
     ]
   },
   "environment": {
-    "max_steps":500,
-    "mode": "episodic",
+    "max_steps":2500,
+    "mode": "continuous",
     "episodic": {
       "num_episodes": 25
     },
@@ -73,14 +73,14 @@
     "allow_noop": false
   },
   "matrix_factorization_cf": {
-    "latent_dim": 8,
+    "latent_dim": 16,
     "learning_rate": 0.01,
     "lambda_reg": 0.02,
     "epsilon": 0.3,
     "epsilon_decay": 0.9995,
     "epsilon_min": 0.02,
-    "reward_noise": 0.05,
-    "observation_noise": 0.05,
+    "reward_noise": 0.1,
+    "observation_noise": 0.1,
     "selection_noise": 0.3,
     "anti_signal_weight": 1.0
   },  

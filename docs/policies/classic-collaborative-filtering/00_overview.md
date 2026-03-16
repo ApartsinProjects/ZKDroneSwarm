@@ -270,9 +270,30 @@ To "shatter" agent synchronization, the policy implements **Boltzmann (Softmax) 
 A successful `MatrixFactorizationPolicy` is measured not just by neutralizations, but by its **Coordination Efficiency**. We explicitly track **Collisions** (multiple drones firing at the same target in a single step) as a primary metric.
 A successful `MatrixFactorizationPolicy` in Continuous mode is measured by its **Coordination Efficiency**. We explicitly track **Collisions** (multiple drones firing at the same target in a single step) as a primary metric. High collisions indicate a failure of de-confliction, while high neutralized counts with low collisions indicate a high-functioning, "Surgically Distributed" swarm.
 
+## 6. Measuring Performance: Evaluation Metrics for Persistent Swarms
+
+To evaluate the effectiveness of the `MatrixFactorizationPolicy`, especially in **Continuous Mode**, we employ a multi-dimensional KPI suite. These metrics differentiate between raw "killing power" and the "surgical coordination" of the swarm.
+
+### 6.1 Neutralization Throughput (N/100)
+*   **Motivation**: In a persistent tactical horizon, the goal is not "clearing the board" but the **Rate of Productivity**. This metric allows direct comparison between simulations of different lengths.
+*   **Calculation**: $\frac{\text{Total Neutralized}}{\text{Total Steps}} \times 100$
+
+### 6.2 Coordination Score (N/C)
+*   **Motivation**: Measures the "Friction" within the swarm. It quantifies the number of successful neutralizations achieved for every **Collision** (two or more drones firing at the same target in the same step).
+*   **Calculation**: $\frac{\text{Total Neutralized}}{\text{Total Collisions}}$
+    *   *Surgical Benchmark*: A score significantly higher than the Random baseline indicates the swarm has learned to de-conflict and distribute tasks effectively.
+
+### 6.3 Ammo Efficiency (Ammo Eff)
+*   **Motivation**: Evaluates the lethal utility of every shot fired. High ammo efficiency indicates the swarm is minimizing wasted shots on non-vulnerable or already-neutralized targets.
+*   **Calculation**: $\frac{\text{Total Neutralized}}{\text{Total Ammo Used}}$
+
+### 6.4 Damage Efficiency (Dmg Eff)
+*   **Motivation**: Validates the **Weapon-Target Alignment**. It represents the percentage of raw firepower that successfully converted into HP reduction. A high percentage confirms that drones have successfully identified which target classes are most vulnerable to their specific weapon profiles.
+*   **Calculation**: $\frac{\text{Total Effective Damage}}{\text{Total Potential Damage}}$
+
 ---
 
-## 6. Summary of Properties
+## 7. Summary of Properties
 
 | Feature | Implementation | Purpose |
 | :--- | :--- | :--- |

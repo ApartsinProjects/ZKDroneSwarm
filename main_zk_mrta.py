@@ -35,6 +35,7 @@ from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.base import IPolicy
 from tabula_drone.policies.utils.visualizer_bakery import enrich_learning_state_file
 from tabula_drone.scenarios import ScenarioBuilder
+from tabula_drone.utils.metrics_helper import calculate_derived_metrics, format_metric_display
 
 CONFIG_PATH = "config/scenario.json"
 
@@ -699,33 +700,37 @@ def print_policy_best_episode_performance_vs_random(
     config: Any,
     all_metrics: List[Dict[str, Any]],
 ) -> None:
+    mode = config.environment.mode
     policy_best_metrics = {}
     for policy_type in config.policy.type:
         policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
         if policy_metrics:
-            best_ep = min(policy_metrics, key=lambda m: m["steps"])
-            best_ammo = best_ep["total_ammo_used"]
-            best_targets = best_ep["targets_neutralized"]
-            best_eff_dmg = best_ep["total_effective_damage"]
-            best_pot_dmg = best_ep["total_potential_damage"]
-            policy_best_metrics[policy_type] = {
-                "steps": best_ep["steps"],
-                "ammo_eff": best_targets / best_ammo if best_ammo > 0 else 0.0,
-                "dmg_eff": best_eff_dmg / best_pot_dmg if best_pot_dmg > 0 else 0.0,
-                "shots_per_target": best_ammo / best_targets if best_targets > 0 else 0.0,
-            }
+            # For continuous mode, we use the final state; for episodic, we find the best (shortest) episode
+            if mode == "continuous":
+                best_ep = policy_metrics[-1]
+            else:
+                best_ep = min(policy_metrics, key=lambda m: m["steps"])
+            
+            policy_best_metrics[policy_type] = calculate_derived_metrics(best_ep, mode=mode)
 
     if "random" in policy_best_metrics and len(policy_best_metrics) > 1:
         print("\n" + "="*60)
-        print("POLICY BEST EPISODE PERFORMANCE (vs Random Baseline)")
+        print("POLICY PERFORMANCE COMPARISON (vs Random Baseline)")
         print("="*60)
-        print(f"Reward Mode: {REWARD_MODE}")
-        print(f"Mappings File: {config.mappings_file}")
-        print("Ammo Eff = targets / ammo (higher = fewer wasted shots)")
-        print("Dmg Eff  = effective_dmg / potential_dmg (higher = less overkill)")
+        print(f"Mode: {mode.upper()} | Mappings: {config.mappings_file}")
+        
+        if mode == "continuous":
+            print("Throughput = Neutralizations per 100 steps")
+            print("Coordination = Neutralizations per Collision (higher = more de-conflicted)")
+        else:
+            print("Ammo Eff = targets / ammo (higher = fewer wasted shots)")
+            print("Dmg Eff  = effective_dmg / potential_dmg (higher = less overkill)")
+            
         rand = policy_best_metrics["random"]
 
-        def fmt_pct(val, base, fmt, higher_better=True):
+        def fmt_pct(val, base, fmt, higher_better=True, is_str=False):
+            if is_str:
+                return val
             if base == 0:
                 return fmt.format(val)
             pct = ((val - base) / base) * 100
@@ -735,28 +740,50 @@ def print_policy_best_episode_performance_vs_random(
             return f"{fmt.format(val)} ({sign}{pct:.0f}%)"
 
         cmp_data = []
-        for pt in config.policy.type:
-            if pt in policy_best_metrics:
-                m = policy_best_metrics[pt]
-                if pt == "random":
-                    cmp_data.append([
-                        pt,
-                        f"{m['steps']} (baseline)",
-                        f"{m['shots_per_target']:.1f} (baseline)",
-                        f"{m['ammo_eff']:.3f} (baseline)",
-                        f"{m['dmg_eff']:.1%} (baseline)",
-                    ])
-                else:
-                    cmp_data.append([
-                        pt,
-                        fmt_pct(m["steps"], rand["steps"], "{}", False),
-                        fmt_pct(m["shots_per_target"], rand["shots_per_target"], "{:.1f}", False),
-                        fmt_pct(m["ammo_eff"], rand["ammo_eff"], "{:.3f}", True),
-                        fmt_pct(m["dmg_eff"], rand["dmg_eff"], "{:.1%}", True),
-                    ])
+        if mode == "continuous":
+            headers = ["Policy", "Throughput (N/100)", "Coordination (N/C)", "Ammo Eff", "Dmg Eff"]
+            for pt in config.policy.type:
+                if pt in policy_best_metrics:
+                    m = policy_best_metrics[pt]
+                    if pt == "random":
+                        cmp_data.append([
+                            pt,
+                            f"{m['throughput']:.1f} (base)",
+                            f"{m['coordination_str']} (base)",
+                            f"{m['ammo_eff']:.3f} (base)",
+                            f"{m['dmg_eff']:.1%} (base)",
+                        ])
+                    else:
+                        cmp_data.append([
+                            pt,
+                            fmt_pct(m["throughput"], rand["throughput"], "{:.1f}", True),
+                            fmt_pct(m["coordination_score"], rand["coordination_score"], "{:.2f}", True) if m["coordination_score"] != float('inf') else "Perfect",
+                            fmt_pct(m["ammo_eff"], rand["ammo_eff"], "{:.3f}", True),
+                            fmt_pct(m["dmg_eff"], rand["dmg_eff"], "{:.1%}", True),
+                        ])
+        else:
+            headers = ["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"]
+            for pt in config.policy.type:
+                if pt in policy_best_metrics:
+                    m = policy_best_metrics[pt]
+                    if pt == "random":
+                        cmp_data.append([
+                            pt,
+                            f"{m['best_steps']} (base)",
+                            f"{m['shots_per_target']:.1f} (base)",
+                            f"{m['ammo_eff']:.3f} (base)",
+                            f"{m['dmg_eff']:.1%} (base)",
+                        ])
+                    else:
+                        cmp_data.append([
+                            pt,
+                            fmt_pct(m["best_steps"], rand["best_steps"], "{}", False),
+                            fmt_pct(m["shots_per_target"], rand["shots_per_target"], "{:.1f}", False),
+                            fmt_pct(m["ammo_eff"], rand["ammo_eff"], "{:.3f}", True),
+                            fmt_pct(m["dmg_eff"], rand["dmg_eff"], "{:.1%}", True),
+                        ])
 
-        cmp_data.sort(key=lambda r: int(r[1].split()[0]))
-        print(tabulate(cmp_data, headers=["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"], tablefmt="grid"))
+        print(tabulate(cmp_data, headers=headers, tablefmt="grid"))
         print("="*60)
 
 
@@ -1033,10 +1060,11 @@ def main():
             
             # Per-run summary
             if config.environment.mode == "continuous":
+                derived = calculate_derived_metrics(metrics, mode="continuous")
                 print(f"  Continuous Run Progress: Steps={metrics['steps']}, "
-                      f"Total Neutralized={metrics['targets_neutralized']}, "
-                      f"Total HP Damaged={metrics['total_effective_damage']:.0f}, "
-                      f"Total Wasted HP={metrics['total_overkill']:.0f}, "
+                      f"Throughput={derived['throughput']:.1f} N/100, "
+                      f"Coordination={derived['coordination_str']}, "
+                      f"Ammo Eff={derived['ammo_eff']:.3f}, "
                       f"Collisions={metrics['total_collisions']}")
             else:
                 total_reward = sum(metrics["agent_rewards"].values())
