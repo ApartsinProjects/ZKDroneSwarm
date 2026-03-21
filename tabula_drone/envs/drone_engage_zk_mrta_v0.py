@@ -246,6 +246,43 @@ class DroneEngageZKMRTA(ParallelEnv):
     def diagnostics(self) -> Optional[EnvDiagnosticsSnapshot]:
         """Return the latest shared diagnostics snapshot for this env."""
         return self._latest_diagnostics
+
+    def state(self) -> Dict[str, Any]:
+        """Return a privileged snapshot of the current world state."""
+        world = self.world
+        drones = self.drones or []
+        targets = self.targets or []
+
+        return {
+            "world": {
+                "world_size": list(world.world_size) if world is not None else list(self.world_size),
+                "time_step": world.time_step if world is not None else 0,
+                "max_steps": world.max_steps if world is not None else self.max_steps,
+                "scenario_id": world.scenario_id if world is not None else self.scenario_id,
+                "seed": world.seed if world is not None else None,
+            },
+            "drones": [
+                {
+                    "id": drone.id,
+                    "position": list(drone.position),
+                    "ammo_used": drone.ammo_used,
+                    "weapon_type": drone.weapon_type,
+                    "damage_profile": dict(drone.damage_profile),
+                }
+                for drone in drones
+            ],
+            "targets": [
+                {
+                    "id": target.id,
+                    "position": list(target.position),
+                    "class_type": target.class_type,
+                    "is_active": target.is_active,
+                    "hp_current": target.hp_current,
+                    "attributes": dict(target.attributes.attributes),
+                }
+                for target in targets
+            ],
+        }
     
     def reset(
         self,
