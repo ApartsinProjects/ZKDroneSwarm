@@ -39,7 +39,7 @@ flowchart TD
     end
 
     subgraph POLICY["Policy Plugin\n(policies/)"]
-        IPOLICY["«Protocol» IPolicy\nselect_actions(obs, info)\nupdate(obs)\nsoft_reset()\nget_learning_state()"]
+        IPOLICY["«Protocol» IPolicy\nselect_actions(obs, infos)\nupdate(obs)\nsoft_reset()\nget_learning_state()"]
         MAP["MultiAgentPolicy\n(per-agent wrapper)"]
         FACTORY["create_policy()\n(main_zk_mrta.py)"]
         FACTORY -->|"instantiates"| IPOLICY
@@ -47,7 +47,7 @@ flowchart TD
     end
 
     subgraph ORCH["Orchestrator\n(main_zk_mrta.py)"]
-        LOOP["Episode Loop\nenv.reset()\npolicy.select_actions(obs, info)\nenv.step(actions)\npolicy.update(obs)"]
+        LOOP["Episode Loop\nenv.reset()\npolicy.select_actions(obs, infos)\nenv.step(actions)\npolicy.update(obs)"]
     end
 
     subgraph LOG["Logging\n(logging/)"]
@@ -451,13 +451,11 @@ The canonical interaction pattern. The environment and policy are fully decouple
 
 ```python
 obs, infos = env.reset()
-info = normalize_env_info(infos, env.possible_agents)
 
 while not done:
     reference_agent_id = env.agents[0]
-    actions = policy.select_actions(obs, info)           # IPolicy boundary
+    actions = policy.select_actions(obs, infos)          # IPolicy boundary
     obs, rewards, terminations, truncations, infos = env.step(actions)
-    info = normalize_env_info(infos, env.possible_agents)
     policy.update(obs)                                   # IPolicy boundary
 
     terminated = terminations[reference_agent_id]

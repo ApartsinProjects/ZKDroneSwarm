@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional, Union
 
 import numpy as np
 
-from .base import IPolicy
+from .base import IPolicy, EnvInfos, extract_shared_info
 
 
 class RandomPolicy(IPolicy):
@@ -96,7 +96,7 @@ class RandomPolicy(IPolicy):
     def select_actions(
         self,
         obs: Dict[str, Any],
-        info: Dict[str, Any],
+        infos: EnvInfos,
     ) -> Dict[str, int]:
         """
         Select random actions for all agents.
@@ -106,12 +106,13 @@ class RandomPolicy(IPolicy):
         
         Args:
             obs: Dict of {agent_id: observation_array}
-            info: Environment info dict (unused by this policy)
+            infos: Environment infos dict keyed by agent_id
         
         Returns:
             actions: Dict of {agent_id: action}
         """
-        num_targets = len(info.get("target_active", []))
+        shared_info = extract_shared_info(infos)
+        num_targets = len(shared_info.get("target_active", []))
         actions = {}
         
         for agent_id, observation in obs.items():

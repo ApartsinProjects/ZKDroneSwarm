@@ -474,20 +474,20 @@ def run_episode(
     # Reset environment
     # ???
     # obs, info = env.reset()
-    obs, raw_info = env.reset(seed=seed)
-    info = normalize_env_info(raw_info, env.possible_agents)
+    obs, infos = env.reset(seed=seed)
+    shared_info = normalize_env_info(infos, env.possible_agents)
     
     if logger:
-        logger.start_episode(env, info, seed, episode_num, total_episodes)
+        logger.start_episode(env, shared_info, seed, episode_num, total_episodes)
     
     if verbose:
         print(f"\n{'='*60}")
         print(f"EPISODE {episode_num} START")
         print(f"{'='*60}")
         print(f"Drones: {env.num_drones}, Targets: {env.num_targets}")
-        print(f"Target classes: {info['target_classes']}")
-        print(f"Drone weapons: {info['weapon_types']}")
-        print(f"Initial HPs: {info['target_hps']}")
+        print(f"Target classes: {shared_info['target_classes']}")
+        print(f"Drone weapons: {shared_info['weapon_types']}")
+        print(f"Initial HPs: {shared_info['target_hps']}")
         print()
     
     # Initialize tracking
@@ -504,11 +504,11 @@ def run_episode(
         reference_agent_id = env.agents[0]
         
         # Policy selects actions for all agents (uniform interface)
-        actions = policy.select_actions(obs, info)
+        actions = policy.select_actions(obs, infos)
 
         # Environment step
-        obs, rewards, terminations, truncations, raw_info = env.step(actions)
-        info = normalize_env_info(raw_info, env.possible_agents)
+        obs, rewards, terminations, truncations, infos = env.step(actions)
+        shared_info = normalize_env_info(infos, env.possible_agents)
 
         # Update policy
         policy.update(obs)
@@ -518,7 +518,7 @@ def run_episode(
         truncated = truncations[reference_agent_id]
         
         if logger:
-            logger.log_step(step_count, actions, rewards, terminated, truncated, info)
+            logger.log_step(step_count, actions, rewards, terminated, truncated, shared_info)
             
             # Periodic flush for continuous mode
             if flush_interval and step_count % flush_interval == 0:
@@ -531,36 +531,36 @@ def run_episode(
             total_rewards[agent_id] += rewards[agent_id]
             
         # Sum absolute effective damage from ground truth (info)
-        total_effective_damage += sum(info["effective_damage"].values())
+        total_effective_damage += sum(shared_info["effective_damage"].values())
         
         # Track collisions
-        total_collisions += info.get("collisions", 0)
+        total_collisions += shared_info.get("collisions", 0)
         
         # Track overkill
-        if "overkill" in info:
-            overkill_events.append(info["overkill"])
+        if "overkill" in shared_info:
+            overkill_events.append(shared_info["overkill"])
         
         # Verbose logging
         if verbose:
             print(f"Step {step_count}:")
             print(f"  Actions: {actions}")
-            print(f"  Target HPs: {info['target_hps']}")
-            print(f"  Target Active: {info['target_active']}")
+            print(f"  Target HPs: {shared_info['target_hps']}")
+            print(f"  Target Active: {shared_info['target_active']}")
             print(f"  Step Rewards: {rewards}")
             
-            if "overkill" in info:
-                print(f"  Overkill: {info['overkill']}")
+            if "overkill" in shared_info:
+                print(f"  Overkill: {shared_info['overkill']}")
         
         # Check termination
         done = terminated or truncated
     
     # Finalize logger (save is handled by caller for best-episode tracking)
     if logger:
-        logger.end_episode(total_rewards, info.get("done_reason"))
+        logger.end_episode(total_rewards, shared_info.get("done_reason"))
     
     # Compute final metrics
-    targets_neutralized = info.get("cumulative_neutralizations", sum(1 for active in info['target_active'] if not active))
-    total_ammo_used = sum(info['ammo_used'].values())
+    targets_neutralized = shared_info.get("cumulative_neutralizations", sum(1 for active in shared_info['target_active'] if not active))
+    total_ammo_used = sum(shared_info['ammo_used'].values())
     total_overkill = sum(
         sum(overkill.values()) for overkill in overkill_events
     )
@@ -571,16 +571,16 @@ def run_episode(
             episode_num,
             step_count,
             total_rewards,
-            info,
+            shared_info,
             targets_neutralized,
             total_ammo_used,
         )
     
     # Compute potential damage from actual weapon profiles and ammo used per agent
     total_potential_damage = 0.0
-    for agent_id, ammo in info['ammo_used'].items():
+    for agent_id, ammo in shared_info['ammo_used'].items():
         agent_idx = int(agent_id.split('_')[1])
-        weapon_type = info['weapon_types'][agent_idx]
+        weapon_type = shared_info['weapon_types'][agent_idx]
         damage_per_shot = sum(env.weapon_damage_profile_mapping[weapon_type].values())
         total_potential_damage += ammo * damage_per_shot
     
@@ -591,7 +591,7 @@ def run_episode(
         "targets_neutralized": targets_neutralized,
         "total_ammo_used": total_ammo_used,
         "total_overkill": total_overkill,
-        "done_reason": info.get("done_reason"),
+        "done_reason": shared_info.get("done_reason"),
         "agent_rewards": total_rewards.copy(),
         "overkill_events": len(overkill_events),
         "total_effective_damage": total_effective_damage,

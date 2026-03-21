@@ -21,7 +21,7 @@ class MultiAgentPolicy(IPolicy):
     - get_learning_state() -> Optional[Dict]
     
     Provides the unified IPolicy interface:
-    - select_actions(obs, info) -> Dict[str, int]
+    - select_actions(obs, infos) -> Dict[str, int]
     - update(obs) -> None
     - soft_reset() -> None
     - get_learning_state() -> Optional[Dict]
@@ -47,14 +47,14 @@ class MultiAgentPolicy(IPolicy):
     def select_actions(
         self,
         obs: Dict[str, Any],
-        info: Dict[str, Any],
+        infos: Dict[str, Dict[str, Any]],
     ) -> Dict[str, int]:
         """
         Select actions for all agents by delegating to individual policies.
         
         Args:
             obs: Dict of {agent_id: observation}
-            info: Environment info dict (unused, passed for interface compliance)
+            infos: Environment infos dict keyed by agent_id (unused, passed for interface compliance)
         
         Returns:
             Dict of {agent_id: action}

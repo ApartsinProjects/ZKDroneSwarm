@@ -232,14 +232,14 @@ class UCBCFPolicy:
     def select_actions(
         self,
         obs: Dict[str, Any],
-        info: Dict[str, Any],
+        infos: Dict[str, Dict[str, Any]],
     ) -> Dict[str, int]:
         """
         Select actions for all agents.
         
         Args:
             obs: Dict of {agent_id: observation}
-            info: Environment info dict (unused by this policy)
+            infos: Environment infos dict keyed by agent_id (unused by this policy)
         
         Returns:
             Dict of {agent_id: action}

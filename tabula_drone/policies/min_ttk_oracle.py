@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
-from .base import IPolicy
+from .base import IPolicy, EnvInfos, extract_shared_info
 
 
 class OracleTimeToKillPolicy(IPolicy):
@@ -183,7 +183,7 @@ class OracleTimeToKillPolicy(IPolicy):
     def select_actions(
         self,
         obs: Dict[str, Any],
-        info: Dict[str, Any],
+        infos: EnvInfos,
     ) -> Dict[str, int]:
         """
         Select actions for all agents using privileged target state.
@@ -194,13 +194,14 @@ class OracleTimeToKillPolicy(IPolicy):
         
         Args:
             obs: Dict of {agent_id: observation_array}
-            info: Environment info dict containing 'target_attributes'
+            infos: Environment infos dict keyed by agent_id
         
         Returns:
             actions: Dict of {agent_id: action}
         """
-        num_targets = len(info.get("target_active", []))
-        targets_state = info.get("target_attributes", [])
+        shared_info = extract_shared_info(infos)
+        num_targets = len(shared_info.get("target_active", []))
+        targets_state = shared_info.get("target_attributes", [])
         return {
             agent_id: self.select_action(agent_id, observation, num_targets, targets_state)
             for agent_id, observation in obs.items()

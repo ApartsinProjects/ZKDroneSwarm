@@ -1,6 +1,22 @@
-"""Base protocol for all policy implementations."""
+"""Base protocol and helpers for all policy implementations."""
 
 from typing import Any, Dict, Optional, Protocol, runtime_checkable
+
+EnvInfos = Dict[str, Dict[str, Any]]
+
+
+def extract_shared_info(infos: EnvInfos) -> Dict[str, Any]:
+    """
+    Extract a representative shared payload from agent-keyed infos.
+
+    Current env implementation duplicates the same telemetry under each agent.
+    This helper keeps policies decoupled from that duplication detail.
+    """
+    if not infos:
+        return {}
+
+    first_agent_id = next(iter(infos))
+    return dict(infos[first_agent_id])
 
 
 @runtime_checkable
@@ -18,14 +34,14 @@ class IPolicy(Protocol):
     is_deterministic: bool
 
     def select_actions(
-        self, obs: Dict[str, Any], info: Dict[str, Any]
+        self, obs: Dict[str, Any], infos: EnvInfos
     ) -> Dict[str, int]:
         """
         Select actions for all agents.
         
         Args:
             obs: Observations dict keyed by agent_id
-            info: Environment info dict (policies may ignore if not needed)
+            infos: Environment infos dict keyed by agent_id
         
         Returns:
             Actions dict keyed by agent_id

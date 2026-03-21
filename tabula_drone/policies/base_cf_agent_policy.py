@@ -333,7 +333,7 @@ class BaseCFAgentPolicy(ABC, IPolicy):
         }
 
     def select_actions(
-        self, obs: Dict[str, Any], info: Dict[str, Any]
+        self, obs: Dict[str, Any], infos: Dict[str, Dict[str, Any]]
     ) -> Dict[str, int]:
         """
         IPolicy protocol interface - NOT directly usable for per-agent CF policies.
@@ -343,7 +343,7 @@ class BaseCFAgentPolicy(ABC, IPolicy):
         
         Args:
             obs: Observations dict keyed by agent_id
-            info: Environment info dict
+            infos: Environment infos dict keyed by agent_id
         
         Raises:
             NotImplementedError: Always raised - use MultiAgentPolicy instead

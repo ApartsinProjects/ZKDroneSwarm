@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from .base import IPolicy
+from .base import IPolicy, EnvInfos, extract_shared_info
 
 
 class OptimalAssignmentOracle(IPolicy):
@@ -190,7 +190,7 @@ class OptimalAssignmentOracle(IPolicy):
     def select_actions(
         self,
         obs: Dict[str, Any],
-        info: Dict[str, Any],
+        infos: EnvInfos,
     ) -> Dict[str, int]:
         """
         Select globally optimal actions for all agents.
@@ -199,7 +199,7 @@ class OptimalAssignmentOracle(IPolicy):
         
         Args:
             obs: Dict of {agent_id: observation_array}
-            info: Environment info dict containing 'target_attributes'
+            infos: Environment infos dict keyed by agent_id
         
         Returns:
             actions: Dict of {agent_id: action}
@@ -207,8 +207,9 @@ class OptimalAssignmentOracle(IPolicy):
                     1 to num_targets = Fire at target (1-indexed)
                     Note: Unassigned drones get 0 if allow_noop, else -1
         """
-        num_targets = len(info.get("target_active", []))
-        targets_state = info.get("target_attributes", [])
+        shared_info = extract_shared_info(infos)
+        num_targets = len(shared_info.get("target_active", []))
+        targets_state = shared_info.get("target_attributes", [])
         
         first_obs = next(iter(obs.values()))
         active_mask = self._parse_active_mask(first_obs, num_targets)
