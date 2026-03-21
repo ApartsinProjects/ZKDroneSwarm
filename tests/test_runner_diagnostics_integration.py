@@ -1,6 +1,7 @@
 from main_zk_mrta import run_episode
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
+from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.random_policy import RandomPolicy
@@ -47,6 +48,25 @@ def test_run_episode_uses_env_diagnostics_with_random_policy() -> None:
 def test_run_episode_uses_env_diagnostics_with_ttk_oracle() -> None:
     env = build_test_env()
     policy = OracleTimeToKillPolicy(
+        agent_weapon_profiles={
+            "drone_0": {"hp": 3.0},
+            "drone_1": {"hp": 4.0},
+        },
+        allow_noop=True,
+    )
+
+    metrics = run_episode(env, policy, episode_num=1, seed=7)
+
+    assert metrics["episode"] == 1
+    assert metrics["steps"] >= 1
+    assert metrics["total_ammo_used"] >= 0
+    assert "done_reason" in metrics
+    assert set(metrics["agent_rewards"].keys()) == {"drone_0", "drone_1"}
+
+
+def test_run_episode_uses_env_diagnostics_with_max_damage_oracle() -> None:
+    env = build_test_env()
+    policy = OptimalAssignmentOracle(
         agent_weapon_profiles={
             "drone_0": {"hp": 3.0},
             "drone_1": {"hp": 4.0},

@@ -8,10 +8,11 @@ DiagnosticsProvider = Callable[[], Dict[str, Any]]
 
 def extract_shared_info(infos: EnvInfos) -> Dict[str, Any]:
     """
-    Extract a representative shared payload from agent-keyed infos.
+    Extract a representative shared payload from legacy agent-keyed infos.
 
-    Current env implementation duplicates the same telemetry under each agent.
-    This helper keeps policies decoupled from that duplication detail.
+    The current env exposes shared telemetry through `env.diagnostics`, not
+    PettingZoo `infos`. This helper remains only as a compatibility fallback for
+    callers that still pass older infos payloads.
     """
     if not infos:
         return {}

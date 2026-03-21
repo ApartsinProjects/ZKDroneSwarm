@@ -9,7 +9,6 @@ Multi-Robot Task Allocation (ZK-MRTA) constraints:
 - Observations show only target positions and active states
 """
 
-import copy
 from dataclasses import dataclass
 from typing import Tuple, Optional, Dict, Any, List, Union
 

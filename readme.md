@@ -91,16 +91,20 @@ env = DroneEngageZKMRTA(
     max_steps=100,
 )
 
-# Reset returns observations and infos keyed by agent ID
+# Reset returns observations and minimal infos keyed by agent ID
 observations, infos = env.reset(seed=42)
+
+# Shared diagnostics are available from the env itself
+diagnostics = env.diagnostics.to_dict()
 
 # Parallel execution: all agents act simultaneously
 while env.agents:
     actions = {agent: env.action_space(agent).sample() for agent in env.agents}
     observations, rewards, terminations, truncations, infos = env.step(actions)
 
-# Example: inspect one agent's info payload
+# Example: infos are per-agent/minimal, diagnostics hold shared telemetry
 drone_0_info = infos["drone_0"]
+latest_diagnostics = env.diagnostics.to_dict()
 ```
 
 ### Running Demo
