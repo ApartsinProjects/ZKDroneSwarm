@@ -14,7 +14,6 @@ import os
 
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from tabulate import tabulate
 
 from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, REWARD_MODE
@@ -35,9 +34,11 @@ from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.base import IPolicy, bind_diagnostics_provider
 from tabula_drone.policies.utils.visualizer_bakery import enrich_learning_state_file
 from tabula_drone.scenarios import ScenarioBuilder
+from tabula_drone.utils.console_rendering import ConsolePrinter
 from tabula_drone.utils.metrics_helper import calculate_derived_metrics, format_metric_display
 
 CONFIG_PATH = "config/scenario.json"
+printer = ConsolePrinter()
 
 
 def get_env_diagnostics(env: DroneEngageZKMRTA) -> Dict[str, Any]:
@@ -47,41 +48,12 @@ def get_env_diagnostics(env: DroneEngageZKMRTA) -> Dict[str, Any]:
     return env.diagnostics.to_dict()
 
 
-# "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
-def print_episode_summary(
-    episode_num: int,
-    step_count: int,
-    total_rewards: Dict[str, float],
-    info: Dict[str, Any],
-    targets_neutralized: int,
-    total_ammo_used: int,
-) -> None:
-    """Print summary statistics for a completed episode."""
-    print("\n" + "=" * 60)
-    print(f"EPISODE {episode_num} SUMMARY")
-    print("=" * 60)
-    print(f"Done Reason:          {info.get('done_reason', 'N/A')}")
-    print(f"Steps:                {step_count}")
-    print(f"Targets Neutralized:  {targets_neutralized}")
-    print(f"Total Ammo Used:      {total_ammo_used}")
-    print(f"\nAgent Performance:")
-    for agent_id, reward in sorted(total_rewards.items()):
-        ammo = info['ammo_used'][agent_id]
-        # Extract weapon type for this agent (drone_0 -> index 0, etc.)
-        agent_idx = int(agent_id.split('_')[1])
-        weapon_type = info['weapon_types'][agent_idx]
-        print(f"  {agent_id}: {reward:.1f} (weapon: {weapon_type}, ammo: {ammo})")
-    print("=" * 60 + "\n")
-
-
-def print_learning_path(
+def show_learning_path(
     policy: Union[IPolicy, Dict[str, "SelfishEpGreedyCFPolicy"]],
     drones_config: List[Dict[str, Any]],
     targets_config: List[Dict[str, Any]],
 ) -> None:
-    """Print current latent vectors for CF policy learning visualization."""
-    print("    --- Learning Path ---")
-    
+    """Show current latent vectors for CF policy learning visualization."""
     # Handle MultiAgentPolicy wrapper
     from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
     if isinstance(policy, (dict, MultiAgentPolicy)):
@@ -93,7 +65,7 @@ def print_learning_path(
         # Use first agent's target estimates (they may differ between agents)
         target_lv = first_policy.target_lv
     else:
-        cf_policy = cast(Any, policy)
+        cf_policy = policy
         latent_dim = cf_policy.latent_dim
         agent_lv = cf_policy.agent_lv
         target_lv = cf_policy.target_lv
@@ -106,10 +78,7 @@ def print_learning_path(
         row.extend([f"{v:.3f}" for v in agent_lv[i]])
         agent_rows.append(row)
     agent_rows_sorted = sorted(agent_rows, key=lambda r: r[1])
-    print(tabulate(agent_rows_sorted, headers=agent_headers, tablefmt="simple"))
-    
-    print()  # Separator
-    
+
     # Target latent vectors
     target_headers = ["Target", "Class"] + [f"d{i}" for i in range(latent_dim)]
     target_rows = []
@@ -118,156 +87,12 @@ def print_learning_path(
         row.extend([f"{v:.3f}" for v in target_lv[i]])
         target_rows.append(row)
     target_rows_sorted = sorted(target_rows, key=lambda r: r[1])
-    print(tabulate(target_rows_sorted, headers=target_headers, tablefmt="simple"))
-    print()
-
-
-def print_target_class_profile(
-    class_attribute_mapping: Dict[str, Dict[str, float]],
-) -> None:
-    """Print target class HP attributes profile."""
-    print("\nTarget Class Profile (HP):")
-    attributes = list(next(iter(class_attribute_mapping.values())).keys())
-    attr_short = [a[:6] for a in attributes]
-    class_headers = ["Class"] + attr_short + ["Dominant Attr"]
-    class_rows = []
-    for cls, attrs in sorted(class_attribute_mapping.items()):
-        dominant_attr = max(attrs.items(), key=lambda x: x[1])[0]
-        row = [cls] + [int(attrs[a]) for a in attributes] + [dominant_attr[:6]]
-        class_rows.append(row)
-    print(tabulate(class_rows, headers=class_headers, tablefmt="simple"))
-    print()
-
-
-def print_weapon_damage_profile(
-    weapon_damage_profile_mapping: Dict[str, Dict[str, float]],
-    class_attribute_mapping: Dict[str, Dict[str, float]],
-) -> None:
-    """Print weapon damage profile per attribute."""
-    print("\nWeapon Damage Profile:")
-    attributes = list(next(iter(class_attribute_mapping.values())).keys())
-    attr_short = [a[:6] for a in attributes]
-    weapon_headers = ["Weapon"] + attr_short
-    weapon_rows = []
-    for weapon, profile in sorted(weapon_damage_profile_mapping.items()):
-        row = [weapon] + [int(profile[a]) for a in attributes]
-        weapon_rows.append(row)
-    print(tabulate(weapon_rows, headers=weapon_headers, tablefmt="simple"))
-    print()
-
-
-def print_drone_setup(
-    drones_config: List[Dict[str, Any]],
-) -> None:
-    """Print drone setup showing ID and weapon assignment."""
-    print("\nDrone Setup:")
-    drone_headers = ["Drone", "Weapon"]
-    drone_rows = [[f"D{i}", cfg["weapon_type"]] for i, cfg in enumerate(drones_config)]
-    print(tabulate(drone_rows, headers=drone_headers, tablefmt="simple"))
-    print()
-
-
-def print_target_setup(
-    targets_config: List[Dict[str, Any]],
-    class_attribute_mapping: Dict[str, Dict[str, float]],
-) -> None:
-    """Print target setup showing ID, class, and dominant attribute."""
-    print("\nTarget Setup:")
-    target_headers = ["Class", "Targets", "Count", "Sum", "Dominant Attr"]
-    class_to_targets: Dict[str, List[str]] = {}
-    for i, target_cfg in enumerate(targets_config):
-        class_type = target_cfg["class_type"]
-        class_to_targets.setdefault(class_type, []).append(f"T{i}")
-
-    target_rows = []
-    for class_type in sorted(class_to_targets.keys()):
-        targets = class_to_targets[class_type]
-        attributes = class_attribute_mapping[class_type]
-        dominant_attr = max(attributes.items(), key=lambda x: x[1])[0]
-        class_total_hp = sum(attributes.values())
-        total_hp = len(targets) * class_total_hp
-        target_rows.append([
-            class_type,
-            ", ".join(targets),
-            len(targets),
-            int(total_hp) if float(total_hp).is_integer() else total_hp,
-            dominant_attr[:6],
-        ])
-
-    print(tabulate(target_rows, headers=target_headers, tablefmt="simple"))
-    print()
-
-
-def print_optimal_engagement_prediction(
-    drones_config: List[Dict[str, Any]],
-    targets_config: List[Dict[str, Any]],
-    class_attribute_mapping: Dict[str, Dict[str, float]],
-    weapon_damage_profile_mapping: Dict[str, Dict[str, float]],
-) -> None:
-    """Print optimal engagement prediction based on weapon-target attribute matching."""
-    print("\nOptimal Engagement Prediction (Greedy):")
-    
-    # Calculate damage efficiency for each drone-target pair
-    assignments = []
-    for drone_idx, drone_cfg in enumerate(drones_config):
-        weapon_type = drone_cfg["weapon_type"]
-        weapon_damage = weapon_damage_profile_mapping[weapon_type]
-        
-        for target_idx, target_cfg in enumerate(targets_config):
-            class_type = target_cfg["class_type"]
-            target_attrs = class_attribute_mapping[class_type]
-            dominant_attr = max(target_attrs.items(), key=lambda x: x[1])[0]
-            
-            # Calculate damage to dominant attribute
-            damage_to_dominant = weapon_damage[dominant_attr]
-            total_target_hp = sum(target_attrs.values())
-            
-            # Efficiency score: damage to dominant attribute
-            efficiency = damage_to_dominant
-            
-            assignments.append({
-                'drone_id': f"D{drone_idx}",
-                'target_id': f"T{target_idx}",
-                'weapon': weapon_type,
-                'target_class': class_type,
-                'dominant_attr': dominant_attr[:6],
-                'damage': damage_to_dominant,
-                'efficiency': efficiency
-            })
-    
-    # Greedy assignment: best match first
-    assigned_drones = set()
-    assigned_targets = set()
-    optimal_assignments = []
-    
-    # Sort by efficiency (descending)
-    assignments.sort(key=lambda x: x['efficiency'], reverse=True)
-    
-    for assignment in assignments:
-        if assignment['drone_id'] not in assigned_drones and assignment['target_id'] not in assigned_targets:
-            optimal_assignments.append(assignment)
-            assigned_drones.add(assignment['drone_id'])
-            assigned_targets.add(assignment['target_id'])
-            
-            if len(optimal_assignments) == min(len(drones_config), len(targets_config)):
-                break
-    
-    # Display prediction table
-    headers = ["Drone", "→", "Target", "Target Class", "Weapon", "Target Attr", "Damage"]
-    rows = []
-    for assignment in sorted(optimal_assignments, key=lambda x: x['drone_id']):
-        rows.append([
-            assignment['drone_id'],
-            "→",
-            assignment['target_id'],
-            assignment['target_class'],
-            assignment['weapon'][:6],
-            assignment['dominant_attr'],
-            int(assignment['damage'])
-        ])
-    
-    print(tabulate(rows, headers=headers, tablefmt="simple"))
-    print()
+    printer.learning_path(
+        agent_headers=agent_headers,
+        agent_rows=agent_rows_sorted,
+        target_headers=target_headers,
+        target_rows=target_rows_sorted,
+    )
 
 
 def create_policy(
@@ -468,14 +293,14 @@ def run_episode(
         logger.start_episode(env, shared_info, seed, episode_num, total_episodes)
     
     if verbose:
-        print(f"\n{'='*60}")
-        print(f"EPISODE {episode_num} START")
-        print(f"{'='*60}")
-        print(f"Drones: {env.num_drones}, Targets: {env.num_targets}")
-        print(f"Target classes: {shared_info['target_classes']}")
-        print(f"Drone weapons: {shared_info['weapon_types']}")
-        print(f"Initial HPs: {shared_info['target_hps']}")
-        print()
+        printer.episode_start(
+            episode_num=episode_num,
+            num_drones=env.num_drones,
+            num_targets=env.num_targets,
+            target_classes=shared_info["target_classes"],
+            weapon_types=shared_info["weapon_types"],
+            target_hps=shared_info["target_hps"],
+        )
     
     # Initialize tracking
     total_rewards = {agent_id: 0.0 for agent_id in env.agents}
@@ -529,14 +354,14 @@ def run_episode(
         
         # Verbose logging
         if verbose:
-            print(f"Step {step_count}:")
-            print(f"  Actions: {actions}")
-            print(f"  Target HPs: {shared_info['target_hps']}")
-            print(f"  Target Active: {shared_info['target_active']}")
-            print(f"  Step Rewards: {rewards}")
-            
-            if "overkill" in shared_info:
-                print(f"  Overkill: {shared_info['overkill']}")
+            printer.episode_step(
+                step_count=step_count,
+                actions=actions,
+                target_hps=shared_info["target_hps"],
+                target_active=shared_info["target_active"],
+                rewards=rewards,
+                overkill=shared_info.get("overkill"),
+            )
         
         # Check termination
         done = terminated or truncated
@@ -554,13 +379,15 @@ def run_episode(
     
     # Print summary
     if verbose:
-        print_episode_summary(
-            episode_num,
-            step_count,
-            total_rewards,
-            shared_info,
-            targets_neutralized,
-            total_ammo_used,
+        printer.episode_summary(
+            episode_num=episode_num,
+            step_count=step_count,
+            total_rewards=total_rewards,
+            ammo_used=shared_info["ammo_used"],
+            weapon_types=shared_info["weapon_types"],
+            done_reason=shared_info.get("done_reason", "N/A"),
+            targets_neutralized=targets_neutralized,
+            total_ammo_used=total_ammo_used,
         )
     
     # Compute potential damage from actual weapon profiles and ammo used per agent
@@ -648,11 +475,7 @@ def analyze_agent_clustering(policy, drone_weapon_map):
     """
     vectors = policy.agent_lv
     sim_matrix = cosine_similarity(vectors)
-    
-    print("\n--- Agent Latent Vector Analysis ---")
-    print("Agent Types:")
-    for i, weapon in enumerate(drone_weapon_map):
-        print(f"  Agent {i}: {weapon}")
+    similarity_lines = []
     for i in range(len(vectors)):
         for j in range(i + 1, len(vectors)):
             w1 = drone_weapon_map[i]
@@ -661,10 +484,13 @@ def analyze_agent_clustering(policy, drone_weapon_map):
             
             # Highlight if drones with the SAME weapon are becoming similar
             match_status = "[MATCH]" if w1 == w2 else "       "
-            print(f"Agent {i}({w1[:4]}) vs Agent {j}({w2[:4]}): {similarity:.4f} {match_status}")
+            similarity_lines.append(
+                f"Agent {i}({w1[:4]}) vs Agent {j}({w2[:4]}): {similarity:.4f} {match_status}"
+            )
+    printer.agent_clustering(drone_weapon_map, similarity_lines)
 
 
-def print_policy_performance_summary(
+def show_policy_performance_summary(
     config: Any,
     all_metrics: List[Dict[str, Any]],
 ) -> None:
@@ -700,15 +526,11 @@ def print_policy_performance_summary(
     for row in table_data:
         row[1] = f"{row[1]:.1f}"
 
-    print("\n" + "="*60)
-    print("POLICY PERFORMANCE SUMMARY")
-    print("="*60)
     headers = ["Policy", "Avg Steps", "Avg Targets", "Avg Ammo", "Avg Overkill", "Avg Reward", "Success %", "Ammo Eff", "Dmg Eff"]
-    print(tabulate(table_data, headers=headers, tablefmt="grid"))
-    print("="*60)
+    printer.policy_performance_summary(table_data, headers)
 
 
-def print_policy_best_episode_performance_vs_random(
+def show_policy_best_episode_performance_vs_random(
     config: Any,
     all_metrics: List[Dict[str, Any]],
 ) -> None:
@@ -726,18 +548,6 @@ def print_policy_best_episode_performance_vs_random(
             policy_best_metrics[policy_type] = calculate_derived_metrics(best_ep, mode=mode)
 
     if "random" in policy_best_metrics and len(policy_best_metrics) > 1:
-        print("\n" + "="*60)
-        print("POLICY PERFORMANCE COMPARISON (vs Random Baseline)")
-        print("="*60)
-        print(f"Mode: {mode.upper()} | Mappings: {config.mappings_file}")
-        
-        if mode == "continuous":
-            print("Throughput = Neutralizations per 100 steps")
-            print("Coordination = Neutralizations per Collision (higher = more de-conflicted)")
-        else:
-            print("Ammo Eff = targets / ammo (higher = fewer wasted shots)")
-            print("Dmg Eff  = effective_dmg / potential_dmg (higher = less overkill)")
-            
         rand = policy_best_metrics["random"]
 
         def fmt_pct(val, base, fmt, higher_better=True, is_str=False):
@@ -795,11 +605,15 @@ def print_policy_best_episode_performance_vs_random(
                             fmt_pct(m["dmg_eff"], rand["dmg_eff"], "{:.1%}", True),
                         ])
 
-        print(tabulate(cmp_data, headers=headers, tablefmt="grid"))
-        print("="*60)
+        printer.policy_performance_comparison(
+            mode=mode,
+            mappings_file=config.mappings_file,
+            headers=headers,
+            cmp_data=cmp_data,
+        )
 
 
-def print_engagement_tables(
+def show_engagement_tables(
     engagement_tables: Dict[str, Any],
 ) -> None:
     print_order = ["random", "max_damage_oracle", "selfish_ep_greedy_cf"]
@@ -807,12 +621,7 @@ def print_engagement_tables(
         if pt not in engagement_tables:
             continue
         headers, payload = engagement_tables[pt]
-        print(f"\nActual Engagement Summary (Best Episode) - {pt}:")
-        if headers is None:
-            print(payload)
-        else:
-            print(tabulate(payload, headers=headers, tablefmt="simple"))
-        print()
+        printer.engagement_table(pt, headers, payload)
 
 
 def main():
@@ -862,36 +671,35 @@ def main():
         num_episodes = 1
     all_metrics = []
     
-    print("\n" + "="*60)
-    print("ZK-MRTA ENVIRONMENT DEMO")
-    print("="*60)
-    print(f"Config File: {CONFIG_PATH}")
-    print(f"Mappings File: {config.mappings_file}")
-    print(f"World Size: {config.world.size}")
-    print(f"Random Seed: {config.seed}")
-    print(f"Policy Types: {config.policy.type}")
-    print(f"Episodes per Policy: {num_episodes}")
-    print_target_class_profile(
+    printer.demo_header(
+        config_path=CONFIG_PATH,
+        mappings_file=config.mappings_file,
+        world_size=config.world.size,
+        seed=config.seed,
+        policy_types=config.policy.type,
+        num_episodes=num_episodes,
+    )
+    printer.target_class_profile(
         config.mappings.class_attribute_mapping,
     )
-    print_weapon_damage_profile(
+    printer.weapon_damage_profile(
         config.mappings.weapon_damage_profile_mapping,
         config.mappings.class_attribute_mapping,
     )
-    print_drone_setup(
+    printer.drone_setup(
         drones_config,
     )
-    print_target_setup(
+    printer.target_setup(
         targets_config,
         config.mappings.class_attribute_mapping,
     )
-    print_optimal_engagement_prediction(
+    printer.optimal_engagement_prediction(
         drones_config,
         targets_config,
         config.mappings.class_attribute_mapping,
         config.mappings.weapon_damage_profile_mapping,
     )
-    print("="*60)
+    printer.separator()
     
     # Create RunManager for structured logging
     run_manager = RunManager(
@@ -939,7 +747,7 @@ def main():
     # Run each policy
     engagement_tables = {}
     for policy_type, policy in policies.items():
-        print(f"\n>>> Running policy: {policy_type}")
+        printer.policy_run_header(policy_type)
         
         # Get policy metadata from policy attributes
         is_deterministic = policy.is_deterministic
@@ -1073,18 +881,23 @@ def main():
             # Per-run summary
             if config.environment.mode == "continuous":
                 derived = calculate_derived_metrics(metrics, mode="continuous")
-                print(f"  Continuous Run Progress: Steps={metrics['steps']}, "
-                      f"Throughput={derived['throughput']:.1f} N/100, "
-                      f"Coordination={derived['coordination_str']}, "
-                      f"Ammo Eff={derived['ammo_eff']:.3f}, "
-                      f"Collisions={metrics['total_collisions']}")
+                printer.continuous_run_progress(
+                    steps=metrics["steps"],
+                    throughput=derived["throughput"],
+                    coordination=derived["coordination_str"],
+                    ammo_eff=derived["ammo_eff"],
+                    collisions=metrics["total_collisions"],
+                )
             else:
                 total_reward = sum(metrics["agent_rewards"].values())
-                print(f"  Episode {episode_num}: Steps={metrics['steps']}, "
-                      f"Total Neutralized={metrics['targets_neutralized']}, "
-                      f"Total HP Damaged={metrics['total_effective_damage']:.0f}, "
-                      f"Total Wasted HP={metrics['total_overkill']:.0f}, "
-                      f"Reward={total_reward:.0f}")
+                printer.episode_run_progress(
+                    episode_num=episode_num,
+                    steps=metrics["steps"],
+                    targets_neutralized=metrics["targets_neutralized"],
+                    total_effective_damage=metrics["total_effective_damage"],
+                    total_overkill=metrics["total_overkill"],
+                    total_reward=total_reward,
+                )
             
             # Print learning path for CF policies
             if (
@@ -1092,7 +905,7 @@ def main():
                 and config.environment.verbose
                 and callable(getattr(policy, "get_learning_state", None))
             ):
-                print_learning_path(policy, drones_config, targets_config)
+                show_learning_path(policy, drones_config, targets_config)
             
             # Debug: Analyze agent clustering for CF policies
             # if False and not is_deterministic:
@@ -1102,7 +915,7 @@ def main():
         # Finalize policy run - saves selected episodes (first/best/mid or only)
         result = run_manager.finalize_policy()
         if config.environment.mode != "continuous":
-            print(f"  Saved episodes: {result['files']}")
+            printer.saved_episodes(result["files"])
         steps = result['steps']
         
         # Enrich learning state for milestone episodes with t-SNE (offline post-processing)
@@ -1124,16 +937,22 @@ def main():
                         enrich_learning_state_file(state_file)
 
         if 'best' in steps:
-            print(f"  Steps: first={steps['first']}, best={steps['best']}, mid={steps['mid']}")
+            printer.policy_steps_summary(
+                first=steps["first"],
+                best=steps["best"],
+                mid=steps["mid"],
+            )
         elif 'final' in steps:
             # For continuous mode, show cumulative results at the end of the policy run
-            print(f"  Final Summary: Steps={metrics['steps']}, "
-                  f"Total Neutralized={metrics['targets_neutralized']}, "
-                  f"Total HP Damaged={metrics['total_effective_damage']:.0f}, "
-                  f"Total Wasted HP={metrics['total_overkill']:.0f}, "
-                  f"Collisions={metrics['total_collisions']}")
+            printer.policy_final_summary(
+                steps=metrics["steps"],
+                targets_neutralized=metrics["targets_neutralized"],
+                total_effective_damage=metrics["total_effective_damage"],
+                total_overkill=metrics["total_overkill"],
+                total_collisions=metrics["total_collisions"],
+            )
         else:
-            print(f"  Steps: first={steps.get('first', 'N/A')}")
+            printer.policy_first_step(steps.get("first", "N/A"))
 
         best_episode_num = result.get("best_episode_num")
         if best_episode_num is not None:
@@ -1161,44 +980,44 @@ def main():
     if config.environment.verbose:
         # Aggregate statistics across all episodes (all policies)
         total_episodes = len(all_metrics)
-        print("\n" + "="*60)
-        print("AGGREGATE STATISTICS")
-        print("="*60)
-        print(f"Total Episodes: {total_episodes} ({num_episodes} per policy × {len(config.policy.type)} policies)")
-
         avg_steps = sum(m["steps"] for m in all_metrics) / total_episodes
         avg_targets = sum(m["targets_neutralized"] for m in all_metrics) / total_episodes
         avg_ammo = sum(m["total_ammo_used"] for m in all_metrics) / total_episodes
         avg_overkill = sum(m["total_overkill"] for m in all_metrics) / total_episodes
-
-        print(f"Average Steps:              {avg_steps:.1f}")
-        print(f"Average Targets Neutralized: {avg_targets:.1f}")
-        print(f"Average Ammo Used:          {avg_ammo:.1f}")
-        print(f"Average Overkill Damage:    {avg_overkill:.1f}")
-    
+        per_policy_rows = []
         # Per-policy statistics
         for policy_type in config.policy.type:
             policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
             if policy_metrics:
-                print(f"\n  Policy '{policy_type}':")
-                print(f"    Avg Steps: {sum(m['steps'] for m in policy_metrics) / len(policy_metrics):.1f}")
-                print(f"    Avg Targets: {sum(m['targets_neutralized'] for m in policy_metrics) / len(policy_metrics):.1f}")
-    
+                per_policy_rows.extend([
+                    f"\n  Policy '{policy_type}':",
+                    f"    Avg Steps: {sum(m['steps'] for m in policy_metrics) / len(policy_metrics):.1f}",
+                    f"    Avg Targets: {sum(m['targets_neutralized'] for m in policy_metrics) / len(policy_metrics):.1f}",
+                ])
+        per_agent_rows = []
         # Per-agent statistics (use last env for agent list)
-        print(f"\nPer-Agent Average Rewards:")
         for agent_id in env.agents:
             avg_reward = sum(m["agent_rewards"][agent_id] for m in all_metrics) / total_episodes
-            print(f"  {agent_id}: {avg_reward:.2f}")
-
-        print("="*60)
+            per_agent_rows.append(f"  {agent_id}: {avg_reward:.2f}")
+        printer.aggregate_statistics(
+            total_episodes=total_episodes,
+            num_episodes=num_episodes,
+            policy_count=len(config.policy.type),
+            avg_steps=avg_steps,
+            avg_targets=avg_targets,
+            avg_ammo=avg_ammo,
+            avg_overkill=avg_overkill,
+            per_policy_rows=per_policy_rows,
+            per_agent_rows=per_agent_rows,
+        )
     
-    # print_policy_performance_summary(config, all_metrics)
+    # show_policy_performance_summary(config, all_metrics)
 
-    print_policy_best_episode_performance_vs_random(config, all_metrics)
+    show_policy_best_episode_performance_vs_random(config, all_metrics)
 
-    # print_engagement_tables(engagement_tables)
+    # show_engagement_tables(engagement_tables)
 
-    print("\nDemo complete! ✓")
+    printer.demo_complete()
 
 
 if __name__ == "__main__":
