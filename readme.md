@@ -74,10 +74,10 @@ pip3 install -r requirements.txt
 ### ZK-MRTA Multi-Agent Environment
 
 ```python
-from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
+from tabula_drone.envs import parallel_env
 
 # Create environment with multiple drones and targets
-env = DroneEngageZKMRTA(
+env = parallel_env(
     drones_config=[
         {'position': (100, 100), 'weapon_type': 'light'},
         {'position': (900, 100), 'weapon_type': 'medium'},
@@ -106,6 +106,9 @@ while env.agents:
 drone_0_info = infos["drone_0"]
 latest_diagnostics = env.diagnostics.to_dict()
 ```
+
+Direct construction via `DroneEngageZKMRTA(...)` is still supported, but
+`parallel_env(...)` is the canonical factory entrypoint.
 
 ### Running Demo
 
