@@ -231,6 +231,14 @@ class DroneEngageZKMRTA(ParallelEnv):
     def num_agents(self) -> int:
         """Return number of agents."""
         return len(self.possible_agents)
+
+    def action_space(self, agent: str) -> spaces.Space:
+        """Return the action space for a given agent."""
+        return self.action_spaces[agent]
+
+    def observation_space(self, agent: str) -> spaces.Space:
+        """Return the observation space for a given agent."""
+        return self.observation_spaces[agent]
     
     def reset(
         self,
