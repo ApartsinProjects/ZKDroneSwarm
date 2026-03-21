@@ -9,6 +9,7 @@ Multi-Robot Task Allocation (ZK-MRTA) constraints:
 - Observations show only target positions and active states
 """
 
+import copy
 from dataclasses import dataclass
 from typing import Tuple, Optional, Dict, Any, List, Union
 
@@ -235,7 +236,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         self,
         seed: Optional[int] = None,
         options: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[Dict[str, Union[np.ndarray, Dict[str, Any]]], Dict[str, Any]]:
+    ) -> Tuple[Dict[str, Union[np.ndarray, Dict[str, Any]]], Dict[str, Dict[str, Any]]]:
         """
         Reset the environment to initial state.
         
@@ -245,7 +246,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         
         Returns:
             observations: Dict of {agent_id: observation_array}
-            infos: Dict with metrics (shared across all agents)
+            infos: Dict of {agent_id: info_dict}
         """
         # Initialize RNG for reproducible drone ordering
         self.rng = np.random.RandomState(seed)
@@ -304,7 +305,8 @@ class DroneEngageZKMRTA(ParallelEnv):
         observations = self._compute_observations()
         
         # Build info dict (Step 7)
-        infos = self._build_info_dict(actions={})
+        shared_info = self._build_info_dict(actions={})
+        infos = self._wrap_shared_info(shared_info)
         
         self.cumulative_neutralizations = 0
         return observations, infos
@@ -332,6 +334,13 @@ class DroneEngageZKMRTA(ParallelEnv):
             "target_attributes": [dict(target.attributes.attributes) for target in self.targets],
             "target_classes": [target.class_type for target in self.targets],
             "target_active": [target.is_active for target in self.targets],
+        }
+
+    def _wrap_shared_info(self, shared_info: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+        """Duplicate shared telemetry into a PettingZoo-style infos-by-agent mapping."""
+        return {
+            agent_id: copy.deepcopy(shared_info)
+            for agent_id in self.agents
         }
     
     def _compute_observations(self) -> Dict[str, Any]:
@@ -409,7 +418,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         Dict[str, float],
         Dict[str, bool],
         Dict[str, bool],
-        Dict[str, Any],
+        Dict[str, Dict[str, Any]],
     ]:
         """
         Execute one step in the environment with actions from all agents.
@@ -428,7 +437,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             rewards: Dict of {agent_id: reward}
             terminations: Dict of {agent_id: terminated}
             truncations: Dict of {agent_id: truncated}
-            infos: Dict with metrics
+            infos: Dict of {agent_id: info_dict}
         """
         # Validate actions
         self._validate_actions(actions)
@@ -556,18 +565,23 @@ class DroneEngageZKMRTA(ParallelEnv):
         total_collisions = sum(max(0, len(agents) - 1) for agents in target_selections.values())
 
         # Build info dict
-        infos = self._build_info_dict(actions)
-        infos["processing_order"] = processing_order
-        infos["effective_damage"] = step_effective_damage
-        infos["neutralizations_this_step"] = neutralizations_this_step
-        infos["cumulative_neutralizations"] = self.cumulative_neutralizations
-        infos["collisions"] = total_collisions
-        infos["target_selections"] = target_selections
+        shared_info = self._build_info_dict(actions)
+        shared_info["processing_order"] = processing_order
+        shared_info["effective_damage"] = step_effective_damage
+        shared_info["neutralizations_this_step"] = neutralizations_this_step
+        shared_info["cumulative_neutralizations"] = self.cumulative_neutralizations
+        shared_info["collisions"] = total_collisions
+        shared_info["target_selections"] = target_selections
         
         if overkill_map:
-            infos["overkill"] = overkill_map
+            shared_info["overkill"] = overkill_map
         if done_reason:
-            infos["done_reason"] = done_reason
+            shared_info["done_reason"] = done_reason
+
+        infos = self._wrap_shared_info(shared_info)
+
+        if done_reason is not None:
+            self._agents = []
             
         return observations, rewards, terminations, truncations, infos
     

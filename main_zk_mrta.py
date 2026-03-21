@@ -39,6 +39,28 @@ from tabula_drone.utils.metrics_helper import calculate_derived_metrics, format_
 
 CONFIG_PATH = "config/scenario.json"
 
+
+def normalize_env_info(
+    info_or_infos: Dict[str, Any],
+    agent_ids: List[str],
+) -> Dict[str, Any]:
+    """
+    Normalize env telemetry into the shared metrics shape used by the runner.
+
+    Supports both the current shared info dict and a future infos-by-agent shape.
+    """
+    if not info_or_infos:
+        return {}
+
+    if agent_ids and all(
+        agent_id in info_or_infos and isinstance(info_or_infos[agent_id], dict)
+        for agent_id in agent_ids
+    ):
+        return dict(cast(Dict[str, Any], info_or_infos[agent_ids[0]]))
+
+    return dict(info_or_infos)
+
+
 # "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
 def print_episode_summary(
     episode_num: int,
@@ -452,7 +474,8 @@ def run_episode(
     # Reset environment
     # ???
     # obs, info = env.reset()
-    obs, info = env.reset(seed=seed)
+    obs, raw_info = env.reset(seed=seed)
+    info = normalize_env_info(raw_info, env.possible_agents)
     
     if logger:
         logger.start_episode(env, info, seed, episode_num, total_episodes)
@@ -478,19 +501,21 @@ def run_episode(
     # Episode loop
     while not done:
         step_count += 1
+        reference_agent_id = env.agents[0]
         
         # Policy selects actions for all agents (uniform interface)
         actions = policy.select_actions(obs, info)
 
         # Environment step
-        obs, rewards, terminations, truncations, info = env.step(actions)
+        obs, rewards, terminations, truncations, raw_info = env.step(actions)
+        info = normalize_env_info(raw_info, env.possible_agents)
 
         # Update policy
         policy.update(obs)
 
         # Check termination
-        terminated = terminations[env.agents[0]]
-        truncated = truncations[env.agents[0]]
+        terminated = terminations[reference_agent_id]
+        truncated = truncations[reference_agent_id]
         
         if logger:
             logger.log_step(step_count, actions, rewards, terminated, truncated, info)

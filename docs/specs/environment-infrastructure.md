@@ -57,11 +57,11 @@ The interaction between the environment and a policy follows a simple loop. The 
 │   │             │ ◄──────────────────────────────────  │          │ │
 │   └──────┬──────┘                                      └─────┬────┘ │
 │          │                                                   │      │
-│          │  1. env.reset()  ───────────► observations, info  │      │
+│          │  1. env.reset()  ───────────► observations, infos │      │
 │          │                                                   │      │
 │          │  2. policy.select_actions(obs, info) ◄──── actions│      │
 │          │                                                   │      │
-│          │  3. env.step(actions) ──► obs, rewards, done, info│      │
+│          │  3. env.step(actions) ──► obs, rewards, done, infos│      │
 │          │                                                   │      │
 │          │  4. policy.update(obs)  (learn, if applicable)    │      │
 │          │                                                   │      │
@@ -89,7 +89,7 @@ All policies must satisfy the `IPolicy` protocol, defined in `tabula_drone/polic
 | Member | Signature | Purpose |
 |--------|-----------|---------|
 | `is_deterministic` | `bool` (class attribute) | Declares whether the policy produces deterministic actions. Used by infrastructure for logging/reproducibility. |
-| `select_actions` | `(obs: Dict[str, Any], info: Dict[str, Any]) → Dict[str, int]` | Given observations and info dicts (keyed by agent ID), return an action dict `{agent_id: action}`. This is the core decision method. |
+| `select_actions` | `(obs: Dict[str, Any], info: Dict[str, Any]) → Dict[str, int]` | Given observations and the runner-normalized shared metrics dict, return an action dict `{agent_id: action}`. This is the core decision method. |
 | `update` | `(obs: Dict[str, Any]) → None` | Called after each environment step with the new observations. Learning policies update their internal state here. Non-learning policies implement this as a no-op. |
 | `soft_reset` | `() → None` | Called between episodes. Resets episode-level state (e.g., step counters) while preserving learned parameters (e.g., latent vectors). Stateless policies implement this as a no-op. |
 | `get_learning_state` | `() → Optional[Dict[str, Any]]` | Returns internal learning state for logging and visualization. Non-learning policies return `None`. |
@@ -163,10 +163,12 @@ Policies are instantiated in the orchestration code (`main_zk_mrta.py`) via a fa
 ```
 policy = create_policy(policy_type, config, drones_config, num_targets)
 
-obs, info = env.reset()
+obs, infos = env.reset()
+info = normalize_env_info(infos, env.possible_agents)
 while not done:
     actions = policy.select_actions(obs, info)
-    obs, rewards, terminations, truncations, info = env.step(actions)
+    obs, rewards, terminations, truncations, infos = env.step(actions)
+    info = normalize_env_info(infos, env.possible_agents)
     policy.update(obs)
 ```
 

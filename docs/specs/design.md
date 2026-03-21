@@ -341,12 +341,11 @@ def reset(
     self,
     seed: Optional[int] = None,
     options: Optional[Dict[str, Any]] = None,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> Tuple[Dict[str, Any], Dict[str, Dict[str, Any]]]:
     """
     Returns:
         observations: Dict[agent_id → obs_dict]
-        infos:        Dict with step_index, scenario_id, ammo_used, weapon_types,
-                      target_hps, target_attributes, target_classes, target_active
+        infos:        Dict[agent_id → info_dict]
     """
 ```
 
@@ -361,7 +360,7 @@ def step(
     Dict[str, float],  # rewards  (+ve = effective shot, -1.0 = wasted on neutralized target)
     Dict[str, bool],   # terminations  (True when all targets neutralized)
     Dict[str, bool],   # truncations   (True when max_steps reached)
-    Dict[str, Any],    # infos (same keys as reset + processing_order, overkill, done_reason)
+    Dict[str, Dict[str, Any]],  # infos keyed by agent_id
 ]:
 ```
 
@@ -451,15 +450,18 @@ class MultiAgentPolicy(IPolicy):
 The canonical interaction pattern. The environment and policy are fully decoupled; only `IPolicy` methods are called.
 
 ```python
-obs, info = env.reset()
+obs, infos = env.reset()
+info = normalize_env_info(infos, env.possible_agents)
 
 while not done:
+    reference_agent_id = env.agents[0]
     actions = policy.select_actions(obs, info)           # IPolicy boundary
-    obs, rewards, terminations, truncations, info = env.step(actions)
+    obs, rewards, terminations, truncations, infos = env.step(actions)
+    info = normalize_env_info(infos, env.possible_agents)
     policy.update(obs)                                   # IPolicy boundary
 
-    terminated = terminations[env.agents[0]]
-    truncated  = truncations[env.agents[0]]
+    terminated = terminations[reference_agent_id]
+    truncated  = truncations[reference_agent_id]
     done = terminated or truncated
 
 policy.soft_reset()                                      # between episodes
