@@ -1,8 +1,9 @@
 """Base protocol and helpers for all policy implementations."""
 
-from typing import Any, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
 
 EnvInfos = Dict[str, Dict[str, Any]]
+DiagnosticsProvider = Callable[[], Dict[str, Any]]
 
 
 def extract_shared_info(infos: EnvInfos) -> Dict[str, Any]:
@@ -17,6 +18,18 @@ def extract_shared_info(infos: EnvInfos) -> Dict[str, Any]:
 
     first_agent_id = next(iter(infos))
     return dict(infos[first_agent_id])
+
+
+def bind_diagnostics_provider(policy: Any, provider: DiagnosticsProvider) -> None:
+    """Attach a diagnostics provider to a policy tree when supported."""
+    setter = getattr(policy, "set_diagnostics_provider", None)
+    if callable(setter):
+        setter(provider)
+
+    child_policies = getattr(policy, "policies", None)
+    if isinstance(child_policies, dict):
+        for child_policy in child_policies.values():
+            bind_diagnostics_provider(child_policy, provider)
 
 
 @runtime_checkable

@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
-from .base import IPolicy, EnvInfos, extract_shared_info
+from .base import IPolicy, EnvInfos, DiagnosticsProvider, extract_shared_info
 
 
 class OracleTimeToKillPolicy(IPolicy):
@@ -54,6 +54,16 @@ class OracleTimeToKillPolicy(IPolicy):
         }
         self.rng = np.random.RandomState(seed)
         self.allow_noop = allow_noop
+        self._diagnostics_provider: Optional[DiagnosticsProvider] = None
+
+    def set_diagnostics_provider(self, provider: DiagnosticsProvider) -> None:
+        """Bind an env-owned diagnostics provider for privileged state lookup."""
+        self._diagnostics_provider = provider
+
+    def _get_shared_info(self, infos: EnvInfos) -> Dict[str, Any]:
+        if self._diagnostics_provider is not None:
+            return self._diagnostics_provider()
+        return extract_shared_info(infos)
     
     def _parse_active_targets_from_obs(
         self,
@@ -199,7 +209,7 @@ class OracleTimeToKillPolicy(IPolicy):
         Returns:
             actions: Dict of {agent_id: action}
         """
-        shared_info = extract_shared_info(infos)
+        shared_info = self._get_shared_info(infos)
         num_targets = len(shared_info.get("target_active", []))
         targets_state = shared_info.get("target_attributes", [])
         return {

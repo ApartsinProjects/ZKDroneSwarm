@@ -17,6 +17,8 @@ import numpy as np
 from gymnasium import spaces
 from pettingzoo.utils.env import ParallelEnv
 
+from .diagnostics import EnvDiagnosticsSnapshot
+
 # Import existing state classes
 from ..core.states import (
     DroneState,
@@ -221,6 +223,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         # Collaborative mode state tracking
         self.last_actions: Dict[str, int] = {}
         self.last_rewards: Dict[str, float] = {}
+        self._latest_diagnostics: Optional[EnvDiagnosticsSnapshot] = None
     
     @property
     def agents(self) -> List[str]:
@@ -239,6 +242,11 @@ class DroneEngageZKMRTA(ParallelEnv):
     def observation_space(self, agent: str) -> spaces.Space:
         """Return the observation space for a given agent."""
         return self.observation_spaces[agent]
+
+    @property
+    def diagnostics(self) -> Optional[EnvDiagnosticsSnapshot]:
+        """Return the latest shared diagnostics snapshot for this env."""
+        return self._latest_diagnostics
     
     def reset(
         self,
@@ -319,7 +327,18 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.cumulative_neutralizations = 0
         return observations, infos
     
-    def _build_info_dict(self, actions: Dict[str, int]) -> Dict[str, Any]:
+    def _build_info_dict(
+        self,
+        actions: Dict[str, int],
+        processing_order: Optional[List[str]] = None,
+        effective_damage: Optional[Dict[str, float]] = None,
+        neutralizations_this_step: Optional[int] = None,
+        cumulative_neutralizations: Optional[int] = None,
+        collisions: Optional[int] = None,
+        target_selections: Optional[Dict[int, List[str]]] = None,
+        overkill: Optional[Dict[int, float]] = None,
+        done_reason: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Build info dictionary with metrics for logging/analysis.
         
@@ -332,22 +351,32 @@ class DroneEngageZKMRTA(ParallelEnv):
         Returns:
             Info dict with step index, scenario ID, and metrics
         """
-        return {
-            "step_index": self.world.time_step,
-            "scenario_id": self.scenario_id,
-            "actions": actions.copy(),
-            "ammo_used": {drone.id: drone.ammo_used for drone in self.drones},
-            "weapon_types": [drone.weapon_type for drone in self.drones],
-            "target_hps": [target.hp_current for target in self.targets],
-            "target_attributes": [dict(target.attributes.attributes) for target in self.targets],
-            "target_classes": [target.class_type for target in self.targets],
-            "target_active": [target.is_active for target in self.targets],
-        }
+        snapshot = EnvDiagnosticsSnapshot(
+            step_index=self.world.time_step,
+            scenario_id=self.scenario_id,
+            actions=actions.copy(),
+            ammo_used={drone.id: drone.ammo_used for drone in self.drones},
+            weapon_types=[drone.weapon_type for drone in self.drones],
+            target_hps=[target.hp_current for target in self.targets],
+            target_attributes=[dict(target.attributes.attributes) for target in self.targets],
+            target_classes=[target.class_type for target in self.targets],
+            target_active=[target.is_active for target in self.targets],
+            processing_order=processing_order,
+            effective_damage=effective_damage,
+            neutralizations_this_step=neutralizations_this_step,
+            cumulative_neutralizations=cumulative_neutralizations,
+            collisions=collisions,
+            target_selections=target_selections,
+            overkill=overkill,
+            done_reason=done_reason,
+        )
+        self._latest_diagnostics = snapshot
+        return snapshot.to_dict()
 
     def _wrap_shared_info(self, shared_info: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
-        """Duplicate shared telemetry into a PettingZoo-style infos-by-agent mapping."""
+        """Return minimal per-agent info payloads at the PettingZoo boundary."""
         return {
-            agent_id: copy.deepcopy(shared_info)
+            agent_id: {}
             for agent_id in self.agents
         }
     
@@ -573,18 +602,17 @@ class DroneEngageZKMRTA(ParallelEnv):
         total_collisions = sum(max(0, len(agents) - 1) for agents in target_selections.values())
 
         # Build info dict
-        shared_info = self._build_info_dict(actions)
-        shared_info["processing_order"] = processing_order
-        shared_info["effective_damage"] = step_effective_damage
-        shared_info["neutralizations_this_step"] = neutralizations_this_step
-        shared_info["cumulative_neutralizations"] = self.cumulative_neutralizations
-        shared_info["collisions"] = total_collisions
-        shared_info["target_selections"] = target_selections
-        
-        if overkill_map:
-            shared_info["overkill"] = overkill_map
-        if done_reason:
-            shared_info["done_reason"] = done_reason
+        shared_info = self._build_info_dict(
+            actions,
+            processing_order=processing_order,
+            effective_damage=step_effective_damage,
+            neutralizations_this_step=neutralizations_this_step,
+            cumulative_neutralizations=self.cumulative_neutralizations,
+            collisions=total_collisions,
+            target_selections=target_selections,
+            overkill=overkill_map if overkill_map else None,
+            done_reason=done_reason,
+        )
 
         infos = self._wrap_shared_info(shared_info)
 

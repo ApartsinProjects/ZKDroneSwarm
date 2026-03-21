@@ -8,7 +8,7 @@ Demonstrates:
 - Metrics collection and logging
 """
 
-from typing import Dict, Any, List, Optional, Union, cast, Tuple, Callable
+from typing import Dict, Any, List, Optional, Union, Tuple, Callable
 
 import os
 
@@ -32,7 +32,7 @@ from tabula_drone.policies.selfish_ep_greedy_cf_policy import SelfishEpGreedyCFP
 from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
-from tabula_drone.policies.base import IPolicy
+from tabula_drone.policies.base import IPolicy, bind_diagnostics_provider
 from tabula_drone.policies.utils.visualizer_bakery import enrich_learning_state_file
 from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.utils.metrics_helper import calculate_derived_metrics, format_metric_display
@@ -40,25 +40,11 @@ from tabula_drone.utils.metrics_helper import calculate_derived_metrics, format_
 CONFIG_PATH = "config/scenario.json"
 
 
-def normalize_env_info(
-    info_or_infos: Dict[str, Any],
-    agent_ids: List[str],
-) -> Dict[str, Any]:
-    """
-    Normalize env telemetry into the shared metrics shape used by the runner.
-
-    Supports both the current shared info dict and a future infos-by-agent shape.
-    """
-    if not info_or_infos:
+def get_env_diagnostics(env: DroneEngageZKMRTA) -> Dict[str, Any]:
+    """Read the env-owned diagnostics payload used by the runner and logger."""
+    if env.diagnostics is None:
         return {}
-
-    if agent_ids and all(
-        agent_id in info_or_infos and isinstance(info_or_infos[agent_id], dict)
-        for agent_id in agent_ids
-    ):
-        return dict(cast(Dict[str, Any], info_or_infos[agent_ids[0]]))
-
-    return dict(info_or_infos)
+    return env.diagnostics.to_dict()
 
 
 # "type": ["max_damage_oracle", "min_ttk_oracle", "ep_greedy_cf", "ucb_cf", "random"],
@@ -475,7 +461,8 @@ def run_episode(
     # ???
     # obs, info = env.reset()
     obs, infos = env.reset(seed=seed)
-    shared_info = normalize_env_info(infos, env.possible_agents)
+    shared_info = get_env_diagnostics(env)
+    bind_diagnostics_provider(policy, lambda: get_env_diagnostics(env))
     
     if logger:
         logger.start_episode(env, shared_info, seed, episode_num, total_episodes)
@@ -508,7 +495,7 @@ def run_episode(
 
         # Environment step
         obs, rewards, terminations, truncations, infos = env.step(actions)
-        shared_info = normalize_env_info(infos, env.possible_agents)
+        shared_info = get_env_diagnostics(env)
 
         # Update policy
         policy.update(obs)

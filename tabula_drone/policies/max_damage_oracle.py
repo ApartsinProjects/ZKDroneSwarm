@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Union
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from .base import IPolicy, EnvInfos, extract_shared_info
+from .base import IPolicy, EnvInfos, DiagnosticsProvider, extract_shared_info
 
 
 class OptimalAssignmentOracle(IPolicy):
@@ -65,6 +65,16 @@ class OptimalAssignmentOracle(IPolicy):
         self.num_agents = len(self.agent_ids)
         
         self._attribute_names: Optional[List[str]] = None
+        self._diagnostics_provider: Optional[DiagnosticsProvider] = None
+
+    def set_diagnostics_provider(self, provider: DiagnosticsProvider) -> None:
+        """Bind an env-owned diagnostics provider for privileged state lookup."""
+        self._diagnostics_provider = provider
+
+    def _get_shared_info(self, infos: EnvInfos) -> Dict[str, Any]:
+        if self._diagnostics_provider is not None:
+            return self._diagnostics_provider()
+        return extract_shared_info(infos)
     
     def _get_attribute_names(self, targets_state: List[Dict[str, float]]) -> List[str]:
         """Extract and cache attribute names from targets_state."""
@@ -207,7 +217,7 @@ class OptimalAssignmentOracle(IPolicy):
                     1 to num_targets = Fire at target (1-indexed)
                     Note: Unassigned drones get 0 if allow_noop, else -1
         """
-        shared_info = extract_shared_info(infos)
+        shared_info = self._get_shared_info(infos)
         num_targets = len(shared_info.get("target_active", []))
         targets_state = shared_info.get("target_attributes", [])
         

@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional, Union
 
 import numpy as np
 
-from .base import IPolicy, EnvInfos, extract_shared_info
+from .base import IPolicy, EnvInfos
 
 
 class RandomPolicy(IPolicy):
@@ -111,8 +111,9 @@ class RandomPolicy(IPolicy):
         Returns:
             actions: Dict of {agent_id: action}
         """
-        shared_info = extract_shared_info(infos)
-        num_targets = len(shared_info.get("target_active", []))
+        first_observation = next(iter(obs.values()))
+        target_array = first_observation["targets"] if isinstance(first_observation, dict) else first_observation
+        num_targets = len(target_array) // 3
         actions = {}
         
         for agent_id, observation in obs.items():
