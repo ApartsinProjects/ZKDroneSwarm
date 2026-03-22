@@ -312,9 +312,12 @@ class BaseCFAgentPolicy(ABC, IPolicy):
                 else:
                     self._update_from_other(agent_idx, target_idx, reward)
     
-    def get_learning_state(self) -> Optional[Dict[str, Any]]:
+    def get_learning_state(self, include_tsne: bool = False) -> Optional[Dict[str, Any]]:
         """
         Return learning state for logging/visualization.
+        
+        Args:
+            include_tsne: If True, compute 2D t-SNE projection (unused in this base class).
         
         Returns:
             Dict with this agent's latent vectors

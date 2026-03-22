@@ -86,8 +86,8 @@ class SelfishEpGreedyCFPolicy(BaseCFAgentPolicy):
         
         return int(action)
 
-    def get_learning_state(self) -> Optional[Dict[str, Any]]:
-        state = super().get_learning_state()
+    def get_learning_state(self, include_tsne: bool = False) -> Optional[Dict[str, Any]]:
+        state = super().get_learning_state(include_tsne=include_tsne)
         if state is None:
             return None
 
