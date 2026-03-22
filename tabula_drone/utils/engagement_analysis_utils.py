@@ -1,3 +1,7 @@
+"""
+Utilities for reading and transforming engagement analysis artifacts.
+"""
+
 import json
 import re
 from typing import Any, Dict, List, Tuple

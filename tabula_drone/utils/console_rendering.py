@@ -105,6 +105,19 @@ class ConsolePrinter:
             end="",
         )
 
+    def initial_setup(
+        self,
+        class_attribute_mapping: Dict[str, Dict[str, float]],
+        weapon_damage_profile_mapping: Dict[str, Dict[str, float]],
+        drones_config: List[Dict[str, Any]],
+        targets_config: List[Dict[str, Any]],
+    ) -> None:
+        """Print all initial setup information (target class profile, weapon damage profile, drone setup, target setup)."""
+        self.target_class_profile(class_attribute_mapping)
+        self.weapon_damage_profile(weapon_damage_profile_mapping, class_attribute_mapping)
+        self.drone_setup(drones_config)
+        self.target_setup(targets_config, class_attribute_mapping)
+
     def optimal_engagement_prediction(
         self,
         drones_config: List[Dict[str, Any]],

@@ -17,8 +17,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, REWARD_MODE
-from tabula_drone.logging import EpisodeLogger, RunManager
-from tabula_drone.logging.engagement_summary import (
+from tabula_drone.logging import EnvironmentLogger, EpisodeLogger
+from tabula_drone.utils.engagement_analysis_utils import (
     build_target_x_drone_table,
     extract_drone_engagement_counts,
     load_analysis,
@@ -679,19 +679,11 @@ def main():
         policy_types=config.policy.type,
         num_episodes=num_episodes,
     )
-    printer.target_class_profile(
-        config.mappings.class_attribute_mapping,
-    )
-    printer.weapon_damage_profile(
-        config.mappings.weapon_damage_profile_mapping,
-        config.mappings.class_attribute_mapping,
-    )
-    printer.drone_setup(
-        drones_config,
-    )
-    printer.target_setup(
-        targets_config,
-        config.mappings.class_attribute_mapping,
+    printer.initial_setup(
+        class_attribute_mapping=config.mappings.class_attribute_mapping,
+        weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
+        drones_config=drones_config,
+        targets_config=targets_config,
     )
     printer.optimal_engagement_prediction(
         drones_config,
@@ -701,8 +693,8 @@ def main():
     )
     printer.separator()
     
-    # Create RunManager for structured logging
-    run_manager = RunManager(
+    # Create EnvironmentLogger for structured logging orchestration
+    environment_logger = EnvironmentLogger(
         output_dir=config.logging.output_dir,
         scenario_id=config.environment.scenario_id,
         mode=config.environment.mode
@@ -752,15 +744,11 @@ def main():
         is_deterministic = policy.is_deterministic
         effective_episodes = 1 if is_deterministic else num_episodes
         
-        # Start policy run in RunManager
-        run_manager.start_policy(policy_type, is_deterministic=is_deterministic)
-        
-        # Get correct output dir for logger from run_manager
-        episodes_dir = run_manager.get_episodes_dir()
-        analysis_dir = run_manager.get_analysis_dir()
-        logger = EpisodeLogger(output_dir=episodes_dir, policy_type=policy_type)
-        logger.analysis_dir = analysis_dir
-        logger.mode = config.environment.mode
+        # Start policy run in EnvironmentLogger
+        logger = environment_logger.start_policy(
+            policy_type,
+            is_deterministic=is_deterministic,
+        )
         
         for episode_num in range(1, effective_episodes + 1):
             # Soft reset CF policy for new episode (preserves agent latent vectors)
@@ -824,7 +812,7 @@ def main():
             def continuous_flush_callback(step: int) -> None:
                 if not is_deterministic:
                     current_post_state = policy.get_learning_state()
-                    run_manager.save_learning_state(
+                    environment_logger.save_learning_state(
                         pre_state=None,  # Not applicable for intermediate snapshots
                         post_state=current_post_state,
                         episode_num=episode_num,
@@ -854,9 +842,9 @@ def main():
                 post_episode_state = policy.get_learning_state()
             
             # Compute alignment score for CF policies (used by both trackers)
-            # Save learning state using RunManager (every episode)
+            # Save learning state for every episode
             if not is_deterministic:
-                run_manager.save_learning_state(
+                environment_logger.save_learning_state(
                     pre_state=pre_episode_state,
                     post_state=post_episode_state,
                     episode_num=episode_num,
@@ -866,15 +854,11 @@ def main():
                     entities=entities,
                 )
             
-            # Get episode data
-            episode_data = logger.to_dict()
-            
-            # Get analysis data for engagement tracking and save per-episode
-            analysis_data = logger.get_analysis_data()
-            run_manager.save_analysis(analysis_data, episode_num)
-            
-            # Record episode in RunManager for selection
-            run_manager.record_episode(episode_data, metrics["steps"])
+            # Persist per-episode outputs through EnvironmentLogger
+            environment_logger.persist_episode_outputs(
+                episode_num=episode_num,
+                steps=metrics["steps"],
+            )
             
             # Per-run summary
             if config.environment.mode == "continuous":
@@ -911,7 +895,7 @@ def main():
             #     analyze_agent_clustering(policy, drone_weapons)
         
         # Finalize policy run - saves selected episodes (first/best/mid or only)
-        result = run_manager.finalize_policy()
+        result = environment_logger.finalize_policy()
         if config.environment.mode != "continuous":
             printer.saved_episodes(result["files"])
         steps = result['steps']
@@ -922,13 +906,13 @@ def main():
             milestones = result.get('milestones', {})
             milestone_episodes = list(set(milestones.values())) # unique episode numbers
             for category, ep_num in milestones.items():
-                if run_manager.mode == "continuous":
+                if environment_logger.mode == "continuous":
                     filename = "learning_state_continuous_final.json"
                 else:
                     filename = f"learning_state_ep{ep_num:02d}.json"
                     
                     state_file = os.path.join(
-                        run_manager.get_learning_state_dir(),
+                        environment_logger.get_learning_state_dir(),
                         filename
                     )
                     if os.path.exists(state_file):
@@ -957,12 +941,12 @@ def main():
             # Check for analysis file (naming depends on mode)
             if config.environment.mode == "continuous":
                 analysis_path = os.path.join(
-                    run_manager.get_analysis_dir(),
+                    environment_logger.get_analysis_dir(),
                     "analysis_continuous_final.json",
                 )
             else:
                 analysis_path = os.path.join(
-                    run_manager.get_analysis_dir(),
+                    environment_logger.get_analysis_dir(),
                     f"analysis_ep{best_episode_num:02d}.json",
                 )
             if os.path.exists(analysis_path):
