@@ -117,6 +117,7 @@ class MFPolicyConfig:
     epsilon_min: Optional[float] = None
     reward_noise: Optional[float] = None
     observation_noise: Optional[float] = None
+    selection_noise: Optional[float] = None
     anti_signal_weight: Optional[float] = None
 
 
@@ -129,6 +130,7 @@ class CollaborativeFilteringConfig:
     ucb_cf: Optional[UCBCFConfig] = None
     coordinated_ep_greedy_cf: Optional[EpGreedyCFConfig] = None
     selfish_ep_greedy_cf: Optional[EpGreedyCFConfig] = None
+    matrix_factorization_cf: Optional[MFPolicyConfig] = None
 
 
 @dataclass
@@ -144,7 +146,6 @@ class ScenarioConfig:
     mappings: MappingsConfig
     mappings_file: str = None
     collaborative_filtering: CollaborativeFilteringConfig = None
-    matrix_factorization_cf: MFPolicyConfig = None
 
 
 def _validate_required_keys(data: dict, required_keys: List[str], context: str) -> None:
@@ -579,6 +580,7 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     epsilon_min = data.get("epsilon_min")
     reward_noise = data.get("reward_noise")
     observation_noise = data.get("observation_noise")
+    selection_noise = data.get("selection_noise")
     anti_signal_weight = data.get("anti_signal_weight")
 
     # Log defaults
@@ -598,6 +600,8 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         print("Note, using default value 0.05 for hyperparameter reward_noise (matrix_factorization_cf)")
     if observation_noise is None:
         print("Note, using default value 0.05 for hyperparameter observation_noise (matrix_factorization_cf)")
+    if selection_noise is None:
+        print("Note, using default value 0.0 for hyperparameter selection_noise (matrix_factorization_cf)")
     if anti_signal_weight is None:
         print("Note, using default value 0.1 for hyperparameter anti_signal_weight (matrix_factorization_cf)")
 
@@ -626,6 +630,9 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     if observation_noise is not None:
         if not isinstance(observation_noise, (int, float)) or observation_noise < 0:
             raise ValueError("matrix_factorization_cf.observation_noise must be >= 0")
+    if selection_noise is not None:
+        if not isinstance(selection_noise, (int, float)) or selection_noise < 0:
+            raise ValueError("matrix_factorization_cf.selection_noise must be >= 0")
     if anti_signal_weight is not None:
         if not isinstance(anti_signal_weight, (int, float)) or anti_signal_weight < 0:
             raise ValueError("matrix_factorization_cf.anti_signal_weight must be >= 0")
@@ -639,6 +646,7 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
         reward_noise=float(reward_noise) if reward_noise is not None else None,
         observation_noise=float(observation_noise) if observation_noise is not None else None,
+        selection_noise=float(selection_noise) if selection_noise is not None else None,
         anti_signal_weight=float(anti_signal_weight) if anti_signal_weight is not None else None,
     )
 
@@ -654,6 +662,7 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
     ucb_cf = _parse_ucb_cf_config(data.get("ucb_cf"))
     selfish_ep_greedy_cf = _parse_selfish_ep_greedy_cf_config(data.get("selfish_ep_greedy_cf"))
     coordinated_ep_greedy_cf = _parse_coordinated_ep_greedy_cf_config(data.get("coordinated_ep_greedy_cf"))
+    matrix_factorization_cf = _parse_mf_policy_config(data.get("matrix_factorization_cf"))
     
     return CollaborativeFilteringConfig(
         reward_noise=float(data["reward_noise"]),
@@ -662,6 +671,7 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
         ucb_cf=ucb_cf,
         selfish_ep_greedy_cf=selfish_ep_greedy_cf,
         coordinated_ep_greedy_cf=coordinated_ep_greedy_cf,
+        matrix_factorization_cf=matrix_factorization_cf,
     )
 
 
@@ -832,9 +842,6 @@ def load_config(path: str) -> ScenarioConfig:
     # Parse optional collaborative_filtering config
     cf_config = _parse_collaborative_filtering_config(data.get("collaborative_filtering"))
     
-    # Parse optional matrix_factorization_cf config
-    mf_config = _parse_mf_policy_config(data.get("matrix_factorization_cf"))
-    
     # Parse required configs
     world_config = _parse_world_config(data["world"])
     drones_config = _parse_drones_config(data["drones"])
@@ -853,6 +860,5 @@ def load_config(path: str) -> ScenarioConfig:
         logging=logging_config,
         mappings_file=mappings_file,
         mappings=mappings,
-        collaborative_filtering=cf_config,
-        matrix_factorization_cf=mf_config
+        collaborative_filtering=cf_config
     )

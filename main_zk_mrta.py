@@ -209,8 +209,8 @@ def create_policy(
     elif policy_type == "matrix_factorization_cf":
         if num_targets is None:
             raise ValueError("num_targets is required for matrix_factorization_cf policy")
-        # Extract hyperparameters from dedicated top-level config section
-        mf_cfg = config.matrix_factorization_cf
+        # Extract hyperparameters from collaborative_filtering.matrix_factorization_cf section
+        mf_cfg = config.collaborative_filtering.matrix_factorization_cf if config.collaborative_filtering else None
         # Create one policy instance per agent (true decentralization)
         num_agents = len(drones_config)
         policies = {}
@@ -715,8 +715,8 @@ def main():
     )
     
     # Determine noise settings based on active policies
-    mf_config = getattr(config, 'matrix_factorization_cf', None)
-    cf_config = getattr(config, 'collaborative_filtering', None)
+    mf_config = config.collaborative_filtering.matrix_factorization_cf if config.collaborative_filtering else None
+    cf_config = config.collaborative_filtering
     
     # Priority: Dedicated noise settings in the specific policy section
     # Default to 0.0 if neither is provided.
