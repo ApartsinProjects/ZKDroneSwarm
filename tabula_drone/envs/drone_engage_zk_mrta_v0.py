@@ -61,7 +61,6 @@ class DroneEngageZKMRTA(ParallelEnv):
         scenario_id: str = "zk_mrta_baseline",
         class_attribute_mapping: Dict[str, Dict[str, float]] = None,
         weapon_damage_profile_mapping: Dict[str, Dict[str, float]] = None,
-        policy_type: str = "random",
         reward_noise: float = 0.0,
         observation_noise: float = 0.0,
         mode: str = "episodic",
@@ -84,7 +83,6 @@ class DroneEngageZKMRTA(ParallelEnv):
                 Required - must be provided.
             weapon_damage_profile_mapping: Dict mapping weapon types to damage profile dicts.
                 Required - must be provided.
-            policy_type: str = "random",
             reward_noise: Gaussian noise σ added to actual rewards (default 0.0)
             observation_noise: Additional Gaussian noise σ when observing other
                 agents' rewards in collaborative mode (default 0.0)
@@ -95,7 +93,6 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.world_size = world_size
         self.max_steps = max_steps
         self.scenario_id = scenario_id
-        self.policy_type = policy_type
         self.reward_noise = reward_noise
         self.observation_noise = observation_noise
         self.mode = mode

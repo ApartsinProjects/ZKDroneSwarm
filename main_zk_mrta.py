@@ -734,7 +734,6 @@ def main():
         scenario_id=config.environment.scenario_id,
         class_attribute_mapping=config.mappings.class_attribute_mapping,
         weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-        policy_type="random",  # Default value, not used for single env
         reward_noise=reward_noise,
         observation_noise=observation_noise,
         mode=config.environment.mode,
@@ -857,7 +856,6 @@ def main():
             # Compute alignment score for CF policies (used by both trackers)
             # Save learning state using RunManager (every episode)
             if not is_deterministic:
-
                 run_manager.save_learning_state(
                     pre_state=pre_episode_state,
                     post_state=post_episode_state,
