@@ -1,5 +1,6 @@
 from main_zk_mrta import run_episode
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
+from tabula_drone.logging import EnvironmentLogger
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
@@ -113,3 +114,32 @@ def test_run_episode_uses_env_diagnostics_with_matrix_factorization_policy() -> 
     assert metrics["total_ammo_used"] >= 0
     assert "done_reason" in metrics
     assert set(metrics["agent_rewards"].keys()) == {"drone_0", "drone_1"}
+
+
+def test_run_episode_uses_environment_logger_boundary(tmp_path) -> None:
+    env = build_test_env()
+    policy = RandomPolicy(seed=1)
+    environment_logger = EnvironmentLogger(
+        output_dir=str(tmp_path),
+        scenario_id="runner_test",
+        mode="episodic",
+    )
+    environment_logger.start_policy("random_policy", is_deterministic=True)
+
+    metrics = run_episode(
+        env,
+        policy,
+        episode_num=1,
+        seed=7,
+        environment_logger=environment_logger,
+    )
+    environment_logger.persist_episode_outputs(episode_num=1, steps=metrics["steps"])
+    result = environment_logger.finalize_policy()
+
+    episode_path = (
+        tmp_path / "runner_test" / "random_policy" / "episodes" / "episode_first_ep01.json"
+    )
+
+    assert metrics["episode"] == 1
+    assert result["steps"] == {"first": metrics["steps"]}
+    assert episode_path.is_file()

@@ -7,7 +7,7 @@ while reusing the existing EpisodeLogger for per-episode capture.
 
 import json
 import os
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .episode_logger import EpisodeLogger
 
@@ -43,6 +43,12 @@ class EnvironmentLogger:
         self._episode_counter = 0
 
         self._active_episode_logger: Optional[EpisodeLogger] = None
+        self._continuous_learning_state_provider: Optional[Callable[[], Dict[str, Any]]] = None
+        self._continuous_episode_num: Optional[int] = None
+        self._continuous_num_agents: Optional[int] = None
+        self._continuous_num_targets: Optional[int] = None
+        self._continuous_latent_dim: Optional[int] = None
+        self._continuous_entities: Optional[Dict[str, Any]] = None
 
     @property
     def active_episode_logger(self) -> EpisodeLogger:
@@ -80,6 +86,7 @@ class EnvironmentLogger:
         self._best_steps = float("inf")
         self._best_episode_num = 0
         self._episode_counter = 0
+        self._clear_continuous_flush_context()
 
         episode_logger = EpisodeLogger(
             output_dir=self.get_episodes_dir(),
@@ -157,6 +164,105 @@ class EnvironmentLogger:
         logger = self.active_episode_logger
         self.save_analysis(logger.get_analysis_data(), episode_num)
         self.record_episode(logger.to_dict(), steps)
+
+    def configure_continuous_flush(
+        self,
+        episode_num: int,
+        learning_state_provider: Optional[Callable[[], Dict[str, Any]]],
+        num_agents: Optional[int] = None,
+        num_targets: Optional[int] = None,
+        latent_dim: Optional[int] = None,
+        entities: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """
+        Register the current episode's learning-state provider for flush checkpoints.
+
+        The provider remains external so EnvironmentLogger does not need to know
+        policy internals; it only owns when and how checkpoint artifacts are saved.
+        """
+        self._continuous_episode_num = episode_num
+        self._continuous_learning_state_provider = learning_state_provider
+        self._continuous_num_agents = num_agents
+        self._continuous_num_targets = num_targets
+        self._continuous_latent_dim = latent_dim
+        self._continuous_entities = entities
+
+    def start_episode(
+        self,
+        env: Any,
+        reset_info: Dict[str, Any],
+        seed: Optional[int] = None,
+        episode_num: Optional[int] = None,
+        total_episodes: Optional[int] = None,
+    ) -> None:
+        """Start the active episode logger for the current episode."""
+        self.active_episode_logger.start_episode(
+            env=env,
+            reset_info=reset_info,
+            seed=seed,
+            episode_num=episode_num,
+            total_episodes=total_episodes,
+        )
+
+    def log_step(
+        self,
+        step_num: int,
+        actions: Dict[str, int],
+        rewards: Dict[str, float],
+        terminated: bool,
+        truncated: bool,
+        info: Dict[str, Any],
+    ) -> None:
+        """Record a step on the active episode logger."""
+        self.active_episode_logger.log_step(
+            step_num=step_num,
+            actions=actions,
+            rewards=rewards,
+            terminated=terminated,
+            truncated=truncated,
+            info=info,
+        )
+
+    def flush_episode(self, step_num: int) -> str:
+        """Flush the active episode logger's buffered step chunk."""
+        return self.active_episode_logger.flush(step_num)
+
+    def end_episode(
+        self,
+        total_rewards: Dict[str, float],
+        done_reason: Optional[str],
+    ) -> None:
+        """Finalize the active episode logger for the current episode."""
+        self.active_episode_logger.end_episode(
+            total_rewards=total_rewards,
+            done_reason=done_reason,
+        )
+
+    def handle_flush(self, step: int) -> None:
+        """
+        Persist any run-level artifacts that should accompany an episode flush.
+
+        In continuous mode, this currently means saving a learning-state snapshot
+        when a learning-state provider was registered for the active episode.
+        """
+        if self.mode != "continuous":
+            return
+        if self._continuous_learning_state_provider is None:
+            return
+        if self._continuous_episode_num is None:
+            raise ValueError("configure_continuous_flush() must be called before handle_flush()")
+
+        current_post_state = self._continuous_learning_state_provider()
+        self.save_learning_state(
+            pre_state=None,
+            post_state=current_post_state,
+            episode_num=self._continuous_episode_num,
+            num_agents=self._continuous_num_agents or 0,
+            num_targets=self._continuous_num_targets or 0,
+            latent_dim=self._continuous_latent_dim,
+            entities=self._continuous_entities,
+            tag=f"step_{step:05d}",
+        )
 
     def save_learning_state(
         self,
@@ -259,6 +365,7 @@ class EnvironmentLogger:
             },
         }
         self._active_episode_logger = None
+        self._clear_continuous_flush_context()
         return result
 
     def _select_mid_episode(self) -> Tuple[Dict[str, Any], int, int]:
@@ -303,3 +410,11 @@ class EnvironmentLogger:
         with open(filepath, "w") as f:
             json.dump(episode_data, f, indent=2)
         return filepath
+
+    def _clear_continuous_flush_context(self) -> None:
+        self._continuous_learning_state_provider = None
+        self._continuous_episode_num = None
+        self._continuous_num_agents = None
+        self._continuous_num_targets = None
+        self._continuous_latent_dim = None
+        self._continuous_entities = None

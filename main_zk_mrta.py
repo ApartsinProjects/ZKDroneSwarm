@@ -8,7 +8,7 @@ Demonstrates:
 - Metrics collection and logging
 """
 
-from typing import Dict, Any, List, Optional, Union, Tuple, Callable
+from typing import Dict, Any, List, Optional, Union, Tuple
 
 import os
 
@@ -17,7 +17,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, REWARD_MODE
-from tabula_drone.logging import EnvironmentLogger, EpisodeLogger
+from tabula_drone.logging import EnvironmentLogger
 from tabula_drone.utils.engagement_analysis_utils import (
     build_target_x_drone_table,
     extract_drone_engagement_counts,
@@ -262,11 +262,10 @@ def run_episode(
     policy: IPolicy,
     episode_num: int,
     verbose: bool = False,
-    logger: Optional[EpisodeLogger] = None,
+    environment_logger: Optional[EnvironmentLogger] = None,
     seed: Optional[int] = None,
     total_episodes: Optional[int] = None,
     flush_interval: Optional[int] = None,
-    on_flush: Optional[Callable[[int], None]] = None,
 ) -> Dict[str, Any]:
     """
     Run a single episode with the given policy.
@@ -276,7 +275,7 @@ def run_episode(
         policy: Policy for action selection
         episode_num: Episode number for logging
         verbose: If True, print step-by-step details
-        logger: Optional EpisodeLogger for capturing episode data
+        environment_logger: Optional EnvironmentLogger for capturing episode data
         seed: Random seed used for this episode (for logger)
     
     Returns:
@@ -289,8 +288,14 @@ def run_episode(
     shared_info = get_env_diagnostics(env)
     bind_diagnostics_provider(policy, lambda: get_env_diagnostics(env))
     
-    if logger:
-        logger.start_episode(env, shared_info, seed, episode_num, total_episodes)
+    if environment_logger:
+        environment_logger.start_episode(
+            env=env,
+            reset_info=shared_info,
+            seed=seed,
+            episode_num=episode_num,
+            total_episodes=total_episodes,
+        )
     
     if verbose:
         printer.episode_start(
@@ -329,14 +334,20 @@ def run_episode(
         terminated = terminations[reference_agent_id]
         truncated = truncations[reference_agent_id]
         
-        if logger:
-            logger.log_step(step_count, actions, rewards, terminated, truncated, shared_info)
+        if environment_logger:
+            environment_logger.log_step(
+                step_num=step_count,
+                actions=actions,
+                rewards=rewards,
+                terminated=terminated,
+                truncated=truncated,
+                info=shared_info,
+            )
             
             # Periodic flush for continuous mode
             if flush_interval and step_count % flush_interval == 0:
-                logger.flush(step_count)
-                if on_flush:
-                    on_flush(step_count)
+                environment_logger.flush_episode(step_count)
+                environment_logger.handle_flush(step_count)
         
         # Update total rewards and track effective damage
         for agent_id in env.agents:
@@ -367,8 +378,11 @@ def run_episode(
         done = terminated or truncated
     
     # Finalize logger (save is handled by caller for best-episode tracking)
-    if logger:
-        logger.end_episode(total_rewards, shared_info.get("done_reason"))
+    if environment_logger:
+        environment_logger.end_episode(
+            total_rewards=total_rewards,
+            done_reason=shared_info.get("done_reason"),
+        )
     
     # Compute final metrics
     targets_neutralized = shared_info.get("cumulative_neutralizations", sum(1 for active in shared_info['target_active'] if not active))
@@ -745,7 +759,7 @@ def main():
         effective_episodes = 1 if is_deterministic else num_episodes
         
         # Start policy run in EnvironmentLogger
-        logger = environment_logger.start_policy(
+        environment_logger.start_policy(
             policy_type,
             is_deterministic=is_deterministic,
         )
@@ -808,31 +822,26 @@ def main():
             if config.environment.mode == "continuous":
                 flush_interval = config.environment.continuous.logging_interval_steps
 
-            # Define callback for periodic state saving in continuous mode
-            def continuous_flush_callback(step: int) -> None:
-                if not is_deterministic:
-                    current_post_state = policy.get_learning_state()
-                    environment_logger.save_learning_state(
-                        pre_state=None,  # Not applicable for intermediate snapshots
-                        post_state=current_post_state,
-                        episode_num=episode_num,
-                        num_agents=getattr(policy, "num_agents", len(drones_config)),
-                        num_targets=getattr(policy, "num_targets", len(targets_config)),
-                        latent_dim=getattr(policy, "latent_dim", None),
-                        entities=entities,
-                        tag=f"step_{step:05d}"
-                    )
+            environment_logger.configure_continuous_flush(
+                episode_num=episode_num,
+                learning_state_provider=(
+                    policy.get_learning_state if not is_deterministic else None
+                ),
+                num_agents=getattr(policy, "num_agents", len(drones_config)),
+                num_targets=getattr(policy, "num_targets", len(targets_config)),
+                latent_dim=getattr(policy, "latent_dim", None),
+                entities=entities,
+            )
 
             metrics = run_episode(
                 env=env,
                 policy=policy,
                 episode_num=episode_num,
                 verbose=config.environment.verbose,
-                logger=logger,
+                environment_logger=environment_logger,
                 seed=episode_seed,  #config.seed
                 total_episodes=num_episodes,
                 flush_interval=flush_interval,
-                on_flush=continuous_flush_callback if flush_interval else None
             )
             metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
