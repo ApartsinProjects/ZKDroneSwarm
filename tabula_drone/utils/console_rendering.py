@@ -118,12 +118,38 @@ class ConsolePrinter:
         self.drone_setup(drones_config)
         self.target_setup(targets_config, class_attribute_mapping)
 
+    def engagement_matrix(
+        self,
+        title: str,
+        row_labels: List[str],
+        column_labels: List[str],
+        matrix: List[List[float]],
+        row_header: str = "Drone",
+        precision: int = 3,
+    ) -> None:
+        headers = [row_header] + column_labels
+        rows = []
+        for row_label, values in zip(row_labels, matrix):
+            rows.append([row_label] + [f"{value:.{precision}f}" for value in values])
+
+        self._emit(
+            f"\n{title}:\n"
+            + tabulate(rows, headers=headers, tablefmt="simple")
+            + "\n",
+            end="",
+        )
+
     def optimal_engagement_prediction(
         self,
         drones_config: List[Dict[str, Any]],
         targets_config: List[Dict[str, Any]],
         class_attribute_mapping: Dict[str, Dict[str, float]],
         weapon_damage_profile_mapping: Dict[str, Dict[str, float]],
+        title: str = "Optimal Engagement Prediction (Greedy)",
+        score_matrix: List[List[float]] | None = None,
+        value_header: str = "Damage",
+        value_matrix: List[List[float]] | None = None,
+        value_precision: int = 0,
     ) -> None:
         assignments = []
         for drone_idx, drone_cfg in enumerate(drones_config):
@@ -142,8 +168,16 @@ class ConsolePrinter:
                     "weapon": weapon_type,
                     "target_class": class_type,
                     "dominant_attr": dominant_attr[:6],
-                    "damage": damage_to_dominant,
-                    "efficiency": damage_to_dominant,
+                    "value": (
+                        value_matrix[drone_idx][target_idx]
+                        if value_matrix is not None
+                        else damage_to_dominant
+                    ),
+                    "efficiency": (
+                        score_matrix[drone_idx][target_idx]
+                        if score_matrix is not None
+                        else damage_to_dominant
+                    ),
                 })
 
         assigned_drones = set()
@@ -160,9 +194,14 @@ class ConsolePrinter:
                 if len(optimal_assignments) == min(len(drones_config), len(targets_config)):
                     break
 
-        headers = ["Drone", "→", "Target", "Target Class", "Weapon", "Target Attr", "Damage"]
+        headers = ["Drone", "→", "Target", "Target Class", "Weapon", "Target Attr", value_header]
         rows = []
         for assignment in sorted(optimal_assignments, key=lambda item: item["drone_id"]):
+            value = assignment["value"]
+            if value_precision == 0:
+                rendered_value: Any = int(value)
+            else:
+                rendered_value = f"{value:.{value_precision}f}"
             rows.append([
                 assignment["drone_id"],
                 "→",
@@ -170,11 +209,11 @@ class ConsolePrinter:
                 assignment["target_class"],
                 assignment["weapon"][:6],
                 assignment["dominant_attr"],
-                int(assignment["damage"]),
+                rendered_value,
             ])
 
         self._emit(
-            "\nOptimal Engagement Prediction (Greedy):\n"
+            f"\n{title}:\n"
             + tabulate(rows, headers=headers, tablefmt="simple")
             + "\n",
             end="",
@@ -356,8 +395,7 @@ class ConsolePrinter:
             + f"\nWorld Size: {world_size}"
             + f"\nRandom Seed: {seed}"
             + f"\nPolicy Types: {policy_types}"
-            + f"\nEpisodes per Policy: {num_episodes}",
-            end="",
+            + f"\nNumber of Episodes per Policy: {num_episodes}"
         )
 
     def policy_run_header(self, policy_type: str) -> None:
