@@ -597,9 +597,9 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     if epsilon_min is None:
         print("Note, using default value 0.02 for hyperparameter epsilon_min (matrix_factorization_cf)")
     if reward_noise is None:
-        print("Note, using default value 0.05 for hyperparameter reward_noise (matrix_factorization_cf)")
+        print("Note, reward_noise not specified for matrix_factorization_cf, will inherit from collaborative_filtering section")
     if observation_noise is None:
-        print("Note, using default value 0.05 for hyperparameter observation_noise (matrix_factorization_cf)")
+        print("Note, observation_noise not specified for matrix_factorization_cf, will inherit from collaborative_filtering section")
     if selection_noise is None:
         print("Note, using default value 0.0 for hyperparameter selection_noise (matrix_factorization_cf)")
     if anti_signal_weight is None:

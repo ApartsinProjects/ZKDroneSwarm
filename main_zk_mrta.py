@@ -693,11 +693,12 @@ def main():
         policy_types=config.policy.type,
         num_episodes=num_episodes,
     )
-    printer.initial_setup(
-        class_attribute_mapping=config.mappings.class_attribute_mapping,
-        weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-        drones_config=drones_config,
-        targets_config=targets_config,
+    if (False):
+        printer.initial_setup(
+            class_attribute_mapping=config.mappings.class_attribute_mapping,
+            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
+            drones_config=drones_config,
+            targets_config=targets_config,
     )
     printer.optimal_engagement_prediction(
         drones_config,
@@ -718,16 +719,19 @@ def main():
     mf_config = config.collaborative_filtering.matrix_factorization_cf if config.collaborative_filtering else None
     cf_config = config.collaborative_filtering
     
-    # Priority: Dedicated noise settings in the specific policy section
-    # Default to 0.0 if neither is provided.
-    if mf_config and (mf_config.reward_noise is not None or mf_config.observation_noise is not None):
-        reward_noise = mf_config.reward_noise if mf_config.reward_noise is not None else 0.05
-        observation_noise = mf_config.observation_noise if mf_config.observation_noise is not None else 0.05
-    elif cf_config:
-        reward_noise = cf_config.reward_noise if cf_config.reward_noise is not None else 0.1
-        observation_noise = cf_config.observation_noise if cf_config.observation_noise is not None else 0.05
+    # Priority: Use MF-specific noise if provided, otherwise fall back to CF-level noise
+    if mf_config and mf_config.reward_noise is not None:
+        reward_noise = mf_config.reward_noise
+    elif cf_config and cf_config.reward_noise is not None:
+        reward_noise = cf_config.reward_noise
     else:
         reward_noise = 0.0
+    
+    if mf_config and mf_config.observation_noise is not None:
+        observation_noise = mf_config.observation_noise
+    elif cf_config and cf_config.observation_noise is not None:
+        observation_noise = cf_config.observation_noise
+    else:
         observation_noise = 0.0
     
     # Create single environment (reused across all policies)

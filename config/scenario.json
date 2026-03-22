@@ -1,5 +1,5 @@
 {
-  "mappings_file": "mappings_cf_moderate.json",
+  "mappings_file": "mappings_cf_friendly.json",
   "seed": 42,
   "world": {
     "size": [
@@ -11,7 +11,7 @@
     "max_steps":2500,
     "mode": "continuous",
     "episodic": {
-      "num_episodes": 25
+      "num_episodes": 50
     },
     "continuous": {
       "logging_interval_steps": 500
@@ -73,8 +73,8 @@
     "allow_noop": false
   },
   "collaborative_filtering": {
-    "reward_noise": 0.05,
-    "observation_noise": 0.05,
+    "reward_noise": 0.2,
+    "observation_noise": 0.2,
     "selfish_ep_greedy_cf": {
       "latent_dim": 3,
       "learning_rate": 0.05,
