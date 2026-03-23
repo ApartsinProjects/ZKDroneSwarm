@@ -151,8 +151,8 @@ export class EpisodeStateService implements OnDestroy {
       engagements.push({
         droneId: drone.id,
         targetId: target.id,
-        droneLeftPct: drone.leftPct,
-        droneTopPct: drone.topPct,
+        droneLeftPct: drone.leftPct + 3,
+        droneTopPct: drone.topPct + 1,
         targetLeftPct: target.leftPct,
         targetTopPct: target.topPct,
       });
