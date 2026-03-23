@@ -209,3 +209,22 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# === TabulaDrone Viewer (Node.js / Angular) ===
+# Dependencies
+viewer-ng/node_modules/
+viewer-server/node_modules/
+
+# Build outputs
+viewer-ng/dist/
+viewer-ng/.angular/
+viewer-ng/.vscode/
+
+# Server logs
+viewer-server/*.log
+viewer-server/.env
+
+# Angular cache
+viewer-ng/.sass-cache/
+viewer-ng/coverage/
+viewer-ng/.editorconfig

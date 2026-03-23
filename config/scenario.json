@@ -9,7 +9,7 @@
   },
   "environment": {
     "max_steps":2500,
-    "mode": "continuous",
+    "mode": "episodic",
     "episodic": {
       "num_episodes": 50
     },
