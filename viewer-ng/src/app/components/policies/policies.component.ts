@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { PoliciesService } from '../../services/policies.service';
+import { EpisodeStateService } from '../../services/episode-state.service';
 
 @Component({
   selector: 'app-policies',
@@ -12,6 +13,7 @@ import { PoliciesService } from '../../services/policies.service';
 })
 export class PoliciesComponent {
   private policiesService = inject(PoliciesService);
+  private episodeState = inject(EpisodeStateService);
   
   public policies = toSignal(this.policiesService.getPolicies());
 
@@ -19,6 +21,7 @@ export class PoliciesComponent {
     console.log(`Selected policy: ${policyName}`);
     this.policiesService.getBestEpisode(policyName).subscribe({
       next: (episode) => {
+        this.episodeState.setEpisode(episode);
         console.log('Best episode retrieved:', episode);
       },
       error: (err) => {
