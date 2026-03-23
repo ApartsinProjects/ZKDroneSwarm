@@ -67,6 +67,18 @@ function getLatestFile(candidates) {
   return candidates.sort().reverse()[0];
 }
 
+function getEnvironmentFile() {
+  const latestRun = getLatestRunFolder();
+  if (!latestRun) return null;
+
+  const environmentPath = path.join(LOGS_DIR, latestRun, 'environment.json');
+  if (!fs.existsSync(environmentPath)) {
+    return null;
+  }
+
+  return environmentPath;
+}
+
 module.exports = {
   REPO_ROOT,
   LOGS_DIR,
@@ -74,5 +86,6 @@ module.exports = {
   getLatestRunFolder,
   getAvailablePolicies,
   getFilesByContext,
-  getLatestFile
+  getLatestFile,
+  getEnvironmentFile
 };
