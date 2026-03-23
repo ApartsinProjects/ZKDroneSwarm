@@ -51,6 +51,17 @@ export class MapComponent {
     return this.episodeState.animatedScene() ?? this.scene();
   });
 
+  protected readonly runLabel = computed(() => {
+    const episode = this.episodeState.currentEpisode();
+    const episodeLabel = episode?.episode?.fileName ?? episode?.episode?.sourcePath;
+
+    if (typeof episodeLabel === 'string' && episodeLabel.length > 0) {
+      return episodeLabel.split(/[\\/]/).filter(Boolean).at(-1) ?? episodeLabel;
+    }
+
+    return this.activeScene()?.run.scenarioId ?? 'unknown';
+  });
+
   protected readonly mapAspectRatio = computed(() => {
     const scene = this.activeScene();
 
