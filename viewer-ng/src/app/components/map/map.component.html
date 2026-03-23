@@ -2,7 +2,7 @@
   <section class="status-card">
     <p class="status-card__eyebrow">Loading</p>
     <h1>Preparing map scene</h1>
-    <p>Fetching the default episodic artifact from the viewer server.</p>
+    <p>Fetching the latest environment artifact from the viewer server.</p>
   </section>
 } @else if (errorMessage()) {
   <section class="status-card status-card--error">
@@ -19,16 +19,16 @@
       </div>
       <dl class="map-page__meta">
         <div>
-          <dt>Episode</dt>
-          <dd>{{ scene.episode.fileName }}</dd>
+          <dt>Run</dt>
+          <dd>{{ scene.run.scenarioId }}</dd>
         </div>
         <div>
-          <dt>Policy</dt>
-          <dd>{{ scene.episode.policyType }}</dd>
+          <dt>Drones</dt>
+          <dd>{{ scene.drones.length }}</dd>
         </div>
         <div>
-          <dt>Entities</dt>
-          <dd>{{ scene.drones.length }} drones / {{ scene.targets.length }} targets</dd>
+          <dt>Targets</dt>
+          <dd>{{ scene.targets.length }}</dd>
         </div>
       </dl>
     </header>
@@ -38,7 +38,7 @@
         <img
           class="map-stage__background"
           [src]="assetPaths.background"
-          alt="Episode world background"
+          alt="Environment world background"
         />
 
         @for (target of scene.targets; track trackById($index, target)) {

@@ -10,22 +10,18 @@ export interface ApiMapEntity {
   hp?: number;
 }
 
-export interface ApiMapResponse {
-  episode: {
-    fileName: string;
-    episodeNum: number | null;
-    version: string;
-    policyType: string;
-    sourcePath: string;
+export interface ApiEnvironmentResponse {
+  version: string;
+  scenario_id: string;
+  config: {
+    world_size?: [number, number];
+    class_attribute_mapping?: Record<string, Record<string, number>>;
   };
-  map: {
-    title: string;
-    worldSize: {
-      width: number;
-      height: number;
-    };
-    drones: ApiMapEntity[];
-    targets: ApiMapEntity[];
+  scenario: {
+    drone_positions?: [number, number][];
+    target_positions?: [number, number][];
+    weapon_assignments?: Record<string, string>;
+    target_classes?: string[];
   };
 }
 
@@ -34,8 +30,13 @@ export interface ViewMapEntity extends ApiMapEntity {
   topPct: number;
 }
 
+export interface MapRunViewModel {
+  scenarioId: string;
+  version: string;
+}
+
 export interface MapSceneViewModel {
-  episode: ApiMapResponse['episode'];
+  run: MapRunViewModel;
   title: string;
   width: number;
   height: number;
@@ -48,26 +49,65 @@ export interface MapSceneViewModel {
 })
 export class MapService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:3001/api/map';
+  private readonly apiUrl = 'http://localhost:3001/api/environment';
 
   getMapScene(): Observable<MapSceneViewModel> {
-    return this.http.get<ApiMapResponse>(this.apiUrl).pipe(
+    return this.http.get<ApiEnvironmentResponse>(this.apiUrl).pipe(
       map(payload => this.buildScene(payload))
     );
   }
 
-  private buildScene(payload: ApiMapResponse): MapSceneViewModel {
-    const width = payload.map.worldSize.width || 1000;
-    const height = payload.map.worldSize.height || 1000;
+  private buildScene(payload: ApiEnvironmentResponse): MapSceneViewModel {
+    const [rawWidth = 1000, rawHeight = 1000] = payload.config.world_size ?? [];
+    const width = rawWidth || 1000;
+    const height = rawHeight || 1000;
+    const classAttributeMapping = payload.config.class_attribute_mapping ?? {};
+    const weaponAssignments = payload.scenario.weapon_assignments ?? {};
+    const dronePositions = payload.scenario.drone_positions ?? [];
+    const targetPositions = payload.scenario.target_positions ?? [];
+    const targetClasses = payload.scenario.target_classes ?? [];
 
     return {
-      episode: payload.episode,
-      title: payload.map.title,
+      run: {
+        scenarioId: payload.scenario_id || 'unknown',
+        version: payload.version || 'unknown'
+      },
+      title: `World State Map ( Run: ${payload.scenario_id || 'unknown'} )`,
       width,
       height,
-      drones: payload.map.drones.map((entity) => this.toViewEntity(entity, width, height)),
-      targets: payload.map.targets.map((entity) => this.toViewEntity(entity, width, height))
+      drones: dronePositions.map((position, index) =>
+        this.toViewEntity(
+          {
+            id: `drone_${index}`,
+            position,
+            weaponType: weaponAssignments[`drone_${index}`] || 'unknown'
+          },
+          width,
+          height
+        )
+      ),
+      targets: targetPositions.map((position, index) => {
+        const classType = targetClasses[index] || 'unknown';
+
+        return this.toViewEntity(
+          {
+            id: `target_${index}`,
+            position,
+            classType,
+            hp: this.sumAttributes(classAttributeMapping[classType] || {})
+          },
+          width,
+          height
+        );
+      })
     };
+  }
+
+  private sumAttributes(attributes: Record<string, number>): number {
+    return Object.values(attributes).reduce(
+      (sum, value) => sum + (Number.isFinite(value) ? value : 0),
+      0
+    );
   }
 
   private toViewEntity(entity: ApiMapEntity, width: number, height: number): ViewMapEntity {

@@ -60,13 +60,19 @@
   flex-direction: row;
   gap: 12px;
   margin: 0;
+  align-self: center;
+  justify-content: center;
 }
 
 .map-page__meta div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 14px 16px;
   border-radius: 18px;
   background: rgba(255, 249, 237, 0.88);
   border: 1px solid rgba(126, 104, 62, 0.14);
+  text-align: center;
 }
 
 .map-page__meta dt {
@@ -146,6 +152,7 @@
   .map-page__meta {
     flex-direction: column;
     width: 100%;
+    align-self: stretch;
   }
 
   .map-stage {
