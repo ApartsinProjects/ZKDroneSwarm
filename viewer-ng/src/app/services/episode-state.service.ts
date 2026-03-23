@@ -10,11 +10,15 @@ export class EpisodeStateService implements OnDestroy {
   private readonly _currentEpisode = signal<any | null>(null);
   private readonly _currentStepIndex = signal(-1);
   private readonly _isPlaying = signal(false);
+  private readonly _hpHistory = signal<number[]>([]);
+  private readonly _activeTargetsHistory = signal<number[]>([]);
   private _timerId: ReturnType<typeof setInterval> | null = null;
 
   readonly currentEpisode = this._currentEpisode.asReadonly();
   readonly currentStepIndex = this._currentStepIndex.asReadonly();
   readonly isPlaying = this._isPlaying.asReadonly();
+  readonly hpHistory = this._hpHistory.asReadonly();
+  readonly activeTargetsHistory = this._activeTargetsHistory.asReadonly();
 
   readonly totalSteps = computed(() => {
     const ep = this._currentEpisode();
@@ -43,12 +47,32 @@ export class EpisodeStateService implements OnDestroy {
     this.pause();
     this._currentEpisode.set(episode);
     this._currentStepIndex.set(-1);
+
+    const hpList: number[] = [];
+    const activeList: number[] = [];
+    if (episode?.steps) {
+      for (const step of episode.steps) {
+        let totalHp = 0;
+        let activeCount = 0;
+        const targetHps: number[] = step.info?.target_hps ?? [];
+        for (const hp of targetHps) {
+          totalHp += (hp > 0 ? hp : 0);
+          if (hp > 0) activeCount++;
+        }
+        hpList.push(totalHp);
+        activeList.push(activeCount);
+      }
+    }
+    this._hpHistory.set(hpList);
+    this._activeTargetsHistory.set(activeList);
   }
 
   clearEpisode(): void {
     this.pause();
     this._currentEpisode.set(null);
     this._currentStepIndex.set(-1);
+    this._hpHistory.set([]);
+    this._activeTargetsHistory.set([]);
   }
 
   play(): void {

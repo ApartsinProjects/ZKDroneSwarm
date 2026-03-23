@@ -1,0 +1,13 @@
+<div class="chart-container">
+  @if (chartData().datasets.length > 0) {
+    <canvas baseChart
+      [data]="chartData()"
+      [options]="chartOptions"
+      [type]="chartType">
+    </canvas>
+  } @else {
+    <div class="chart-placeholder">
+      <span>Load a policy to view live chart</span>
+    </div>
+  }
+</div>

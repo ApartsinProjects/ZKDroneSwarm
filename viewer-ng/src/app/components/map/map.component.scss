@@ -95,7 +95,19 @@
   flex-direction: row;
   gap: 16px;
   justify-content: center;
+  align-items: stretch;
   margin-bottom: 24px;
+}
+
+.map-chart-panel {
+  flex: 1;
+  min-width: 0;
+  max-width: 400px;
+  background: rgba(246, 225, 167, 0.2);
+  border: 1px solid rgba(209, 161, 105, 0.2);
+  border-radius: 12px;
+  padding: 8px 16px;
+  box-sizing: border-box;
 }
 
 .map-page__metrics .metric-item {

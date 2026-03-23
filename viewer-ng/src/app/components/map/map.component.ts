@@ -5,12 +5,13 @@ import { of } from 'rxjs';
 import { MapService, MapSceneViewModel, ViewMapEntity } from '../../services/map.service';
 import { EpisodeStateService } from '../../services/episode-state.service';
 import { EnvironmentInfo, DynamicEnvMetrics } from '../environment-info/environment-info';
+import { LiveChart } from '../environment-info/live-chart';
 
 const MIN_TARGET_OPACITY = 0.25;
 
 @Component({
   selector: 'app-map',
-  imports: [EnvironmentInfo],
+  imports: [EnvironmentInfo, LiveChart],
   templateUrl: './map.component.html',
   styleUrl: './map.component.scss'
 })
