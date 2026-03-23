@@ -69,6 +69,7 @@
               class="map-entity map-entity--target"
               [src]="getTargetImage(target)"
               [alt]="target.id"
+              [style.opacity]="getTargetOpacity(target)"
             />
             <div class="map-target__label">{{ target.classType || '?' }}-{{ target.hp ?? '?' }}</div>
           </div>

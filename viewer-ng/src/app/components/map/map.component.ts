@@ -6,6 +6,8 @@ import { MapService, MapSceneViewModel, ViewMapEntity } from '../../services/map
 import { EpisodeStateService } from '../../services/episode-state.service';
 import { EnvironmentInfo, DynamicEnvMetrics } from '../environment-info/environment-info';
 
+const MIN_TARGET_OPACITY = 0.25;
+
 @Component({
   selector: 'app-map',
   imports: [EnvironmentInfo],
@@ -72,6 +74,11 @@ export class MapComponent {
     return `${scene.width} / ${scene.height}`;
   });
 
+  protected readonly targetMaxHpById = computed(() => {
+    const targets = this.scene()?.targets ?? [];
+    return new Map(targets.map((target) => [target.id, Math.max(0, target.hp ?? 0)]));
+  });
+
   protected readonly episodeMetrics = computed(() => {
     const ep = this.episodeState.currentEpisode();
     if (!ep) {
@@ -124,5 +131,22 @@ export class MapComponent {
       return this.assetPaths.targetFlame;
     }
     return this.assetPaths.target;
+  }
+
+  protected getTargetOpacity(target: ViewMapEntity): number {
+    if (target.isActive === false) {
+      return 1;
+    }
+
+    const maxHp = this.targetMaxHpById().get(target.id);
+
+    if (!maxHp || maxHp <= 0) {
+      return 1;
+    }
+
+    const currentHp = Math.max(0, target.hp ?? maxHp);
+    const hpRatio = Math.min(1, currentHp / maxHp);
+
+    return MIN_TARGET_OPACITY + (1 - MIN_TARGET_OPACITY) * hpRatio;
   }
 }
