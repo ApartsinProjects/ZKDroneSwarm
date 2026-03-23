@@ -90,6 +90,39 @@
   color: #322a20;
 }
 
+.map-page__metrics {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.map-page__metrics .metric-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(246, 225, 167, 0.2);
+  border: 1px solid rgba(209, 161, 105, 0.2);
+}
+
+.map-page__metrics .metric-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #8d7b58;
+  letter-spacing: 0.1em;
+}
+
+.map-page__metrics .metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #5f5a4f;
+}
+
 .map-stage {
   height: 60vh;
   width: 66.5vh;

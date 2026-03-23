@@ -28,6 +28,22 @@
   flex: 0 0 40%;
 }
 
+.map-bottom-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 24px;
+  gap: 16px;
+}
+
+.map-bottom-row__policies {
+  flex: 1;
+}
+
+.map-bottom-row__player {
+  flex-shrink: 0;
+}
+
 .split-view__panel--sidebar {
   flex: 1;
   min-width: 0;

@@ -59,6 +59,17 @@ export class MapComponent {
     return `${scene.width} / ${scene.height}`;
   });
 
+  protected readonly episodeMetrics = computed(() => {
+    const ep = this.episodeState.currentEpisode();
+    if (!ep) {
+      return null;
+    }
+    return {
+      totalSteps: ep.summary?.total_steps ?? ep.steps?.length ?? 0,
+      totalAmmoUsed: ep.summary?.metrics?.total_ammo_used ?? 0
+    };
+  });
+
   protected trackById(_: number, entity: ViewMapEntity): string {
     return entity.id;
   }

@@ -33,6 +33,19 @@
       </dl>
     </header>
 
+    @if (episodeMetrics(); as metrics) {
+      <div class="map-page__metrics">
+        <div class="metric-item">
+          <span class="metric-label">Total Steps</span>
+          <span class="metric-value">{{ metrics.totalSteps }}</span>
+        </div>
+        <div class="metric-item">
+          <span class="metric-label">Total Ammo Used</span>
+          <span class="metric-value">{{ metrics.totalAmmoUsed }}</span>
+        </div>
+      </div>
+    }
+
     <section class="map-stage">
       <div class="map-stage__frame" [style.aspectRatio]="mapAspectRatio()">
         <img
