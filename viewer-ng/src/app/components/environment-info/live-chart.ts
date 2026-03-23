@@ -42,17 +42,23 @@ export class LiveChart {
         }
       },
       x: {
-        display: false
+        display: true,
+        ticks: {
+          maxTicksLimit: 10,
+          font: { size: 9 }
+        }
       }
     },
     plugins: {
       legend: {
         display: true,
-        position: 'top',
+        position: 'right',
         labels: {
-          boxWidth: 8,
-          usePointStyle: true,
-          font: { size: 10 }
+          boxWidth: 4,
+          boxHeight: 4,
+          useBorderRadius: true,
+          borderRadius: 2,
+          font: { size: 9 }
         }
       }
     }
@@ -62,14 +68,14 @@ export class LiveChart {
     const totalSteps = this.episodeState.totalSteps();
     const currentStepIndex = this.episodeState.currentStepIndex();
     
-    if (totalSteps === 0 || currentStepIndex < 0) {
+    if (totalSteps === 0) {
       return { datasets: [], labels: [] };
     }
 
     const hpHist = this.episodeState.hpHistory();
     const activeHist = this.episodeState.activeTargetsHistory();
     
-    const sliceEnd = Math.min(currentStepIndex + 1, totalSteps);
+    const sliceEnd = Math.max(0, Math.min(currentStepIndex + 1, totalSteps));
     
     const initialHp = hpHist.length > 0 && hpHist[0] > 0 ? hpHist[0] : 1;
     const initialTargets = activeHist.length > 0 && activeHist[0] > 0 ? activeHist[0] : 1;
@@ -86,6 +92,7 @@ export class LiveChart {
           label: 'Total HP',
           borderColor: '#3498db',
           backgroundColor: 'rgba(52,152,219,0.1)',
+          pointBackgroundColor: '#3498db',
           fill: true
         },
         {
@@ -93,6 +100,7 @@ export class LiveChart {
           label: 'Active Targets',
           borderColor: '#e67e22',
           backgroundColor: 'rgba(230,126,34,0.1)',
+          pointBackgroundColor: '#e67e22',
           fill: true
         }
       ],

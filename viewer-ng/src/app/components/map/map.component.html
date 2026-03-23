@@ -34,20 +34,22 @@
     </header>
 
     <div class="map-page__metrics">
-      @if (episodeMetrics(); as metrics) {
-        <div class="metric-item">
-          <span class="metric-label">Total Steps</span>
-          <span class="metric-value">{{ metrics.totalSteps }}</span>
-        </div>
-        <div class="metric-item">
-          <span class="metric-label">Total Ammo Used</span>
-          <span class="metric-value">{{ metrics.totalAmmoUsed }}</span>
-        </div>
-      } @else {
-        <div class="metric-item metric-item--placeholder">
-          <span class="metric-value">Load a policy to view episode metrics</span>
-        </div>
-      }
+      <div class="metrics-stack">
+        @if (episodeMetrics(); as metrics) {
+          <div class="metric-item">
+            <span class="metric-label">Total Steps</span>
+            <span class="metric-value">{{ metrics.totalSteps }}</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Total Ammo Used</span>
+            <span class="metric-value">{{ metrics.totalAmmoUsed }}</span>
+          </div>
+        } @else {
+          <div class="metric-item metric-item--placeholder">
+            <span class="metric-value">Load a policy to view episode metrics</span>
+          </div>
+        }
+      </div>
       <div class="map-chart-panel">
         <app-live-chart />
       </div>
