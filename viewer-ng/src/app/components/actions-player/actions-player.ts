@@ -18,10 +18,10 @@ export class ActionsPlayer {
       console.warn('No episode loaded — select a policy first.');
       return;
     }
-    console.log('Play pressed. Episode data:', episode);
+    this.episodeState.play();
   }
 
   onPause(): void {
-    console.log('Pause pressed.');
+    this.episodeState.pause();
   }
 }

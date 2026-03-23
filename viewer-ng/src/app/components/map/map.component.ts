@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, finalize, tap } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { MapService, MapSceneViewModel, ViewMapEntity } from '../../services/map.service';
+import { EpisodeStateService } from '../../services/episode-state.service';
 
 @Component({
   selector: 'app-map',
@@ -11,11 +12,14 @@ import { MapService, MapSceneViewModel, ViewMapEntity } from '../../services/map
 })
 export class MapComponent {
   private readonly mapService = inject(MapService);
+  private readonly episodeState = inject(EpisodeStateService);
 
   protected readonly assetPaths = {
     background: '/assets/map/background.png',
     drone: '/assets/map/drone.png',
-    target: '/assets/map/target_1.png'
+    target: '/assets/map/target_1.png',
+    targetDestroyed: '/assets/map/target_destroyed.png',
+    targetFlame: '/assets/map/target_with_flame.png'
   };
 
   protected readonly isLoading = signal(false);
@@ -40,8 +44,13 @@ export class MapComponent {
     { initialValue: null }
   );
 
+  // Prefer animated scene when playback is active, fall back to static scene
+  protected readonly activeScene = computed(() => {
+    return this.episodeState.animatedScene() ?? this.scene();
+  });
+
   protected readonly mapAspectRatio = computed(() => {
-    const scene = this.scene();
+    const scene = this.activeScene();
 
     if (!scene) {
       return '1 / 1';
@@ -52,5 +61,16 @@ export class MapComponent {
 
   protected trackById(_: number, entity: ViewMapEntity): string {
     return entity.id;
+  }
+
+  protected getTargetImage(target: any): string {
+    if (target.isActive === false) {
+      return this.assetPaths.targetDestroyed;
+    }
+    const scene = this.activeScene();
+    if (scene?.hitTargetIds?.has(target.id)) {
+      return this.assetPaths.targetFlame;
+    }
+    return this.assetPaths.target;
   }
 }

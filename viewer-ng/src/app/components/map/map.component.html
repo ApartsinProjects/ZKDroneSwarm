@@ -10,7 +10,7 @@
     <h1>Viewer server request failed</h1>
     <p>{{ errorMessage() }}</p>
   </section>
-} @else if (scene(); as scene) {
+} @else if (activeScene(); as scene) {
   <section class="map-page">
     <header class="map-page__header">
       <div class="map-page__title">
@@ -44,12 +44,13 @@
         @for (target of scene.targets; track trackById($index, target)) {
           <div
             class="map-target"
+            [class.map-target--destroyed]="target.isActive === false"
             [style.left.%]="target.leftPct"
             [style.top.%]="target.topPct"
           >
             <img
               class="map-entity map-entity--target"
-              [src]="assetPaths.target"
+              [src]="getTargetImage(target)"
               [alt]="target.id"
             />
             <div class="map-target__label">{{ target.classType || '?' }}-{{ target.hp ?? '?' }}</div>
@@ -69,6 +70,28 @@
             />
             <div class="map-drone__label">{{ drone.weaponType || '?' }}</div>
           </div>
+        }
+
+        @if (scene.engagements?.length) {
+          <svg
+            class="map-stage__engagements"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            @for (eng of scene.engagements; track eng.droneId + eng.targetId) {
+              <line
+                [attr.x1]="eng.droneLeftPct"
+                [attr.y1]="eng.droneTopPct"
+                [attr.x2]="eng.targetLeftPct"
+                [attr.y2]="eng.targetTopPct"
+                stroke="#808080"
+                stroke-width="0.3"
+                stroke-dasharray="1 1"
+                opacity="0.4"
+              />
+            }
+          </svg>
         }
 
         <div class="map-stage__border" aria-hidden="true"></div>

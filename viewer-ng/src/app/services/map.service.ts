@@ -28,11 +28,21 @@ export interface ApiEnvironmentResponse {
 export interface ViewMapEntity extends ApiMapEntity {
   leftPct: number;
   topPct: number;
+  isActive?: boolean;
 }
 
 export interface MapRunViewModel {
   scenarioId: string;
   version: string;
+}
+
+export interface EngagementLine {
+  droneId: string;
+  targetId: string;
+  droneLeftPct: number;
+  droneTopPct: number;
+  targetLeftPct: number;
+  targetTopPct: number;
 }
 
 export interface MapSceneViewModel {
@@ -42,6 +52,8 @@ export interface MapSceneViewModel {
   height: number;
   drones: ViewMapEntity[];
   targets: ViewMapEntity[];
+  engagements?: EngagementLine[];
+  hitTargetIds?: Set<string>;
 }
 
 @Injectable({
