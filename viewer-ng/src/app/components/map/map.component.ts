@@ -4,9 +4,11 @@ import { catchError, finalize, tap } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { MapService, MapSceneViewModel, ViewMapEntity } from '../../services/map.service';
 import { EpisodeStateService } from '../../services/episode-state.service';
+import { EnvironmentInfo, DynamicEnvMetrics } from '../environment-info/environment-info';
 
 @Component({
   selector: 'app-map',
+  imports: [EnvironmentInfo],
   templateUrl: './map.component.html',
   styleUrl: './map.component.scss'
 })
@@ -67,6 +69,34 @@ export class MapComponent {
     return {
       totalSteps: ep.summary?.total_steps ?? ep.steps?.length ?? 0,
       totalAmmoUsed: ep.summary?.metrics?.total_ammo_used ?? 0
+    };
+  });
+
+  protected readonly dynamicEnvMetrics = computed<DynamicEnvMetrics | null>(() => {
+    const ep = this.episodeState.currentEpisode();
+    if (!ep) {
+      return null;
+    }
+
+    const staticScene = this.scene();
+    const activeScene = this.activeScene();
+    if (!staticScene || !activeScene) {
+      return null;
+    }
+
+    const currentStep = Math.max(0, this.episodeState.currentStepIndex() + 1);
+
+    const maxHp = staticScene.targets.reduce((sum, t) => sum + (t.hp ?? 0), 0);
+    const currentHp = activeScene.targets.reduce((sum, t) => sum + (t.hp ?? 0), 0);
+    
+    const hpReduction = Math.max(0, maxHp - currentHp);
+    const avgHpReductionPerStep = hpReduction / Math.max(1, currentStep);
+
+    return {
+      currentStep,
+      maxHp,
+      currentHp,
+      avgHpReductionPerStep
     };
   });
 

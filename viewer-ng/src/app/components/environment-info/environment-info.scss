@@ -1,0 +1,36 @@
+:host {
+  display: block;
+}
+
+.env-info-panel {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+.env-info-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 12px;
+  background: rgba(220, 240, 255, 0.4);
+  border: 1px solid rgba(130, 180, 220, 0.3);
+}
+
+.env-info-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #4a6a8a;
+  letter-spacing: 0.1em;
+}
+
+.env-info-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2a4a6a;
+}

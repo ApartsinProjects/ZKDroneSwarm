@@ -1,0 +1,16 @@
+@if (metrics(); as m) {
+  <div class="env-info-panel">
+    <div class="env-info-item">
+      <span class="env-info-label">Current Step</span>
+      <span class="env-info-value">{{ m.currentStep }}</span>
+    </div>
+    <div class="env-info-item">
+      <span class="env-info-label">Total HP</span>
+      <span class="env-info-value">{{ m.currentHp | number:'1.0-0' }} / {{ m.maxHp | number:'1.0-0' }}</span>
+    </div>
+    <div class="env-info-item">
+      <span class="env-info-label">Avg HP/Step</span>
+      <span class="env-info-value">{{ m.avgHpReductionPerStep | number:'1.1-2' }}</span>
+    </div>
+  </div>
+}
