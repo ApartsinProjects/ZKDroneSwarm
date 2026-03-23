@@ -33,31 +33,8 @@ function loadEnvironmentData(episodePath, episodeData) {
   };
 }
 
-function buildMapSceneDto(episodePath, episodeData) {
+function buildEpisodeDto(episodePath, episodeData) {
   const { scenario, config } = loadEnvironmentData(episodePath, episodeData);
-  const classAttributeMapping = config.class_attribute_mapping || {};
-  const weaponAssignments = scenario.weapon_assignments || {};
-  const dronePositions = scenario.drone_positions || [];
-  const targetPositions = scenario.target_positions || [];
-  const targetClasses = scenario.target_classes || [];
-  const worldSize = config.world_size || [1000, 1000];
-
-  const drones = dronePositions.map((position, index) => ({
-    id: `drone_${index}`,
-    position: position,
-    weaponType: weaponAssignments[`drone_${index}`] || 'unknown'
-  }));
-
-  const targets = targetPositions.map((position, index) => {
-    const classType = targetClasses[index] || 'unknown';
-
-    return {
-      id: `target_${index}`,
-      position: position,
-      classType,
-      hp: sumAttributes(classAttributeMapping[classType] || {})
-    };
-  });
 
   return {
     episode: {
@@ -67,15 +44,9 @@ function buildMapSceneDto(episodePath, episodeData) {
       policyType: config.policy_type || 'unknown',
       sourcePath: path.relative(logDiscovery.REPO_ROOT, episodePath)
     },
-    map: {
-      title: `World State Map ( Policy: ${config.policy_type || 'unknown'} )`,
-      worldSize: {
-        width: Number(worldSize[0]) || 1000,
-        height: Number(worldSize[1]) || 1000
-      },
-      drones,
-      targets
-    }
+    scenario: scenario,
+    steps: episodeData.steps || [],
+    summary: episodeData.summary || {}
   };
 }
 
@@ -100,11 +71,73 @@ const episodesController = {
       }
 
       const episodeData = JSON.parse(fs.readFileSync(episodePath, 'utf8'));
-      res.json(buildMapSceneDto(episodePath, episodeData));
+      res.json(buildEpisodeDto(episodePath, episodeData));
     } catch (error) {
       res.status(500).json({
         error: 'MAP_LOAD_FAILED',
         message: error instanceof Error ? error.message : 'Unknown map loading error.'
+      });
+    }
+  },
+
+  getAllEpisodes: (req, res) => {
+    try {
+      const { policyId } = req.params;
+      
+      if (!policyId) {
+        return res.status(400).json({ error: 'MISSING_POLICY_ID', message: 'Policy ID is required.' });
+      }
+
+      const candidates = logDiscovery.getFilesByContext(policyId, 'episodes', 'episode_');
+      if (candidates.length === 0) {
+        return res.status(404).json({ error: 'NO_EPISODES_FOUND', message: `No episode artifacts found for policy: ${policyId}` });
+      }
+
+      const episodes = candidates.map(episodePath => {
+        const episodeData = JSON.parse(fs.readFileSync(episodePath, 'utf8'));
+        return buildEpisodeDto(episodePath, episodeData);
+      });
+
+      res.json(episodes);
+    } catch (error) {
+      res.status(500).json({
+        error: 'EPISODES_LOAD_FAILED',
+        message: error instanceof Error ? error.message : 'Unknown episodes loading error.'
+      });
+    }
+  },
+
+  getBestEpisode: (req, res) => {
+    try {
+      const { policyId } = req.params;
+      
+      if (!policyId) {
+        return res.status(400).json({ error: 'MISSING_POLICY_ID', message: 'Policy ID is required.' });
+      }
+
+      const candidates = logDiscovery.getFilesByContext(policyId, 'episodes', 'episode_');
+      if (candidates.length === 0) {
+        return res.status(404).json({ error: 'NO_EPISODES_FOUND', message: `No episode artifacts found for policy: ${policyId}` });
+      }
+
+      let bestEpisodePath;
+      if (candidates.length === 1) {
+        bestEpisodePath = candidates[0];
+      } else {
+        const bestCandidates = candidates.filter(p => path.basename(p).includes('best'));
+        bestEpisodePath = logDiscovery.getLatestFile(bestCandidates.length > 0 ? bestCandidates : candidates);
+      }
+
+      if (!bestEpisodePath) {
+        return res.status(404).json({ error: 'NO_BEST_EPISODE_FOUND', message: `No suitable best episode artifact found for policy: ${policyId}` });
+      }
+
+      const episodeData = JSON.parse(fs.readFileSync(bestEpisodePath, 'utf8'));
+      res.json(buildEpisodeDto(bestEpisodePath, episodeData));
+    } catch (error) {
+      res.status(500).json({
+        error: 'BEST_EPISODE_LOAD_FAILED',
+        message: error instanceof Error ? error.message : 'Unknown episodes loading error.'
       });
     }
   }
@@ -112,6 +145,6 @@ const episodesController = {
 
 module.exports = {
   ...episodesController,
-  buildMapSceneDto,
+  buildEpisodeDto,
   loadEnvironmentData
 };

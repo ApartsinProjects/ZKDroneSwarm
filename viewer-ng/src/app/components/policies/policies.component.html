@@ -1,0 +1,26 @@
+<section class="policies-panel">
+
+  @if (policies(); as policyList) {
+    <dl class="policies-meta">
+      @for (policy of policyList; track policy) {
+        <div class="policy-card" (click)="onPolicyClick(policy)">
+          <dt>Policy</dt>
+          <dd>{{ policy }}</dd>
+        </div>
+      }
+      @if (policyList.length === 0) {
+        <div class="policy-card">
+          <dt>Status</dt>
+          <dd>No policies found</dd>
+        </div>
+      }
+    </dl>
+  } @else {
+    <dl class="policies-meta">
+      <div class="policy-card">
+        <dt>Loading</dt>
+        <dd>Fetching...</dd>
+      </div>
+    </dl>
+  }
+</section>
