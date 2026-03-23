@@ -1,5 +1,5 @@
-@if (metrics(); as m) {
-  <div class="env-info-panel">
+<div class="env-info-panel">
+  @if (metrics(); as m) {
     <div class="env-info-item">
       <span class="env-info-label">Current Step</span>
       <span class="env-info-value">{{ m.currentStep }}</span>
@@ -12,5 +12,9 @@
       <span class="env-info-label">Avg HP/Step</span>
       <span class="env-info-value">{{ m.avgHpReductionPerStep | number:'1.1-2' }}</span>
     </div>
-  </div>
-}
+  } @else {
+    <div class="env-info-item env-info-item--placeholder">
+      <span class="env-info-value">Load a policy to view live environment metrics</span>
+    </div>
+  }
+</div>

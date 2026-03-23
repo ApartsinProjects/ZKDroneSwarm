@@ -33,8 +33,8 @@
       </dl>
     </header>
 
-    @if (episodeMetrics(); as metrics) {
-      <div class="map-page__metrics">
+    <div class="map-page__metrics">
+      @if (episodeMetrics(); as metrics) {
         <div class="metric-item">
           <span class="metric-label">Total Steps</span>
           <span class="metric-value">{{ metrics.totalSteps }}</span>
@@ -43,8 +43,12 @@
           <span class="metric-label">Total Ammo Used</span>
           <span class="metric-value">{{ metrics.totalAmmoUsed }}</span>
         </div>
-      </div>
-    }
+      } @else {
+        <div class="metric-item metric-item--placeholder">
+          <span class="metric-value">Load a policy to view episode metrics</span>
+        </div>
+      }
+    </div>
 
     <section class="map-stage">
       <div class="map-stage__frame" [style.aspectRatio]="mapAspectRatio()">

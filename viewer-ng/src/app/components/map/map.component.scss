@@ -123,6 +123,15 @@
   color: #5f5a4f;
 }
 
+.map-page__metrics .metric-item--placeholder {
+  justify-content: center;
+  min-width: 320px;
+}
+
+.map-page__metrics .metric-item--placeholder .metric-value {
+  font-weight: 400;
+}
+
 .map-stage {
   height: 60vh;
   width: 70.5vh;

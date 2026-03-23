@@ -14,15 +14,19 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 12rem;
+  // width: 14rem;
   padding: 8px 16px;
+  box-sizing: border-box;
   border-radius: 12px;
   background: rgba(220, 240, 255, 0.4);
   border: 1px solid rgba(130, 180, 220, 0.3);
 }
 
 .env-info-label {
-  font-size: 0.75rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-transform: uppercase;
   color: #4a6a8a;
@@ -30,7 +34,20 @@
 }
 
 .env-info-value {
-  font-size: 1rem;
+  font-size: .7rem;
   font-weight: 700;
   color: #2a4a6a;
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.env-info-item--placeholder {
+  justify-content: center;
+  background: transparent;
+  border-color: transparent;
+}
+
+.env-info-item--placeholder .env-info-value {
+  font-weight: 400;
 }
