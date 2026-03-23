@@ -146,10 +146,13 @@
 .map-page__metrics .metric-item--placeholder {
   justify-content: center;
   min-width: 320px;
+  height: 100px;
 }
 
 .map-page__metrics .metric-item--placeholder .metric-value {
   font-weight: 400;
+  font-size: 0.85rem;
+  color: #888;
 }
 
 .map-stage {

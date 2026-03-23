@@ -72,7 +72,8 @@ export class MapComponent {
       return '1 / 1';
     }
 
-    return `${scene.width} / ${scene.height}`;
+    const width = scene.width === 1000 ? 1200 : scene.width;
+    return `${width} / ${scene.height}`;
   });
 
   protected readonly targetMaxHpById = computed(() => {
