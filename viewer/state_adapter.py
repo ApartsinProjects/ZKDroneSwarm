@@ -55,8 +55,7 @@ def extract_initial_state(
         raise ValueError(
             f"Unsupported episode log version '{version}'. Viewer supports version '1.2' only."
         )
-    scenario = episode_data.get("scenario", {})
-    config = episode_data.get("config", {})
+    scenario, config = _resolve_environment_payload(episode_data, episode_path)
     
     # Extract world size (v1.1 has it in config, v1.0 needs fallback)
     if "world_size" in config:
@@ -166,6 +165,32 @@ def extract_initial_state(
         "decentralized_learning_state": decentralized_learning_state,
         "decentralized_learning_state_ep1": decentralized_learning_state_ep1,
     }
+
+
+def _resolve_environment_payload(
+    episode_data: Dict[str, Any],
+    episode_path: Optional[str],
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """Resolve shared environment data for both normalized and legacy episodes."""
+    scenario = episode_data.get("scenario", {})
+    config = episode_data.get("config", {})
+
+    if scenario and "world_size" in config:
+        return scenario, config
+
+    environment_ref = episode_data.get("environment_path")
+    if not environment_ref or not episode_path:
+        return scenario, config
+
+    environment_path = os.path.normpath(
+        os.path.join(os.path.dirname(episode_path), environment_ref)
+    )
+    with open(environment_path, "r") as f:
+        environment_data = json.load(f)
+
+    merged_config = dict(environment_data.get("config", {}))
+    merged_config.update(config)
+    return environment_data.get("scenario", {}), merged_config
 
 
 def extract_hp_history(episode_data: Dict[str, Any]) -> List[float]:

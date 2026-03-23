@@ -28,6 +28,7 @@ class EnvironmentLogger:
         self._scenario_folder = scenario_id
         self._scenario_path = os.path.join(output_dir, self._scenario_folder)
         os.makedirs(self._scenario_path, exist_ok=True)
+        self._environment_data: Optional[Dict[str, Any]] = None
 
         self._current_policy: Optional[str] = None
         self._current_policy_path: Optional[str] = None
@@ -101,6 +102,10 @@ class EnvironmentLogger:
     def get_scenario_path(self) -> str:
         """Return the scenario output directory path."""
         return self._scenario_path
+
+    def get_environment_path(self) -> str:
+        """Return the run-level shared environment artifact path."""
+        return os.path.join(self._scenario_path, "environment.json")
 
     def get_episodes_dir(self) -> str:
         """Return the current policy episodes directory."""
@@ -196,12 +201,26 @@ class EnvironmentLogger:
         total_episodes: Optional[int] = None,
     ) -> None:
         """Start the active episode logger for the current episode."""
+        self._persist_environment_data(
+            {
+                "version": EpisodeLogger.VERSION,
+                "scenario_id": getattr(env, "scenario_id", self.scenario_id),
+                "config": self.active_episode_logger._build_shared_config_snapshot(env),
+                "scenario": self.active_episode_logger._build_scenario_snapshot(
+                    env, reset_info, seed
+                ),
+            }
+        )
         self.active_episode_logger.start_episode(
             env=env,
             reset_info=reset_info,
             seed=seed,
             episode_num=episode_num,
             total_episodes=total_episodes,
+            environment_path=os.path.relpath(
+                self.get_environment_path(),
+                self.get_episodes_dir(),
+            ),
         )
 
     def log_step(
@@ -410,6 +429,15 @@ class EnvironmentLogger:
         with open(filepath, "w") as f:
             json.dump(episode_data, f, indent=2)
         return filepath
+
+    def _persist_environment_data(self, environment_data: Dict[str, Any]) -> None:
+        """Persist the run-level shared environment artifact once per scenario."""
+        if self._environment_data is not None:
+            return
+
+        self._environment_data = environment_data
+        with open(self.get_environment_path(), "w") as f:
+            json.dump(environment_data, f, indent=2)
 
     def _clear_continuous_flush_context(self) -> None:
         self._continuous_learning_state_provider = None

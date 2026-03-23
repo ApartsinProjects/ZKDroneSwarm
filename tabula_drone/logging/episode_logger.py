@@ -78,7 +78,8 @@ class EpisodeLogger:
         reset_info: Dict[str, Any],
         seed: Optional[int] = None,
         episode_num: Optional[int] = None,
-        total_episodes: Optional[int] = None
+        total_episodes: Optional[int] = None,
+        environment_path: Optional[str] = None,
     ) -> None:
         """
         Capture initial episode state after env.reset().
@@ -99,19 +100,18 @@ class EpisodeLogger:
         # Initialize engagement logger
         self._engagement_logger.start_episode(env, self._episode_id, self._timestamp)
         
-        scenario = self._build_scenario_snapshot(env, reset_info, seed)
-        config = self._build_config_snapshot(env)
+        config = self._build_policy_config_snapshot(env)
         
         self._episode_data = {
             "version": self.VERSION,
             "episode_id": self._episode_id,
-            "scenario_id": config.get("scenario_id", ""),
+            "scenario_id": getattr(env, "scenario_id", ""),
             "episode_num": episode_num,
             "total_episodes": total_episodes,
             "timestamp": self._timestamp,
             "rng_seed": seed,
+            "environment_path": environment_path,
             "config": config,
-            "scenario": scenario,
             "steps": self._steps,
             "summary": None,
         }
@@ -325,7 +325,7 @@ class EpisodeLogger:
             "target_classes": target_classes,
         }
     
-    def _build_config_snapshot(self, env: Any) -> Dict[str, Any]:
+    def _build_shared_config_snapshot(self, env: Any) -> Dict[str, Any]:
         """
         Build config snapshot from environment configuration.
         
@@ -342,9 +342,14 @@ class EpisodeLogger:
             "world_size": list(env.world_size),
             "max_steps": env.max_steps,
             "scenario_id": env.scenario_id,
-            "policy_type": self.policy_type if self.policy_type else env.policy_type,
             "class_attribute_mapping": dict(env.class_attribute_mapping),
             "weapon_damage_profile_mapping": dict(env.weapon_damage_profile_mapping),
+        }
+
+    def _build_policy_config_snapshot(self, env: Any) -> Dict[str, Any]:
+        """Build the policy-local config snapshot stored in each episode."""
+        return {
+            "policy_type": self.policy_type if self.policy_type else env.policy_type,
         }
     
     def _build_step_record(

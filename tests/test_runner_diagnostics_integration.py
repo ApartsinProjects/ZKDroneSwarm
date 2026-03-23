@@ -1,3 +1,5 @@
+import json
+
 from main_zk_mrta import run_episode
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.logging import EnvironmentLogger
@@ -139,7 +141,18 @@ def test_run_episode_uses_environment_logger_boundary(tmp_path) -> None:
     episode_path = (
         tmp_path / "runner_test" / "random_policy" / "episodes" / "episode_first_ep01.json"
     )
+    environment_path = tmp_path / "runner_test" / "environment.json"
 
     assert metrics["episode"] == 1
     assert result["steps"] == {"first": metrics["steps"]}
     assert episode_path.is_file()
+    assert environment_path.is_file()
+
+    episode_data = json.loads(episode_path.read_text())
+    environment_data = json.loads(environment_path.read_text())
+
+    assert episode_data["environment_path"] == "../../environment.json"
+    assert episode_data["config"] == {"policy_type": "random_policy"}
+    assert "scenario" not in episode_data
+    assert environment_data["scenario_id"] == "runner_test"
+    assert "policy_type" not in environment_data["config"]

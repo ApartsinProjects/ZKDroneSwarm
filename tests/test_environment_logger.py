@@ -77,6 +77,101 @@ def test_environment_logger_persist_episode_outputs_uses_active_logger(tmp_path:
     assert result["steps"] == {"first": 7}
 
 
+def test_environment_logger_start_episode_persists_shared_environment_artifact(tmp_path: Path) -> None:
+    env_logger = EnvironmentLogger(
+        output_dir=str(tmp_path),
+        scenario_id="scenario_theta",
+    )
+    env_logger.start_policy("policy_env", is_deterministic=True)
+
+    class StubEpisodeLogger:
+        VERSION = "1.2"
+
+        def _build_shared_config_snapshot(self, env) -> dict:
+            return {
+                "world_size": [10.0, 20.0],
+                "max_steps": 5,
+                "scenario_id": env.scenario_id,
+                "class_attribute_mapping": {"A": {"hp": 1.0}},
+                "weapon_damage_profile_mapping": {"light": {"hp": 1.0}},
+            }
+
+        def _build_scenario_snapshot(self, env, reset_info, seed) -> dict:
+            return {
+                "num_drones": 1,
+                "num_targets": 1,
+                "drone_positions": [[1.0, 2.0]],
+                "target_positions": [[3.0, 4.0]],
+                "weapon_assignments": {"drone_0": "light"},
+                "target_classes": ["A"],
+            }
+
+        def start_episode(self, **kwargs) -> None:
+            return None
+
+    class StubEnv:
+        scenario_id = "scenario_theta"
+
+    env_logger._active_episode_logger = StubEpisodeLogger()
+
+    env_logger.start_episode(
+        env=StubEnv(),
+        reset_info={"step_index": 0},
+        seed=11,
+        episode_num=1,
+        total_episodes=1,
+    )
+
+    environment_path = tmp_path / "scenario_theta" / "environment.json"
+    assert environment_path.is_file()
+    assert environment_path.read_text() == (
+        '{\n'
+        '  "version": "1.2",\n'
+        '  "scenario_id": "scenario_theta",\n'
+        '  "config": {\n'
+        '    "world_size": [\n'
+        '      10.0,\n'
+        '      20.0\n'
+        '    ],\n'
+        '    "max_steps": 5,\n'
+        '    "scenario_id": "scenario_theta",\n'
+        '    "class_attribute_mapping": {\n'
+        '      "A": {\n'
+        '        "hp": 1.0\n'
+        '      }\n'
+        '    },\n'
+        '    "weapon_damage_profile_mapping": {\n'
+        '      "light": {\n'
+        '        "hp": 1.0\n'
+        '      }\n'
+        '    }\n'
+        '  },\n'
+        '  "scenario": {\n'
+        '    "num_drones": 1,\n'
+        '    "num_targets": 1,\n'
+        '    "drone_positions": [\n'
+        '      [\n'
+        '        1.0,\n'
+        '        2.0\n'
+        '      ]\n'
+        '    ],\n'
+        '    "target_positions": [\n'
+        '      [\n'
+        '        3.0,\n'
+        '        4.0\n'
+        '      ]\n'
+        '    ],\n'
+        '    "weapon_assignments": {\n'
+        '      "drone_0": "light"\n'
+        '    },\n'
+        '    "target_classes": [\n'
+        '      "A"\n'
+        '    ]\n'
+        '  }\n'
+        '}'
+    )
+
+
 def test_environment_logger_handle_flush_persists_learning_state_checkpoint(tmp_path: Path) -> None:
     env_logger = EnvironmentLogger(
         output_dir=str(tmp_path),
@@ -146,6 +241,12 @@ def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(
     calls = []
 
     class StubEpisodeLogger:
+        def _build_shared_config_snapshot(self, env) -> dict:
+            return {"scenario_id": "scenario_epsilon"}
+
+        def _build_scenario_snapshot(self, env, reset_info, seed) -> dict:
+            return {"num_drones": 0, "num_targets": 0}
+
         def start_episode(self, **kwargs) -> None:
             calls.append(("start", kwargs))
 
@@ -183,6 +284,7 @@ def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(
                 "seed": 7,
                 "episode_num": 2,
                 "total_episodes": 9,
+                "environment_path": "../../environment.json",
             },
         ),
         (

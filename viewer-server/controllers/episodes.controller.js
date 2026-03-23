@@ -9,9 +9,32 @@ function sumAttributes(attributes) {
   );
 }
 
-function buildMapSceneDto(episodePath, episodeData) {
+function loadEnvironmentData(episodePath, episodeData) {
   const scenario = episodeData.scenario || {};
   const config = episodeData.config || {};
+
+  if (scenario && Object.keys(scenario).length > 0 && config.world_size) {
+    return { scenario, config };
+  }
+
+  const environmentRef = episodeData.environment_path;
+  if (!environmentRef) {
+    return { scenario, config };
+  }
+
+  const environmentPath = path.resolve(path.dirname(episodePath), environmentRef);
+  const environmentData = JSON.parse(fs.readFileSync(environmentPath, 'utf8'));
+  return {
+    scenario: environmentData.scenario || {},
+    config: {
+      ...(environmentData.config || {}),
+      ...config
+    }
+  };
+}
+
+function buildMapSceneDto(episodePath, episodeData) {
+  const { scenario, config } = loadEnvironmentData(episodePath, episodeData);
   const classAttributeMapping = config.class_attribute_mapping || {};
   const weaponAssignments = scenario.weapon_assignments || {};
   const dronePositions = scenario.drone_positions || [];
@@ -87,4 +110,8 @@ const episodesController = {
   }
 };
 
-module.exports = episodesController;
+module.exports = {
+  ...episodesController,
+  buildMapSceneDto,
+  loadEnvironmentData
+};
