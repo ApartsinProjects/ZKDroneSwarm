@@ -1,0 +1,68 @@
+@if (isLoading()) {
+  <section class="status-card">
+    <p class="status-card__eyebrow">Loading</p>
+    <h1>Preparing map scene</h1>
+    <p>Fetching the default episodic artifact from the viewer server.</p>
+  </section>
+} @else if (errorMessage()) {
+  <section class="status-card status-card--error">
+    <p class="status-card__eyebrow">Unable to load map</p>
+    <h1>Viewer server request failed</h1>
+    <p>{{ errorMessage() }}</p>
+  </section>
+} @else if (scene(); as scene) {
+  <section class="map-page">
+    <header class="map-page__header">
+      <div class="map-page__title">
+        <p class="map-page__eyebrow">TabulaDrone Viewer</p>
+        <h1>World State Map</h1>
+      </div>
+      <dl class="map-page__meta">
+        <div>
+          <dt>Episode</dt>
+          <dd>{{ scene.episode.fileName }}</dd>
+        </div>
+        <div>
+          <dt>Policy</dt>
+          <dd>{{ scene.episode.policyType }}</dd>
+        </div>
+        <div>
+          <dt>Entities</dt>
+          <dd>{{ scene.drones.length }} drones / {{ scene.targets.length }} targets</dd>
+        </div>
+      </dl>
+    </header>
+
+    <section class="map-stage">
+      <div class="map-stage__frame" [style.aspectRatio]="mapAspectRatio()">
+        <img
+          class="map-stage__background"
+          [src]="assetPaths.background"
+          alt="Episode world background"
+        />
+
+        @for (target of scene.targets; track trackById($index, target)) {
+          <img
+            class="map-entity map-entity--target"
+            [src]="assetPaths.target"
+            [alt]="target.id"
+            [style.left.%]="target.leftPct"
+            [style.top.%]="target.topPct"
+          />
+        }
+
+        @for (drone of scene.drones; track trackById($index, drone)) {
+          <img
+            class="map-entity map-entity--drone"
+            [src]="assetPaths.drone"
+            [alt]="drone.id"
+            [style.left.%]="drone.leftPct"
+            [style.top.%]="drone.topPct"
+          />
+        }
+
+        <div class="map-stage__border" aria-hidden="true"></div>
+      </div>
+    </section>
+  </section>
+}
