@@ -3,7 +3,7 @@
 This folder defines the high-level requirements for migrating the current Python-based TabulaDrone viewer to:
 
 - `viewer-ng` for the Angular frontend
-- `viewer-server` for the backend/API layer
+- `tabula_server` for the backend/API layer
 
 This first pass is intentionally scoped to episodic mode only.
 

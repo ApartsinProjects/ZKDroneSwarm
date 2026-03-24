@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the minimum backend API responsibilities for `viewer-server` in phase 1.
+This document defines the minimum backend API responsibilities for `tabula_server` in phase 1.
 
 ## General Requirements
 

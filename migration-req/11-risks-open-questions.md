@@ -20,7 +20,7 @@ Radar and Training Path behavior depend on episodic learning-state payloads and 
 
 ## Open Questions
 
-- Which backend framework should power `viewer-server`?
+- Which backend framework should power `tabula_server`?
 - Which charting library should power Radar, Results, and Training Path visuals?
 - Should the map be rendered with SVG, Canvas, or another browser-native approach?
 - How much visual modernization is acceptable relative to the current Python viewer?

@@ -10,7 +10,7 @@ This document defines the high-level architectural expectations for `viewer-ng`.
 
 It should:
 
-- request normalized data from `viewer-server`
+- request normalized data from `tabula_server`
 - manage UI navigation and selection state
 - render maps, charts, and analysis panels
 - remain isolated from raw log-file structure

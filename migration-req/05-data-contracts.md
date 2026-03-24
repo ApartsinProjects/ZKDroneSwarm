@@ -135,4 +135,4 @@ The frontend needs stable URLs or API-backed paths for:
 
 ## Contract Stability Rule
 
-If raw log formats evolve later, `viewer-server` should absorb that change so `viewer-ng` can keep a stable contract.
+If raw log formats evolve later, `tabula_server` should absorb that change so `viewer-ng` can keep a stable contract.

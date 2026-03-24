@@ -5,7 +5,7 @@
 Migrate the current Python-based TabulaDrone episode viewer into a web-based system with:
 
 - an Angular frontend in `viewer-ng`
-- a backend/API service in `viewer-server`
+- a backend/API service in `tabula_server`
 
 The migrated system must preserve the current viewer's core functionality and analytical value for episodic runs.
 

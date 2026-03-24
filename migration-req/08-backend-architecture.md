@@ -2,11 +2,11 @@
 
 ## Purpose
 
-This document defines the high-level architectural expectations for `viewer-server`.
+This document defines the high-level architectural expectations for `tabula_server`.
 
 ## Architectural Role
 
-`viewer-server` is the adapter layer between raw TabulaDrone artifacts and the Angular frontend.
+`tabula_server` is the adapter layer between raw TabulaDrone artifacts and the Angular frontend.
 
 It should:
 

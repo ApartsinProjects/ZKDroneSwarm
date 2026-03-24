@@ -213,7 +213,7 @@ __marimo__/
 # === TabulaDrone Viewer (Node.js / Angular) ===
 # Dependencies
 viewer-ng/node_modules/
-viewer-server/node_modules/
+tabula_server/node_modules/
 
 # Build outputs
 viewer-ng/dist/
@@ -221,8 +221,8 @@ viewer-ng/.angular/
 viewer-ng/.vscode/
 
 # Server logs
-viewer-server/*.log
-viewer-server/.env
+tabula_server/*.log
+tabula_server/.env
 
 # Angular cache
 viewer-ng/.sass-cache/
