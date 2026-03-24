@@ -21,4 +21,8 @@ export class PoliciesService {
   getBestEpisode(policyId: string): Observable<any> {
     return this.http.get<any>(`http://localhost:3001/api/policies/${policyId}/episodes/best`);
   }
+
+  getAllEpisodes(policyId: string): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:3001/api/policies/${policyId}/episodes`);
+  }
 }

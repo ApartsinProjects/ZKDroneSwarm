@@ -30,7 +30,38 @@
       [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
       [hidden]="activeTab() !== tab.id"
     >
-      <div class="viewer-sidebar-tabs__panel-canvas" aria-hidden="true"></div>
+      <div class="viewer-sidebar-tabs__panel-canvas">
+        @if (tab.id === 'hp-active-target') {
+          <div class="analysis-panel">
+            @if (isLoading()) {
+              <div class="analysis-status">Loading episodes...</div>
+            } @else if (totalEpisodes() > 0) {
+              <div class="analysis-controls">
+                <div class="analysis-meta">
+                  <span class="meta-label">Episode</span>
+                  <span class="meta-value">{{ currentSnapshot()?.episodeNum ?? (currentIndex() + 1) }} / {{ totalEpisodes() }}</span>
+                  <span class="meta-divider"></span>
+                  <span class="meta-label">Steps</span>
+                  <span class="meta-value">{{ currentSnapshot()?.totalSteps ?? 0 }}</span>
+                </div>
+                <input 
+                  type="range" 
+                  class="analysis-slider"
+                  [min]="0" 
+                  [max]="totalEpisodes() - 1" 
+                  [value]="currentIndex()"
+                  (input)="onSliderInput($event)"
+                />
+              </div>
+              <app-episode-analysis-chart [snapshot]="currentSnapshot()" />
+            } @else {
+              <div class="analysis-placeholder">
+                Select a policy to analyze episodes
+              </div>
+            }
+          </div>
+        }
+      </div>
     </section>
   }
 </section>

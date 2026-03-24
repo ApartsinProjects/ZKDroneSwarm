@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { PoliciesService } from '../../services/policies.service';
 import { EpisodeStateService } from '../../services/episode-state.service';
+import { CrossEpisodeBrowserService } from '../../services/cross-episode-browser.service';
 
 @Component({
   selector: 'app-policies',
@@ -14,9 +15,9 @@ import { EpisodeStateService } from '../../services/episode-state.service';
 export class PoliciesComponent {
   private policiesService = inject(PoliciesService);
   private episodeState = inject(EpisodeStateService);
-  
+  private crossEpisodeBrowser = inject(CrossEpisodeBrowserService);
   public policies = toSignal(this.policiesService.getPolicies());
-
+  
   onPolicyClick(policyName: string): void {
     console.log(`Selected policy: ${policyName}`);
     this.policiesService.getBestEpisode(policyName).subscribe({
@@ -28,5 +29,7 @@ export class PoliciesComponent {
         console.error('Error fetching best episode:', err);
       }
     });
+
+    this.crossEpisodeBrowser.loadEpisodes(policyName);
   }
 }

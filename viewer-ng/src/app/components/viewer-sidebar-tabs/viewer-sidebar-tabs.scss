@@ -64,16 +64,91 @@
   height: 100%;
   min-height: 320px;
   border-radius: 20px;
-  // background:
-  //   linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(247, 236, 208, 0.45)),
-  //   repeating-linear-gradient(
-  //     -45deg,
-  //     rgba(170, 145, 92, 0.08),
-  //     rgba(170, 145, 92, 0.08) 10px,
-  //     rgba(255, 255, 255, 0.08) 10px,
-  //     rgba(255, 255, 255, 0.08) 20px
-  //   );
-  border: 1px dashed rgba(126, 104, 62, 0.18);
+  overflow-y: auto;
+}
+
+.analysis-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.analysis-status, .analysis-placeholder {
+  padding: 3rem 1.5rem;
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 0.9rem;
+  background: rgba(255, 251, 242, 0.4);
+  border-radius: 12px;
+  border: 1px dashed rgba(102, 86, 52, 0.14);
+}
+
+.analysis-controls {
+  background: rgba(255, 248, 233, 0.9);
+  padding: 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(91, 69, 28, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border: 1px solid rgba(126, 104, 62, 0.1);
+}
+
+.analysis-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  
+  .meta-label {
+    color: #8b795e;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    font-size: 0.7rem;
+  }
+  
+  .meta-value {
+    color: #312519;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .meta-divider {
+    width: 1px;
+    height: 12px;
+    background: rgba(102, 86, 52, 0.14);
+    margin: 0 0.25rem;
+  }
+}
+
+.analysis-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: rgba(102, 86, 52, 0.1);
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+  
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #e7c47d;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 0 4px rgba(231, 196, 125, 0.15);
+    transition: all 0.18s ease;
+    border: 1px solid rgba(173, 124, 58, 0.4);
+    
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 0 6px rgba(231, 196, 125, 0.2);
+    }
+  }
 }
 
 @media (max-width: 960px) {

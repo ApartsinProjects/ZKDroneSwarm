@@ -1,4 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { CrossEpisodeBrowserService } from '../../services/cross-episode-browser.service';
+import { EpisodeAnalysisChart } from './episode-analysis-chart';
 
 type SidebarTabId = 'hp-active-target' | 'embedding-visualization';
 
@@ -14,16 +17,29 @@ const SIDEBAR_TABS: ReadonlyArray<SidebarTabDefinition> = [
 
 @Component({
   selector: 'app-viewer-sidebar-tabs',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule, EpisodeAnalysisChart],
   templateUrl: './viewer-sidebar-tabs.html',
   styleUrl: './viewer-sidebar-tabs.scss',
 })
 export class ViewerSidebarTabs {
+  private browserService = inject(CrossEpisodeBrowserService);
+
   protected readonly tabs = SIDEBAR_TABS;
   protected readonly activeTab = signal<SidebarTabId>('hp-active-target');
 
+  protected readonly currentIndex = this.browserService.currentIndex;
+  protected readonly currentSnapshot = this.browserService.currentEpisodeSnapshot;
+  protected readonly isLoading = this.browserService.isLoading;
+  protected readonly totalEpisodes = this.browserService.totalEpisodes;
+
   protected selectTab(tabId: SidebarTabId): void {
     this.activeTab.set(tabId);
+  }
+
+  protected onSliderInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).valueAsNumber;
+    this.browserService.setIndex(value);
   }
 
   protected tabButtonId(tabId: SidebarTabId): string {
