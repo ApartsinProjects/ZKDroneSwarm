@@ -186,22 +186,15 @@ const TARGET_CLASS_COLORS = [
 
             }
 
-            <circle
+
+            <image
               class="embedding-node embedding-node--agent"
-              [attr.cx]="model.currentAgent.px"
-              [attr.cy]="model.currentAgent.py"
-              r="7"
-              [attr.fill]="model.currentAgent.color"
+              [attr.x]="model.currentAgent.px - 14"
+              [attr.y]="model.currentAgent.py - 14"
+              width="28"
+              height="28"
+              xlink:href="assets/map/drone.png"
             />
-            <text
-              [attr.x]="model.currentAgent.px + 10"
-              [attr.y]="model.currentAgent.py + 4"
-              font-size="11"
-              font-weight="700"
-              fill="#27577e"
-            >
-              {{ model.currentAgent.label }}
-            </text>
           </svg>
         </div>
 
@@ -333,10 +326,11 @@ export class EmbeddingVisualizationPanel {
       currentAgentPoint,
       xScale,
       yScale,
-      `agent-${selectedAgentIndex}`,
+      `${selectedAgentIndex}`,
       `A${selectedAgentIndex}`,
       AGENT_COLOR,
     );
+
     const currentTargets = currentTargetPoints.map((point, index) =>
       this.toNode(
         point,
