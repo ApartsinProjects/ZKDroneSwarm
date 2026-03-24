@@ -195,10 +195,16 @@ const TARGET_CLASS_COLORS = [
             }
 
 
+            <circle
+              class="embedding-node--agent-shadow"
+              [attr.cx]="model.currentAgent.px"
+              [attr.cy]="model.currentAgent.py + 12"
+              r="8"
+            />
             <image
               class="embedding-node embedding-node--agent"
               [attr.x]="model.currentAgent.px - 16"
-              [attr.y]="model.currentAgent.py - 16"
+              [attr.y]="model.currentAgent.py - 18"
               width="32"
               height="32"
               xlink:href="assets/map/drone.png"
@@ -216,6 +222,16 @@ const TARGET_CLASS_COLORS = [
   `,
   styles: [`
     .embedding-node {
+      transition: cx 0.08s linear, cy 0.08s linear, x 0.08s linear, y 0.08s linear, transform 0.08s linear;
+    }
+
+    .embedding-node--agent {
+      filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.25));
+    }
+
+    .embedding-node--agent-shadow {
+      fill: rgba(0, 0, 0, 0.1);
+      filter: blur(2px);
       transition: cx 0.08s linear, cy 0.08s linear;
     }
 
