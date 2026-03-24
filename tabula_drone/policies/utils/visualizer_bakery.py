@@ -79,4 +79,3 @@ def enrich_learning_state_file(filepath: str):
     # Save back
     with open(filepath, 'w') as f:
         json.dump(data, f, indent=2)
-    print(f"Enriched learning state with t-SNE: {filepath}")

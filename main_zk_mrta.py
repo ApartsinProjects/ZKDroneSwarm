@@ -858,23 +858,21 @@ def main():
             printer.saved_episodes(result["files"])
         steps = result['steps']
         
-        # Enrich learning state for milestone episodes with t-SNE (offline post-processing)
-        # This keeps the training loop fast while providing rich visualizations for key episodes.
+        # Enrich all learning_state artifacts for matrix factorization with t-SNE
+        # as a post-processing step, keeping the training loop itself fast.
         if not is_deterministic and policy_type == "matrix_factorization_cf":
-            milestones = result.get('milestones', {})
-            milestone_episodes = list(set(milestones.values())) # unique episode numbers
-            for category, ep_num in milestones.items():
-                if environment_logger.mode == "continuous":
-                    filename = "learning_state_continuous_final.json"
-                else:
-                    filename = f"learning_state_ep{ep_num:02d}.json"
-                    
-                    state_file = os.path.join(
-                        environment_logger.get_learning_state_dir(),
-                        filename
-                    )
-                    if os.path.exists(state_file):
-                        enrich_learning_state_file(state_file)
+            learning_state_dir = environment_logger.get_learning_state_dir()
+            state_files = sorted(
+                os.path.join(learning_state_dir, filename)
+                for filename in os.listdir(learning_state_dir)
+                if filename.startswith("learning_state_") and filename.endswith(".json")
+            )
+
+            if state_files:
+                print("Starting t-SNE enrichment for all learning_state artifacts...")
+                for state_file in state_files:
+                    enrich_learning_state_file(state_file)
+                print("Finished t-SNE enrichment for all learning_state artifacts.")
 
         if 'best' in steps:
             printer.policy_steps_summary(

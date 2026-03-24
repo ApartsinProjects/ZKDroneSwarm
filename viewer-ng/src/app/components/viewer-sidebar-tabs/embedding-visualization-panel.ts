@@ -1,0 +1,351 @@
+import { CommonModule } from '@angular/common';
+import { Component, computed, input, output } from '@angular/core';
+import { extent } from 'd3-array';
+import { scaleLinear } from 'd3-scale';
+import { LearningStateEpisodeDto } from '../../services/policies.service';
+
+type PlotPoint = {
+  x: number;
+  y: number;
+};
+
+type PlotNode = PlotPoint & {
+  id: string;
+  label: string;
+  px: number;
+  py: number;
+};
+
+type PlotTick = {
+  value: string;
+  x?: number;
+  y?: number;
+};
+
+type PlotModel = {
+  width: number;
+  height: number;
+  selectedAgent: number;
+  agentCount: number;
+  currentEpisodeNum: number | null;
+  currentAgent: PlotNode;
+  currentTargets: PlotNode[];
+  agentTrail: string;
+  targetTrails: Array<{ id: string; points: string }>;
+  xTicks: PlotTick[];
+  yTicks: PlotTick[];
+  zeroX: number | null;
+  zeroY: number | null;
+};
+
+const WIDTH = 560;
+const HEIGHT = 360;
+const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
+
+@Component({
+  selector: 'app-embedding-visualization-panel',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    @if (plotModel(); as model) {
+      <div class="embedding-panel">
+        <div class="embedding-panel__toolbar">
+          <div class="embedding-panel__summary">
+            Episode {{ model.currentEpisodeNum ?? '?' }} auto-fits the axes to the current embedding range.
+            The selected agent trail shows how its reduced position evolves as learning progresses.
+          </div>
+
+          <div class="embedding-panel__agent-list" role="toolbar" aria-label="Embedding agents">
+            @for (agentIndex of agentIndices(); track agentIndex) {
+              <button
+                type="button"
+                class="embedding-panel__agent-button"
+                [class.embedding-panel__agent-button--active]="agentIndex === model.selectedAgent"
+                (click)="selectedAgentChange.emit(agentIndex)"
+              >
+                Agent {{ agentIndex }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="embedding-panel__stage">
+          <svg
+            class="embedding-panel__svg"
+            [attr.viewBox]="'0 0 ' + model.width + ' ' + model.height"
+            role="img"
+            aria-label="Embedding trajectory chart"
+          >
+            <g>
+              @for (tick of model.xTicks; track tick.value) {
+                <line
+                  class="embedding-grid__line"
+                  [attr.x1]="tick.x"
+                  [attr.x2]="tick.x"
+                  [attr.y1]="MARGIN.top"
+                  [attr.y2]="model.height - MARGIN.bottom"
+                  stroke="rgba(126, 104, 62, 0.12)"
+                  stroke-dasharray="4 6"
+                />
+                <text
+                  [attr.x]="tick.x"
+                  [attr.y]="model.height - 12"
+                  text-anchor="middle"
+                  font-size="10"
+                  fill="#7a6850"
+                >
+                  {{ tick.value }}
+                </text>
+              }
+
+              @for (tick of model.yTicks; track tick.value) {
+                <line
+                  class="embedding-grid__line"
+                  [attr.x1]="MARGIN.left"
+                  [attr.x2]="model.width - MARGIN.right"
+                  [attr.y1]="tick.y"
+                  [attr.y2]="tick.y"
+                  stroke="rgba(126, 104, 62, 0.12)"
+                  stroke-dasharray="4 6"
+                />
+                <text
+                  [attr.x]="MARGIN.left - 10"
+                  [attr.y]="(tick.y ?? 0) + 4"
+                  text-anchor="end"
+                  font-size="10"
+                  fill="#7a6850"
+                >
+                  {{ tick.value }}
+                </text>
+              }
+
+              @if (model.zeroX !== null) {
+                <line
+                  [attr.x1]="model.zeroX"
+                  [attr.x2]="model.zeroX"
+                  [attr.y1]="MARGIN.top"
+                  [attr.y2]="model.height - MARGIN.bottom"
+                  stroke="rgba(109, 90, 61, 0.2)"
+                />
+              }
+
+              @if (model.zeroY !== null) {
+                <line
+                  [attr.x1]="MARGIN.left"
+                  [attr.x2]="model.width - MARGIN.right"
+                  [attr.y1]="model.zeroY"
+                  [attr.y2]="model.zeroY"
+                  stroke="rgba(109, 90, 61, 0.2)"
+                />
+              }
+            </g>
+
+            @for (trail of model.targetTrails; track trail.id) {
+              <polyline
+                [attr.points]="trail.points"
+                fill="none"
+                stroke="rgba(231, 126, 34, 0.22)"
+                stroke-width="1.4"
+              />
+            }
+
+            <polyline
+              [attr.points]="model.agentTrail"
+              fill="none"
+              stroke="rgba(52, 152, 219, 0.42)"
+              stroke-width="2.4"
+            />
+
+            @for (target of model.currentTargets; track target.id) {
+              <circle
+                class="embedding-node embedding-node--target"
+                [attr.cx]="target.px"
+                [attr.cy]="target.py"
+                r="5"
+                fill="#e67e22"
+              />
+              <text
+                [attr.x]="target.px + 8"
+                [attr.y]="target.py - 8"
+                font-size="10"
+                fill="#7a6850"
+              >
+                {{ target.label }}
+              </text>
+            }
+
+            <circle
+              class="embedding-node embedding-node--agent"
+              [attr.cx]="model.currentAgent.px"
+              [attr.cy]="model.currentAgent.py"
+              r="7"
+              fill="#3498db"
+            />
+            <text
+              [attr.x]="model.currentAgent.px + 10"
+              [attr.y]="model.currentAgent.py + 4"
+              font-size="11"
+              font-weight="700"
+              fill="#27577e"
+            >
+              {{ model.currentAgent.label }}
+            </text>
+          </svg>
+        </div>
+
+        <div class="embedding-panel__caption">
+          Target trails are shown up to the selected episode. Auto-fit improves local readability, so
+          apparent motion should be read as qualitative rather than exact cross-episode distance proof.
+        </div>
+      </div>
+    } @else {
+      <div class="analysis-placeholder">
+        No embedding snapshot is available for the selected episode.
+      </div>
+    }
+  `,
+  styles: [`
+    .embedding-node {
+      transition: cx 0.08s linear, cy 0.08s linear;
+    }
+  `],
+})
+export class EmbeddingVisualizationPanel {
+  protected readonly MARGIN = MARGIN;
+
+  readonly snapshots = input<LearningStateEpisodeDto[]>([]);
+  readonly currentSnapshot = input<LearningStateEpisodeDto | null>(null);
+  readonly selectedAgent = input(0);
+  readonly selectedAgentChange = output<number>();
+
+  readonly agentIndices = computed(() => {
+    const agents = this.currentSnapshot()?.learningState.episodeState?.agents ?? [];
+    return Array.from({ length: agents.length }, (_, index) => index);
+  });
+
+  readonly plotModel = computed<PlotModel | null>(() => {
+    const currentSnapshot = this.currentSnapshot();
+    if (!currentSnapshot) {
+      return null;
+    }
+
+    const currentState = currentSnapshot?.learningState.episodeState;
+    const currentAgents = currentState?.agents ?? [];
+    if (currentAgents.length === 0) {
+      return null;
+    }
+
+    const selectedAgentIndex = Math.min(this.selectedAgent(), currentAgents.length - 1);
+    const currentAgentState = currentAgents[selectedAgentIndex];
+    const currentAgentPoint = this.readPoint(currentAgentState?.['agent_lv']);
+    const currentTargetPoints = this.readPoints(currentAgentState?.['target_lv']);
+    if (!currentAgentPoint || currentTargetPoints.length === 0) {
+      return null;
+    }
+
+    const domainPoints = [currentAgentPoint, ...currentTargetPoints];
+    const xDomain = this.computeDomain(domainPoints.map((point) => point.x));
+    const yDomain = this.computeDomain(domainPoints.map((point) => point.y));
+
+    const xScale = scaleLinear().domain(xDomain).range([MARGIN.left, WIDTH - MARGIN.right]);
+    const yScale = scaleLinear().domain(yDomain).range([HEIGHT - MARGIN.bottom, MARGIN.top]);
+
+    const currentAgent = this.toNode(currentAgentPoint, xScale, yScale, `agent-${selectedAgentIndex}`, `A${selectedAgentIndex}`);
+    const currentTargets = currentTargetPoints.map((point, index) =>
+      this.toNode(point, xScale, yScale, `target-${index}`, `T${index}`),
+    );
+
+    const currentEpisodeNum = currentSnapshot.episode?.episodeNum ?? Infinity;
+
+    const validSnapshots = this.snapshots()
+      .filter((snapshot) => {
+        const episodeNum = snapshot.episode.episodeNum ?? Infinity;
+        const agents = snapshot.learningState.episodeState?.agents ?? [];
+        return episodeNum <= currentEpisodeNum && selectedAgentIndex < agents.length;
+      });
+
+    const agentTrail = validSnapshots
+      .map((snapshot) => this.readPoint(snapshot.learningState.episodeState?.agents?.[selectedAgentIndex]?.['agent_lv']))
+      .filter((point): point is PlotPoint => point !== null)
+      .map((point) => `${xScale(point.x)},${yScale(point.y)}`)
+      .join(' ');
+
+    const targetTrails = currentTargetPoints.map((_point, targetIndex) => {
+      const points = validSnapshots
+        .map((snapshot) => {
+          const targetPoint = this.readPoints(snapshot.learningState.episodeState?.agents?.[selectedAgentIndex]?.['target_lv'])[targetIndex];
+          return targetPoint ? `${xScale(targetPoint.x)},${yScale(targetPoint.y)}` : null;
+        })
+        .filter((point): point is string => point !== null)
+        .join(' ');
+
+      return {
+        id: `target-trail-${targetIndex}`,
+        points,
+      };
+    });
+
+    return {
+      width: WIDTH,
+      height: HEIGHT,
+      selectedAgent: selectedAgentIndex,
+      agentCount: currentAgents.length,
+      currentEpisodeNum: currentSnapshot?.episode.episodeNum ?? null,
+      currentAgent,
+      currentTargets,
+      agentTrail,
+      targetTrails,
+      xTicks: xScale.ticks(5).map((value: number) => ({ value: value.toFixed(2), x: xScale(value) })),
+      yTicks: yScale.ticks(5).map((value: number) => ({ value: value.toFixed(2), y: yScale(value) })),
+      zeroX: xDomain[0] <= 0 && xDomain[1] >= 0 ? xScale(0) : null,
+      zeroY: yDomain[0] <= 0 && yDomain[1] >= 0 ? yScale(0) : null,
+    };
+  });
+
+  private readPoint(value: unknown): PlotPoint | null {
+    if (!Array.isArray(value) || value.length < 2) {
+      return null;
+    }
+
+    const x = Number(value[0]);
+    const y = Number(value[1]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      return null;
+    }
+
+    return { x, y };
+  }
+
+  private readPoints(value: unknown): PlotPoint[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((point) => this.readPoint(point))
+      .filter((point): point is PlotPoint => point !== null);
+  }
+
+  private computeDomain(values: number[]): [number, number] {
+    const [minValue = -1, maxValue = 1] = extent(values);
+    const spread = maxValue - minValue;
+    const padding = spread === 0 ? 0.5 : spread * 0.18;
+    return [minValue - padding, maxValue + padding];
+  }
+
+  private toNode(
+    point: PlotPoint,
+    xScale: ReturnType<typeof scaleLinear>,
+    yScale: ReturnType<typeof scaleLinear>,
+    id: string,
+    label: string,
+  ): PlotNode {
+    return {
+      ...point,
+      id,
+      label,
+      px: xScale(point.x),
+      py: yScale(point.y),
+    };
+  }
+}

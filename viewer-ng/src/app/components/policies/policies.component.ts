@@ -4,6 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { PoliciesService } from '../../services/policies.service';
 import { EpisodeStateService } from '../../services/episode-state.service';
 import { CrossEpisodeBrowserService } from '../../services/cross-episode-browser.service';
+import { EmbeddingBrowserService } from '../../services/embedding-browser.service';
 
 @Component({
   selector: 'app-policies',
@@ -16,6 +17,7 @@ export class PoliciesComponent {
   private policiesService = inject(PoliciesService);
   private episodeState = inject(EpisodeStateService);
   private crossEpisodeBrowser = inject(CrossEpisodeBrowserService);
+  private embeddingBrowser = inject(EmbeddingBrowserService);
   public policies = toSignal(this.policiesService.getPolicies());
   
   onPolicyClick(policyName: string): void {
@@ -31,5 +33,6 @@ export class PoliciesComponent {
     });
 
     this.crossEpisodeBrowser.loadEpisodes(policyName);
+    this.embeddingBrowser.loadSnapshots(policyName);
   }
 }
