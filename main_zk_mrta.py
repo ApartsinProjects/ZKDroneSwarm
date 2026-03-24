@@ -48,6 +48,26 @@ def get_env_diagnostics(env: DroneEngageZKMRTA) -> Dict[str, Any]:
     return env.diagnostics.to_dict()
 
 
+def attach_target_classes_to_learning_state(
+    episode_state: Optional[Dict[str, Any]],
+    env: DroneEngageZKMRTA,
+) -> Optional[Dict[str, Any]]:
+    """Add shared target classes to a learning-state payload using env target order."""
+    if episode_state is None:
+        return None
+
+    diagnostics = get_env_diagnostics(env)
+    if isinstance(diagnostics.get("target_classes"), list):
+        target_classes = list(diagnostics["target_classes"])
+    else:
+        targets = env.targets or []
+        target_classes = [target.class_type for target in targets]
+
+    learning_state = dict(episode_state)
+    learning_state["target_classes"] = target_classes
+    return learning_state
+
+
 def show_learning_path(
     policy: Union[IPolicy, Dict[str, "SelfishEpGreedyCFPolicy"]],
     drones_config: List[Dict[str, Any]],
@@ -777,7 +797,14 @@ def main():
             environment_logger.configure_continuous_flush(
                 episode_num=episode_num,
                 learning_state_provider=(
-                    policy.get_learning_state if not is_deterministic else None
+                    (
+                        lambda: attach_target_classes_to_learning_state(
+                            policy.get_learning_state(),
+                            env,
+                        )
+                    )
+                    if not is_deterministic
+                    else None
                 ),
                 num_agents=getattr(policy, "num_agents", len(drones_config)),
                 num_targets=getattr(policy, "num_targets", len(targets_config)),
@@ -800,7 +827,10 @@ def main():
             # Capture the latest post-episode state for CF policies
             episode_state = None
             if not is_deterministic:
-                episode_state = policy.get_learning_state()
+                episode_state = attach_target_classes_to_learning_state(
+                    policy.get_learning_state(),
+                    env,
+                )
             
             # Save learning state for every episode
             if not is_deterministic:

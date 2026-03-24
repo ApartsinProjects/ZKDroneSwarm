@@ -11,7 +11,7 @@
     "max_steps":2500,
     "mode": "episodic",
     "episodic": {
-      "num_episodes": 50
+      "num_episodes": 45
     },
     "continuous": {
       "logging_interval_steps": 500

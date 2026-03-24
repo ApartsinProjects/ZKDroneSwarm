@@ -43,6 +43,7 @@ class StubPoliciesService {
           numTargets: 2,
           latentDim: 2,
           episodeState: {
+            target_classes: ['A', 'B'],
             agents: [{ agent_lv: [0.1, 0.2], target_lv: [[0.2, 0.3], [0.4, 0.5]] }],
           },
         },
@@ -61,6 +62,7 @@ class StubPoliciesService {
           numTargets: 2,
           latentDim: 2,
           episodeState: {
+            target_classes: ['A', 'B'],
             agents: [{ agent_lv: [0.6, 0.7], target_lv: [[0.8, 0.9], [1.0, 1.1]] }],
           },
         },
@@ -94,6 +96,7 @@ describe('EmbeddingBrowserService', () => {
     crossEpisodeBrowser.setIndex(1);
 
     expect(service.currentSnapshot()?.episode.episodeNum).toBe(2);
+    expect(service.currentSnapshot()?.learningState.episodeState?.target_classes).toEqual(['A', 'B']);
     expect(service.currentAgent()).toEqual({
       agent_lv: [0.6, 0.7],
       target_lv: [[0.8, 0.9], [1.0, 1.1]],

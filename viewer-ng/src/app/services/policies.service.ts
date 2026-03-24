@@ -34,6 +34,7 @@ export interface LearningStateEpisodeDto {
     latentDim: number | null;
     episodeState: {
       agents: Array<Record<string, unknown>>;
+      target_classes?: string[];
     } | null;
   };
 }

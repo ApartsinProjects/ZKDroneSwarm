@@ -1,6 +1,6 @@
 import json
 
-from main_zk_mrta import run_episode
+from main_zk_mrta import attach_target_classes_to_learning_state, run_episode
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
 from tabula_drone.logging import EnvironmentLogger
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
@@ -116,6 +116,26 @@ def test_run_episode_uses_env_diagnostics_with_matrix_factorization_policy() -> 
     assert metrics["total_ammo_used"] >= 0
     assert "done_reason" in metrics
     assert set(metrics["agent_rewards"].keys()) == {"drone_0", "drone_1"}
+
+
+def test_attach_target_classes_to_learning_state_uses_env_target_order() -> None:
+    env = build_test_env()
+    env.reset(seed=7)
+
+    episode_state = {
+        "agents": [
+            {
+                "agent_idx": 0,
+                "target_lv": [[0.1, 0.2], [0.3, 0.4]],
+            }
+        ]
+    }
+
+    augmented = attach_target_classes_to_learning_state(episode_state, env)
+
+    assert augmented is not None
+    assert augmented["target_classes"] == ["A", "B"]
+    assert augmented["agents"] == episode_state["agents"]
 
 
 def test_run_episode_uses_environment_logger_boundary(tmp_path) -> None:

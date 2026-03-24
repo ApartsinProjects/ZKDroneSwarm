@@ -223,7 +223,10 @@ def test_environment_logger_handle_flush_persists_learning_state_checkpoint(tmp_
 
     env_logger.configure_continuous_flush(
         episode_num=3,
-        learning_state_provider=lambda: {"agents": [{"agent_lv": [1.0, 2.0]}]},
+        learning_state_provider=lambda: {
+            "target_classes": ["A", "B", "B", "C"],
+            "agents": [{"agent_lv": [1.0, 2.0]}],
+        },
         num_agents=2,
         num_targets=4,
         latent_dim=2,
@@ -250,6 +253,12 @@ def test_environment_logger_handle_flush_persists_learning_state_checkpoint(tmp_
         '  "num_targets": 4,\n'
         '  "latent_dim": 2,\n'
         '  "episode_state": {\n'
+        '    "target_classes": [\n'
+        '      "A",\n'
+        '      "B",\n'
+        '      "B",\n'
+        '      "C"\n'
+        '    ],\n'
         '    "agents": [\n'
         '      {\n'
         '        "agent_lv": [\n'

@@ -12,6 +12,8 @@ type PlotPoint = {
 type PlotNode = PlotPoint & {
   id: string;
   label: string;
+  className?: string;
+  color: string;
   px: number;
   py: number;
 };
@@ -20,6 +22,17 @@ type PlotTick = {
   value: string;
   x?: number;
   y?: number;
+};
+
+type PlotTrail = {
+  id: string;
+  points: string;
+  color: string;
+};
+
+type PlotLegendItem = {
+  className: string;
+  color: string;
 };
 
 type PlotModel = {
@@ -31,7 +44,8 @@ type PlotModel = {
   currentAgent: PlotNode;
   currentTargets: PlotNode[];
   agentTrail: string;
-  targetTrails: Array<{ id: string; points: string }>;
+  targetTrails: PlotTrail[];
+  legendItems: PlotLegendItem[];
   xTicks: PlotTick[];
   yTicks: PlotTick[];
   zeroX: number | null;
@@ -41,6 +55,17 @@ type PlotModel = {
 const WIDTH = 560;
 const HEIGHT = 360;
 const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
+const AGENT_COLOR = '#3498db';
+const TARGET_CLASS_COLORS = [
+  '#e67e22',
+  '#16a085',
+  '#c0392b',
+  '#8e44ad',
+  '#2c3e50',
+  '#f39c12',
+  '#2980b9',
+  '#27ae60',
+];
 
 @Component({
   selector: 'app-embedding-visualization-panel',
@@ -52,7 +77,7 @@ const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
         <div class="embedding-panel__toolbar">
           <div class="embedding-panel__summary">
             Episode {{ model.currentEpisodeNum ?? '?' }} auto-fits the axes to the current embedding range.
-            The selected agent trail shows how its reduced position evolves as learning progresses.
+            Targets are colored by class, and the selected agent trail shows how its reduced position evolves as learning progresses.
           </div>
 
           <div class="embedding-panel__agent-list" role="toolbar" aria-label="Embedding agents">
@@ -67,6 +92,20 @@ const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
               </button>
             }
           </div>
+
+          @if (model.legendItems.length > 0) {
+            <div class="embedding-panel__legend" aria-label="Target class legend">
+              @for (item of model.legendItems; track item.className) {
+                <span class="embedding-panel__legend-item">
+                  <span
+                    class="embedding-panel__legend-swatch"
+                    [style.background]="item.color"
+                  ></span>
+                  {{ item.className }}
+                </span>
+              }
+            </div>
+          }
         </div>
 
         <div class="embedding-panel__stage">
@@ -144,7 +183,8 @@ const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
               <polyline
                 [attr.points]="trail.points"
                 fill="none"
-                stroke="rgba(231, 126, 34, 0.22)"
+                [attr.stroke]="trail.color"
+                stroke-opacity="0.28"
                 stroke-width="1.4"
               />
             }
@@ -152,7 +192,8 @@ const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
             <polyline
               [attr.points]="model.agentTrail"
               fill="none"
-              stroke="rgba(52, 152, 219, 0.42)"
+              [attr.stroke]="model.currentAgent.color"
+              stroke-opacity="0.42"
               stroke-width="2.4"
             />
 
@@ -162,7 +203,7 @@ const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
                 [attr.cx]="target.px"
                 [attr.cy]="target.py"
                 r="5"
-                fill="#e67e22"
+                [attr.fill]="target.color"
               />
               <text
                 [attr.x]="target.px + 8"
@@ -179,7 +220,7 @@ const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
               [attr.cx]="model.currentAgent.px"
               [attr.cy]="model.currentAgent.py"
               r="7"
-              fill="#3498db"
+              [attr.fill]="model.currentAgent.color"
             />
             <text
               [attr.x]="model.currentAgent.px + 10"
@@ -207,6 +248,28 @@ const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
   styles: [`
     .embedding-node {
       transition: cx 0.08s linear, cy 0.08s linear;
+    }
+
+    .embedding-panel__legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #5c4d39;
+    }
+
+    .embedding-panel__legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .embedding-panel__legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(92, 77, 57, 0.18);
     }
   `],
 })
@@ -242,6 +305,11 @@ export class EmbeddingVisualizationPanel {
     if (!currentAgentPoint || currentTargetPoints.length === 0) {
       return null;
     }
+    const currentTargetClasses = this.readTargetClasses(
+      currentState?.['target_classes'],
+      currentTargetPoints.length,
+    );
+    const classColorMap = this.buildClassColorMap(this.snapshots());
 
     const domainPoints = [currentAgentPoint, ...currentTargetPoints];
     const xDomain = this.computeDomain(domainPoints.map((point) => point.x));
@@ -250,9 +318,24 @@ export class EmbeddingVisualizationPanel {
     const xScale = scaleLinear().domain(xDomain).range([MARGIN.left, WIDTH - MARGIN.right]);
     const yScale = scaleLinear().domain(yDomain).range([HEIGHT - MARGIN.bottom, MARGIN.top]);
 
-    const currentAgent = this.toNode(currentAgentPoint, xScale, yScale, `agent-${selectedAgentIndex}`, `A${selectedAgentIndex}`);
+    const currentAgent = this.toNode(
+      currentAgentPoint,
+      xScale,
+      yScale,
+      `agent-${selectedAgentIndex}`,
+      `A${selectedAgentIndex}`,
+      AGENT_COLOR,
+    );
     const currentTargets = currentTargetPoints.map((point, index) =>
-      this.toNode(point, xScale, yScale, `target-${index}`, `T${index}`),
+      this.toNode(
+        point,
+        xScale,
+        yScale,
+        `target-${index}`,
+        `T${index} (${currentTargetClasses[index]})`,
+        this.colorForClass(currentTargetClasses[index], classColorMap),
+        currentTargetClasses[index],
+      ),
     );
 
     const currentEpisodeNum = currentSnapshot.episode?.episodeNum ?? Infinity;
@@ -282,6 +365,7 @@ export class EmbeddingVisualizationPanel {
       return {
         id: `target-trail-${targetIndex}`,
         points,
+        color: this.colorForClass(currentTargetClasses[targetIndex], classColorMap),
       };
     });
 
@@ -295,6 +379,10 @@ export class EmbeddingVisualizationPanel {
       currentTargets,
       agentTrail,
       targetTrails,
+      legendItems: Array.from(classColorMap.entries()).map(([className, color]) => ({
+        className,
+        color,
+      })),
       xTicks: xScale.ticks(5).map((value: number) => ({ value: value.toFixed(2), x: xScale(value) })),
       yTicks: yScale.ticks(5).map((value: number) => ({ value: value.toFixed(2), y: yScale(value) })),
       zeroX: xDomain[0] <= 0 && xDomain[1] >= 0 ? xScale(0) : null,
@@ -326,6 +414,42 @@ export class EmbeddingVisualizationPanel {
       .filter((point): point is PlotPoint => point !== null);
   }
 
+  private readTargetClasses(value: unknown, expectedLength: number): string[] {
+    if (!Array.isArray(value)) {
+      return Array.from({ length: expectedLength }, () => 'unknown');
+    }
+
+    return Array.from({ length: expectedLength }, (_unused, index) => {
+      const className = value[index];
+      return typeof className === 'string' && className.length > 0 ? className : 'unknown';
+    });
+  }
+
+  private buildClassColorMap(snapshots: LearningStateEpisodeDto[]): Map<string, string> {
+    const classNames = snapshots
+      .flatMap((snapshot) => {
+        const targetClasses = snapshot.learningState.episodeState?.target_classes;
+        return Array.isArray(targetClasses) ? targetClasses : [];
+      })
+      .filter((className): className is string => typeof className === 'string' && className.length > 0);
+
+    const uniqueClassNames = Array.from(new Set(classNames)).sort();
+    if (uniqueClassNames.length === 0) {
+      uniqueClassNames.push('unknown');
+    }
+
+    return new Map(
+      uniqueClassNames.map((className, index) => [
+        className,
+        TARGET_CLASS_COLORS[index % TARGET_CLASS_COLORS.length],
+      ]),
+    );
+  }
+
+  private colorForClass(className: string, classColorMap: Map<string, string>): string {
+    return classColorMap.get(className) ?? TARGET_CLASS_COLORS[0];
+  }
+
   private computeDomain(values: number[]): [number, number] {
     const [minValue = -1, maxValue = 1] = extent(values);
     const spread = maxValue - minValue;
@@ -339,11 +463,15 @@ export class EmbeddingVisualizationPanel {
     yScale: ReturnType<typeof scaleLinear>,
     id: string,
     label: string,
+    color: string,
+    className?: string,
   ): PlotNode {
     return {
       ...point,
       id,
       label,
+      className,
+      color,
       px: xScale(point.x),
       py: yScale(point.y),
     };

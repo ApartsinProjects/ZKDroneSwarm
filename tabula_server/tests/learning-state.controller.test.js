@@ -39,6 +39,7 @@ test('getAllLearningStates returns ordered DTOs for episodic learning-state file
     num_targets: 2,
     latent_dim: 2,
     episode_state: {
+      target_classes: ['A', 'B'],
       agents: [{ agent_idx: 0, agent_lv: [2, 2] }],
     },
   }));
@@ -51,6 +52,7 @@ test('getAllLearningStates returns ordered DTOs for episodic learning-state file
     num_targets: 2,
     latent_dim: 2,
     episode_state: {
+      target_classes: ['A', 'B'],
       agents: [{ agent_idx: 0, agent_lv: [1, 1] }],
     },
   }));
@@ -82,6 +84,7 @@ test('getAllLearningStates returns ordered DTOs for episodic learning-state file
           numTargets: 2,
           latentDim: 2,
           episodeState: {
+            target_classes: ['A', 'B'],
             agents: [{ agent_idx: 0, agent_lv: [1, 1] }],
           },
         },
@@ -100,6 +103,7 @@ test('getAllLearningStates returns ordered DTOs for episodic learning-state file
           numTargets: 2,
           latentDim: 2,
           episodeState: {
+            target_classes: ['A', 'B'],
             agents: [{ agent_idx: 0, agent_lv: [2, 2] }],
           },
         },
