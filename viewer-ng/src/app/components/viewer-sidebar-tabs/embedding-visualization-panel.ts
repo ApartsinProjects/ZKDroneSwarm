@@ -24,11 +24,7 @@ type PlotTick = {
   y?: number;
 };
 
-type PlotTrail = {
-  id: string;
-  points: string;
-  color: string;
-};
+
 
 type PlotLegendItem = {
   className: string;
@@ -43,8 +39,6 @@ type PlotModel = {
   currentEpisodeNum: number | null;
   currentAgent: PlotNode;
   currentTargets: PlotNode[];
-  agentTrail: string;
-  targetTrails: PlotTrail[];
   legendItems: PlotLegendItem[];
   xTicks: PlotTick[];
   yTicks: PlotTick[];
@@ -75,20 +69,20 @@ const TARGET_CLASS_COLORS = [
     @if (plotModel(); as model) {
       <div class="embedding-panel">
         <div class="embedding-panel__toolbar">
-          <div class="embedding-panel__summary">
-            Episode {{ model.currentEpisodeNum ?? '?' }} auto-fits the axes to the current embedding range.
-            Targets are colored by class, and the selected agent trail shows how its reduced position evolves as learning progresses.
-          </div>
-
           <div class="embedding-panel__agent-list" role="toolbar" aria-label="Embedding agents">
             @for (agentIndex of agentIndices(); track agentIndex) {
               <button
                 type="button"
-                class="embedding-panel__agent-button"
-                [class.embedding-panel__agent-button--active]="agentIndex === model.selectedAgent"
+                class="embedding-panel__agent-item"
+                [class.embedding-panel__agent-item--active]="agentIndex === model.selectedAgent"
                 (click)="selectedAgentChange.emit(agentIndex)"
               >
-                Agent {{ agentIndex }}
+                <img
+                  class="embedding-panel__agent-icon"
+                  src="assets/map/drone.png"
+                  alt="Drone {{ agentIndex }}"
+                />
+                <span class="embedding-panel__agent-label">{{ agentIndex }}</span>
               </button>
             }
           </div>
@@ -179,23 +173,7 @@ const TARGET_CLASS_COLORS = [
               }
             </g>
 
-            @for (trail of model.targetTrails; track trail.id) {
-              <polyline
-                [attr.points]="trail.points"
-                fill="none"
-                [attr.stroke]="trail.color"
-                stroke-opacity="0.28"
-                stroke-width="1.4"
-              />
-            }
 
-            <polyline
-              [attr.points]="model.agentTrail"
-              fill="none"
-              [attr.stroke]="model.currentAgent.color"
-              stroke-opacity="0.42"
-              stroke-width="2.4"
-            />
 
             @for (target of model.currentTargets; track target.id) {
               <circle
@@ -205,14 +183,7 @@ const TARGET_CLASS_COLORS = [
                 r="5"
                 [attr.fill]="target.color"
               />
-              <text
-                [attr.x]="target.px + 8"
-                [attr.y]="target.py - 8"
-                font-size="10"
-                fill="#7a6850"
-              >
-                {{ target.label }}
-              </text>
+
             }
 
             <circle
@@ -234,10 +205,7 @@ const TARGET_CLASS_COLORS = [
           </svg>
         </div>
 
-        <div class="embedding-panel__caption">
-          Target trails are shown up to the selected episode. Auto-fit improves local readability, so
-          apparent motion should be read as qualitative rather than exact cross-episode distance proof.
-        </div>
+
       </div>
     } @else {
       <div class="analysis-placeholder">
@@ -248,6 +216,49 @@ const TARGET_CLASS_COLORS = [
   styles: [`
     .embedding-node {
       transition: cx 0.08s linear, cy 0.08s linear;
+    }
+
+    .embedding-panel__agent-list {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .embedding-panel__agent-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border: 1px solid rgba(92, 77, 57, 0.15);
+      border-radius: 8px;
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      color: #5c4d39;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .embedding-panel__agent-item:hover {
+      background: rgba(52, 152, 219, 0.08);
+      border-color: rgba(52, 152, 219, 0.3);
+    }
+
+    .embedding-panel__agent-item--active {
+      background: rgba(52, 152, 219, 0.14);
+      border-color: #3498db;
+    }
+
+    .embedding-panel__agent-icon {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+
+    .embedding-panel__agent-label {
+      font-variant-numeric: tabular-nums;
     }
 
     .embedding-panel__legend {
@@ -340,34 +351,6 @@ export class EmbeddingVisualizationPanel {
 
     const currentEpisodeNum = currentSnapshot.episode?.episodeNum ?? Infinity;
 
-    const validSnapshots = this.snapshots()
-      .filter((snapshot) => {
-        const episodeNum = snapshot.episode.episodeNum ?? Infinity;
-        const agents = snapshot.learningState.episodeState?.agents ?? [];
-        return episodeNum <= currentEpisodeNum && selectedAgentIndex < agents.length;
-      });
-
-    const agentTrail = validSnapshots
-      .map((snapshot) => this.readPoint(snapshot.learningState.episodeState?.agents?.[selectedAgentIndex]?.['agent_lv']))
-      .filter((point): point is PlotPoint => point !== null)
-      .map((point) => `${xScale(point.x)},${yScale(point.y)}`)
-      .join(' ');
-
-    const targetTrails = currentTargetPoints.map((_point, targetIndex) => {
-      const points = validSnapshots
-        .map((snapshot) => {
-          const targetPoint = this.readPoints(snapshot.learningState.episodeState?.agents?.[selectedAgentIndex]?.['target_lv'])[targetIndex];
-          return targetPoint ? `${xScale(targetPoint.x)},${yScale(targetPoint.y)}` : null;
-        })
-        .filter((point): point is string => point !== null)
-        .join(' ');
-
-      return {
-        id: `target-trail-${targetIndex}`,
-        points,
-        color: this.colorForClass(currentTargetClasses[targetIndex], classColorMap),
-      };
-    });
 
     return {
       width: WIDTH,
@@ -377,8 +360,6 @@ export class EmbeddingVisualizationPanel {
       currentEpisodeNum: currentSnapshot?.episode.episodeNum ?? null,
       currentAgent,
       currentTargets,
-      agentTrail,
-      targetTrails,
       legendItems: Array.from(classColorMap.entries()).map(([className, color]) => ({
         className,
         color,
