@@ -77,6 +77,47 @@ def test_environment_logger_persist_episode_outputs_uses_active_logger(tmp_path:
     assert result["steps"] == {"first": 7}
 
 
+def test_environment_logger_finalize_policy_saves_all_matrix_factorization_episodes_and_summary(
+    tmp_path: Path,
+) -> None:
+    env_logger = EnvironmentLogger(
+        output_dir=str(tmp_path),
+        scenario_id="scenario_mf",
+    )
+    env_logger.start_policy("matrix_factorization_cf", is_deterministic=False)
+
+    env_logger.record_episode({"episode": 1}, steps=8)
+    env_logger.record_episode({"episode": 2}, steps=5)
+    env_logger.record_episode({"episode": 3}, steps=7)
+
+    result = env_logger.finalize_policy()
+
+    policy_dir = tmp_path / "scenario_mf" / "matrix_factorization_cf"
+    episodes_dir = policy_dir / "episodes"
+    summary_path = policy_dir / "episodes_summary.json"
+
+    assert result["files"] == [
+        ".../episode_ep01.json",
+        ".../episode_ep02.json",
+        ".../episode_ep03.json",
+    ]
+    assert result["steps"] == {"first": 8, "best": 5, "mid": 7}
+    assert result["best_episode_num"] == 2
+    assert result["milestones"] == {"first": 1, "best": 2, "mid": 3}
+
+    assert (episodes_dir / "episode_ep01.json").read_text() == '{\n  "episode": 1\n}'
+    assert (episodes_dir / "episode_ep02.json").read_text() == '{\n  "episode": 2\n}'
+    assert (episodes_dir / "episode_ep03.json").read_text() == '{\n  "episode": 3\n}'
+    assert summary_path.read_text() == (
+        '{\n'
+        '  "total_episodes": 3,\n'
+        '  "total_steps": 20,\n'
+        '  "total_steps_to_best": 13,\n'
+        '  "best_episode_path": "episodes/episode_ep02.json"\n'
+        '}'
+    )
+
+
 def test_environment_logger_start_episode_persists_shared_environment_artifact(tmp_path: Path) -> None:
     env_logger = EnvironmentLogger(
         output_dir=str(tmp_path),

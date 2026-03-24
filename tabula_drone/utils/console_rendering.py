@@ -435,7 +435,7 @@ class ConsolePrinter:
         )
 
     def saved_episodes(self, files: List[str]) -> None:
-        self._emit(f"  Saved episodes: {files}")
+        self._emit(f"  Total saved episodes: {len(files)}")
 
     def policy_steps_summary(self, first: Any, best: Any, mid: Any) -> None:
         self._emit(f"  Steps: first={first}, best={best}, mid={mid}")

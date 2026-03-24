@@ -119,6 +119,12 @@ class EnvironmentLogger:
             raise ValueError("start_policy() must be called before get_analysis_dir()")
         return os.path.join(self._current_policy_path, "analysis")
 
+    def get_episode_summary_path(self) -> str:
+        """Return the current policy episode summary artifact path."""
+        if self._current_policy_path is None:
+            raise ValueError("start_policy() must be called before get_episode_summary_path()")
+        return os.path.join(self._current_policy_path, "episodes_summary.json")
+
     def get_learning_state_dir(self) -> str:
         """Return the current policy learning state directory."""
         if self._current_policy_path is None:
@@ -161,7 +167,7 @@ class EnvironmentLogger:
 
     def persist_episode_outputs(self, episode_num: int, steps: int) -> None:
         """
-        Persist the active episode's analysis and representative-episode inputs.
+        Persist the active episode's analysis and episode inputs.
 
         This keeps the runner from coordinating direct handoff between the
         active EpisodeLogger and the run-level persistence logic.
@@ -359,19 +365,38 @@ class EnvironmentLogger:
             saved_files.append(f".../episode_first_ep{self._first_episode_num:02d}.json")
             steps_info["first"] = self._first_steps
         else:
-            self._save_episode(self._first_data, "first", self._first_episode_num, episodes_dir)
-            saved_files.append(f".../episode_first_ep{self._first_episode_num:02d}.json")
-            steps_info["first"] = self._first_steps
-
-            self._save_episode(self._best_data, "best", self._best_episode_num, episodes_dir)
-            saved_files.append(f".../episode_best_ep{self._best_episode_num:02d}.json")
-            steps_info["best"] = self._best_steps
             best_episode_num = self._best_episode_num
-
             mid_data, mid_steps, mid_episode_num = self._select_mid_episode()
-            self._save_episode(mid_data, "mid", mid_episode_num, episodes_dir)
-            saved_files.append(f".../episode_mid_ep{mid_episode_num:02d}.json")
+
+            steps_info["first"] = self._first_steps
+            steps_info["best"] = self._best_steps
             steps_info["mid"] = mid_steps
+
+            if self._current_policy == "matrix_factorization_cf":
+                saved_paths = []
+                for episode_data, _steps, episode_num in self._episodes:
+                    saved_paths.append(
+                        self._save_episode(
+                            episode_data,
+                            None,
+                            episode_num,
+                            episodes_dir,
+                        )
+                    )
+
+                saved_files.extend(
+                    f".../{os.path.basename(saved_path)}" for saved_path in saved_paths
+                )
+                self._save_episode_summary(saved_paths)
+            else:
+                self._save_episode(self._first_data, "first", self._first_episode_num, episodes_dir)
+                saved_files.append(f".../episode_first_ep{self._first_episode_num:02d}.json")
+
+                self._save_episode(self._best_data, "best", self._best_episode_num, episodes_dir)
+                saved_files.append(f".../episode_best_ep{self._best_episode_num:02d}.json")
+
+                self._save_episode(mid_data, "mid", mid_episode_num, episodes_dir)
+                saved_files.append(f".../episode_mid_ep{mid_episode_num:02d}.json")
 
         result = {
             "files": saved_files,
@@ -412,15 +437,19 @@ class EnvironmentLogger:
     def _save_episode(
         self,
         episode_data: Optional[Dict[str, Any]],
-        category: str,
+        category: Optional[str],
         episode_val: Any,
         episodes_dir: str,
     ) -> str:
-        """Persist a selected episode into the episodes directory."""
+        """Persist an episode artifact into the episodes directory."""
         if episode_data is None:
-            raise ValueError(f"No episode data available for category '{category}'")
+            raise ValueError("No episode data available to persist")
 
-        if isinstance(episode_val, int):
+        if category is None:
+            if not isinstance(episode_val, int):
+                raise ValueError("Neutral episode artifacts require an integer episode number")
+            filename = f"episode_ep{episode_val:02d}.json"
+        elif isinstance(episode_val, int):
             filename = f"episode_{category}_ep{episode_val:02d}.json"
         else:
             filename = f"episode_{category}_{episode_val}.json"
@@ -429,6 +458,32 @@ class EnvironmentLogger:
         with open(filepath, "w") as f:
             json.dump(episode_data, f, indent=2)
         return filepath
+
+    def _save_episode_summary(self, saved_episode_paths: List[str]) -> str:
+        """Persist the per-policy episode summary artifact."""
+        total_steps = 0
+        total_steps_to_best = 0
+
+        for _episode_data, steps, episode_num in self._episodes:
+            total_steps += steps
+            if episode_num <= self._best_episode_num:
+                total_steps_to_best += steps
+
+        best_episode_filename = os.path.basename(
+            saved_episode_paths[self._best_episode_num - 1]
+        )
+        summary = {
+            "total_episodes": len(self._episodes),
+            "total_steps": total_steps,
+            "total_steps_to_best": total_steps_to_best,
+            "best_episode_path": f"episodes/{best_episode_filename}",
+        }
+
+        summary_path = self.get_episode_summary_path()
+        with open(summary_path, "w") as f:
+            json.dump(summary, f, indent=2)
+
+        return summary_path
 
     def _persist_environment_data(self, environment_data: Dict[str, Any]) -> None:
         """Persist the run-level shared environment artifact once per scenario."""

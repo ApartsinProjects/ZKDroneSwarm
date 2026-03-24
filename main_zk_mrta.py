@@ -900,7 +900,7 @@ def main():
             #     drone_weapons = [d["weapon_type"] for d in drones_config]
             #     analyze_agent_clustering(policy, drone_weapons)
         
-        # Finalize policy run - saves selected episodes (first/best/mid or only)
+        # Finalize policy run - saves policy artifacts for episodic or continuous mode
         result = environment_logger.finalize_policy()
         if config.environment.mode != "continuous":
             printer.saved_episodes(result["files"])

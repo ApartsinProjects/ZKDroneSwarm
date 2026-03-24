@@ -50,6 +50,45 @@ function buildEpisodeDto(episodePath, episodeData) {
   };
 }
 
+function loadPolicySummary(policyId) {
+  const latestRun = logDiscovery.getLatestRunFolder();
+  if (!latestRun) {
+    return null;
+  }
+
+  const summaryPath = path.join(logDiscovery.LOGS_DIR, latestRun, policyId, 'episodes_summary.json');
+  if (!fs.existsSync(summaryPath)) {
+    return null;
+  }
+
+  return JSON.parse(fs.readFileSync(summaryPath, 'utf8'));
+}
+
+function resolveBestEpisodePath(policyId, candidates) {
+  const summary = loadPolicySummary(policyId);
+  if (summary && summary.best_episode_path) {
+    const latestRun = logDiscovery.getLatestRunFolder();
+    if (latestRun) {
+      const bestEpisodePath = path.join(
+        logDiscovery.LOGS_DIR,
+        latestRun,
+        policyId,
+        summary.best_episode_path
+      );
+      if (fs.existsSync(bestEpisodePath)) {
+        return bestEpisodePath;
+      }
+    }
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0];
+  }
+
+  const bestCandidates = candidates.filter(p => path.basename(p).includes('best'));
+  return logDiscovery.getLatestFile(bestCandidates.length > 0 ? bestCandidates : candidates);
+}
+
 const episodesController = {
   getMapScene: (req, res) => {
     try {
@@ -59,13 +98,8 @@ const episodesController = {
         return res.status(400).json({ error: 'MISSING_POLICY_ID', message: 'Policy ID is required.' });
       }
 
-      // Prioritize best episodes, fallback to any episode
-      let candidates = logDiscovery.getFilesByContext(policyId, 'episodes', 'episode_best_');
-      if (candidates.length === 0) {
-        candidates = logDiscovery.getFilesByContext(policyId, 'episodes', 'episode_');
-      }
-
-      const episodePath = logDiscovery.getLatestFile(candidates);
+      const candidates = logDiscovery.getFilesByContext(policyId, 'episodes', 'episode_');
+      const episodePath = resolveBestEpisodePath(policyId, candidates);
       if (!episodePath) {
         return res.status(404).json({ error: 'NO_EPISODES_FOUND', message: `No episode artifacts found for policy: ${policyId}` });
       }
@@ -120,14 +154,7 @@ const episodesController = {
         return res.status(404).json({ error: 'NO_EPISODES_FOUND', message: `No episode artifacts found for policy: ${policyId}` });
       }
 
-      let bestEpisodePath;
-      if (candidates.length === 1) {
-        bestEpisodePath = candidates[0];
-      } else {
-        const bestCandidates = candidates.filter(p => path.basename(p).includes('best'));
-        bestEpisodePath = logDiscovery.getLatestFile(bestCandidates.length > 0 ? bestCandidates : candidates);
-      }
-
+      const bestEpisodePath = resolveBestEpisodePath(policyId, candidates);
       if (!bestEpisodePath) {
         return res.status(404).json({ error: 'NO_BEST_EPISODE_FOUND', message: `No suitable best episode artifact found for policy: ${policyId}` });
       }
@@ -146,5 +173,7 @@ const episodesController = {
 module.exports = {
   ...episodesController,
   buildEpisodeDto,
-  loadEnvironmentData
+  loadEnvironmentData,
+  loadPolicySummary,
+  resolveBestEpisodePath
 };
