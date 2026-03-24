@@ -177,22 +177,30 @@ const TARGET_CLASS_COLORS = [
 
             @for (target of model.currentTargets; track target.id) {
               <circle
-                class="embedding-node embedding-node--target"
+                class="embedding-node embedding-node--target-bg"
                 [attr.cx]="target.px"
                 [attr.cy]="target.py"
-                r="5"
+                r="8"
                 [attr.fill]="target.color"
+                opacity="0.4"
               />
-
+              <image
+                class="embedding-node embedding-node--target"
+                [attr.x]="target.px - 9"
+                [attr.y]="target.py - 13"
+                width="15"
+                height="18"
+                xlink:href="assets/map/target_1.png"
+              />
             }
 
 
             <image
               class="embedding-node embedding-node--agent"
-              [attr.x]="model.currentAgent.px - 14"
-              [attr.y]="model.currentAgent.py - 14"
-              width="28"
-              height="28"
+              [attr.x]="model.currentAgent.px - 16"
+              [attr.y]="model.currentAgent.py - 16"
+              width="32"
+              height="32"
               xlink:href="assets/map/drone.png"
             />
           </svg>
