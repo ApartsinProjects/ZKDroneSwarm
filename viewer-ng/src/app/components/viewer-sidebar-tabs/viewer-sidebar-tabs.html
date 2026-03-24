@@ -1,0 +1,36 @@
+<section class="viewer-sidebar-tabs" aria-label="Viewer sidebar panels">
+  <div
+    class="viewer-sidebar-tabs__tablist"
+    role="tablist"
+    aria-label="Viewer sidebar tabs"
+  >
+    @for (tab of tabs; track tab.id) {
+      <button
+        class="viewer-sidebar-tabs__tab"
+        type="button"
+        role="tab"
+        [id]="tabButtonId(tab.id)"
+        [class.viewer-sidebar-tabs__tab--active]="activeTab() === tab.id"
+        [attr.aria-selected]="activeTab() === tab.id"
+        [attr.aria-controls]="tabPanelId(tab.id)"
+        (click)="selectTab(tab.id)"
+      >
+        {{ tab.label }}
+      </button>
+    }
+  </div>
+
+  @for (tab of tabs; track tab.id) {
+    <section
+      class="viewer-sidebar-tabs__panel"
+      role="tabpanel"
+      [id]="tabPanelId(tab.id)"
+      [attr.aria-labelledby]="tabButtonId(tab.id)"
+      [attr.aria-hidden]="activeTab() !== tab.id"
+      [attr.tabindex]="activeTab() === tab.id ? 0 : -1"
+      [hidden]="activeTab() !== tab.id"
+    >
+      <div class="viewer-sidebar-tabs__panel-canvas" aria-hidden="true"></div>
+    </section>
+  }
+</section>
