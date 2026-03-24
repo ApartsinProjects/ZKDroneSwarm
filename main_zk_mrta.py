@@ -766,51 +766,6 @@ def main():
             if not is_deterministic and episode_num > 1:
                 policy.soft_reset()
             
-            pre_episode_state = None
-            post_episode_state = None
-            
-            # Snapshot latent vectors BEFORE episode (for correct learning_path capture)
-            if not is_deterministic:
-                # For CF policies: use get_learning_state() for state capture
-                pre_episode_state = policy.get_learning_state()
-                # Extract agent_lv and target_lv for alignment score computation
-                agent_lv = np.array([agent["agent_lv"] for agent in pre_episode_state["agents"]])
-                target_lv = np.array(pre_episode_state["agents"][0]["target_lv"])
-                pre_episode_lv = (agent_lv, target_lv)
-            else:
-                pre_episode_lv = None
-            
-            # Prepare entities metadata for learning state logging
-            entities = None
-            if not is_deterministic and (policy_type == "selfish_ep_greedy_cf" or policy_type == "matrix_factorization_cf"):
-                entities = {
-                    "agents": [
-                        {
-                            "agent_idx": i,
-                            "agent_id": f"drone_{i}",
-                            "weapon_type": drones_config[i]["weapon_type"],
-                            "weapon_damage_profile": dict(
-                                config.mappings.weapon_damage_profile_mapping[
-                                    drones_config[i]["weapon_type"]
-                                ]
-                            ),
-                        }
-                        for i in range(len(drones_config))
-                    ],
-                    "targets": [
-                        {
-                            "target_idx": j,
-                            "target_id": f"target_{j}",
-                            "class_type": targets_config[j]["class_type"],
-                            "class_attributes": dict(
-                                config.mappings.class_attribute_mapping[
-                                    targets_config[j]["class_type"]
-                                ]
-                            ),
-                        }
-                        for j in range(len(targets_config))
-                    ],
-                }
             # This ensures that ENV noise/ordering is reproducible across runs
             episode_seed = config.seed + episode_num if config.seed is not None else None
 
@@ -827,7 +782,6 @@ def main():
                 num_agents=getattr(policy, "num_agents", len(drones_config)),
                 num_targets=getattr(policy, "num_targets", len(targets_config)),
                 latent_dim=getattr(policy, "latent_dim", None),
-                entities=entities,
             )
 
             metrics = run_episode(
@@ -843,21 +797,19 @@ def main():
             metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
             
-            # Capture post-episode state for CF policies
+            # Capture the latest post-episode state for CF policies
+            episode_state = None
             if not is_deterministic:
-                post_episode_state = policy.get_learning_state()
+                episode_state = policy.get_learning_state()
             
-            # Compute alignment score for CF policies (used by both trackers)
             # Save learning state for every episode
             if not is_deterministic:
                 environment_logger.save_learning_state(
-                    pre_state=pre_episode_state,
-                    post_state=post_episode_state,
+                    episode_state=episode_state,
                     episode_num=episode_num,
                     num_agents=getattr(policy, "num_agents", len(drones_config)),
                     num_targets=getattr(policy, "num_targets", len(targets_config)),
                     latent_dim=getattr(policy, "latent_dim", None),
-                    entities=entities,
                 )
             
             # Persist per-episode outputs through EnvironmentLogger

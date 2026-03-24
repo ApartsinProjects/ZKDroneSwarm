@@ -80,7 +80,7 @@ The JSON schema will remain structurally compatible with offline visualizers but
 ### 5.2 Learning State Content (`learning_state_step_X.json`)
 Policies that maintain complex internal structures (such as Matrix Factorization CF policies) will save their structures at the exact same intervals as the episode logs. The file naming will mirror the step count (e.g., `learning_state_step_00500.json`).
 - **Model Structure**: The schema will continue to track the `version`, `num_agents`, and `num_targets`.
-- **Pre/Post Boundaries**: The `pre_episode` block will reflect the internal structure (such as latent vectors) exactly as they were at the *start* of the interval window. The `post_episode` block will reflect the structure after the policy has trained up to the *end* of the interval window.
+- **Episode Snapshot**: The `episode_state` block reflects the policy's internal structure at the moment the learning-state artifact is written for that interval or episode.
 
 ## 6. Compatibility Constraints
 - **Strict Fallback:** The default `environment.mode` will be `"episodic"`. Existing unit tests, scripts, and visualizers that rely on episodic boundaries must not break.

@@ -56,26 +56,22 @@ def enrich_learning_state_file(filepath: str):
     with open(filepath, 'r') as f:
         data = json.load(f)
 
-    # Process pre_episode and post_episode
-    for stage in ["pre_episode", "post_episode"]:
-        if stage not in data:
-            continue
-            
-        stage_data = data[stage]
+    stage_data = data.get("episode_state")
+    if isinstance(stage_data, dict):
         agents_data = stage_data.get("agents", [])
-        
+
         for agent_entry in agents_data:
             # We need P and U matrices
             if "P" not in agent_entry or "U" not in agent_entry:
                 continue
-                
+
             P = np.array(agent_entry["P"])
             U = np.array(agent_entry["U"])
             agent_idx = agent_entry.get("agent_idx", 0)
-            
+
             # Compute real t-SNE
             a_2d, t_2d = compute_tsne_2d_offline(P, U, agent_idx)
-            
+
             # Update fields
             agent_entry["agent_lv"] = a_2d
             agent_entry["target_lv"] = t_2d

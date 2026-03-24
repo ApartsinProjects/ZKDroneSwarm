@@ -227,7 +227,6 @@ def test_environment_logger_handle_flush_persists_learning_state_checkpoint(tmp_
         num_agents=2,
         num_targets=4,
         latent_dim=2,
-        entities={"agents": [{"agent_id": "drone_0"}]},
     )
 
     env_logger.handle_flush(10)
@@ -250,21 +249,13 @@ def test_environment_logger_handle_flush_persists_learning_state_checkpoint(tmp_
         '  "num_agents": 2,\n'
         '  "num_targets": 4,\n'
         '  "latent_dim": 2,\n'
-        '  "pre_episode": null,\n'
-        '  "post_episode": {\n'
+        '  "episode_state": {\n'
         '    "agents": [\n'
         '      {\n'
         '        "agent_lv": [\n'
         '          1.0,\n'
         '          2.0\n'
         '        ]\n'
-        '      }\n'
-        '    ]\n'
-        '  },\n'
-        '  "entities": {\n'
-        '    "agents": [\n'
-        '      {\n'
-        '        "agent_id": "drone_0"\n'
         '      }\n'
         '    ]\n'
         '  }\n'

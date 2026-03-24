@@ -65,8 +65,7 @@ class RadarChartPanel(BaseComponent):
             self._render_no_data()
             return
 
-        pre = self.decentralized_learning_state.get("pre_episode", {})
-        agents = pre.get("agents", [])
+        agents = self.decentralized_learning_state.get("episode_state_agents", [])
         if not agents or self.selected_agent >= len(agents):
             self._render_no_data()
             return

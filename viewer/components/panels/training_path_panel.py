@@ -159,17 +159,13 @@ class TrainingPathPanel(BaseComponent):
     def _render_decentralized(self) -> None:
         """
         Render decentralized policy learning state with agent grid and dual charts.
-        Shows Episode 1 (random init) vs Current Episode pre-state.
+        Shows an Episode 1 reference snapshot vs the current episode snapshot.
         """
-        # Current episode pre-state
-        current_pre = self.decentralized_learning_state.get("pre_episode", {})
-        current_agents = current_pre.get("agents", [])
-        
-        # Episode 1 pre-state (random initialization)
+        current_agents = self.decentralized_learning_state.get("episode_state_agents", [])
+
         ep1_agents = []
         if self.decentralized_learning_state_ep1:
-            ep1_pre = self.decentralized_learning_state_ep1.get("pre_episode", {})
-            ep1_agents = ep1_pre.get("agents", [])
+            ep1_agents = self.decentralized_learning_state_ep1.get("episode_state_agents", [])
         
         if not current_agents:
             self._render_no_data()
@@ -190,7 +186,7 @@ class TrainingPathPanel(BaseComponent):
         # Render clickable agent grid
         self._render_agent_grid(current_agents)
         
-        # Render dual charts: Episode 1 (left) vs Current Episode (right)
+        # Render dual charts: Episode 1 reference (left) vs Current Episode snapshot (right)
         self._render_dual_charts(ep1_agents, current_agents)
     
     def _render_agent_grid(self, agents: List[Dict[str, Any]]) -> None:
@@ -260,11 +256,11 @@ class TrainingPathPanel(BaseComponent):
         self, ep1_agents: List[Dict[str, Any]], current_agents: List[Dict[str, Any]]
     ) -> None:
         """
-        Render side-by-side Episode 1 vs Current Episode charts for selected agent.
+        Render side-by-side Episode 1 reference vs current episode snapshot charts.
         
         Args:
-            ep1_agents: List of agent dicts from episode 1 pre-state (random init).
-            current_agents: List of agent dicts from current episode pre-state.
+            ep1_agents: List of agent dicts from the Episode 1 reference snapshot.
+            current_agents: List of agent dicts from the current episode snapshot.
         """
         parent_pos = self.ax.get_position()
         chart_height = parent_pos.height * 0.58
@@ -287,14 +283,14 @@ class TrainingPathPanel(BaseComponent):
         # Get selected agent data
         if ep1_agents and self.selected_agent < len(ep1_agents):
             ep1_agent = ep1_agents[self.selected_agent]
-            self._render_agent_chart(self.chart_ax_left, ep1_agent, "Episode 1 (Random)")
+            self._render_agent_chart(self.chart_ax_left, ep1_agent, "Episode 1 Reference")
         else:
             self.chart_ax_left.text(
                 0.5, 0.5, "Episode 1 data\nnot available",
                 ha='center', va='center', fontsize=10, color='gray',
                 transform=self.chart_ax_left.transAxes
             )
-            self.chart_ax_left.set_title("Episode 1 (Random)", fontsize=9, fontweight='bold')
+            self.chart_ax_left.set_title("Episode 1 Reference", fontsize=9, fontweight='bold')
         
         if self.selected_agent < len(current_agents):
             current_agent = current_agents[self.selected_agent]

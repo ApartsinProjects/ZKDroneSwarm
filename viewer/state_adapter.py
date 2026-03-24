@@ -47,7 +47,7 @@ def extract_initial_state(
             - version: episode log version
             - class_attribute_mapping: dict mapping class types to attribute dicts
             - weapon_damage_profile_mapping: dict mapping weapon types to damage profile dicts
-            - decentralized_learning_state: dict with pre/post episode state (if decentralized)
+            - decentralized_learning_state: normalized learning-state payload (if decentralized)
             - learning_state_folder: relative path to learning state folder (if decentralized)
     """
     version = episode_data.get("version", "1.0")
@@ -133,7 +133,9 @@ def extract_initial_state(
             if os.path.exists(learning_state_path):
                 try:
                     with open(learning_state_path, "r") as f:
-                        decentralized_learning_state = json.load(f)
+                        decentralized_learning_state = _normalize_learning_state_payload(
+                            json.load(f)
+                        )
                 except (json.JSONDecodeError, IOError):
                     decentralized_learning_state = None
             
@@ -142,7 +144,9 @@ def extract_initial_state(
             if os.path.exists(ep1_path):
                 try:
                     with open(ep1_path, "r") as f:
-                        decentralized_learning_state_ep1 = json.load(f)
+                        decentralized_learning_state_ep1 = _normalize_learning_state_payload(
+                            json.load(f)
+                        )
                 except (json.JSONDecodeError, IOError):
                     decentralized_learning_state_ep1 = None
     
@@ -165,6 +169,21 @@ def extract_initial_state(
         "decentralized_learning_state": decentralized_learning_state,
         "decentralized_learning_state_ep1": decentralized_learning_state_ep1,
     }
+
+
+def _normalize_learning_state_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Normalize a learning-state artifact to the viewer's single-snapshot contract.
+    """
+    normalized = dict(payload)
+    snapshot = payload.get("episode_state")
+    if not isinstance(snapshot, dict):
+        return normalized
+    agents = snapshot.get("agents", []) if isinstance(snapshot, dict) else []
+
+    normalized["episode_state"] = snapshot
+    normalized["episode_state_agents"] = agents
+    return normalized
 
 
 def _resolve_environment_payload(
