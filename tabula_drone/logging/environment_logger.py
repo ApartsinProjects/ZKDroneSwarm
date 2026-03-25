@@ -38,7 +38,6 @@ class EnvironmentLogger:
         self._first_data: Optional[Dict[str, Any]] = None
         self._first_steps = 0
         self._first_episode_num = 0
-        self._best_data: Optional[Dict[str, Any]] = None
         self._best_steps = float("inf")
         self._best_episode_num = 0
         self._episode_counter = 0
@@ -82,7 +81,6 @@ class EnvironmentLogger:
         self._first_data = None
         self._first_steps = 0
         self._first_episode_num = 0
-        self._best_data = None
         self._best_steps = float("inf")
         self._best_episode_num = 0
         self._episode_counter = 0
@@ -130,7 +128,7 @@ class EnvironmentLogger:
             raise ValueError("start_policy() must be called before get_learning_state_dir()")
         return os.path.join(self._current_policy_path, "learning_state")
 
-    def record_episode(self, episode_data: Dict[str, Any], steps: int) -> None:
+    def record_episode_data(self, episode_data: Dict[str, Any], steps: int) -> None:
         """Record an episode for later representative-episode selection."""
         if self._current_policy is None:
             raise ValueError("start_policy() must be called before record_episode()")
@@ -145,35 +143,30 @@ class EnvironmentLogger:
             self._first_episode_num = current_episode_num
 
         if steps < self._best_steps:
-            self._best_data = episode_data
             self._best_steps = steps
             self._best_episode_num = current_episode_num
 
-    def save_analysis(self, analysis_data: Dict[str, Any], episode_num: int) -> str:
+    def record_episode(self, steps: int) -> None:
+        """Record the active episode for later representative-episode selection."""
+        self.record_episode_data(self.active_episode_logger.to_dict(), steps)
+
+    def save_analysis_data(self, analysis_data: Dict[str, Any], episode_num: int) -> str:
         """Persist engagement analysis for an episode."""
         if self._current_policy is None:
             raise ValueError("start_policy() must be called before save_analysis()")
 
-        if self.mode == "continuous" and episode_num == 1:
-            filename = "analysis_continuous_final.json"
-        else:
-            filename = f"analysis_ep{episode_num:02d}.json"
+        filename = f"analysis_ep{episode_num:02d}.json"
 
         filepath = os.path.join(self.get_analysis_dir(), filename)
         with open(filepath, "w") as f:
             json.dump(analysis_data, f, indent=2)
         return filepath
 
-    def persist_episode_outputs(self, episode_num: int, steps: int) -> None:
-        """
-        Persist the active episode's analysis and episode inputs.
+    def save_analysis(self, episode_num: int) -> str:
+        """Persist engagement analysis for the active episode."""
+        return self.save_analysis_data(self.active_episode_logger.get_analysis_data(), episode_num)
 
-        This keeps the runner from coordinating direct handoff between the
-        active EpisodeLogger and the run-level persistence logic.
-        """
-        logger = self.active_episode_logger
-        self.save_analysis(logger.get_analysis_data(), episode_num)
-        self.record_episode(logger.to_dict(), steps)
+
 
     def configure_continuous_flush(
         self,
@@ -297,11 +290,8 @@ class EnvironmentLogger:
         if self._current_policy is None:
             raise ValueError("start_policy() must be called before save_learning_state()")
 
-        if self.mode == "continuous":
-            filename = f"learning_state_{tag}.json" if tag else "learning_state_continuous_final.json"
-        else:
-            tag_str = f"_{tag}" if tag else ""
-            filename = f"learning_state_ep{episode_num:02d}{tag_str}.json"
+        tag_str = f"_{tag}" if tag else ""
+        filename = f"learning_state_ep{episode_num:02d}{tag_str}.json"
 
         filepath = os.path.join(self.get_learning_state_dir(), filename)
         learning_state = {
@@ -319,9 +309,9 @@ class EnvironmentLogger:
             json.dump(learning_state, f, indent=2)
         return filepath
 
-    def finalize_policy(self) -> Dict[str, Any]:
+    def save_policy_episodes(self) -> Dict[str, Any]:
         """
-        Finalize the current policy run and clear the active episode logger.
+        Save the current policy's episodes to disk and clear the active logger.
 
         Returns:
             The policy-finalization result.
@@ -334,116 +324,52 @@ class EnvironmentLogger:
         episodes_dir = self.get_episodes_dir()
         saved_files = []
         steps_info = {}
-        best_episode_num = self._first_episode_num
-        mid_episode_num = self._first_episode_num
+        milestones = {"first": self._first_episode_num}
 
+        # 1. Continuous Mode: Capture the one long episode
         if self.mode == "continuous":
-            self._save_episode(self._first_data, "continuous", "final", episodes_dir)
-            saved_files.append(".../episode_continuous_final.json")
+            self._save_episode(self._first_data, 1, episodes_dir)
+            saved_files.append(".../episode_ep01.json")
             steps_info["final"] = self._first_steps
-            result = {
-                "files": saved_files,
-                "steps": steps_info,
-                "best_episode_num": 1,
-                "milestones": {"final": 1},
-            }
-            self._active_episode_logger = None
-            return result
-
-        if self._is_deterministic:
-            self._save_episode(self._first_data, "first", self._first_episode_num, episodes_dir)
-            saved_files.append(f".../episode_first_ep{self._first_episode_num:02d}.json")
+            milestones = {"final": 1}
+        # 2. Deterministic/Baseline (Oracles, Random): Only save first attempt
+        elif self._is_deterministic:
+            self._save_episode(self._first_data, self._first_episode_num, episodes_dir)
+            saved_files.append(f".../episode_ep{self._first_episode_num:02d}.json")
             steps_info["first"] = self._first_steps
+        # 3. Non-deterministic (Learning): Save full history for analysis/t-SNE
         else:
-            best_episode_num = self._best_episode_num
-            mid_data, mid_steps, mid_episode_num = self._select_mid_episode()
-
+            saved_paths = []
+            for ep_data, ep_steps, ep_num in self._episodes:
+                saved_paths.append(self._save_episode(ep_data, ep_num, episodes_dir))
+            
+            saved_files.extend(f".../{os.path.basename(p)}" for p in saved_paths)
+            self._save_episode_summary(saved_paths)
             steps_info["first"] = self._first_steps
-            steps_info["best"] = self._best_steps
-            steps_info["mid"] = mid_steps
-
-            if self._current_policy == "matrix_factorization_cf":
-                saved_paths = []
-                for episode_data, _steps, episode_num in self._episodes:
-                    saved_paths.append(
-                        self._save_episode(
-                            episode_data,
-                            None,
-                            episode_num,
-                            episodes_dir,
-                        )
-                    )
-
-                saved_files.extend(
-                    f".../{os.path.basename(saved_path)}" for saved_path in saved_paths
-                )
-                self._save_episode_summary(saved_paths)
-            else:
-                self._save_episode(self._first_data, "first", self._first_episode_num, episodes_dir)
-                saved_files.append(f".../episode_first_ep{self._first_episode_num:02d}.json")
-
-                self._save_episode(self._best_data, "best", self._best_episode_num, episodes_dir)
-                saved_files.append(f".../episode_best_ep{self._best_episode_num:02d}.json")
-
-                self._save_episode(mid_data, "mid", mid_episode_num, episodes_dir)
-                saved_files.append(f".../episode_mid_ep{mid_episode_num:02d}.json")
+            steps_info["final"] = self._episodes[-1][1]
+            milestones["best"] = self._best_episode_num
 
         result = {
             "files": saved_files,
             "steps": steps_info,
-            "best_episode_num": best_episode_num,
-            "milestones": {
-                "first": self._first_episode_num,
-                "best": best_episode_num,
-                "mid": mid_episode_num,
-            },
+            "best_episode_num": self._best_episode_num,
+            "milestones": milestones,
         }
         self._active_episode_logger = None
         self._clear_continuous_flush_context()
         return result
 
-    def _select_mid_episode(self) -> Tuple[Dict[str, Any], int, int]:
-        """Select the episode closest to the average of first and best steps."""
-        target_steps = (self._first_steps + self._best_steps) / 2
-
-        best_match: Optional[Dict[str, Any]] = None
-        best_match_steps = 0
-        best_match_episode_num = 0
-        best_distance = float("inf")
-
-        for episode_data, steps, episode_num in self._episodes:
-            distance = abs(steps - target_steps)
-            if distance < best_distance:
-                best_distance = distance
-                best_match = episode_data
-                best_match_steps = steps
-                best_match_episode_num = episode_num
-
-        if best_match is None:
-            raise ValueError("No episodes available for mid-episode selection")
-
-        return best_match, best_match_steps, best_match_episode_num
-
     def _save_episode(
         self,
         episode_data: Optional[Dict[str, Any]],
-        category: Optional[str],
-        episode_val: Any,
+        episode_num: int,
         episodes_dir: str,
     ) -> str:
         """Persist an episode artifact into the episodes directory."""
         if episode_data is None:
             raise ValueError("No episode data available to persist")
 
-        if category is None:
-            if not isinstance(episode_val, int):
-                raise ValueError("Neutral episode artifacts require an integer episode number")
-            filename = f"episode_ep{episode_val:02d}.json"
-        elif isinstance(episode_val, int):
-            filename = f"episode_{category}_ep{episode_val:02d}.json"
-        else:
-            filename = f"episode_{category}_{episode_val}.json"
-
+        filename = f"episode_ep{episode_num:02d}.json"
         filepath = os.path.join(episodes_dir, filename)
         with open(filepath, "w") as f:
             json.dump(episode_data, f, indent=2)

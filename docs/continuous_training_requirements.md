@@ -46,7 +46,7 @@ Inside `main_zk_mrta.py`, metrics (such as `targets_neutralized`, `total_ammo_us
 
 ### 3.3 RunManager Artifact Tracking
 Because the board never clears, the concept of a "shortest step count to zero targets" no longer exists. 
-- When in continuous mode, `RunManager.finalize_policy()` will bypass its standard "first / best / mid" episode sorting logic.
+- When in continuous mode, `EnvironmentLogger.save_policy_episodes()` will bypass its standard episode selection logic.
 - Instead, it will simply track and catalog the sequential list of snapshot files generated during the continuous run.
 
 ## 4. Log File Structure

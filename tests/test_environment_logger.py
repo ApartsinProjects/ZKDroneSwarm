@@ -26,21 +26,21 @@ def test_environment_logger_start_policy_creates_active_episode_logger(tmp_path:
     assert (expected_policy_dir / "learning_state").is_dir()
 
 
-def test_environment_logger_finalize_policy_persists_selected_episode(tmp_path: Path) -> None:
+def test_environment_logger_save_policy_episodes_persists_selected_episode(tmp_path: Path) -> None:
     env_logger = EnvironmentLogger(
         output_dir=str(tmp_path),
         scenario_id="scenario_beta",
     )
     env_logger.start_policy("oracle_policy", is_deterministic=True)
 
-    env_logger.record_episode({"episode": "payload"}, steps=4)
+    env_logger.record_episode_data({"episode": "payload"}, steps=4)
 
-    result = env_logger.finalize_policy()
+    result = env_logger.save_policy_episodes()
 
-    episode_path = tmp_path / "scenario_beta" / "oracle_policy" / "episodes" / "episode_first_ep01.json"
+    episode_path = tmp_path / "scenario_beta" / "oracle_policy" / "episodes" / "episode_ep01.json"
 
     assert result["steps"] == {"first": 4}
-    assert result["files"] == [".../episode_first_ep01.json"]
+    assert result["files"] == [".../episode_ep01.json"]
     assert episode_path.is_file()
     assert episode_path.read_text() == '{\n  "episode": "payload"\n}'
 
@@ -64,11 +64,12 @@ def test_environment_logger_persist_episode_outputs_uses_active_logger(tmp_path:
 
     env_logger._active_episode_logger = StubEpisodeLogger()
 
-    env_logger.persist_episode_outputs(episode_num=1, steps=7)
-    result = env_logger.finalize_policy()
+    env_logger.record_episode(steps=7)
+    env_logger.save_analysis(episode_num=1)
+    result = env_logger.save_policy_episodes()
 
     analysis_path = tmp_path / "scenario_gamma" / "policy_x" / "analysis" / "analysis_ep01.json"
-    episode_path = tmp_path / "scenario_gamma" / "policy_x" / "episodes" / "episode_first_ep01.json"
+    episode_path = tmp_path / "scenario_gamma" / "policy_x" / "episodes" / "episode_ep01.json"
 
     assert analysis_path.is_file()
     assert analysis_path.read_text() == '{\n  "summary": {\n    "count": 1\n  }\n}'
@@ -77,7 +78,7 @@ def test_environment_logger_persist_episode_outputs_uses_active_logger(tmp_path:
     assert result["steps"] == {"first": 7}
 
 
-def test_environment_logger_finalize_policy_saves_all_matrix_factorization_episodes_and_summary(
+def test_environment_logger_save_policy_episodes_saves_all_matrix_factorization_episodes_and_summary(
     tmp_path: Path,
 ) -> None:
     env_logger = EnvironmentLogger(
@@ -86,11 +87,11 @@ def test_environment_logger_finalize_policy_saves_all_matrix_factorization_episo
     )
     env_logger.start_policy("matrix_factorization_cf", is_deterministic=False)
 
-    env_logger.record_episode({"episode": 1}, steps=8)
-    env_logger.record_episode({"episode": 2}, steps=5)
-    env_logger.record_episode({"episode": 3}, steps=7)
+    env_logger.record_episode_data({"episode": 1}, steps=8)
+    env_logger.record_episode_data({"episode": 2}, steps=5)
+    env_logger.record_episode_data({"episode": 3}, steps=7)
 
-    result = env_logger.finalize_policy()
+    result = env_logger.save_policy_episodes()
 
     policy_dir = tmp_path / "scenario_mf" / "matrix_factorization_cf"
     episodes_dir = policy_dir / "episodes"
@@ -101,9 +102,9 @@ def test_environment_logger_finalize_policy_saves_all_matrix_factorization_episo
         ".../episode_ep02.json",
         ".../episode_ep03.json",
     ]
-    assert result["steps"] == {"first": 8, "best": 5, "mid": 7}
+    assert result["steps"] == {"first": 8, "final": 7}
     assert result["best_episode_num"] == 2
-    assert result["milestones"] == {"first": 1, "best": 2, "mid": 3}
+    assert result["milestones"] == {"first": 1, "best": 2}
 
     assert (episodes_dir / "episode_ep01.json").read_text() == '{\n  "episode": 1\n}'
     assert (episodes_dir / "episode_ep02.json").read_text() == '{\n  "episode": 2\n}'
@@ -239,7 +240,7 @@ def test_environment_logger_handle_flush_persists_learning_state_checkpoint(tmp_
         / "scenario_delta"
         / "policy_y"
         / "learning_state"
-        / "learning_state_step_00010.json"
+        / "learning_state_ep03_step_00010.json"
     )
 
     assert learning_state_path.is_file()

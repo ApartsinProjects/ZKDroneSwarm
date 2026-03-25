@@ -41,11 +41,11 @@ def test_run_episode_uses_env_diagnostics_with_random_policy() -> None:
 
     metrics = run_episode(env, policy, episode_num=1, seed=7)
 
-    assert metrics["episode"] == 1
-    assert metrics["steps"] >= 1
-    assert metrics["total_ammo_used"] >= 0
-    assert "done_reason" in metrics
-    assert set(metrics["agent_rewards"].keys()) == {"drone_0", "drone_1"}
+    assert metrics.episode == 1
+    assert metrics.steps >= 1
+    assert metrics.total_ammo_used >= 0
+    assert metrics.done_reason is not None
+    assert set(metrics.agent_rewards.keys()) == {"drone_0", "drone_1"}
 
 
 def test_run_episode_uses_env_diagnostics_with_ttk_oracle() -> None:
@@ -60,11 +60,11 @@ def test_run_episode_uses_env_diagnostics_with_ttk_oracle() -> None:
 
     metrics = run_episode(env, policy, episode_num=1, seed=7)
 
-    assert metrics["episode"] == 1
-    assert metrics["steps"] >= 1
-    assert metrics["total_ammo_used"] >= 0
-    assert "done_reason" in metrics
-    assert set(metrics["agent_rewards"].keys()) == {"drone_0", "drone_1"}
+    assert metrics.episode == 1
+    assert metrics.steps >= 1
+    assert metrics.total_ammo_used >= 0
+    assert metrics.done_reason is not None
+    assert set(metrics.agent_rewards.keys()) == {"drone_0", "drone_1"}
 
 
 def test_run_episode_uses_env_diagnostics_with_max_damage_oracle() -> None:
@@ -79,11 +79,11 @@ def test_run_episode_uses_env_diagnostics_with_max_damage_oracle() -> None:
 
     metrics = run_episode(env, policy, episode_num=1, seed=7)
 
-    assert metrics["episode"] == 1
-    assert metrics["steps"] >= 1
-    assert metrics["total_ammo_used"] >= 0
-    assert "done_reason" in metrics
-    assert set(metrics["agent_rewards"].keys()) == {"drone_0", "drone_1"}
+    assert metrics.episode == 1
+    assert metrics.steps >= 1
+    assert metrics.total_ammo_used >= 0
+    assert metrics.done_reason is not None
+    assert set(metrics.agent_rewards.keys()) == {"drone_0", "drone_1"}
 
 
 def test_run_episode_uses_env_diagnostics_with_matrix_factorization_policy() -> None:
@@ -111,11 +111,11 @@ def test_run_episode_uses_env_diagnostics_with_matrix_factorization_policy() -> 
 
     metrics = run_episode(env, policy, episode_num=1, seed=7)
 
-    assert metrics["episode"] == 1
-    assert metrics["steps"] >= 1
-    assert metrics["total_ammo_used"] >= 0
-    assert "done_reason" in metrics
-    assert set(metrics["agent_rewards"].keys()) == {"drone_0", "drone_1"}
+    assert metrics.episode == 1
+    assert metrics.steps >= 1
+    assert metrics.total_ammo_used >= 0
+    assert metrics.done_reason is not None
+    assert set(metrics.agent_rewards.keys()) == {"drone_0", "drone_1"}
 
 
 def test_attach_target_classes_to_learning_state_uses_env_target_order() -> None:
@@ -155,16 +155,16 @@ def test_run_episode_uses_environment_logger_boundary(tmp_path) -> None:
         seed=7,
         environment_logger=environment_logger,
     )
-    environment_logger.persist_episode_outputs(episode_num=1, steps=metrics["steps"])
-    result = environment_logger.finalize_policy()
+    environment_logger.persist_episode_outputs(episode_num=1, steps=metrics.steps)
+    result = environment_logger.save_policy_episodes()
 
     episode_path = (
         tmp_path / "runner_test" / "random_policy" / "episodes" / "episode_first_ep01.json"
     )
     environment_path = tmp_path / "runner_test" / "environment.json"
 
-    assert metrics["episode"] == 1
-    assert result["steps"] == {"first": metrics["steps"]}
+    assert metrics.episode == 1
+    assert result["steps"] == {"first": metrics.steps}
     assert episode_path.is_file()
     assert environment_path.is_file()
 

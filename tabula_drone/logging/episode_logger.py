@@ -185,9 +185,8 @@ class EpisodeLogger:
             
         os.makedirs(self.output_dir, exist_ok=True)
         
-        # In continuous mode, we don't need policy_type in the filename 
-        # because it's already in the parent directory path.
-        filename = f"episode_continuous_step_{step_num:05d}.json"
+        # Continuous mode chunks follow the ep01 pattern per user request
+        filename = f"episode_ep01_step_{step_num:05d}.json"
         filepath = os.path.join(self.output_dir, filename)
         
         # Save current chunk data
@@ -196,7 +195,7 @@ class EpisodeLogger:
             
         # Save engagement analysis chunk to analysis_dir
         os.makedirs(self.analysis_dir, exist_ok=True)
-        analysis_filename = f"analysis_step_{step_num:05d}.json"
+        analysis_filename = f"analysis_ep01_step_{step_num:05d}.json"
         analysis_filepath = os.path.join(self.analysis_dir, analysis_filename)
         self._engagement_logger.save(analysis_filepath)
         
@@ -250,8 +249,8 @@ class EpisodeLogger:
         Write episode data to JSON file.
         
         Args:
-            is_best: If True, include "best_" prefix in filename after episode number
-            prefix: Custom prefix to include in filename (overrides is_best if provided)
+            is_best: Deprecated - no longer used in filename construction
+            prefix: Deprecated - no longer used in filename construction
         
         Returns:
             Filepath of the saved JSON file
@@ -265,11 +264,11 @@ class EpisodeLogger:
         os.makedirs(self.output_dir, exist_ok=True)
         
         timestamp_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        policy_part = f"{self.policy_type}_" if self.policy_type else ""
         episode_num = self._episode_data.get("episode_num")
         episode_part = f"ep{episode_num:02d}_" if episode_num is not None else ""
-        prefix_part = prefix if prefix else ("best_" if is_best else "")
-        filename = f"episode_{policy_part}{episode_part}{prefix_part}{timestamp_str}_{self._episode_id}.json"
+        
+        # Unified format: episode_epXX_timestamp_uuid.json (role prefixes removed)
+        filename = f"episode_{episode_part}{timestamp_str}_{self._episode_id}.json"
         filepath = os.path.join(self.output_dir, filename)
         
         with open(filepath, "w") as f:

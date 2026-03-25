@@ -32,28 +32,9 @@ The magic of this approach lies in how it uses these profiles to predict and lea
 
 ---
 
-## 2. Operational Environments: Modes of Engagement
+## 2. Application to Drones: ZK-MRTA
 
-The `MatrixFactorizationPolicy` is designed to operate in two distinct multi-agent configurations, each presenting a different tactical challenge.
-
-### 2.1 Episodic Mode (Strategic Clearing)
-In this mode, the mission has a finite objective: **clear the board**. 
-*   **Episode Structure**: Structured as a sequence of **short, discrete episodes**. Each episode begins with a fresh set of targets and concludes when they are all neutralized.
-*   **Execution**: Targets are removed from the active engagement list upon destruction. The episode ends when the environment is empty or the step limit is reached.
-*   **Optimization Goal**: The swarm must solve a "minimum-time" problem, minimizing the steps required to clear each episode.
-*   **Learning Persistence (Soft Reset)**: Knowledge is carried over between episodes. A **Soft Reset** is performed at the end of each episode, preserving the learned latent matrices ($P, U$) and the exploration state ($\epsilon$) while resetting the environment for a new mission. This satisfies the "Amnesia-Free" requirement, allowing the swarm to "get smarter" with every play-through.
-
-### 2.2 Continuous Mode (Persistent Engagement)
-In this mode, the mission simulates a **permanent tactical horizon**.
-*   **Episode Structure**: Executed as a **single, long-running episode** with a high step count. There is no concept of "clearing the board" to trigger an episode end.
-*   **Execution**: When a target is neutralized, it immediately **respawns** at a new random location. The simulation runs for a fixed number of steps until a global `max_steps` limit is reached.
-*   **Performance Metrics**: Success is measured by a combination of high neutralization throughput, coordination efficiency (minimizing collisions), and ammo/damage effectiveness.
-
----
-
-## 3. Application to Drones: ZK-MRTA
-
-### 3.1 The Recommendation Problem 
+### 2.1 The Recommendation Problem
 In a typical ZK-MRTA scenario, drones are dropped into an environment without knowing their own capabilities (missile damage) or their targets' vulnerabilities. The `MatrixFactorizationPolicy` treats this as a **Recommendation Problem**:
 
 *   **Users** = Drones (with hidden weapon profiles in Matrix $P$).
@@ -67,11 +48,30 @@ Even if **Drone A** has never fired at **Target X**, it can learn about Target X
 
 ---
 
+## 3. Operational Environments: Modes of Engagement
+
+The `MatrixFactorizationPolicy` is designed to operate in two distinct multi-agent configurations, each presenting a different tactical challenge.
+
+### 3.1 Episodic Mode (Strategic Clearing)
+In this mode, the mission has a finite objective: **clear the board**.
+*   **Episode Structure**: Structured as a sequence of **short, discrete episodes**. Each episode begins with a fresh set of targets and concludes when they are all neutralized.
+*   **Execution**: Targets are removed from the active engagement list upon destruction. The episode ends when the environment is empty or the step limit is reached.
+*   **Optimization Goal**: The swarm must solve a "minimum-time" problem, minimizing the steps required to clear each episode.
+*   **Learning Persistence (Soft Reset)**: Knowledge is carried over between episodes. A **Soft Reset** is performed at the end of each episode, preserving the learned latent matrices ($P, U$) and the exploration state ($\epsilon$) while resetting the environment for a new mission. This satisfies the "Amnesia-Free" requirement, allowing the swarm to "get smarter" with every play-through.
+
+### 3.2 Continuous Mode (Persistent Engagement)
+In this mode, the mission simulates a **permanent tactical horizon**.
+*   **Episode Structure**: Executed as a **single, long-running episode** with a high step count. There is no concept of "clearing the board" to trigger an episode end.
+*   **Execution**: When a target is neutralized, it immediately **respawns** at a new random location. The simulation runs for a fixed number of steps until a global `max_steps` limit is reached.
+*   **Performance Metrics**: Success is measured by a combination of high neutralization throughput, coordination efficiency (minimizing collisions), and ammo/damage effectiveness.
+
+---
+
 ## 4. System Workflow: The Policy in Action
 
 The theory of Matrix Factorization is realized through a continuous, high-speed interaction loop between the drones and their environment. This workflow is the "heartbeat" of the system, where local latent models are incrementally updated based on real-world outcomes, bridging the gap between mathematical prediction and physical execution.
 
-### 3.1 The Full Interaction Cycle (Code Trace)
+### 4.1 The Full Interaction Cycle (Code Trace)
 
 This is how the **Main Loop**, the **Environment**, and the **Policy** interact at every time step.
 
@@ -258,7 +258,6 @@ By operating in **Continuous Mode**, we uncovered critical coordination failures
 In Episodic mode, the environment "forces" coordination: once a target is dead, it is gone, and drones must find new tasks. In **Continuous Mode**, the "best" target stays on the board forever via respawning, which leading to a catastrophic **Synchronization Trap**.
 
 ### 5.2 Solution 1: Target Identity Persistence
-For Matrix Factorization to learn in a persistent world, the environment enforces **Identity Preservation** during respawns.
 For Matrix Factorization to learn in a continuous world, the environment enforces **Identity Preservation** during respawns.
 *   **Logical Consistency**: When a target dies and respawns, it retains its **Target Class** (e.g., if Slot 3 was Class A, the new object in Slot 3 remains Class A). 
 *   **Why it Matters**: This ensures the learned "Vulnerability Profile" in the $U$ matrix remains valid across thousands of steps. Without this, the model would suffer from "Catastrophic Interference" as target profiles shifted randomly.

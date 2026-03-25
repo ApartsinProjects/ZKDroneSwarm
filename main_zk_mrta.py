@@ -39,7 +39,12 @@ from tabula_drone.policies.utils.visualizer_bakery import (
 )
 from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.utils.console_rendering import ConsolePrinter
-from tabula_drone.utils.metrics_helper import calculate_derived_metrics, format_metric_display
+from tabula_drone.utils.metrics_manager import (
+    EpisodeMetrics,
+    EpisodeMetricsSource,
+    MetricsManager,
+    PolicyRunSummary,
+)
 
 CONFIG_PATH = "config/scenario.json"
 printer = ConsolePrinter()
@@ -286,10 +291,11 @@ def run_episode(
     episode_num: int,
     verbose: bool = False,
     environment_logger: Optional[EnvironmentLogger] = None,
+    metrics_manager: Optional[MetricsManager] = None,
     seed: Optional[int] = None,
     total_episodes: Optional[int] = None,
     flush_interval: Optional[int] = None,
-) -> Dict[str, Any]:
+) -> EpisodeMetrics:
     """
     Run a single episode with the given policy.
     
@@ -302,7 +308,7 @@ def run_episode(
         seed: Random seed used for this episode (for logger)
     
     Returns:
-        Episode metrics dictionary
+        Typed episode metrics
     """
     # Reset environment
     # ???
@@ -407,13 +413,19 @@ def run_episode(
             done_reason=shared_info.get("done_reason"),
         )
     
-    # Compute final metrics
-    targets_neutralized = shared_info.get("cumulative_neutralizations", sum(1 for active in shared_info['target_active'] if not active))
-    total_ammo_used = sum(shared_info['ammo_used'].values())
-    total_overkill = sum(
-        sum(overkill.values()) for overkill in overkill_events
+    manager = metrics_manager or MetricsManager(env.mode)
+    source = EpisodeMetricsSource(
+        episode=episode_num,
+        steps=step_count,
+        final_diagnostics=shared_info,
+        overkill_events=tuple(overkill_events),
+        agent_rewards=total_rewards.copy(),
+        total_effective_damage=total_effective_damage,
+        total_collisions=total_collisions,
+        weapon_damage_profile_mapping=env.weapon_damage_profile_mapping,
     )
-    
+    metrics = manager.calc_episode_metrics(source)
+
     # Print summary
     if verbose:
         printer.episode_summary(
@@ -422,33 +434,12 @@ def run_episode(
             total_rewards=total_rewards,
             ammo_used=shared_info["ammo_used"],
             weapon_types=shared_info["weapon_types"],
-            done_reason=shared_info.get("done_reason", "N/A"),
-            targets_neutralized=targets_neutralized,
-            total_ammo_used=total_ammo_used,
+            done_reason=metrics.done_reason or "N/A",
+            targets_neutralized=metrics.targets_neutralized,
+            total_ammo_used=metrics.total_ammo_used,
         )
-    
-    # Compute potential damage from actual weapon profiles and ammo used per agent
-    total_potential_damage = 0.0
-    for agent_id, ammo in shared_info['ammo_used'].items():
-        agent_idx = int(agent_id.split('_')[1])
-        weapon_type = shared_info['weapon_types'][agent_idx]
-        damage_per_shot = sum(env.weapon_damage_profile_mapping[weapon_type].values())
-        total_potential_damage += ammo * damage_per_shot
-    
-    # Return metrics
-    return {
-        "episode": episode_num,
-        "steps": step_count,
-        "targets_neutralized": targets_neutralized,
-        "total_ammo_used": total_ammo_used,
-        "total_overkill": total_overkill,
-        "done_reason": shared_info.get("done_reason"),
-        "agent_rewards": total_rewards.copy(),
-        "overkill_events": len(overkill_events),
-        "total_effective_damage": total_effective_damage,
-        "total_potential_damage": total_potential_damage,
-        "total_collisions": total_collisions,
-    }
+
+    return metrics
 
 
 def compute_alignment_score(
@@ -529,34 +520,22 @@ def analyze_agent_clustering(policy, drone_weapon_map):
 
 def show_policy_performance_summary(
     config: Any,
-    all_metrics: List[Dict[str, Any]],
+    policy_summaries: Dict[str, PolicyRunSummary],
 ) -> None:
     table_data = []
     for policy_type in config.policy.type:
-        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
-        if policy_metrics:
-            n = len(policy_metrics)
-            avg_steps = sum(m["steps"] for m in policy_metrics) / n
-            avg_targets = sum(m["targets_neutralized"] for m in policy_metrics) / n
-            avg_ammo = sum(m["total_ammo_used"] for m in policy_metrics) / n
-            avg_overkill = sum(m["total_overkill"] for m in policy_metrics) / n
-            avg_reward = sum(sum(m["agent_rewards"].values()) for m in policy_metrics) / n
-            success_count = sum(1 for m in policy_metrics if m["done_reason"] == "all_targets_neutralized")
-            success_rate = (success_count / n) * 100
-            ammo_eff = avg_targets / avg_ammo if avg_ammo > 0 else 0.0
-            avg_eff_dmg = sum(m["total_effective_damage"] for m in policy_metrics) / n
-            avg_pot_dmg = sum(m["total_potential_damage"] for m in policy_metrics) / n
-            dmg_eff = avg_eff_dmg / avg_pot_dmg if avg_pot_dmg > 0 else 0.0
+        policy_summary = policy_summaries.get(policy_type)
+        if policy_summary:
             table_data.append([
                 policy_type,
-                avg_steps,
-                f"{avg_targets:.1f}",
-                f"{avg_ammo:.1f}",
-                f"{avg_overkill:.1f}",
-                f"{avg_reward:.1f}",
-                f"{success_rate:.0f}%",
-                f"{ammo_eff:.3f}",
-                f"{dmg_eff:.1%}",
+                policy_summary.avg_steps,
+                f"{policy_summary.avg_targets:.1f}",
+                f"{policy_summary.avg_ammo:.1f}",
+                f"{policy_summary.avg_overkill:.1f}",
+                f"{policy_summary.avg_reward:.1f}",
+                f"{policy_summary.success_rate:.0f}%",
+                f"{policy_summary.ammo_eff:.3f}",
+                f"{policy_summary.dmg_eff:.1%}",
             ])
 
     table_data.sort(key=lambda row: row[1])
@@ -569,20 +548,14 @@ def show_policy_performance_summary(
 
 def show_policy_best_episode_performance_vs_random(
     config: Any,
-    all_metrics: List[Dict[str, Any]],
+    policy_summaries: Dict[str, PolicyRunSummary],
 ) -> None:
     mode = config.environment.mode
     policy_best_metrics = {}
     for policy_type in config.policy.type:
-        policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
-        if policy_metrics:
-            # For continuous mode, we use the final state; for episodic, we find the best (shortest) episode
-            if mode == "continuous":
-                best_ep = policy_metrics[-1]
-            else:
-                best_ep = min(policy_metrics, key=lambda m: m["steps"])
-            
-            policy_best_metrics[policy_type] = calculate_derived_metrics(best_ep, mode=mode)
+        policy_summary = policy_summaries.get(policy_type)
+        if policy_summary and policy_summary.representative_episode is not None:
+            policy_best_metrics[policy_type] = policy_summary.representative_episode
 
     if "random" in policy_best_metrics and len(policy_best_metrics) > 1:
         rand = policy_best_metrics["random"]
@@ -607,18 +580,18 @@ def show_policy_best_episode_performance_vs_random(
                     if pt == "random":
                         cmp_data.append([
                             pt,
-                            f"{m['throughput']:.1f} (base)",
-                            f"{m['coordination_str']} (base)",
-                            f"{m['ammo_eff']:.3f} (base)",
-                            f"{m['dmg_eff']:.1%} (base)",
+                            f"{m.throughput:.1f} (base)",
+                            f"{m.coordination_str} (base)",
+                            f"{m.ammo_eff:.3f} (base)",
+                            f"{m.dmg_eff:.1%} (base)",
                         ])
                     else:
                         cmp_data.append([
                             pt,
-                            fmt_pct(m["throughput"], rand["throughput"], "{:.1f}", True),
-                            fmt_pct(m["coordination_score"], rand["coordination_score"], "{:.2f}", True) if m["coordination_score"] != float('inf') else "Perfect",
-                            fmt_pct(m["ammo_eff"], rand["ammo_eff"], "{:.3f}", True),
-                            fmt_pct(m["dmg_eff"], rand["dmg_eff"], "{:.1%}", True),
+                            fmt_pct(m.throughput, rand.throughput, "{:.1f}", True),
+                            fmt_pct(m.coordination_score, rand.coordination_score, "{:.2f}", True) if m.coordination_score != float('inf') else "Perfect",
+                            fmt_pct(m.ammo_eff, rand.ammo_eff, "{:.3f}", True),
+                            fmt_pct(m.dmg_eff, rand.dmg_eff, "{:.1%}", True),
                         ])
         else:
             headers = ["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"]
@@ -628,18 +601,18 @@ def show_policy_best_episode_performance_vs_random(
                     if pt == "random":
                         cmp_data.append([
                             pt,
-                            f"{m['best_steps']} (base)",
-                            f"{m['shots_per_target']:.1f} (base)",
-                            f"{m['ammo_eff']:.3f} (base)",
-                            f"{m['dmg_eff']:.1%} (base)",
+                            f"{m.best_steps} (base)",
+                            f"{m.shots_per_target:.1f} (base)",
+                            f"{m.ammo_eff:.3f} (base)",
+                            f"{m.dmg_eff:.1%} (base)",
                         ])
                     else:
                         cmp_data.append([
                             pt,
-                            fmt_pct(m["best_steps"], rand["best_steps"], "{}", False),
-                            fmt_pct(m["shots_per_target"], rand["shots_per_target"], "{:.1f}", False),
-                            fmt_pct(m["ammo_eff"], rand["ammo_eff"], "{:.3f}", True),
-                            fmt_pct(m["dmg_eff"], rand["dmg_eff"], "{:.1%}", True),
+                            fmt_pct(m.best_steps, rand.best_steps, "{}", False),
+                            fmt_pct(m.shots_per_target, rand.shots_per_target, "{:.1f}", False),
+                            fmt_pct(m.ammo_eff, rand.ammo_eff, "{:.3f}", True),
+                            fmt_pct(m.dmg_eff, rand.dmg_eff, "{:.1%}", True),
                         ])
 
         printer.policy_performance_comparison(
@@ -706,7 +679,8 @@ def main():
     else:
         # Continuous mode is effectively 1 long episode per policy
         num_episodes = 1
-    all_metrics = []
+    all_metrics: List[EpisodeMetrics] = []
+    policy_summaries: Dict[str, PolicyRunSummary] = {}
     
     printer.demo_header(
         config_path=CONFIG_PATH,
@@ -774,6 +748,8 @@ def main():
     engagement_tables = {}
     for policy_type, policy in policies.items():
         printer.policy_run_header(policy_type)
+        policy_metrics_manager = MetricsManager(config.environment.mode)
+        policy_episode_metrics: List[EpisodeMetrics] = []
         
         # Get policy metadata from policy attributes
         is_deterministic = policy.is_deterministic
@@ -821,12 +797,13 @@ def main():
                 episode_num=episode_num,
                 verbose=config.environment.verbose,
                 environment_logger=environment_logger,
+                metrics_manager=policy_metrics_manager,
                 seed=episode_seed,  #config.seed
                 total_episodes=num_episodes,
                 flush_interval=flush_interval,
             )
-            metrics["policy_type"] = policy_type
             all_metrics.append(metrics)
+            policy_episode_metrics.append(metrics)
             
             # Capture the latest post-episode state for CF policies
             episode_state = None
@@ -835,9 +812,6 @@ def main():
                     policy.get_learning_state(),
                     env,
                 )
-            
-            # Save learning state for every episode
-            if not is_deterministic:
                 environment_logger.save_learning_state(
                     episode_state=episode_state,
                     episode_num=episode_num,
@@ -846,31 +820,27 @@ def main():
                     latent_dim=getattr(policy, "latent_dim", None),
                 )
             
-            # Persist per-episode outputs through EnvironmentLogger
-            environment_logger.persist_episode_outputs(
-                episode_num=episode_num,
-                steps=metrics["steps"],
-            )
+            # Persist per-episode outputs explicitly through EnvironmentLogger
+            environment_logger.record_episode(metrics.steps)
+            environment_logger.save_analysis(episode_num)
             
             # Per-run summary
             if config.environment.mode == "continuous":
-                derived = calculate_derived_metrics(metrics, mode="continuous")
                 printer.continuous_run_progress(
-                    steps=metrics["steps"],
-                    throughput=derived["throughput"],
-                    coordination=derived["coordination_str"],
-                    ammo_eff=derived["ammo_eff"],
-                    collisions=metrics["total_collisions"],
+                    steps=metrics.steps,
+                    throughput=metrics.throughput,
+                    coordination=metrics.coordination_str,
+                    ammo_eff=metrics.ammo_eff,
+                    collisions=metrics.total_collisions,
                 )
             else:
-                total_reward = sum(metrics["agent_rewards"].values())
                 printer.episode_run_progress(
                     episode_num=episode_num,
-                    steps=metrics["steps"],
-                    targets_neutralized=metrics["targets_neutralized"],
-                    total_effective_damage=metrics["total_effective_damage"],
-                    total_overkill=metrics["total_overkill"],
-                    total_reward=total_reward,
+                    steps=metrics.steps,
+                    targets_neutralized=metrics.targets_neutralized,
+                    total_effective_damage=metrics.total_effective_damage,
+                    total_overkill=metrics.total_overkill,
+                    total_reward=metrics.total_reward,
                 )
             
             # Print learning path for CF policies
@@ -886,8 +856,9 @@ def main():
             #     drone_weapons = [d["weapon_type"] for d in drones_config]
             #     analyze_agent_clustering(policy, drone_weapons)
         
-        # Finalize policy run - saves policy artifacts for episodic or continuous mode
-        result = environment_logger.finalize_policy()
+        # Save policy artifacts for episodic or continuous mode
+        result = environment_logger.save_policy_episodes()
+        
         if config.environment.mode != "continuous":
             printer.saved_episodes(result["files"])
         steps = result['steps']
@@ -908,21 +879,17 @@ def main():
                 enrich_learning_state_dir(learning_state_dir, mode=tsne_mode)
                 print("Finished t-SNE enrichment for all learning_state artifacts.")
 
-        if 'best' in steps:
-            printer.policy_steps_summary(
-                first=steps["first"],
-                best=steps["best"],
-                mid=steps["mid"],
-            )
-        elif 'final' in steps:
-            # For continuous mode, show cumulative results at the end of the policy run
+        if 'final' in steps:
+            # For continuous mode or learning policy final: show cumulative results
             printer.policy_final_summary(
-                steps=metrics["steps"],
-                targets_neutralized=metrics["targets_neutralized"],
-                total_effective_damage=metrics["total_effective_damage"],
-                total_overkill=metrics["total_overkill"],
-                total_collisions=metrics["total_collisions"],
+                steps=metrics.steps,
+                targets_neutralized=metrics.targets_neutralized,
+                total_effective_damage=metrics.total_effective_damage,
+                total_overkill=metrics.total_overkill,
+                total_collisions=metrics.total_collisions,
             )
+        elif 'first' in steps:
+            printer.policy_first_step(steps["first"])
         else:
             printer.policy_first_step(steps.get("first", "N/A"))
 
@@ -949,28 +916,45 @@ def main():
             else:
                 engagement_tables[policy_type] = (None, f"Analysis file not found: {analysis_path}")
 
+        policy_summaries[policy_type] = policy_metrics_manager.calc_total_episodes_metrics(
+            policy_episode_metrics,
+        )
+
     if config.environment.verbose:
         # Aggregate statistics across all episodes (all policies)
         total_episodes = len(all_metrics)
-        avg_steps = sum(m["steps"] for m in all_metrics) / total_episodes
-        avg_targets = sum(m["targets_neutralized"] for m in all_metrics) / total_episodes
-        avg_ammo = sum(m["total_ammo_used"] for m in all_metrics) / total_episodes
-        avg_overkill = sum(m["total_overkill"] for m in all_metrics) / total_episodes
+        avg_steps = sum(m.steps for m in all_metrics) / total_episodes if total_episodes > 0 else 0.0
+        avg_targets = (
+            sum(m.targets_neutralized for m in all_metrics) / total_episodes
+            if total_episodes > 0
+            else 0.0
+        )
+        avg_ammo = (
+            sum(m.total_ammo_used for m in all_metrics) / total_episodes
+            if total_episodes > 0
+            else 0.0
+        )
+        avg_overkill = (
+            sum(m.total_overkill for m in all_metrics) / total_episodes
+            if total_episodes > 0
+            else 0.0
+        )
         per_policy_rows = []
         # Per-policy statistics
         for policy_type in config.policy.type:
-            policy_metrics = [m for m in all_metrics if m["policy_type"] == policy_type]
-            if policy_metrics:
+            policy_summary = policy_summaries.get(policy_type)
+            if policy_summary:
                 per_policy_rows.extend([
                     f"\n  Policy '{policy_type}':",
-                    f"    Avg Steps: {sum(m['steps'] for m in policy_metrics) / len(policy_metrics):.1f}",
-                    f"    Avg Targets: {sum(m['targets_neutralized'] for m in policy_metrics) / len(policy_metrics):.1f}",
+                    f"    Avg Steps: {policy_summary.avg_steps:.1f}",
+                    f"    Avg Targets: {policy_summary.avg_targets:.1f}",
                 ])
         per_agent_rows = []
         # Per-agent statistics (use last env for agent list)
         for agent_id in env.agents:
-            avg_reward = sum(m["agent_rewards"][agent_id] for m in all_metrics) / total_episodes
+            avg_reward = sum(m.agent_rewards[agent_id] for m in all_metrics) / total_episodes
             per_agent_rows.append(f"  {agent_id}: {avg_reward:.2f}")
+
         printer.aggregate_statistics(
             total_episodes=total_episodes,
             num_episodes=num_episodes,
@@ -983,9 +967,9 @@ def main():
             per_agent_rows=per_agent_rows,
         )
     
-    # show_policy_performance_summary(config, all_metrics)
+    # show_policy_performance_summary(config, policy_summaries)
 
-    show_policy_best_episode_performance_vs_random(config, all_metrics)
+    show_policy_best_episode_performance_vs_random(config, policy_summaries)
 
     # show_engagement_tables(engagement_tables)
 
