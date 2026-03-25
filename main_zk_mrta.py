@@ -32,7 +32,11 @@ from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpG
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.base import IPolicy, bind_diagnostics_provider
-from tabula_drone.policies.utils.visualizer_bakery import enrich_learning_state_file
+from tabula_drone.policies.utils.visualizer_bakery import (
+    TSNE_MODE_PER_EPISODE,
+    TSNE_MODE_PER_EPISODE_ALIGNED,
+    enrich_learning_state_dir,
+)
 from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.utils.console_rendering import ConsolePrinter
 from tabula_drone.utils.metrics_helper import calculate_derived_metrics, format_metric_display
@@ -892,6 +896,7 @@ def main():
         # as a post-processing step, keeping the training loop itself fast.
         if not is_deterministic and policy_type == "matrix_factorization_cf":
             learning_state_dir = environment_logger.get_learning_state_dir()
+            tsne_mode = TSNE_MODE_PER_EPISODE #TSNE_MODE_PER_EPISODE_ALIGNED
             state_files = sorted(
                 os.path.join(learning_state_dir, filename)
                 for filename in os.listdir(learning_state_dir)
@@ -900,8 +905,7 @@ def main():
 
             if state_files:
                 print("Starting t-SNE enrichment for all learning_state artifacts...")
-                for state_file in state_files:
-                    enrich_learning_state_file(state_file)
+                enrich_learning_state_dir(learning_state_dir, mode=tsne_mode)
                 print("Finished t-SNE enrichment for all learning_state artifacts.")
 
         if 'best' in steps:
