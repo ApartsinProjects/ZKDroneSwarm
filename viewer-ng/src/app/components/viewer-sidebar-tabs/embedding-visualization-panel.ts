@@ -51,14 +51,14 @@ const HEIGHT = 360;
 const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
 const AGENT_COLOR = '#3498db';
 const TARGET_CLASS_COLORS = [
-  '#e67e22',
-  '#16a085',
-  '#c0392b',
-  '#8e44ad',
-  '#2c3e50',
-  '#f39c12',
-  '#2980b9',
-  '#27ae60',
+  '#ff3b30', // Vibrant Red
+  '#007aff', // Vibrant Blue
+  '#4cd964', // Vibrant Green
+  '#ff9500', // Vibrant Orange
+  '#5856d6', // Vibrant Indigo
+  '#ff2d55', // Vibrant Pink
+  '#5ac8fa', // Teal/Cyan
+  '#af52de', // Vibrant Purple
 ];
 
 @Component({

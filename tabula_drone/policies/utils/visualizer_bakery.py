@@ -36,7 +36,7 @@ def compute_tsne_2d_offline(P: np.ndarray, U: np.ndarray, agent_idx: int) -> Tup
         perplexity=perplexity,
         random_state=42,
         init="pca",
-        learning_rate="auto",
+        learning_rate=100,
     )
     embeddings_2d = tsne.fit_transform(combined)
 

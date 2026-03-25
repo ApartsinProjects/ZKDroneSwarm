@@ -12,16 +12,9 @@ It satisfies MultiAgentPolicy's duck-typing contract.
 Reference: docs/policies/classic-collaborative-filtering/matrix-factorization-policy.md
 """
 
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any
 
 import numpy as np
-
-try:
-    from sklearn.manifold import TSNE
-
-    _HAS_SKLEARN = True
-except ImportError:
-    _HAS_SKLEARN = False
 
 
 class MatrixFactorizationPolicy:
@@ -271,50 +264,18 @@ class MatrixFactorizationPolicy:
         self.step_count = 0
         self.epsilon = self.initial_epsilon
 
-    def _compute_tsne_2d(self) -> Tuple[List[float], List[List[float]]]:
-        """
-        Compute joint t-SNE 2D projection of agent and target latent vectors.
-
-        Stacks P[agent_idx] with U.T (all targets) and reduces jointly so
-        that distances in 2D reflect similarities in the full latent space.
-
-        Returns:
-            (agent_2d, targets_2d):
-                agent_2d  — list of 2 floats
-                targets_2d — list of num_targets lists, each 2 floats
-        """
-        agent_row = self.P[self.agent_idx].reshape(1, -1)  # (1, latent_dim)
-        targets = self.U.T  # (num_targets, latent_dim)
-        combined = np.vstack([agent_row, targets])  # (1 + num_targets, latent_dim)
-
-        n_samples = combined.shape[0]
-        perplexity = min(5, max(1, n_samples - 1))
-
-        tsne = TSNE(
-            n_components=2,
-            perplexity=perplexity,
-            random_state=42,
-            init="pca",
-            learning_rate="auto",
-        )
-        embeddings_2d = tsne.fit_transform(combined)
-
-        agent_2d = embeddings_2d[0].tolist()
-        targets_2d = embeddings_2d[1:].tolist()
-        return agent_2d, targets_2d
-
     def get_learning_state(self, include_tsne: bool = False) -> Optional[Dict[str, Any]]:
         """
         Return learning state for logging/visualization.
 
         Args:
-            include_tsne: If True, compute 2D t-SNE projection (expensive).
-                         If False, return the first 2 dimensions of raw vectors.
+            include_tsne: Deprecated. Live t-SNE is not supported here; logs are
+                enriched offline after training completes.
 
         Returns:
             Dict with this drone's latent model state.
-            agent_lv and target_lv contain 2D projections for visualization. 
-            P and U contain the full latent matrices.
+            agent_lv and target_lv contain the first 2 dimensions of raw vectors.
+            P and U contain the full latent matrices for offline enrichment.
         """
         predicted_rewards = [
             float(self.predict_reward(t)) for t in range(self.num_targets)
@@ -325,13 +286,9 @@ class MatrixFactorizationPolicy:
         ]
         best_target = int(ranked_targets[0]) if ranked_targets else None
 
-        # Compute 2D visualization coordinates
-        if include_tsne and _HAS_SKLEARN:
-            agent_lv_2d, target_lv_2d = self._compute_tsne_2d()
-        else:
-            # Fallback: use first 2 dimensions of raw vectors
-            agent_lv_2d = self.agent_lv[:2].tolist()
-            target_lv_2d = self.target_lv[:, :2].tolist()
+        # 2D visualization coordinates are upgraded later by offline t-SNE enrichment.
+        agent_lv_2d = self.agent_lv[:2].tolist()
+        target_lv_2d = self.target_lv[:, :2].tolist()
 
         return {
             "agent_idx": self.agent_idx,
