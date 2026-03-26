@@ -166,10 +166,11 @@
 .map-page__metrics .metric-item--placeholder {
   justify-content: center;
   height: 100px;
+  width: 220px;
+  box-sizing: border-box;
 }
 
 .map-page__metrics .metric-item--placeholder-wide {
-  grid-column: 1 / span 2;
   min-width: 0;
 }
 
@@ -189,6 +190,10 @@
   .map-chart-panel {
     width: 100%;
     min-width: 0;
+  }
+
+  .map-page__metrics .metric-item--placeholder {
+    width: 100%;
   }
 
   .map-page__metrics .metric-item--placeholder-wide {
