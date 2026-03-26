@@ -25,19 +25,29 @@
 }
 
 .split-view__panel--map {
-  flex: 0 0 40%;
+  flex: 0 0 40vw;
+  width: 40vw;
+  min-width: 0;
+  align-items: center;
+}
+
+.split-view__panel--map app-map {
+  display: block;
+  width: 100%;
 }
 
 .map-bottom-row {
   display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
+  width: 100%;
   margin-top: 24px;
   gap: 16px;
 }
 
 .map-bottom-row__policies {
-  flex: 1;
+  flex: 0 1 32rem;
 }
 
 .map-bottom-row__player {
@@ -45,7 +55,7 @@
 }
 
 .split-view__panel--sidebar {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -62,5 +72,11 @@
 
   .split-view__panel--map {
     flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .split-view__panel--sidebar {
+    flex: 0 0 auto;
+    min-width: 0;
   }
 }

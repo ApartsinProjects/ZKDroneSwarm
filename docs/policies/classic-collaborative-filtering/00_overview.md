@@ -1,7 +1,7 @@
 # Matrix Factorization Policy: Decentralized Collaborative Filtering
 
 This document provide a comprehensive overview of the `MatrixFactorizationPolicy`, explaining how it adapts classical collaborative filtering techniques to the **Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA)** problem.
-
+ 
 ---
 
 ## 1. The Mechanism: Matrix Factorization
@@ -271,27 +271,41 @@ A successful `MatrixFactorizationPolicy` in Continuous mode is measured by its *
 
 ## 6. Measuring Performance: Evaluation Metrics for Persistent Swarms
 
-To evaluate the effectiveness of the `MatrixFactorizationPolicy`, especially in **Continuous Mode**, we employ a multi-dimensional KPI suite. These metrics differentiate between raw "killing power" and the "surgical coordination" of the swarm.
+To evaluate the effectiveness of the `MatrixFactorizationPolicy`, especially across different modes of engagement, we employ a multi-dimensional KPI suite. These metrics differentiate between raw "killing power" and the "surgical coordination" of the swarm.
 
-### 6.1 Neutralization Throughput (N/100)
-*   **Motivation**: In a persistent tactical horizon, the goal is not "clearing the board" but the **Rate of Productivity**. This metric allows direct comparison between simulations of different lengths.
+### 6.1 Damage Efficiency (Dmg Eff)
+*   **Tactical Focus**: Weapon-target alignment ("The Brain").
+*   **Motivation**: Validates that drones have successfully identified target classes vulnerable to their specific weapon profiles. This is the primary indicator that the Matrix Factorization model has converged and correctly identified latent physics.
+*   **Calculation**: $\frac{\text{Total Effective Damage}}{\text{Total Potential Damage}}$
+    *   **Total Effective Damage**: The actual reduction in target health. If a shot could deal 50 damage but the target has only 10 HP left, only **10** points count as effective damage.
+    *   **Total Potential Damage**: The maximum theoretical damage capacity of all shots fired (Sum of weapon damage profiles for every action). High efficiency confirms "surgical" fire.
+
+### 6.2 Swarm Coordination & De-confliction
+*   **Tactical Focus**: Collective behavior health ("The Social").
+*   **Motivation**: Measures the swarm's ability to act as a distributed unit and avoid redundant actions. High coordination ensures lethal potential is not "trapped" in a few high-value targets while others are neglected.
+*   **Metrics**:
+    *   **Total Collisions**: A raw count of redundant agent utility. 
+        *   **Calculation**: For every target in a given time step, we count the number of agents who fired at it. The total collisions for that step is $\sum \max(0, \text{Agents on Target}_t - 1)$. 
+        *   *Example*: If 3 drones hit Target A and 2 drones hit Target B, the total collisions = $(3-1) + (2-1) = 3$.
+    *   **Coordination Score (N/C)**: Quantifies the "purity" of the swarm effort by measuring the number of successful neutralizations achieved for every Collision ($\frac{\text{Total Neutralized}}{\text{Total Collisions}}$). A high score confirms the swarm has learned to "spread out" via selection noise.
+    *   **Total Overkill**: While often seen as a fire-control metric, overkill is a critical indicator of **Swarm Synchronization**. 
+        *   **Calculation**: $\sum \max(0, \text{Damage Dealt} - \text{Target HP Remaining})$.
+        *   **Why it's Coordination**: In MF, high overkill values suggest drones are "over-committing" to targets because their local models are not synchronized or their situational updates are lagging behind the global reality. It represents the "hidden friction" of distributed action.
+
+### 6.3 Neutralization Throughput (N/100)
+*   **Tactical Focus**: Used primarily in **Continuous Mode**.
+*   **Motivation**: In a persistent tactical horizon, the goal is not "clearing the board" but maintaining a high **Rate of Productivity**. This metric allows direct comparison between simulations of different lengths by normalizing output.
 *   **Calculation**: $\frac{\text{Total Neutralized}}{\text{Total Steps}} \times 100$
 
-### 6.2 Coordination Score (N/C)
-*   **Motivation**: Measures the "Friction" within the swarm. It quantifies the number of successful neutralizations achieved for every **Collision** (two or more drones firing at the same target in the same step).
-*   **Calculation**: $\frac{\text{Total Neutralized}}{\text{Total Collisions}}$
-    *   *Surgical Benchmark*: A score significantly higher than the Random baseline indicates the swarm has learned to de-conflict and distribute tasks effectively.
-
-### 6.3 Ammo Efficiency (Ammo Eff)
+### 6.4 Ammo Efficiency (Ammo Eff)
+*   **Tactical Focus**: Resource management.
 *   **Motivation**: Evaluates the lethal utility of every shot fired. High ammo efficiency indicates the swarm is minimizing wasted shots on non-vulnerable or already-neutralized targets.
 *   **Calculation**: $\frac{\text{Total Neutralized}}{\text{Total Ammo Used}}$
 
-### 6.4 Damage Efficiency (Dmg Eff)
-*   **Motivation**: Validates the **Weapon-Target Alignment**. It measures how much of the swarm's raw firepower was successfully converted into actual target HP reduction versus how much was wasted as "overkill" or ineffective fire. 
-*   **Calculation**: $\frac{\text{Total Effective Damage}}{\text{Total Potential Damage}}$
-    *   **Total Effective Damage**: The actual reduction in target health. If a shot could deal 50 damage but the target has only 10 HP left, only **10** points count as effective damage.
-    *   **Total Potential Damage**: The maximum theoretical damage capacity of all shots fired. It is calculated by multiplying the number of shots fired by the sum of the drone's weapon damage profile.
-*   **Interpretation**: A high percentage (e.g., >80%) confirms that drones have successfully identified target classes vulnerable to their specific weapon profiles and are efficiently managing their fire to minimize waste.
+### 6.5 Shots Per Target
+*   **Tactical Focus**: Primarily used in **Episodic Mode**.
+*   **Motivation**: Measures the average number of actions required to fully neutralize a single target. 
+*   **Calculation**: $\frac{\text{Total Ammo Used}}{\text{Targets Neutralized}}$
 
 ---
 

@@ -17,6 +17,7 @@ export interface EpisodeDto {
   scenario: Record<string, unknown>;
   steps: Array<Record<string, unknown>>;
   summary: Record<string, unknown>;
+  metrics: Record<string, unknown>;
 }
 
 export interface LearningStateEpisodeDto {

@@ -5,9 +5,11 @@
 .env-info-panel {
   display: flex;
   flex-direction: row;
+  flex-wrap: wrap;
   gap: 16px;
   justify-content: center;
   margin-top: 12px;
+  width: 100%;
 }
 
 

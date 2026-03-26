@@ -19,10 +19,6 @@
       </div>
       <dl class="map-page__meta">
         <div>
-          <dt>Run</dt>
-          <dd>{{ runLabel() }}</dd>
-        </div>
-        <div>
           <dt>Drones</dt>
           <dd>{{ scene.drones.length }}</dd>
         </div>
@@ -30,26 +26,34 @@
           <dt>Targets</dt>
           <dd>{{ scene.targets.length }}</dd>
         </div>
+        <div>
+          <dt>Total Steps</dt>
+          <dd>{{ episodeMetrics()?.totalSteps ?? '—' }}</dd>
+        </div>
       </dl>
     </header>
 
     <div class="map-page__metrics">
-      <div class="metrics-stack">
-        @if (episodeMetrics(); as metrics) {
+      @if (episodeMetrics(); as metrics) {
+        <div class="metrics-column">
           <div class="metric-item">
-            <span class="metric-label">Total Steps</span>
-            <span class="metric-value">{{ metrics.totalSteps }}</span>
+            <span class="metric-label">Shots / Target</span>
+            <span class="metric-value">
+              {{ metrics.shotsPerTarget !== null ? (metrics.shotsPerTarget | number:'1.2-2') : '—' }}
+            </span>
           </div>
           <div class="metric-item">
-            <span class="metric-label">Total Ammo Used</span>
-            <span class="metric-value">{{ metrics.totalAmmoUsed }}</span>
+            <span class="metric-label">DMG Eff</span>
+            <span class="metric-value">
+              {{ metrics.dmgEff !== null ? (metrics.dmgEff | number:'1.2-2') : '—' }}
+            </span>
           </div>
-        } @else {
-          <div class="metric-item metric-item--placeholder">
-            <span class="metric-value">Load a policy to view episode metrics</span>
-          </div>
-        }
-      </div>
+        </div>
+      } @else {
+        <div class="metric-item metric-item--placeholder metric-item--placeholder-wide">
+          <span class="metric-value">Load a policy to view episode metrics</span>
+        </div>
+      }
       <div class="map-chart-panel">
         <app-live-chart />
       </div>

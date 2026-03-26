@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, finalize, tap } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -9,9 +10,16 @@ import { LiveChart } from '../environment-info/live-chart';
 
 const MIN_TARGET_OPACITY = 0.25;
 
+type EpisodeMetricPayload = {
+  total_ammo_used?: unknown;
+  dmg_eff?: unknown;
+  shots_per_target?: unknown;
+  total_collisions?: unknown;
+};
+
 @Component({
   selector: 'app-map',
-  imports: [EnvironmentInfo, LiveChart],
+  imports: [DecimalPipe, EnvironmentInfo, LiveChart],
   templateUrl: './map.component.html',
   styleUrl: './map.component.scss'
 })
@@ -86,9 +94,15 @@ export class MapComponent {
     if (!ep) {
       return null;
     }
+
+    const episodeMetrics = (ep.metrics ?? {}) as EpisodeMetricPayload;
+
     return {
-      totalSteps: ep.summary?.total_steps ?? ep.steps?.length ?? 0,
-      totalAmmoUsed: ep.summary?.metrics?.total_ammo_used ?? 0
+      totalSteps: this.readMetricNumber(ep.summary?.total_steps),
+      totalAmmoUsed: this.readMetricNumber(episodeMetrics.total_ammo_used),
+      dmgEff: this.readMetricNumber(episodeMetrics.dmg_eff),
+      shotsPerTarget: this.readMetricNumber(episodeMetrics.shots_per_target),
+      totalCollisions: this.readMetricNumber(episodeMetrics.total_collisions),
     };
   });
 
@@ -150,5 +164,13 @@ export class MapComponent {
     const hpRatio = Math.min(1, currentHp / maxHp);
 
     return MIN_TARGET_OPACITY + (1 - MIN_TARGET_OPACITY) * hpRatio;
+  }
+
+  protected readMetricNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    return null;
   }
 }

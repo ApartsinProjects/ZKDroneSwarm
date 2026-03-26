@@ -46,7 +46,8 @@ function buildEpisodeDto(episodePath, episodeData) {
     },
     scenario: scenario,
     steps: episodeData.steps || [],
-    summary: episodeData.summary || {}
+    summary: episodeData.summary || {},
+    metrics: episodeData.metrics || {}
   };
 }
 
