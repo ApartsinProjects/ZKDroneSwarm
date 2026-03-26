@@ -53,7 +53,26 @@
                   (input)="onSliderInput($event)"
                 />
               </div>
-              <app-episode-analysis-chart [snapshot]="currentSnapshot()" />
+              @if (currentSnapshot(); as snapshot) {
+                <app-episode-analysis-chart [snapshot]="snapshot" />
+                @if (snapshot.metricRows.length > 0) {
+                  <div class="analysis-metrics-card">
+                    <div class="analysis-metrics-card__title">Episode Metrics</div>
+                    <table class="analysis-metrics-table">
+                      <tbody>
+                        @for (row of snapshot.metricRows; track row.label) {
+                          <tr>
+                            <th scope="row">{{ row.label }}</th>
+                            <td>{{ row.value }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              } @else {
+                <app-episode-analysis-chart [snapshot]="currentSnapshot()" />
+              }
             } @else {
               <div class="analysis-placeholder">
                 Select a policy to analyze episodes
