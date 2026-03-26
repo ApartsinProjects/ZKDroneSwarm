@@ -325,27 +325,21 @@ class EpisodeLogger:
     ) -> Dict[str, Any]:
         """
         Build episode summary from accumulated data.
-        
+
         Computes:
         - total_steps, total_reward
         - termination_reason, success
-        - metrics (targets_destroyed, total_ammo_used)
-        
+
         Args:
             total_rewards: Accumulated rewards per agent
             done_reason: Termination reason string
             steps: List of step records
-            
+
         Returns:
             Summary dict matching JSON schema
         """
         total_steps = self._cumulative_steps if self._cumulative_steps > 0 else len(steps)
-        targets_destroyed = self._cumulative_neutralizations
-        
-        last_info = steps[-1]["info"] if steps else {}
-        ammo_used = last_info.get("ammo_used", {})
-        total_ammo_used = sum(ammo_used.values())
-        
+
         success = done_reason == "all_targets_neutralized"
         
         return {
@@ -353,8 +347,4 @@ class EpisodeLogger:
             "total_reward": dict(total_rewards),
             "termination_reason": done_reason,
             "success": success,
-            "metrics": {
-                "targets_destroyed": targets_destroyed,
-                "total_ammo_used": total_ammo_used,
-            }
         }

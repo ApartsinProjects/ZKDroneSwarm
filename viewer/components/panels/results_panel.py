@@ -28,6 +28,7 @@ class ResultsPanel(BaseComponent):
         """
         super().__init__(fig, ax)
         self.summary: Optional[Dict[str, Any]] = None
+        self.metrics: Dict[str, Any] = {}
         self.hp_history: List[float] = []
         self.active_targets_history: List[int] = []
         self.chart_ax: Optional[plt.Axes] = None
@@ -43,6 +44,7 @@ class ResultsPanel(BaseComponent):
             data: The state dict containing the summary section.
         """
         self.summary = data.get("summary", None)
+        self.metrics = data.get("metrics", {})
         self.hp_history = data.get("hp_history", [])
         self.active_targets_history = data.get("active_targets_history", [])
 
@@ -162,16 +164,15 @@ class ResultsPanel(BaseComponent):
         self._render_rewards_column(col2_x, y_pos, line_height)
         y_pos -= line_height
 
-        metrics = self.summary.get("metrics", {})
-        targets_destroyed = metrics.get("targets_destroyed", 0)
+        targets_neutralized = self.metrics.get("targets_neutralized", 0)
         self.ax.text(
-            col1_x + 0.02, y_pos, f"Targets Destroyed: {targets_destroyed}",
+            col1_x + 0.02, y_pos, f"Targets Destroyed: {targets_neutralized}",
             ha='left', va='top', fontsize=9, color='#555555',
             transform=self.ax.transAxes
         )
         y_pos -= line_height
 
-        total_ammo = metrics.get("total_ammo_used", 0)
+        total_ammo = self.metrics.get("total_ammo_used", 0)
         self.ax.text(
             col1_x + 0.02, y_pos, f"Total Ammo Used: {total_ammo}",
             ha='left', va='top', fontsize=9, color='#555555',

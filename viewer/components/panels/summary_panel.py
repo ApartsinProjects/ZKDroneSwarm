@@ -30,6 +30,7 @@ class SummaryPanel(BaseComponent):
         self.policy_type: str | None = None
         self.seed: int | None = None
         self.summary: Dict[str, Any] = {}
+        self.metrics: Dict[str, Any] = {}
         self.steps: List[Dict[str, Any]] = []
         self.drones: List[Dict[str, Any]] = []
         self.targets: List[Dict[str, Any]] = []
@@ -44,6 +45,7 @@ class SummaryPanel(BaseComponent):
         self.policy_type = data.get("policy_type")
         self.seed = data.get("seed")
         self.summary = data.get("summary", {})
+        self.metrics = data.get("metrics", {})
         self.steps = data.get("steps", [])
         self.drones = data.get("drones", [])
         self.targets = data.get("targets", [])
@@ -102,10 +104,9 @@ class SummaryPanel(BaseComponent):
         )
         y_pos -= line_height
 
-        metrics = self.summary.get("metrics", {})
-        total_ammo = metrics.get("total_ammo_used", 0)
-        targets_destroyed = metrics.get("targets_destroyed", 0)
-        ammo_per_target = total_ammo / targets_destroyed if targets_destroyed > 0 else 0
+        total_ammo = self.metrics.get("total_ammo_used", 0)
+        targets_neutralized = self.metrics.get("targets_neutralized", 0)
+        ammo_per_target = total_ammo / targets_neutralized if targets_neutralized > 0 else 0
         self.ax.text(
             0.02, y_pos, f"Ammo: {total_ammo} ({ammo_per_target:.2f} per target)",
             ha='left', va='top', fontsize=9, color='#555555',
@@ -224,11 +225,10 @@ class SummaryPanel(BaseComponent):
         )
         y_pos -= line_height
 
-        metrics = self.summary.get("metrics", {})
-        targets_destroyed = metrics.get("targets_destroyed", 0)
+        targets_neutralized = self.metrics.get("targets_neutralized", 0)
         total_targets = len(self.targets)
         self.ax.text(
-            0.02, y_pos, f"Destroyed: {targets_destroyed} / {total_targets}",
+            0.02, y_pos, f"Destroyed: {targets_neutralized} / {total_targets}",
             ha='left', va='top', fontsize=9, color='#555555',
             transform=self.ax.transAxes
         )
