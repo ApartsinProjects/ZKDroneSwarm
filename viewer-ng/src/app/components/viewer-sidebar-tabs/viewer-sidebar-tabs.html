@@ -113,6 +113,28 @@
                         </tbody>
                       </table>
                     </div>
+                    <div class="analysis-metrics-card analysis-baseline-card">
+                      <div class="analysis-metrics-card__title">Vs Random Baseline</div>
+                      <table class="analysis-baseline-table">
+                        <tbody>
+                          @for (row of snapshot.metricRows; track row.label) {
+                            <tr>
+                              <td>
+                                <span
+                                  class="analysis-baseline-cell"
+                                  [class.analysis-baseline-cell--better]="row.baseline.tone === 'better'"
+                                  [class.analysis-baseline-cell--worse]="row.baseline.tone === 'worse'"
+                                  [class.analysis-baseline-cell--base]="row.baseline.tone === 'base'"
+                                  [class.analysis-baseline-cell--unavailable]="row.baseline.tone === 'unavailable'"
+                                >
+                                  {{ row.baseline.label }}
+                                </span>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 }
               } @else {

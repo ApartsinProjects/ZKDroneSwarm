@@ -1,13 +1,17 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { EpisodeDto, PoliciesService } from './policies.service';
+import { catchError } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
 
 type MetricDirection = 'higher' | 'lower';
+const RANDOM_POLICY_ID = 'random';
 
 export interface EpisodeMetricRow {
   label: string;
   value: string;
   numericValue: number | null;
   progress: EpisodeMetricProgress | null;
+  baseline: EpisodeMetricBaseline;
 }
 
 export interface EpisodeMetricProgress {
@@ -17,6 +21,11 @@ export interface EpisodeMetricProgress {
   normalizedScore: number;
   percentileLabel: string;
   isFixed: boolean;
+}
+
+export interface EpisodeMetricBaseline {
+  label: string;
+  tone: 'better' | 'worse' | 'neutral' | 'base' | 'unavailable';
 }
 
 interface EpisodeMetricDefinition {
@@ -91,10 +100,14 @@ export class CrossEpisodeBrowserService {
   private policiesService = inject(PoliciesService);
 
   private readonly _episodes = signal<EpisodeDto[]>([]);
+  private readonly _randomEpisodes = signal<EpisodeDto[]>([]);
+  private readonly _selectedPolicyId = signal<string | null>(null);
   private readonly _currentIndex = signal(-1);
   private readonly _isLoading = signal(false);
 
   readonly episodes = this._episodes.asReadonly();
+  readonly randomEpisodes = this._randomEpisodes.asReadonly();
+  readonly selectedPolicyId = this._selectedPolicyId.asReadonly();
   readonly currentIndex = this._currentIndex.asReadonly();
   readonly isLoading = this._isLoading.asReadonly();
 
@@ -102,6 +115,8 @@ export class CrossEpisodeBrowserService {
 
   readonly currentEpisodeSnapshot = computed<EpisodeSnapshot | null>(() => {
     const episodes = this._episodes();
+    const randomEpisodes = this._randomEpisodes();
+    const selectedPolicyId = this._selectedPolicyId();
     const idx = this._currentIndex();
     if (idx < 0 || idx >= episodes.length) return null;
 
@@ -129,7 +144,7 @@ export class CrossEpisodeBrowserService {
       totalSteps: steps.length,
       hpHistory,
       activeTargetsHistory,
-      metricRows: this.buildMetricRows(episodes, idx),
+      metricRows: this.buildMetricRows(episodes, randomEpisodes, selectedPolicyId, idx),
       totalNetDamageValue: this.formatMetricValue('Total Net Damage', metrics['total_net_damage']),
     };
   });
@@ -137,24 +152,37 @@ export class CrossEpisodeBrowserService {
   loadEpisodes(policyId: string): void {
     this._isLoading.set(true);
     this._currentIndex.set(-1);
-    this.policiesService.getAllEpisodes(policyId).subscribe({
-      next: (episodes) => {
-        // Sort episodes by episodeNum if available
-        const sorted = [...episodes].sort((a, b) => {
-            const numA = a.episode?.episodeNum ?? 0;
-            const numB = b.episode?.episodeNum ?? 0;
-            return numA - numB;
-        });
-        this._episodes.set(sorted);
-        if (sorted.length > 0) {
+    this._selectedPolicyId.set(policyId);
+
+    const selectedEpisodes$ = this.policiesService.getAllEpisodes(policyId);
+    const randomEpisodes$ = policyId === RANDOM_POLICY_ID
+      ? of([] as EpisodeDto[])
+      : this.policiesService.getAllEpisodes(RANDOM_POLICY_ID).pipe(
+          catchError(() => of([] as EpisodeDto[])),
+        );
+
+    forkJoin({
+      selectedEpisodes: selectedEpisodes$,
+      randomEpisodes: randomEpisodes$,
+    }).subscribe({
+      next: ({ selectedEpisodes, randomEpisodes }) => {
+        const sortedSelectedEpisodes = this.sortEpisodes(selectedEpisodes);
+        const sortedRandomEpisodes = policyId === RANDOM_POLICY_ID
+          ? sortedSelectedEpisodes
+          : this.sortEpisodes(randomEpisodes);
+
+        this._episodes.set(sortedSelectedEpisodes);
+        this._randomEpisodes.set(sortedRandomEpisodes);
+        if (sortedSelectedEpisodes.length > 0) {
           this._currentIndex.set(0);
         }
         this._isLoading.set(false);
       },
       error: () => {
         this._episodes.set([]);
+        this._randomEpisodes.set([]);
         this._isLoading.set(false);
-      }
+      },
     });
   }
 
@@ -164,7 +192,12 @@ export class CrossEpisodeBrowserService {
     }
   }
 
-  private buildMetricRows(episodes: EpisodeDto[], currentIndex: number): EpisodeMetricRow[] {
+  private buildMetricRows(
+    episodes: EpisodeDto[],
+    randomEpisodes: EpisodeDto[],
+    selectedPolicyId: string | null,
+    currentIndex: number,
+  ): EpisodeMetricRow[] {
     const metrics = this.readMetrics(episodes[currentIndex]);
 
     return EPISODE_METRIC_DEFINITIONS.flatMap((definition) => {
@@ -177,8 +210,97 @@ export class CrossEpisodeBrowserService {
         value,
         numericValue,
         progress: this.buildMetricProgress(definition, episodes, currentIndex, numericValue),
+        baseline: this.buildMetricBaseline(
+          definition,
+          episodes[currentIndex],
+          randomEpisodes,
+          selectedPolicyId,
+          numericValue,
+        ),
       }];
     });
+  }
+
+  private sortEpisodes(episodes: EpisodeDto[]): EpisodeDto[] {
+    return [...episodes].sort((a, b) => {
+      const numA = a.episode?.episodeNum ?? 0;
+      const numB = b.episode?.episodeNum ?? 0;
+      return numA - numB;
+    });
+  }
+
+  private buildMetricBaseline(
+    definition: EpisodeMetricDefinition,
+    currentEpisode: EpisodeDto,
+    randomEpisodes: EpisodeDto[],
+    selectedPolicyId: string | null,
+    currentValue: number | null,
+  ): EpisodeMetricBaseline {
+    if (selectedPolicyId === RANDOM_POLICY_ID) {
+      return { label: 'Base', tone: 'base' };
+    }
+
+    if (definition.betterDirection === null || currentValue === null) {
+      return { label: 'N/A', tone: 'unavailable' };
+    }
+
+    const currentEpisodeNum = currentEpisode.episode?.episodeNum ?? null;
+    if (currentEpisodeNum === null) {
+      return { label: 'N/A', tone: 'unavailable' };
+    }
+
+    const randomEpisode = this.resolveRandomBaselineEpisode(randomEpisodes, currentEpisodeNum);
+    if (!randomEpisode) {
+      return { label: 'N/A', tone: 'unavailable' };
+    }
+
+    const randomValue = this.readMetricNumber(definition.readValue(this.readMetrics(randomEpisode)));
+    if (randomValue === null || randomValue === 0) {
+      return { label: 'N/A', tone: 'unavailable' };
+    }
+
+    const signedPercent = this.computeBaselinePercent(
+      currentValue,
+      randomValue,
+      definition.betterDirection,
+    );
+
+    return {
+      label: this.formatSignedPercent(signedPercent),
+      tone: signedPercent === 0 ? 'neutral' : signedPercent > 0 ? 'better' : 'worse',
+    };
+  }
+
+  private resolveRandomBaselineEpisode(
+    randomEpisodes: EpisodeDto[],
+    currentEpisodeNum: number,
+  ): EpisodeDto | null {
+    if (randomEpisodes.length === 1) {
+      return randomEpisodes[0];
+    }
+
+    return randomEpisodes.find(
+      (episode) => episode.episode?.episodeNum === currentEpisodeNum,
+    ) ?? null;
+  }
+
+  private computeBaselinePercent(
+    currentValue: number,
+    baselineValue: number,
+    betterDirection: MetricDirection,
+  ): number {
+    const rawPercent = ((currentValue - baselineValue) / baselineValue) * 100;
+    return betterDirection === 'higher' ? rawPercent : -rawPercent;
+  }
+
+  private formatSignedPercent(value: number): string {
+    const roundedValue = Math.round(value);
+    if (roundedValue === 0) {
+      return '0%';
+    }
+
+    const sign = roundedValue > 0 ? '+' : '';
+    return `${sign}${roundedValue}%`;
   }
 
   private buildMetricProgress(

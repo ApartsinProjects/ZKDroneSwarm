@@ -20,6 +20,26 @@ class StubCrossEpisodeBrowserService {
     totalSteps: 0,
     hpHistory: [],
     activeTargetsHistory: [],
+    metricRows: [
+      {
+        label: 'Total Ammo Used',
+        value: '10',
+        numericValue: 10,
+        progress: {
+          deltaValue: -2,
+          deltaLabel: '-2',
+          deltaTone: 'better',
+          normalizedScore: 0.7,
+          percentileLabel: '70%',
+          isFixed: false,
+        },
+        baseline: {
+          label: '+12%',
+          tone: 'better',
+        },
+      },
+    ],
+    totalNetDamageValue: '120',
   }));
 
   setIndex(index: number): void {
@@ -85,6 +105,17 @@ describe('ViewerSidebarTabs', () => {
     expect(panels.length).toBe(2);
     expect(panels[0].hidden).toBeFalse();
     expect(panels[1].hidden).toBeTrue();
+  });
+
+  it('renders the random baseline table alongside the episode metrics tables', () => {
+    const cardTitles = Array.from(
+      element.querySelectorAll<HTMLElement>('.analysis-metrics-card__title'),
+    ).map((title) => title.textContent?.trim());
+
+    expect(cardTitles).toContain('Episode Metrics');
+    expect(cardTitles).toContain('Episode Progress');
+    expect(cardTitles).toContain('Vs Random Baseline');
+    expect(element.textContent).toContain('+12%');
   });
 
   it('switches the active tab when Embedding Visualization is clicked', () => {
