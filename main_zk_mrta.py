@@ -820,9 +820,14 @@ def main():
                     latent_dim=getattr(policy, "latent_dim", None),
                 )
             
-            # Persist per-episode outputs explicitly through EnvironmentLogger
-            environment_logger.record_episode(metrics.steps)
-            environment_logger.save_analysis(episode_num)
+            # Log metrics to episode log
+            environment_logger.log_metrics(metrics)
+            
+            # Persist per-episode outputs via canonical logger entrypoint
+            environment_logger.persist_episode_outputs(
+                episode_num=episode_num,
+                steps=metrics.steps,
+            )
             
             # Per-run summary
             if config.environment.mode == "continuous":
@@ -843,14 +848,6 @@ def main():
                     total_reward=metrics.total_reward,
                 )
             
-            # Print learning path for CF policies
-            if (
-                not is_deterministic
-                and config.environment.verbose
-                and callable(getattr(policy, "get_learning_state", None))
-            ):
-                show_learning_path(policy, drones_config, targets_config)
-            
             # Debug: Analyze agent clustering for CF policies
             # if False and not is_deterministic:
             #     drone_weapons = [d["weapon_type"] for d in drones_config]
@@ -858,7 +855,7 @@ def main():
         
         # Save policy artifacts for episodic or continuous mode
         result = environment_logger.save_policy_episodes()
-        
+
         if config.environment.mode != "continuous":
             printer.saved_episodes(result["files"])
         steps = result['steps']
@@ -920,53 +917,6 @@ def main():
             policy_episode_metrics,
         )
 
-    if config.environment.verbose:
-        # Aggregate statistics across all episodes (all policies)
-        total_episodes = len(all_metrics)
-        avg_steps = sum(m.steps for m in all_metrics) / total_episodes if total_episodes > 0 else 0.0
-        avg_targets = (
-            sum(m.targets_neutralized for m in all_metrics) / total_episodes
-            if total_episodes > 0
-            else 0.0
-        )
-        avg_ammo = (
-            sum(m.total_ammo_used for m in all_metrics) / total_episodes
-            if total_episodes > 0
-            else 0.0
-        )
-        avg_overkill = (
-            sum(m.total_overkill for m in all_metrics) / total_episodes
-            if total_episodes > 0
-            else 0.0
-        )
-        per_policy_rows = []
-        # Per-policy statistics
-        for policy_type in config.policy.type:
-            policy_summary = policy_summaries.get(policy_type)
-            if policy_summary:
-                per_policy_rows.extend([
-                    f"\n  Policy '{policy_type}':",
-                    f"    Avg Steps: {policy_summary.avg_steps:.1f}",
-                    f"    Avg Targets: {policy_summary.avg_targets:.1f}",
-                ])
-        per_agent_rows = []
-        # Per-agent statistics (use last env for agent list)
-        for agent_id in env.agents:
-            avg_reward = sum(m.agent_rewards[agent_id] for m in all_metrics) / total_episodes
-            per_agent_rows.append(f"  {agent_id}: {avg_reward:.2f}")
-
-        printer.aggregate_statistics(
-            total_episodes=total_episodes,
-            num_episodes=num_episodes,
-            policy_count=len(config.policy.type),
-            avg_steps=avg_steps,
-            avg_targets=avg_targets,
-            avg_ammo=avg_ammo,
-            avg_overkill=avg_overkill,
-            per_policy_rows=per_policy_rows,
-            per_agent_rows=per_agent_rows,
-        )
-    
     # show_policy_performance_summary(config, policy_summaries)
 
     show_policy_best_episode_performance_vs_random(config, policy_summaries)

@@ -12,14 +12,13 @@ def test_environment_logger_start_policy_creates_active_episode_logger(tmp_path:
         mode="continuous",
     )
 
-    episode_logger = env_logger.start_policy("random_policy", is_deterministic=False)
+    env_logger.start_policy("random_policy", is_deterministic=False)
 
     expected_policy_dir = tmp_path / "scenario_alpha" / "random_policy"
+    episode_logger = env_logger.active_episode_logger
 
     assert isinstance(episode_logger, EpisodeLogger)
     assert episode_logger is env_logger.active_episode_logger
-    assert Path(episode_logger.output_dir) == expected_policy_dir / "episodes"
-    assert Path(episode_logger.analysis_dir) == expected_policy_dir / "analysis"
     assert episode_logger.mode == "continuous"
     assert (expected_policy_dir / "episodes").is_dir()
     assert (expected_policy_dir / "analysis").is_dir()
@@ -33,7 +32,7 @@ def test_environment_logger_save_policy_episodes_persists_selected_episode(tmp_p
     )
     env_logger.start_policy("oracle_policy", is_deterministic=True)
 
-    env_logger.record_episode_data({"episode": "payload"}, steps=4)
+    env_logger._record_episode_snapshot({"episode": "payload"}, steps=4)
 
     result = env_logger.save_policy_episodes()
 
@@ -48,7 +47,7 @@ def test_environment_logger_save_policy_episodes_persists_selected_episode(tmp_p
         _ = env_logger.active_episode_logger
 
 
-def test_environment_logger_persist_episode_outputs_uses_active_logger(tmp_path: Path) -> None:
+def test_environment_logger_persist_episode_outputs_skips_analysis_by_default(tmp_path: Path) -> None:
     env_logger = EnvironmentLogger(
         output_dir=str(tmp_path),
         scenario_id="scenario_gamma",
@@ -64,18 +63,43 @@ def test_environment_logger_persist_episode_outputs_uses_active_logger(tmp_path:
 
     env_logger._active_episode_logger = StubEpisodeLogger()
 
-    env_logger.record_episode(steps=7)
-    env_logger.save_analysis(episode_num=1)
+    env_logger.persist_episode_outputs(episode_num=1, steps=7)
     result = env_logger.save_policy_episodes()
 
     analysis_path = tmp_path / "scenario_gamma" / "policy_x" / "analysis" / "analysis_ep01.json"
     episode_path = tmp_path / "scenario_gamma" / "policy_x" / "episodes" / "episode_ep01.json"
 
-    assert analysis_path.is_file()
-    assert analysis_path.read_text() == '{\n  "summary": {\n    "count": 1\n  }\n}'
+    assert not analysis_path.exists()
     assert episode_path.is_file()
     assert episode_path.read_text() == '{\n  "episode": "artifact"\n}'
     assert result["steps"] == {"first": 7}
+
+
+def test_environment_logger_persist_episode_outputs_can_force_analysis_persistence(
+    tmp_path: Path,
+) -> None:
+    env_logger = EnvironmentLogger(
+        output_dir=str(tmp_path),
+        scenario_id="scenario_gamma",
+    )
+    env_logger.start_policy("policy_x", is_deterministic=True)
+
+    class StubEpisodeLogger:
+        def get_analysis_data(self) -> dict:
+            return {"summary": {"count": 1}}
+
+        def to_dict(self) -> dict:
+            return {"episode": "artifact"}
+
+    env_logger._active_episode_logger = StubEpisodeLogger()
+
+    env_logger.persist_episode_outputs(episode_num=1, steps=7, persist_analysis=True)
+    env_logger.save_policy_episodes()
+
+    analysis_path = tmp_path / "scenario_gamma" / "policy_x" / "analysis" / "analysis_ep01.json"
+
+    assert analysis_path.is_file()
+    assert analysis_path.read_text() == '{\n  "summary": {\n    "count": 1\n  }\n}'
 
 
 def test_environment_logger_save_policy_episodes_saves_all_matrix_factorization_episodes_and_summary(
@@ -87,9 +111,9 @@ def test_environment_logger_save_policy_episodes_saves_all_matrix_factorization_
     )
     env_logger.start_policy("matrix_factorization_cf", is_deterministic=False)
 
-    env_logger.record_episode_data({"episode": 1}, steps=8)
-    env_logger.record_episode_data({"episode": 2}, steps=5)
-    env_logger.record_episode_data({"episode": 3}, steps=7)
+    env_logger._record_episode_snapshot({"episode": 1}, steps=8)
+    env_logger._record_episode_snapshot({"episode": 2}, steps=5)
+    env_logger._record_episode_snapshot({"episode": 3}, steps=7)
 
     result = env_logger.save_policy_episodes()
 
@@ -129,7 +153,7 @@ def test_environment_logger_start_episode_persists_shared_environment_artifact(t
     class StubEpisodeLogger:
         VERSION = "1.2"
 
-        def _build_shared_config_snapshot(self, env) -> dict:
+        def build_shared_config_snapshot(self, env) -> dict:
             return {
                 "world_size": [10.0, 20.0],
                 "max_steps": 5,
@@ -138,7 +162,7 @@ def test_environment_logger_start_episode_persists_shared_environment_artifact(t
                 "weapon_damage_profile_mapping": {"light": {"hp": 1.0}},
             }
 
-        def _build_scenario_snapshot(self, env, reset_info, seed) -> dict:
+        def build_scenario_snapshot(self, env, reset_info, seed) -> dict:
             return {
                 "num_drones": 1,
                 "num_targets": 1,
@@ -168,7 +192,7 @@ def test_environment_logger_start_episode_persists_shared_environment_artifact(t
     assert environment_path.is_file()
     assert environment_path.read_text() == (
         '{\n'
-        '  "version": "1.2",\n'
+        f'  "version": "{EpisodeLogger.VERSION}",\n'
         '  "scenario_id": "scenario_theta",\n'
         '  "config": {\n'
         '    "world_size": [\n'
@@ -283,10 +307,10 @@ def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(
     calls = []
 
     class StubEpisodeLogger:
-        def _build_shared_config_snapshot(self, env) -> dict:
+        def build_shared_config_snapshot(self, env) -> dict:
             return {"scenario_id": "scenario_epsilon"}
 
-        def _build_scenario_snapshot(self, env, reset_info, seed) -> dict:
+        def build_scenario_snapshot(self, env, reset_info, seed) -> dict:
             return {"num_drones": 0, "num_targets": 0}
 
         def start_episode(self, **kwargs) -> None:
@@ -295,9 +319,14 @@ def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(
         def log_step(self, **kwargs) -> None:
             calls.append(("step", kwargs))
 
-        def flush(self, step_num: int) -> str:
-            calls.append(("flush", step_num))
-            return f"flush-{step_num}"
+        def to_dict(self) -> dict:
+            return {"episode": "data"}
+
+        def get_analysis_data(self) -> dict:
+            return {"analysis": "data"}
+
+        def clear_buffers(self) -> None:
+            calls.append(("clear_buffers",))
 
         def end_episode(self, **kwargs) -> None:
             calls.append(("end", kwargs))
@@ -316,7 +345,12 @@ def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(
     flush_result = env_logger.flush_episode(3)
     env_logger.end_episode(total_rewards={"drone_0": 4.0}, done_reason="done")
 
-    assert flush_result == "flush-3"
+    episodes_dir = tmp_path / "scenario_epsilon" / "policy_z" / "episodes"
+    analysis_path = (
+        tmp_path / "scenario_epsilon" / "policy_z" / "analysis" / "analysis_ep01_step_00003.json"
+    )
+    assert flush_result == str(episodes_dir / "episode_ep01_step_00003.json")
+    assert not analysis_path.exists()
     assert calls == [
         (
             "start",
@@ -340,7 +374,7 @@ def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(
                 "info": {"target_hps": [1.0]},
             },
         ),
-        ("flush", 3),
+        ("clear_buffers",),
         (
             "end",
             {

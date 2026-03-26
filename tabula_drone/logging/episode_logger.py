@@ -5,8 +5,6 @@ Captures initial scenario setup, per-step actions and state,
 and episode summary for replay and offline analysis.
 """
 
-import json
-import os
 import uuid
 from datetime import datetime
 from typing import Dict, Any, List, Optional
@@ -16,39 +14,23 @@ from .engagement_logger import EngagementLogger
 
 class EpisodeLogger:
     """
-    Logger for capturing episode data to JSON files.
-    
-    Usage:
-        logger = EpisodeLogger(output_dir="logs/")
+    Data-builder for capturing episode data in memory.
+
+    Accumulates steps, summary, and metrics data which can be read via to_dict()
+    and get_analysis_data().  All file I/O is owned by EnvironmentLogger.
+
+    Usage (via EnvironmentLogger):
         logger.start_episode(env, reset_info, seed=42)
-        
+
         # In episode loop:
         logger.log_step(step_num, actions, rewards, terminated, truncated, info)
-        
+
         # After episode ends:
         logger.end_episode(total_rewards, done_reason)
-        filepath = logger.save()
-    
-    JSON Schema (version 1.1):
-        {
-            "version": "1.1",
-            "episode_id": "<uuid>",
-            "timestamp": "<ISO8601>",
-            "rng_seed": <int|null>,
-            "config": {
-                "world_size": [<float>, <float>],
-                "max_steps": <int>,
-                "scenario_id": "<string>",
-                "class_attribute_mapping": {"<class>": {"<attr>": <float>, ...}, ...},
-                "weapon_damage_profile_mapping": {"<weapon>": {"<attr>": <float>, ...}, ...}
-            },
-            "scenario": {...},
-            "steps": [...],
-            "summary": {...}
-        }
+        data = logger.to_dict()
     """
     
-    VERSION = "1.2"
+    VERSION = "1.3"
     
     def __init__(self, output_dir: str = "logs/", policy_type: Optional[str] = None):
         """
@@ -58,17 +40,15 @@ class EpisodeLogger:
             output_dir: Directory for output JSON files. Created if not exists.
             policy_type: Policy type identifier for filename (e.g., "oracle", "random").
         """
-        self.output_dir = output_dir
-        self.analysis_dir = output_dir  # Default to same as output_dir
         self.policy_type = policy_type
         self._episode_data: Optional[Dict[str, Any]] = None
         self._steps: List[Dict[str, Any]] = []
+        self._metrics: Optional[Dict[str, Any]] = None
         self._episode_id: Optional[str] = None
         self._timestamp: Optional[str] = None
         self._engagement_logger: EngagementLogger = EngagementLogger()
         self._env: Optional[Any] = None
         self.mode: str = "episodic"
-        self._flush_count: int = 0
         self._cumulative_steps: int = 0
         self._cumulative_neutralizations: int = 0
     
@@ -95,6 +75,7 @@ class EpisodeLogger:
         self._steps = []
         self._cumulative_steps = 0
         self._cumulative_neutralizations = 0
+        self._metrics = None
         self._env = env
         
         # Initialize engagement logger
@@ -114,6 +95,7 @@ class EpisodeLogger:
             "config": config,
             "steps": self._steps,
             "summary": None,
+            "metrics": None,
         }
     
     def log_step(
@@ -169,124 +151,57 @@ class EpisodeLogger:
         # Finalize engagement logger
         self._engagement_logger.end_episode()
 
-    def flush(self, step_num: int) -> str:
+    def set_metrics(self, metrics: Dict[str, Any]) -> None:
         """
-        Write current chunk of steps to disk and clear buffers.
-        Used for continuous mode to prevent OOM.
+        Set calculated metrics for the episode.
         
         Args:
-            step_num: Current step number for filename
-            
-        Returns:
-            Filepath of the saved chunk
+            metrics: Dictionary of performance metrics
         """
-        if self._episode_data is None:
-            raise ValueError("start_episode() must be called before flush()")
-            
-        os.makedirs(self.output_dir, exist_ok=True)
-        
-        # Continuous mode chunks follow the ep01 pattern per user request
-        filename = f"episode_ep01_step_{step_num:05d}.json"
-        filepath = os.path.join(self.output_dir, filename)
-        
-        # Save current chunk data
-        with open(filepath, "w") as f:
-            json.dump(self._episode_data, f, indent=2)
-            
-        # Save engagement analysis chunk to analysis_dir
-        os.makedirs(self.analysis_dir, exist_ok=True)
-        analysis_filename = f"analysis_ep01_step_{step_num:05d}.json"
-        analysis_filepath = os.path.join(self.analysis_dir, analysis_filename)
-        self._engagement_logger.save(analysis_filepath)
-        
-        # CLEAR BUFFERS
+        self._metrics = metrics
+        if self._episode_data is not None:
+            self._episode_data["metrics"] = metrics
+
+    def clear_buffers(self) -> None:
+        """
+        Clear accumulated step data and engagement buffers in memory.
+
+        This is the pure in-memory counterpart of flush(); it does not
+        perform any I/O.  EnvironmentLogger calls this after it has
+        written the current chunk to disk.
+        """
         self._steps.clear()
         self._engagement_logger.flush()
-        self._flush_count += 1
-        
-        return filepath
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """
         Return episode data as a dictionary without saving to disk.
-        
+
         Returns:
             Copy of the episode data dictionary
-        
+
         Raises:
             ValueError: If start_episode() was not called
         """
         if self._episode_data is None:
             raise ValueError("start_episode() must be called before to_dict()")
         return dict(self._episode_data)
-    
+
     def get_analysis_data(self) -> Dict[str, Any]:
         """
         Return engagement analysis data as a dictionary.
-        
+
         Returns:
             Engagement analysis dictionary (drone_pov, target_pov, summary)
-        
+
         Raises:
             ValueError: If start_episode() was not called
         """
         if self._episode_data is None:
             raise ValueError("start_episode() must be called before get_analysis_data()")
         return self._engagement_logger.to_dict()
-    
-    def set_learning_path(self, data: Dict[str, Any]) -> None:
-        """
-        Set learning path data for CF policies.
-        
-        Args:
-            data: Learning path dict with agents and targets latent vectors
-        """
-        if self._episode_data is not None:
-            self._episode_data["learning_path"] = data
-    
-    def save(self, is_best: bool = False, prefix: str = "") -> str:
-        """
-        Write episode data to JSON file.
-        
-        Args:
-            is_best: Deprecated - no longer used in filename construction
-            prefix: Deprecated - no longer used in filename construction
-        
-        Returns:
-            Filepath of the saved JSON file
-        
-        Raises:
-            ValueError: If start_episode() was not called
-        """
-        if self._episode_data is None:
-            raise ValueError("start_episode() must be called before save()")
-        
-        os.makedirs(self.output_dir, exist_ok=True)
-        
-        timestamp_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        episode_num = self._episode_data.get("episode_num")
-        episode_part = f"ep{episode_num:02d}_" if episode_num is not None else ""
-        
-        # Unified format: episode_epXX_timestamp_uuid.json (role prefixes removed)
-        filename = f"episode_{episode_part}{timestamp_str}_{self._episode_id}.json"
-        filepath = os.path.join(self.output_dir, filename)
-        
-        with open(filepath, "w") as f:
-            json.dump(self._episode_data, f, indent=2)
-        
-        # Save engagement analysis file
-        if self.analysis_dir and self.analysis_dir != self.output_dir:
-            os.makedirs(self.analysis_dir, exist_ok=True)
-            analysis_filename = os.path.basename(filepath).replace(".json", "_analysis.json")
-            analysis_filepath = os.path.join(self.analysis_dir, analysis_filename)
-        else:
-            analysis_filepath = filepath.replace(".json", "_analysis.json")
-            
-        self._engagement_logger.save(analysis_filepath)
-        
-        return filepath
-    
-    def _build_scenario_snapshot(
+
+    def build_scenario_snapshot(
         self,
         env: Any,
         reset_info: Dict[str, Any],
@@ -324,7 +239,7 @@ class EpisodeLogger:
             "target_classes": target_classes,
         }
     
-    def _build_shared_config_snapshot(self, env: Any) -> Dict[str, Any]:
+    def build_shared_config_snapshot(self, env: Any) -> Dict[str, Any]:
         """
         Build config snapshot from environment configuration.
         

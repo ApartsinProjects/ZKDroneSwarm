@@ -7,6 +7,7 @@ while reusing the existing EpisodeLogger for per-episode capture.
 
 import json
 import os
+from dataclasses import asdict
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .episode_logger import EpisodeLogger
@@ -21,10 +22,17 @@ class EnvironmentLogger:
     EpisodeLogger remains responsible for per-episode capture.
     """
 
-    def __init__(self, output_dir: str, scenario_id: str, mode: str = "episodic"):
+    def __init__(
+        self,
+        output_dir: str,
+        scenario_id: str,
+        mode: str = "episodic",
+        persist_analysis: bool = False,
+    ):
         self.output_dir = output_dir
         self.scenario_id = scenario_id
         self.mode = mode
+        self.persist_analysis = persist_analysis
         self._scenario_folder = scenario_id
         self._scenario_path = os.path.join(output_dir, self._scenario_folder)
         os.makedirs(self._scenario_path, exist_ok=True)
@@ -61,12 +69,9 @@ class EnvironmentLogger:
             raise ValueError("start_policy() must be called before accessing the active EpisodeLogger")
         return self._active_episode_logger
 
-    def start_policy(self, policy_type: str, is_deterministic: bool = False) -> EpisodeLogger:
+    def start_policy(self, policy_type: str, is_deterministic: bool = False) -> None:
         """
         Start a policy run and create its active EpisodeLogger.
-
-        Returns:
-            The configured EpisodeLogger for the started policy.
         """
         self._current_policy = policy_type
         self._is_deterministic = is_deterministic
@@ -90,11 +95,9 @@ class EnvironmentLogger:
             output_dir=self.get_episodes_dir(),
             policy_type=policy_type,
         )
-        episode_logger.analysis_dir = self.get_analysis_dir()
         episode_logger.mode = self.mode
 
         self._active_episode_logger = episode_logger
-        return episode_logger
 
     def get_scenario_path(self) -> str:
         """Return the scenario output directory path."""
@@ -128,8 +131,8 @@ class EnvironmentLogger:
             raise ValueError("start_policy() must be called before get_learning_state_dir()")
         return os.path.join(self._current_policy_path, "learning_state")
 
-    def record_episode_data(self, episode_data: Dict[str, Any], steps: int) -> None:
-        """Record an episode for later representative-episode selection."""
+    def _record_episode_snapshot(self, episode_data: Dict[str, Any], steps: int) -> None:
+        """Internal primitive to register one episode snapshot for policy selection."""
         if self._current_policy is None:
             raise ValueError("start_policy() must be called before record_episode()")
 
@@ -146,25 +149,56 @@ class EnvironmentLogger:
             self._best_steps = steps
             self._best_episode_num = current_episode_num
 
-    def record_episode(self, steps: int) -> None:
-        """Record the active episode for later representative-episode selection."""
-        self.record_episode_data(self.active_episode_logger.to_dict(), steps)
-
-    def save_analysis_data(self, analysis_data: Dict[str, Any], episode_num: int) -> str:
-        """Persist engagement analysis for an episode."""
-        if self._current_policy is None:
-            raise ValueError("start_policy() must be called before save_analysis()")
-
-        filename = f"analysis_ep{episode_num:02d}.json"
-
-        filepath = os.path.join(self.get_analysis_dir(), filename)
+    @staticmethod
+    def _write_json(filepath: str, payload: Dict[str, Any]) -> str:
+        """Write a JSON payload to disk with stable formatting."""
+        directory = os.path.dirname(filepath)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
         with open(filepath, "w") as f:
-            json.dump(analysis_data, f, indent=2)
+            json.dump(payload, f, indent=2)
         return filepath
 
-    def save_analysis(self, episode_num: int) -> str:
-        """Persist engagement analysis for the active episode."""
-        return self.save_analysis_data(self.active_episode_logger.get_analysis_data(), episode_num)
+    def log_metrics(self, metrics: Any) -> None:
+        """
+        Record calculated metrics on the active episode logger.
+        
+        Args:
+            metrics: EpisodeMetrics object (or dict)
+        """
+        metrics_dict = asdict(metrics) if hasattr(metrics, "__dataclass_fields__") else metrics
+        
+        # Strip 'source' attribute from logged metrics to keep JSON lean
+        if isinstance(metrics_dict, dict) and "source" in metrics_dict:
+            metrics_dict.pop("source")
+            
+        self.active_episode_logger.set_metrics(metrics_dict)
+
+    def persist_episode_outputs(
+        self,
+        episode_num: int,
+        steps: int,
+        persist_analysis: Optional[bool] = None,
+    ) -> None:
+        """
+        Canonical per-episode persistence entrypoint.
+
+        Captures the active episode payload for policy-level selection and
+        optionally persists matching analysis artifacts for the same episode number.
+        """
+        # Record episode data for policy selection
+        self._record_episode_snapshot(self.active_episode_logger.to_dict(), steps)
+
+        should_persist_analysis = (
+            self.persist_analysis if persist_analysis is None else persist_analysis
+        )
+
+        # Persist analysis if requested
+        if should_persist_analysis:
+            analysis_data = self.active_episode_logger.get_analysis_data()
+            filename = f"analysis_ep{episode_num:02d}.json"
+            filepath = os.path.join(self.get_analysis_dir(), filename)
+            self._write_json(filepath, analysis_data)
 
 
 
@@ -201,8 +235,8 @@ class EnvironmentLogger:
             {
                 "version": EpisodeLogger.VERSION,
                 "scenario_id": getattr(env, "scenario_id", self.scenario_id),
-                "config": self.active_episode_logger._build_shared_config_snapshot(env),
-                "scenario": self.active_episode_logger._build_scenario_snapshot(
+                "config": self.active_episode_logger.build_shared_config_snapshot(env),
+                "scenario": self.active_episode_logger.build_scenario_snapshot(
                     env, reset_info, seed
                 ),
             }
@@ -239,8 +273,25 @@ class EnvironmentLogger:
         )
 
     def flush_episode(self, step_num: int) -> str:
-        """Flush the active episode logger's buffered step chunk."""
-        return self.active_episode_logger.flush(step_num)
+        """Write the current episode chunk and analysis to disk, then clear buffers."""
+        episode_data = self.active_episode_logger.to_dict()
+
+        # Write episode chunk
+        episode_filename = f"episode_ep01_step_{step_num:05d}.json"
+        episode_filepath = os.path.join(self.get_episodes_dir(), episode_filename)
+        self._write_json(episode_filepath, episode_data)
+
+        # Write analysis chunk only when analysis persistence is enabled
+        if self.persist_analysis:
+            analysis_filename = f"analysis_ep01_step_{step_num:05d}.json"
+            analysis_filepath = os.path.join(self.get_analysis_dir(), analysis_filename)
+            analysis_data = self.active_episode_logger.get_analysis_data()
+            self._write_json(analysis_filepath, analysis_data)
+
+        # Clear in-memory buffers
+        self.active_episode_logger.clear_buffers()
+
+        return episode_filepath
 
     def end_episode(
         self,
@@ -371,9 +422,7 @@ class EnvironmentLogger:
 
         filename = f"episode_ep{episode_num:02d}.json"
         filepath = os.path.join(episodes_dir, filename)
-        with open(filepath, "w") as f:
-            json.dump(episode_data, f, indent=2)
-        return filepath
+        return self._write_json(filepath, episode_data)
 
     def _save_episode_summary(self, saved_episode_paths: List[str]) -> str:
         """Persist the per-policy episode summary artifact."""

@@ -159,7 +159,7 @@ def test_run_episode_uses_environment_logger_boundary(tmp_path) -> None:
     result = environment_logger.save_policy_episodes()
 
     episode_path = (
-        tmp_path / "runner_test" / "random_policy" / "episodes" / "episode_first_ep01.json"
+        tmp_path / "runner_test" / "random_policy" / "episodes" / "episode_ep01.json"
     )
     environment_path = tmp_path / "runner_test" / "environment.json"
 
