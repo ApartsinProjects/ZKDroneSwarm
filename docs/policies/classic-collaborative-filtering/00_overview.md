@@ -287,8 +287,11 @@ To evaluate the effectiveness of the `MatrixFactorizationPolicy`, especially in 
 *   **Calculation**: $\frac{\text{Total Neutralized}}{\text{Total Ammo Used}}$
 
 ### 6.4 Damage Efficiency (Dmg Eff)
-*   **Motivation**: Validates the **Weapon-Target Alignment**. It represents the percentage of raw firepower that successfully converted into HP reduction. A high percentage confirms that drones have successfully identified which target classes are most vulnerable to their specific weapon profiles.
+*   **Motivation**: Validates the **Weapon-Target Alignment**. It measures how much of the swarm's raw firepower was successfully converted into actual target HP reduction versus how much was wasted as "overkill" or ineffective fire. 
 *   **Calculation**: $\frac{\text{Total Effective Damage}}{\text{Total Potential Damage}}$
+    *   **Total Effective Damage**: The actual reduction in target health. If a shot could deal 50 damage but the target has only 10 HP left, only **10** points count as effective damage.
+    *   **Total Potential Damage**: The maximum theoretical damage capacity of all shots fired. It is calculated by multiplying the number of shots fired by the sum of the drone's weapon damage profile.
+*   **Interpretation**: A high percentage (e.g., >80%) confirms that drones have successfully identified target classes vulnerable to their specific weapon profiles and are efficiently managing their fire to minimize waste.
 
 ---
 
