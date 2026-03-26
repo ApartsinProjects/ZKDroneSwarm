@@ -1,6 +1,7 @@
 :host {
   display: block;
   height: 100%;
+  --analysis-metrics-row-height: 46px;
 }
 
 .viewer-sidebar-tabs {
@@ -161,6 +162,13 @@
   border: 1px solid rgba(126, 104, 62, 0.1);
 }
 
+.analysis-metrics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: 1rem;
+  align-items: start;
+}
+
 .analysis-metrics-card {
   border-radius: 12px;
   background: rgba(255, 248, 233, 0.82);
@@ -184,8 +192,11 @@
 
   th,
   td {
+    box-sizing: border-box;
+    height: var(--analysis-metrics-row-height);
     padding: 0.7rem 1rem;
     border-bottom: 1px solid rgba(126, 104, 62, 0.08);
+    vertical-align: middle;
   }
 
   tr:last-child th,
@@ -211,6 +222,64 @@
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
+}
+
+.analysis-progress-card {
+  min-width: 0;
+}
+
+.analysis-progress-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  td {
+    box-sizing: border-box;
+    height: var(--analysis-metrics-row-height);
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid rgba(126, 104, 62, 0.08);
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.analysis-progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  height: 100%;
+}
+
+.analysis-progress-cell--empty {
+  visibility: hidden;
+}
+
+.analysis-progress-cell__rail {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 0.5rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: linear-gradient(90deg, rgba(196, 149, 91, 0.12), rgba(95, 153, 118, 0.14));
+  border: 1px solid rgba(126, 104, 62, 0.08);
+}
+
+.analysis-progress-cell__rail-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d18a52, #6ca774);
+}
+
+.analysis-progress-cell__percent {
+  color: #312519;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .analysis-meta {
@@ -267,6 +336,12 @@
       transform: scale(1.1);
       box-shadow: 0 0 0 6px rgba(231, 196, 125, 0.2);
     }
+  }
+}
+
+@media (max-width: 1180px) {
+  .analysis-metrics-grid {
+    grid-template-columns: 1fr;
   }
 }
 

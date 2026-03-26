@@ -56,18 +56,50 @@
               @if (currentSnapshot(); as snapshot) {
                 <app-episode-analysis-chart [snapshot]="snapshot" />
                 @if (snapshot.metricRows.length > 0) {
-                  <div class="analysis-metrics-card">
-                    <div class="analysis-metrics-card__title">Episode Metrics</div>
-                    <table class="analysis-metrics-table">
-                      <tbody>
-                        @for (row of snapshot.metricRows; track row.label) {
-                          <tr>
-                            <th scope="row">{{ row.label }}</th>
-                            <td>{{ row.value }}</td>
-                          </tr>
-                        }
-                      </tbody>
-                    </table>
+                  <div class="analysis-metrics-grid">
+                    <div class="analysis-metrics-card">
+                      <div class="analysis-metrics-card__title">Episode Metrics</div>
+                      <table class="analysis-metrics-table">
+                        <tbody>
+                          @for (row of snapshot.metricRows; track row.label) {
+                            <tr>
+                              <th scope="row">{{ row.label }}</th>
+                              <td>{{ row.value }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="analysis-metrics-card analysis-progress-card">
+                      <div class="analysis-metrics-card__title">Episode Progress</div>
+                      <table class="analysis-progress-table">
+                        <tbody>
+                          @for (row of snapshot.metricRows; track row.label) {
+                            <tr>
+                              <td>
+                                @if (row.progress; as progress) {
+                                  <div class="analysis-progress-cell">
+                                    <div
+                                      class="analysis-progress-cell__rail"
+                                      role="presentation"
+                                      aria-hidden="true"
+                                    >
+                                      <span
+                                        class="analysis-progress-cell__rail-fill"
+                                        [style.width.%]="progress.normalizedScore * 100"
+                                      ></span>
+                                    </div>
+                                    <span class="analysis-progress-cell__percent">{{ progress.percentileLabel }}</span>
+                                  </div>
+                                } @else {
+                                  <div class="analysis-progress-cell analysis-progress-cell--empty" aria-hidden="true"></div>
+                                }
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 }
               } @else {

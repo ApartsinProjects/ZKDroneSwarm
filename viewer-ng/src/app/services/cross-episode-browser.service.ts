@@ -1,10 +1,88 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { EpisodeDto, PoliciesService } from './policies.service';
 
+type MetricDirection = 'higher' | 'lower';
+
 export interface EpisodeMetricRow {
   label: string;
   value: string;
+  numericValue: number | null;
+  progress: EpisodeMetricProgress | null;
 }
+
+export interface EpisodeMetricProgress {
+  deltaValue: number | null;
+  deltaLabel: string | null;
+  deltaTone: 'better' | 'worse' | 'neutral';
+  normalizedScore: number;
+  percentileLabel: string;
+}
+
+interface EpisodeMetricDefinition {
+  label: string;
+  betterDirection: MetricDirection | null;
+  readValue: (metrics: Record<string, unknown>) => unknown;
+}
+
+const EPISODE_METRIC_DEFINITIONS: ReadonlyArray<EpisodeMetricDefinition> = [
+  {
+    label: 'Total Ammo Used',
+    betterDirection: 'lower',
+    readValue: (metrics) => metrics['total_ammo_used'],
+  },
+  {
+    label: 'Total Overkill',
+    betterDirection: 'lower',
+    readValue: (metrics) => metrics['total_overkill'],
+  },
+  {
+    label: 'Total Effective Damage',
+    betterDirection: 'higher',
+    readValue: (metrics) => metrics['total_effective_damage'],
+  },
+  {
+    label: 'Total Potential Damage',
+    betterDirection: 'lower',
+    readValue: (metrics) => metrics['total_potential_damage'],
+  },
+  {
+    label: 'Total Collisions',
+    betterDirection: 'lower',
+    readValue: (metrics) => metrics['total_collisions'],
+  },
+  {
+    label: 'Ammo Eff',
+    betterDirection: 'higher',
+    readValue: (metrics) => metrics['ammo_eff'],
+  },
+  {
+    label: 'DMG Eff',
+    betterDirection: 'higher',
+    readValue: (metrics) => metrics['dmg_eff'],
+  },
+  {
+    label: 'Shots / Target',
+    betterDirection: 'lower',
+    readValue: (metrics) => metrics['shots_per_target'],
+  },
+  {
+    label: 'Throughput',
+    betterDirection: null,
+    readValue: (metrics) => metrics['throughput'],
+  },
+  {
+    label: 'Coordination',
+    betterDirection: null,
+    readValue: (metrics) => {
+      const coordinationStr = metrics['coordination_str'];
+      if (typeof coordinationStr === 'string' && coordinationStr.length > 0) {
+        return coordinationStr;
+      }
+
+      return metrics['coordination_score'];
+    },
+  },
+] as const;
 
 export interface EpisodeSnapshot {
   episodeNum: number | null;
@@ -58,7 +136,7 @@ export class CrossEpisodeBrowserService {
       totalSteps: steps.length,
       hpHistory,
       activeTargetsHistory,
-      metricRows: this.buildMetricRows(episode.metrics),
+      metricRows: this.buildMetricRows(episodes, idx),
     };
   });
 
@@ -92,36 +170,110 @@ export class CrossEpisodeBrowserService {
     }
   }
 
-  private buildMetricRows(metrics: Record<string, unknown>): EpisodeMetricRow[] {
-    const coordinationValue = this.readCoordinationValue(metrics);
+  private buildMetricRows(episodes: EpisodeDto[], currentIndex: number): EpisodeMetricRow[] {
+    const metrics = this.readMetrics(episodes[currentIndex]);
 
-    const candidates: Array<[string, unknown]> = [
-      ['Targets Neutralized', metrics['targets_neutralized']],
-      ['Total Ammo Used', metrics['total_ammo_used']],
-      ['Total Overkill', metrics['total_overkill']],
-      ['Total Effective Damage', metrics['total_effective_damage']],
-      ['Total Potential Damage', metrics['total_potential_damage']],
-      ['Total Collisions', metrics['total_collisions']],
-      ['Ammo Eff', metrics['ammo_eff']],
-      ['DMG Eff', metrics['dmg_eff']],
-      ['Shots / Target', metrics['shots_per_target']],
-      ['Throughput', metrics['throughput']],
-      ['Coordination', coordinationValue],
-    ];
+    return EPISODE_METRIC_DEFINITIONS.flatMap((definition) => {
+      const rawValue = definition.readValue(metrics);
+      const value = this.formatMetricValue(definition.label, rawValue);
+      const numericValue = this.readMetricNumber(rawValue);
 
-    return candidates.flatMap(([label, rawValue]) => {
-      const value = this.formatMetricValue(label, rawValue);
-      return value === null ? [] : [{ label, value }];
+      return value === null ? [] : [{
+        label: definition.label,
+        value,
+        numericValue,
+        progress: this.buildMetricProgress(definition, episodes, currentIndex, numericValue),
+      }];
     });
   }
 
-  private readCoordinationValue(metrics: Record<string, unknown>): unknown {
-    const coordinationStr = metrics['coordination_str'];
-    if (typeof coordinationStr === 'string' && coordinationStr.length > 0) {
-      return coordinationStr;
+  private buildMetricProgress(
+    definition: EpisodeMetricDefinition,
+    episodes: EpisodeDto[],
+    currentIndex: number,
+    currentValue: number | null,
+  ): EpisodeMetricProgress | null {
+    if (definition.betterDirection === null || currentValue === null) {
+      return null;
     }
 
-    return metrics['coordination_score'];
+    const historicalValues = episodes
+      .map((episode) => this.readMetricNumber(definition.readValue(this.readMetrics(episode))))
+      .filter((value): value is number => value !== null);
+
+    if (historicalValues.length === 0) {
+      return null;
+    }
+
+    const minValue = Math.min(...historicalValues);
+    const maxValue = Math.max(...historicalValues);
+    const normalizedScore = this.normalizeMetricValue(
+      currentValue,
+      minValue,
+      maxValue,
+      definition.betterDirection,
+    );
+
+    const previousValue = currentIndex > 0
+      ? this.readMetricNumber(definition.readValue(this.readMetrics(episodes[currentIndex - 1])))
+      : null;
+    const deltaValue = previousValue === null ? null : currentValue - previousValue;
+
+    return {
+      deltaValue,
+      deltaLabel: deltaValue === null ? null : this.formatDeltaValue(definition.label, deltaValue),
+      deltaTone: this.resolveDeltaTone(definition.betterDirection, deltaValue),
+      normalizedScore,
+      percentileLabel: `${Math.round(normalizedScore * 100)}%`,
+    };
+  }
+
+  private normalizeMetricValue(
+    value: number,
+    minValue: number,
+    maxValue: number,
+    betterDirection: MetricDirection,
+  ): number {
+    if (minValue === maxValue) {
+      return 0.5;
+    }
+
+    const span = maxValue - minValue;
+    const normalized = betterDirection === 'higher'
+      ? (value - minValue) / span
+      : (maxValue - value) / span;
+
+    return Math.min(1, Math.max(0, normalized));
+  }
+
+  private formatDeltaValue(label: string, deltaValue: number): string {
+    if (deltaValue === 0) {
+      return '0';
+    }
+
+    const formattedValue = this.formatMetricValue(label, Math.abs(deltaValue)) ?? '0';
+    const sign = deltaValue > 0 ? '+' : '-';
+
+    return `${sign}${formattedValue}`;
+  }
+
+  private resolveDeltaTone(
+    betterDirection: MetricDirection,
+    deltaValue: number | null,
+  ): 'better' | 'worse' | 'neutral' {
+    if (deltaValue === null || deltaValue === 0) {
+      return 'neutral';
+    }
+
+    if (betterDirection === 'higher') {
+      return deltaValue > 0 ? 'better' : 'worse';
+    }
+
+    return deltaValue < 0 ? 'better' : 'worse';
+  }
+
+  private readMetrics(episode: EpisodeDto | undefined): Record<string, unknown> {
+    return this.readRecord(episode?.metrics);
   }
 
   private formatMetricValue(label: string, value: unknown): string | null {
@@ -163,5 +315,13 @@ export class CrossEpisodeBrowserService {
     }
 
     return value.filter((item): item is number => typeof item === 'number' && Number.isFinite(item));
+  }
+
+  private readMetricNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    return null;
   }
 }
