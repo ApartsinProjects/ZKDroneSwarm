@@ -23,7 +23,7 @@ class EpisodeMetricsSource:
     final_diagnostics: Mapping[str, Any]
     overkill_events: Sequence[Mapping[int, float]]
     agent_rewards: Dict[str, float]
-    total_effective_damage: float
+    total_net_damage: float
     total_collisions: int
     weapon_damage_profile_mapping: Mapping[str, Mapping[str, float]]
 
@@ -38,8 +38,8 @@ class EpisodeMetrics:
     targets_neutralized: int
     total_ammo_used: int
     total_overkill: float
-    total_effective_damage: float
-    total_potential_damage: float
+    total_net_damage: float
+    total_gross_damage: float
     total_collisions: int
     ammo_eff: float
     dmg_eff: float
@@ -80,8 +80,8 @@ class PolicyRunSummary:
     avg_ammo: float
     avg_overkill: float
     avg_reward: float
-    avg_effective_damage: float
-    avg_potential_damage: float
+    avg_net_damage: float
+    avg_gross_damage: float
     success_count: int
     success_rate: float
     ammo_eff: float
@@ -103,14 +103,14 @@ class MetricsManager:
         targets_neutralized = self._calc_targets_neutralized(raw.final_diagnostics)
         total_ammo_used = self._calc_total_ammo_used(raw.final_diagnostics)
         total_overkill = self._calc_total_overkill(raw.overkill_events)
-        total_potential_damage = self._calc_total_potential_damage(
+        total_gross_damage = self._calc_total_gross_damage(
             raw.final_diagnostics,
             raw.weapon_damage_profile_mapping,
         )
         ammo_eff = targets_neutralized / total_ammo_used if total_ammo_used > 0 else 0.0
         dmg_eff = (
-            raw.total_effective_damage / total_potential_damage
-            if total_potential_damage > 0
+            raw.total_net_damage / total_gross_damage
+            if total_gross_damage > 0
             else 0.0
         )
 
@@ -133,8 +133,8 @@ class MetricsManager:
                 targets_neutralized=targets_neutralized,
                 total_ammo_used=total_ammo_used,
                 total_overkill=total_overkill,
-                total_effective_damage=raw.total_effective_damage,
-                total_potential_damage=total_potential_damage,
+                total_net_damage=raw.total_net_damage,
+                total_gross_damage=total_gross_damage,
                 total_collisions=raw.total_collisions,
                 ammo_eff=ammo_eff,
                 dmg_eff=dmg_eff,
@@ -155,8 +155,8 @@ class MetricsManager:
             targets_neutralized=targets_neutralized,
             total_ammo_used=total_ammo_used,
             total_overkill=total_overkill,
-            total_effective_damage=raw.total_effective_damage,
-            total_potential_damage=total_potential_damage,
+            total_net_damage=raw.total_net_damage,
+            total_gross_damage=total_gross_damage,
             total_collisions=raw.total_collisions,
             ammo_eff=ammo_eff,
             dmg_eff=dmg_eff,
@@ -180,8 +180,8 @@ class MetricsManager:
                 avg_ammo=0.0,
                 avg_overkill=0.0,
                 avg_reward=0.0,
-                avg_effective_damage=0.0,
-                avg_potential_damage=0.0,
+                avg_net_damage=0.0,
+                avg_gross_damage=0.0,
                 success_count=0,
                 success_rate=0.0,
                 ammo_eff=0.0,
@@ -195,16 +195,16 @@ class MetricsManager:
         avg_ammo = sum(item.total_ammo_used for item in normalized) / episode_count
         avg_overkill = sum(item.total_overkill for item in normalized) / episode_count
         avg_reward = sum(item.total_reward for item in normalized) / episode_count
-        avg_effective_damage = sum(item.total_effective_damage for item in normalized) / episode_count
-        avg_potential_damage = sum(item.total_potential_damage for item in normalized) / episode_count
+        avg_net_damage = sum(item.total_net_damage for item in normalized) / episode_count
+        avg_gross_damage = sum(item.total_gross_damage for item in normalized) / episode_count
         success_count = sum(
             1 for item in normalized if item.done_reason == "all_targets_neutralized"
         )
         success_rate = (success_count / episode_count) * 100 if episode_count > 0 else 0.0
         ammo_eff = avg_targets / avg_ammo if avg_ammo > 0 else 0.0
         dmg_eff = (
-            avg_effective_damage / avg_potential_damage
-            if avg_potential_damage > 0
+            avg_net_damage / avg_gross_damage
+            if avg_gross_damage > 0
             else 0.0
         )
         representative_episode = (
@@ -221,8 +221,8 @@ class MetricsManager:
             avg_ammo=avg_ammo,
             avg_overkill=avg_overkill,
             avg_reward=avg_reward,
-            avg_effective_damage=avg_effective_damage,
-            avg_potential_damage=avg_potential_damage,
+            avg_net_damage=avg_net_damage,
+            avg_gross_damage=avg_gross_damage,
             success_count=success_count,
             success_rate=success_rate,
             ammo_eff=ammo_eff,
@@ -254,13 +254,13 @@ class MetricsManager:
         return sum(sum(event.values()) for event in overkill_events)
 
     @staticmethod
-    def _calc_total_potential_damage(
+    def _calc_total_gross_damage(
         final_diagnostics: Mapping[str, Any],
         weapon_damage_profile_mapping: Mapping[str, Mapping[str, float]],
     ) -> float:
         ammo_used = final_diagnostics.get("ammo_used", {})
         weapon_types = final_diagnostics.get("weapon_types", [])
-        total_potential_damage = 0.0
+        total_gross_damage = 0.0
         for agent_id, ammo in ammo_used.items():
             parts = agent_id.split("_")
             if len(parts) != 2 or not parts[1].isdigit():
@@ -274,8 +274,8 @@ class MetricsManager:
             if weapon_type not in weapon_damage_profile_mapping:
                 raise KeyError(f"Missing weapon profile for weapon type: {weapon_type!r}")
             damage_per_shot = sum(weapon_damage_profile_mapping[weapon_type].values())
-            total_potential_damage += ammo * damage_per_shot
-        return total_potential_damage
+            total_gross_damage += ammo * damage_per_shot
+        return total_gross_damage
 
 
 def format_metric_display(val: Union[float, str], fmt: str = "{}") -> str:

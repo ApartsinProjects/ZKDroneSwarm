@@ -155,7 +155,7 @@ Prevents the "weak" early learning phase from dragging down the evaluation of th
 Defined over a late-run evaluation window (e.g., the last 10% of steps or the last 3 logging intervals).
 
 $$
-\text{SteadyStateEff} = \frac{\text{effective damage in window}}{\text{total fired damage in window}}
+\text{SteadyStateEff} = \frac{\text{net damage in window}}{\text{gross damage in window}}
 $$
 
 **Interpretation:**

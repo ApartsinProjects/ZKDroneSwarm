@@ -36,14 +36,14 @@ const EPISODE_METRIC_DEFINITIONS: ReadonlyArray<EpisodeMetricDefinition> = [
     readValue: (metrics) => metrics['total_overkill'],
   },
   {
-    label: 'Total Effective Damage',
+    label: 'Total Net Damage',
     betterDirection: 'higher',
-    readValue: (metrics) => metrics['total_effective_damage'],
+    readValue: (metrics) => metrics['total_net_damage'],
   },
   {
-    label: 'Total Potential Damage',
+    label: 'Total Gross Damage',
     betterDirection: 'lower',
-    readValue: (metrics) => metrics['total_potential_damage'],
+    readValue: (metrics) => metrics['total_gross_damage'],
   },
   {
     label: 'Total Collisions',

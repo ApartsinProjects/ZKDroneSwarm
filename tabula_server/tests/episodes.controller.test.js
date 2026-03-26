@@ -35,6 +35,8 @@ test('buildEpisodeDto exposes top-level episode metrics for viewer clients', asy
       },
       metrics: {
         total_ammo_used: 12,
+        total_net_damage: 9,
+        total_gross_damage: 15,
         total_collisions: 3,
         dmg_eff: 0.8,
         shots_per_target: 2.4,
@@ -43,6 +45,8 @@ test('buildEpisodeDto exposes top-level episode metrics for viewer clients', asy
 
     assert.deepEqual(dto.metrics, {
       total_ammo_used: 12,
+      total_net_damage: 9,
+      total_gross_damage: 15,
       total_collisions: 3,
       dmg_eff: 0.8,
       shots_per_target: 2.4,

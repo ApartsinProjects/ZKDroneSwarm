@@ -14,7 +14,7 @@ def build_source(
     ammo_used: dict[str, int] | None = None,
     weapon_types: list[str] | None = None,
     overkill_events: tuple[dict[int, float], ...] = ({0: 1.5},),
-    total_effective_damage: float = 9.0,
+    total_net_damage: float = 9.0,
     total_collisions: int = 1,
 ) -> EpisodeMetricsSource:
     return EpisodeMetricsSource(
@@ -29,7 +29,7 @@ def build_source(
         },
         overkill_events=overkill_events,
         agent_rewards={"drone_0": 1.0, "drone_1": 2.0},
-        total_effective_damage=total_effective_damage,
+        total_net_damage=total_net_damage,
         total_collisions=total_collisions,
         weapon_damage_profile_mapping={
             "light": {"hp": 3.0},
@@ -47,7 +47,8 @@ def test_calc_episode_metrics_episodic_formulas() -> None:
     assert metrics.mode == "episodic"
     assert metrics.targets_neutralized == 2
     assert metrics.total_ammo_used == 3
-    assert metrics.total_potential_damage == 10.0
+    assert metrics.total_gross_damage == 10.0
+    assert metrics.total_net_damage == 9.0
     assert metrics.total_overkill == 1.5
     assert metrics.shots_per_target == pytest.approx(1.5)
     assert metrics.ammo_eff == pytest.approx(2 / 3)
@@ -97,7 +98,7 @@ def test_calc_total_episodes_metrics_continuous_representative_is_last() -> None
     assert summary.representative_episode.episode == 2
 
 
-def test_calc_total_potential_damage_fails_for_invalid_agent_id() -> None:
+def test_calc_total_gross_damage_fails_for_invalid_agent_id() -> None:
     manager = MetricsManager("episodic")
     source = build_source(ammo_used={"invalid_agent": 1})
 
@@ -105,7 +106,7 @@ def test_calc_total_potential_damage_fails_for_invalid_agent_id() -> None:
         manager.calc_episode_metrics(source)
 
 
-def test_calc_total_potential_damage_fails_for_out_of_range_agent_index() -> None:
+def test_calc_total_gross_damage_fails_for_out_of_range_agent_index() -> None:
     manager = MetricsManager("episodic")
     source = build_source(
         ammo_used={"drone_2": 1},
@@ -116,7 +117,7 @@ def test_calc_total_potential_damage_fails_for_out_of_range_agent_index() -> Non
         manager.calc_episode_metrics(source)
 
 
-def test_calc_total_potential_damage_fails_for_missing_weapon_profile() -> None:
+def test_calc_total_gross_damage_fails_for_missing_weapon_profile() -> None:
     manager = MetricsManager("episodic")
     source = EpisodeMetricsSource(
         episode=1,
@@ -130,7 +131,7 @@ def test_calc_total_potential_damage_fails_for_missing_weapon_profile() -> None:
         },
         overkill_events=(),
         agent_rewards={"drone_0": 0.0},
-        total_effective_damage=0.0,
+        total_net_damage=0.0,
         total_collisions=0,
         weapon_damage_profile_mapping={"light": {"hp": 3.0}},
     )

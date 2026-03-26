@@ -348,7 +348,7 @@ class ConsolePrinter:
         else:
             metric_lines = [
                 "Ammo Eff = targets / ammo (higher = fewer wasted shots)",
-                "Dmg Eff  = effective_dmg / potential_dmg (higher = less overkill)",
+                "Dmg Eff  = net_dmg / gross_dmg (higher = less overkill)",
             ]
         lines = [
             "",
@@ -422,14 +422,14 @@ class ConsolePrinter:
         episode_num: int,
         steps: int,
         targets_neutralized: int,
-        total_effective_damage: float,
+        total_net_damage: float,
         total_overkill: float,
         total_reward: float,
     ) -> None:
         self._emit(
             f"  Episode {episode_num}: Steps={steps}, "
             f"Total Neutralized={targets_neutralized}, "
-            f"Total HP Damaged={total_effective_damage:.0f}, "
+            f"Total Net Damage={total_net_damage:.0f}, "
             f"Total Wasted HP={total_overkill:.0f}, "
             f"Reward={total_reward:.0f}"
         )
@@ -444,14 +444,14 @@ class ConsolePrinter:
         self,
         steps: int,
         targets_neutralized: int,
-        total_effective_damage: float,
+        total_net_damage: float,
         total_overkill: float,
         total_collisions: int,
     ) -> None:
         self._emit(
             f"  Final Summary: Steps={steps}, "
             f"Total Neutralized={targets_neutralized}, "
-            f"Total HP Damaged={total_effective_damage:.0f}, "
+            f"Total Net Damage={total_net_damage:.0f}, "
             f"Total Wasted HP={total_overkill:.0f}, "
             f"Collisions={total_collisions}"
         )

@@ -418,8 +418,8 @@ where:
 - $h^{\text{before}}_{t,k}$ = remaining health of target $t$ in attribute $k$ before the hit
 - $w_{a,k}$ = drone $a$'s weapon damage in attribute $k$
 
-The numerator measures the **actual effective damage dealt**, since damage beyond the remaining target health is wasted.  
-The denominator measures the drone's **maximum possible weapon output**.
+The numerator measures the **actual net damage dealt**, since damage beyond the remaining target health is wasted.  
+The denominator measures the drone's **gross weapon output**.
 
 Therefore, for a valid shot on an active target:
 

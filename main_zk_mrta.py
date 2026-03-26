@@ -341,7 +341,7 @@ def run_episode(
     step_count = 0
     done = False
     overkill_events: List[Dict[int, float]] = []
-    total_effective_damage = 0.0
+    total_net_damage = 0.0
     total_collisions = 0
     
     # Episode loop
@@ -378,12 +378,12 @@ def run_episode(
                 environment_logger.flush_episode(step_count)
                 environment_logger.handle_flush(step_count)
         
-        # Update total rewards and track effective damage
+        # Update total rewards and track net damage
         for agent_id in env.agents:
             total_rewards[agent_id] += rewards[agent_id]
             
-        # Sum absolute effective damage from ground truth (info)
-        total_effective_damage += sum(shared_info["effective_damage"].values())
+        # Sum actual HP removed from targets from ground truth (info)
+        total_net_damage += sum(shared_info["net_damage"].values())
         
         # Track collisions
         total_collisions += shared_info.get("collisions", 0)
@@ -420,7 +420,7 @@ def run_episode(
         final_diagnostics=shared_info,
         overkill_events=tuple(overkill_events),
         agent_rewards=total_rewards.copy(),
-        total_effective_damage=total_effective_damage,
+        total_net_damage=total_net_damage,
         total_collisions=total_collisions,
         weapon_damage_profile_mapping=env.weapon_damage_profile_mapping,
     )
@@ -843,7 +843,7 @@ def main():
                     episode_num=episode_num,
                     steps=metrics.steps,
                     targets_neutralized=metrics.targets_neutralized,
-                    total_effective_damage=metrics.total_effective_damage,
+                    total_net_damage=metrics.total_net_damage,
                     total_overkill=metrics.total_overkill,
                     total_reward=metrics.total_reward,
                 )
@@ -881,7 +881,7 @@ def main():
             printer.policy_final_summary(
                 steps=metrics.steps,
                 targets_neutralized=metrics.targets_neutralized,
-                total_effective_damage=metrics.total_effective_damage,
+                total_net_damage=metrics.total_net_damage,
                 total_overkill=metrics.total_overkill,
                 total_collisions=metrics.total_collisions,
             )

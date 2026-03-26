@@ -30,7 +30,7 @@ class EnvDiagnosticsSnapshot:
     target_classes: List[str]
     target_active: List[bool]
     processing_order: Optional[List[str]] = None
-    effective_damage: Optional[Dict[str, float]] = None
+    net_damage: Optional[Dict[str, float]] = None
     neutralizations_this_step: Optional[int] = None
     cumulative_neutralizations: Optional[int] = None
     collisions: Optional[int] = None
@@ -54,7 +54,7 @@ class EnvDiagnosticsSnapshot:
 
         optional_fields = {
             "processing_order": self.processing_order,
-            "effective_damage": self.effective_damage,
+            "net_damage": self.net_damage,
             "neutralizations_this_step": self.neutralizations_this_step,
             "cumulative_neutralizations": self.cumulative_neutralizations,
             "collisions": self.collisions,

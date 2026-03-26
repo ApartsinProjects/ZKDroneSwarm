@@ -364,7 +364,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         self,
         actions: Dict[str, int],
         processing_order: Optional[List[str]] = None,
-        effective_damage: Optional[Dict[str, float]] = None,
+        net_damage: Optional[Dict[str, float]] = None,
         neutralizations_this_step: Optional[int] = None,
         cumulative_neutralizations: Optional[int] = None,
         collisions: Optional[int] = None,
@@ -395,7 +395,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             target_classes=[target.class_type for target in self.targets],
             target_active=[target.is_active for target in self.targets],
             processing_order=processing_order,
-            effective_damage=effective_damage,
+            net_damage=net_damage,
             neutralizations_this_step=neutralizations_this_step,
             cumulative_neutralizations=cumulative_neutralizations,
             collisions=collisions,
@@ -521,7 +521,7 @@ class DroneEngageZKMRTA(ParallelEnv):
 
         # Track metrics across all drones
         overkill_map: Dict[int, float] = {}
-        step_effective_damage: Dict[str, float] = {agent_id: 0.0 for agent_id in self.agents}
+        step_net_damage: Dict[str, float] = {agent_id: 0.0 for agent_id in self.agents}
         newly_neutralized_indices: List[int] = []
         target_selections: Dict[int, List[str]] = {}
 
@@ -554,9 +554,9 @@ class DroneEngageZKMRTA(ParallelEnv):
             hp_before_dict = dict(target.attributes.attributes)
             damage_profile = drone.damage_profile
             
-            # Calculate absolute effective damage (ground truth)
-            eff_dmg = sum(min(hp_before_dict.get(k, 0), v) for k, v in damage_profile.items())
-            step_effective_damage[agent_id] = eff_dmg
+            # Calculate absolute net damage (ground truth)
+            net_dmg = sum(min(hp_before_dict.get(k, 0), v) for k, v in damage_profile.items())
+            step_net_damage[agent_id] = net_dmg
             
             target.attributes.apply_damage(damage_profile)
 
@@ -638,7 +638,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         shared_info = self._build_info_dict(
             actions,
             processing_order=processing_order,
-            effective_damage=step_effective_damage,
+            net_damage=step_net_damage,
             neutralizations_this_step=neutralizations_this_step,
             cumulative_neutralizations=self.cumulative_neutralizations,
             collisions=total_collisions,
@@ -886,7 +886,7 @@ class DroneEngageZKMRTA(ParallelEnv):
 
     def _reward_damage_efficiency(self, hp_before_dict: Dict[str, float], damage_profile: Dict[str, float]) -> float:
         """
-        Reward based on damage efficiency: actual effective damage divided by max weapon potential.
+        Reward based on damage efficiency: actual net damage divided by gross weapon output.
         
         This implements the policy's reward contract:
         r = sum(min(h_before, w)) / sum(w)
@@ -896,7 +896,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         - w = weapon damage in each attribute
         
         Returns:
-            Reward in range [0, 1] where 1 = full weapon potential used effectively
+            Reward in range [0, 1] where 1 = full gross weapon output converted into net damage
         """
         actual_damage = sum(min(hp_before_dict.get(k, 0), v) for k, v in damage_profile.items())
         max_weapon_potential = sum(damage_profile.values())

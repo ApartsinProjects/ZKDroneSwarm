@@ -51,7 +51,7 @@ Where:
 
 #### 3.3 Why Dot Product?
 
-The dot product captures the **total potential damage** an agent can deal to a target in a single hit. Higher scores indicate better "fit" between an agent's weapon profile and a target's remaining attributes.
+The dot product captures the **total gross damage** an agent can deal to a target in a single hit. Higher scores indicate better "fit" between an agent's weapon profile and a target's remaining attributes.
 
 #### 3.4 Worked Example
 

@@ -276,9 +276,9 @@ To evaluate the effectiveness of the `MatrixFactorizationPolicy`, especially acr
 ### 6.1 Damage Efficiency (Dmg Eff)
 *   **Tactical Focus**: Weapon-target alignment ("The Brain").
 *   **Motivation**: Validates that drones have successfully identified target classes vulnerable to their specific weapon profiles. This is the primary indicator that the Matrix Factorization model has converged and correctly identified latent physics.
-*   **Calculation**: $\frac{\text{Total Effective Damage}}{\text{Total Potential Damage}}$
-    *   **Total Effective Damage**: The actual reduction in target health. If a shot could deal 50 damage but the target has only 10 HP left, only **10** points count as effective damage.
-    *   **Total Potential Damage**: The maximum theoretical damage capacity of all shots fired (Sum of weapon damage profiles for every action). High efficiency confirms "surgical" fire.
+*   **Calculation**: $\frac{\text{Total Net Damage}}{\text{Total Gross Damage}}$
+    *   **Total Net Damage**: The actual reduction in target health. If a shot could deal 50 damage but the target has only 10 HP left, only **10** points count as net damage.
+    *   **Total Gross Damage**: The raw damage capacity expended by all shots fired (sum of weapon damage profiles for every action). High efficiency confirms "surgical" fire.
 
 ### 6.2 Swarm Coordination & De-confliction
 *   **Tactical Focus**: Collective behavior health ("The Social").
