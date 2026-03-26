@@ -27,7 +27,11 @@
           <dd>{{ scene.targets.length }}</dd>
         </div>
         <div>
-          <dt>Total Steps</dt>
+          <dt>Episode</dt>
+          <dd>{{ episodeNumber() ?? '—' }}</dd>
+        </div>
+        <div>
+          <dt>Steps</dt>
           <dd>{{ episodeMetrics()?.totalSteps ?? '—' }}</dd>
         </div>
       </dl>

@@ -73,6 +73,10 @@ export class MapComponent {
     return this.activeScene()?.run.scenarioId ?? 'unknown';
   });
 
+  protected readonly episodeNumber = computed(() => {
+    return this.episodeState.currentEpisode()?.episode?.episodeNum ?? null;
+  });
+
   protected readonly mapAspectRatio = computed(() => {
     const scene = this.activeScene();
 
