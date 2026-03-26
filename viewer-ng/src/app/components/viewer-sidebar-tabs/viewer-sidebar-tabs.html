@@ -90,12 +90,19 @@
                                       role="presentation"
                                       aria-hidden="true"
                                     >
-                                      <span
-                                        class="analysis-progress-cell__rail-fill"
-                                        [style.width.%]="progress.normalizedScore * 100"
-                                      ></span>
+                                      @if (!progress.isFixed) {
+                                        <span
+                                          class="analysis-progress-cell__rail-fill"
+                                          [style.width.%]="progress.normalizedScore * 100"
+                                        ></span>
+                                      }
                                     </div>
-                                    <span class="analysis-progress-cell__percent">{{ progress.percentileLabel }}</span>
+                                    <span
+                                      class="analysis-progress-cell__percent"
+                                      [class.analysis-progress-cell__percent--fixed]="progress.isFixed"
+                                    >
+                                      {{ progress.percentileLabel }}
+                                    </span>
                                   </div>
                                 } @else {
                                   <div class="analysis-progress-cell analysis-progress-cell--empty" aria-hidden="true"></div>

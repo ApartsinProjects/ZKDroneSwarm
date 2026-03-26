@@ -16,6 +16,7 @@ export interface EpisodeMetricProgress {
   deltaTone: 'better' | 'worse' | 'neutral';
   normalizedScore: number;
   percentileLabel: string;
+  isFixed: boolean;
 }
 
 interface EpisodeMetricDefinition {
@@ -44,11 +45,6 @@ const EPISODE_METRIC_DEFINITIONS: ReadonlyArray<EpisodeMetricDefinition> = [
     label: 'Total Collisions',
     betterDirection: 'lower',
     readValue: (metrics) => metrics['total_collisions'],
-  },
-  {
-    label: 'Ammo Eff',
-    betterDirection: 'higher',
-    readValue: (metrics) => metrics['ammo_eff'],
   },
   {
     label: 'DMG Eff',
@@ -205,6 +201,7 @@ export class CrossEpisodeBrowserService {
 
     const minValue = Math.min(...historicalValues);
     const maxValue = Math.max(...historicalValues);
+    const isFixed = minValue === maxValue;
     const normalizedScore = this.normalizeMetricValue(
       currentValue,
       minValue,
@@ -222,7 +219,8 @@ export class CrossEpisodeBrowserService {
       deltaLabel: deltaValue === null ? null : this.formatDeltaValue(definition.label, deltaValue),
       deltaTone: this.resolveDeltaTone(definition.betterDirection, deltaValue),
       normalizedScore,
-      percentileLabel: `${Math.round(normalizedScore * 100)}%`,
+      percentileLabel: isFixed ? 'Fixed' : `${Math.round(normalizedScore * 100)}%`,
+      isFixed,
     };
   }
 

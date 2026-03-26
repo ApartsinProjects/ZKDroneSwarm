@@ -282,6 +282,13 @@
   white-space: nowrap;
 }
 
+.analysis-progress-cell__percent--fixed {
+  color: #7a6850;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
 .analysis-metrics-note {
   display: flex;
   align-items: center;
