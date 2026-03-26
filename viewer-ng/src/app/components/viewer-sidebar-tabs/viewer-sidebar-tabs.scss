@@ -282,6 +282,33 @@
   white-space: nowrap;
 }
 
+.analysis-metrics-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem 0.95rem;
+  border-top: 1px solid rgba(126, 104, 62, 0.08);
+}
+
+.analysis-metrics-note__label {
+  color: #8b795e;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.analysis-metrics-note__value {
+  color: #312519;
+  font-size: 0.84rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .analysis-meta {
   display: flex;
   align-items: center;

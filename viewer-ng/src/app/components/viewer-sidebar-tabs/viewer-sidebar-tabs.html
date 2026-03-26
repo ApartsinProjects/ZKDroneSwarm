@@ -69,6 +69,12 @@
                           }
                         </tbody>
                       </table>
+                      @if (snapshot.totalNetDamageValue; as totalNetDamageValue) {
+                        <div class="analysis-metrics-note">
+                          <span class="analysis-metrics-note__label">Total Net Damage</span>
+                          <span class="analysis-metrics-note__value">{{ totalNetDamageValue }}</span>
+                        </div>
+                      }
                     </div>
                     <div class="analysis-metrics-card analysis-progress-card">
                       <div class="analysis-metrics-card__title">Episode Progress</div>

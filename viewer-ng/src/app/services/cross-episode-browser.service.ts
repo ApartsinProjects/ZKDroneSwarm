@@ -36,11 +36,6 @@ const EPISODE_METRIC_DEFINITIONS: ReadonlyArray<EpisodeMetricDefinition> = [
     readValue: (metrics) => metrics['total_overkill'],
   },
   {
-    label: 'Total Net Damage',
-    betterDirection: 'higher',
-    readValue: (metrics) => metrics['total_net_damage'],
-  },
-  {
     label: 'Total Gross Damage',
     betterDirection: 'lower',
     readValue: (metrics) => metrics['total_gross_damage'],
@@ -90,6 +85,7 @@ export interface EpisodeSnapshot {
   hpHistory: number[];
   activeTargetsHistory: number[];
   metricRows: EpisodeMetricRow[];
+  totalNetDamageValue: string | null;
 }
 
 @Injectable({
@@ -114,6 +110,7 @@ export class CrossEpisodeBrowserService {
     if (idx < 0 || idx >= episodes.length) return null;
 
     const episode = episodes[idx];
+    const metrics = this.readMetrics(episode);
     const steps = episode.steps || [];
     const hpHistory: number[] = [];
     const activeTargetsHistory: number[] = [];
@@ -137,6 +134,7 @@ export class CrossEpisodeBrowserService {
       hpHistory,
       activeTargetsHistory,
       metricRows: this.buildMetricRows(episodes, idx),
+      totalNetDamageValue: this.formatMetricValue('Total Net Damage', metrics['total_net_damage']),
     };
   });
 
