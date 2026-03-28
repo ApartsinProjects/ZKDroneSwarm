@@ -873,7 +873,7 @@ def main():
 
             if state_files:
                 print("Starting t-SNE enrichment for all learning_state artifacts...")
-                enrich_learning_state_dir(learning_state_dir, mode=tsne_mode)
+                # enrich_learning_state_dir(learning_state_dir, mode=tsne_mode)
                 print("Finished t-SNE enrichment for all learning_state artifacts.")
 
         if 'final' in steps:

@@ -26,8 +26,9 @@ from ..core.states import (
     AttributeProfile,
 )
 
-# Reward mode: "ATTRIBUTE_ALIGNMENT" | "DAMAGE_EFFICIENCY" | "HP_REDUCTION" | "DOMINANT_ATTRIBUTE" 
-REWARD_MODE = "ATTRIBUTE_ALIGNMENT"
+# Reward mode: "ATTRIBUTE_ALIGNMENT" | "DAMAGE_EFFICIENCY" | "HP_REDUCTION" |
+# "DOMINANT_ATTRIBUTE" | "MF_DOT_PRODUCT"
+REWARD_MODE = "MF_DOT_PRODUCT"
 
 class DroneEngageZKMRTA(ParallelEnv):
     """
@@ -106,6 +107,19 @@ class DroneEngageZKMRTA(ParallelEnv):
             raise ValueError("weapon_damage_profile_mapping is required")
         self.class_attribute_mapping = class_attribute_mapping
         self.weapon_damage_profile_mapping = weapon_damage_profile_mapping
+        self.reward_attribute_keys = sorted(
+            {
+                attr_name
+                for profile in class_attribute_mapping.values()
+                for attr_name in profile.keys()
+            }
+            | {
+                attr_name
+                for profile in weapon_damage_profile_mapping.values()
+                for attr_name in profile.keys()
+            }
+        )
+        self.max_dot_product = self._compute_max_dot_product()
         
         # Compute max single-attribute damage for reward normalization
         self.max_single_attribute_weapon_damage = max(
@@ -450,25 +464,12 @@ class DroneEngageZKMRTA(ParallelEnv):
             # Build observed_rewards array with noise
             observed_rewards = []
             for other_agent_id in self.possible_agents:
-                base_reward = self.last_rewards.get(other_agent_id, 0.0)
-                
-                # Semantic Bounding: Process noise only for valid shots (base_reward >= 0)
-                if base_reward >= 0.0:
-                    # Apply noise
-                    if other_agent_id == agent_id:
-                        # Own reward: only reward_noise
-                        noise = self.rng.normal(0, self.reward_noise) if self.reward_noise > 0 else 0.0
-                    else:
-                        # Other's reward: reward_noise + observation_noise
-                        total_noise_std = (self.reward_noise ** 2 + self.observation_noise ** 2) ** 0.5
-                        noise = self.rng.normal(0, total_noise_std) if total_noise_std > 0 else 0.0
-                    
-                    # Clip to semantic bounds [0.0, 1.0]
-                    noisy_reward = np.clip(base_reward + noise, 0.0, 1.0)
-                    observed_rewards.append(noisy_reward)
-                else:
-                    # Wasted shot penalty (strictly < 0.0): pass through without noise
-                    observed_rewards.append(base_reward)
+                observed_rewards.append(
+                    self._compute_observed_reward(
+                        observer_agent_id=agent_id,
+                        source_agent_id=other_agent_id,
+                    )
+                )
             
             observed_rewards_array = np.array(observed_rewards, dtype=np.float32)
             
@@ -560,16 +561,12 @@ class DroneEngageZKMRTA(ParallelEnv):
             
             target.attributes.apply_damage(damage_profile)
 
-            # Compute reward based on selected mode
-            hp_after = target.hp_current
-            if REWARD_MODE == "DAMAGE_EFFICIENCY":
-                rewards[agent_id] += self._reward_damage_efficiency(hp_before_dict, damage_profile)
-            elif REWARD_MODE == "DOMINANT_ATTRIBUTE":
-                rewards[agent_id] += self._reward_dynamic_dominant_attribute(damage_profile, target)
-            elif REWARD_MODE == "ATTRIBUTE_ALIGNMENT":
-                rewards[agent_id] += self._reward_attribute_alignment(hp_before_dict, damage_profile)
-            else:  # HP_REDUCTION
-                rewards[agent_id] += self._reward_hp_reduction(hp_before, hp_after)
+            rewards[agent_id] += self._compute_active_shot_reward(
+                target=target,
+                hp_before=hp_before,
+                hp_before_dict=hp_before_dict,
+                damage_profile=damage_profile,
+            )
             
             # Check if target became inactive
             if target.attributes.is_depleted():
@@ -849,6 +846,90 @@ class DroneEngageZKMRTA(ParallelEnv):
         actual_damage = hp_before - hp_after
         # drone_weapon_damage = sum(damage_profile.values())
         return actual_damage / hp_before
+
+    def _compute_active_shot_reward(
+        self,
+        target: TargetState,
+        hp_before: float,
+        hp_before_dict: Dict[str, float],
+        damage_profile: Dict[str, float],
+    ) -> float:
+        """Return the canonical reward for a shot on an active target."""
+        hp_after = target.hp_current
+
+        if REWARD_MODE == "DAMAGE_EFFICIENCY":
+            return self._reward_damage_efficiency(hp_before_dict, damage_profile)
+        if REWARD_MODE == "DOMINANT_ATTRIBUTE":
+            return self._reward_dynamic_dominant_attribute(damage_profile, target)
+        if REWARD_MODE == "ATTRIBUTE_ALIGNMENT":
+            return self._reward_attribute_alignment(hp_before_dict, damage_profile)
+        if REWARD_MODE == "MF_DOT_PRODUCT":
+            return self._reward_mf_dot_product(target, damage_profile)
+        return self._reward_hp_reduction(hp_before, hp_after)
+
+    def _compute_observed_reward(
+        self,
+        observer_agent_id: str,
+        source_agent_id: str,
+    ) -> float:
+        """Return the learner-facing reward observation for one agent event.
+
+        Legacy bounded modes keep clipped positive rewards, while MF_DOT_PRODUCT
+        exposes the raw noisy positive reward.
+        """
+        base_reward = self.last_rewards.get(source_agent_id, 0.0)
+
+        if base_reward < 0.0:
+            return base_reward
+
+        if observer_agent_id == source_agent_id:
+            noise = self.rng.normal(0, self.reward_noise) if self.reward_noise > 0 else 0.0
+        else:
+            total_noise_std = (self.reward_noise ** 2 + self.observation_noise ** 2) ** 0.5
+            noise = self.rng.normal(0, total_noise_std) if total_noise_std > 0 else 0.0
+
+        observed_reward = base_reward + noise
+        if REWARD_MODE == "MF_DOT_PRODUCT":
+            return float(observed_reward)
+        return float(np.clip(observed_reward, 0.0, 1.0))
+
+    def _reward_mf_dot_product(
+        self,
+        target: TargetState,
+        damage_profile: Dict[str, float],
+    ) -> float:
+        """Reward based on a stationary normalized dot product."""
+        drone_vec = np.array(
+            [damage_profile.get(key, 0.0) for key in self.reward_attribute_keys],
+            dtype=np.float64,
+        )
+        target_profile = self.class_attribute_mapping[target.class_type]
+        target_vec = np.array(
+            [target_profile.get(key, 0.0) for key in self.reward_attribute_keys],
+            dtype=np.float64,
+        )
+        raw_dot = float(np.dot(drone_vec, target_vec))
+        if self.max_dot_product <= 0.0:
+            return 0.0
+        return raw_dot / self.max_dot_product
+
+    def _compute_max_dot_product(self) -> float:
+        """Return the largest drone-target dot product supported by the mappings."""
+        max_dot = 0.0
+
+        for weapon_profile in self.weapon_damage_profile_mapping.values():
+            weapon_vec = np.array(
+                [weapon_profile.get(key, 0.0) for key in self.reward_attribute_keys],
+                dtype=np.float64,
+            )
+            for class_profile in self.class_attribute_mapping.values():
+                target_vec = np.array(
+                    [class_profile.get(key, 0.0) for key in self.reward_attribute_keys],
+                    dtype=np.float64,
+                )
+                max_dot = max(max_dot, float(np.dot(weapon_vec, target_vec)))
+
+        return max_dot
 
     def _reward_attribute_alignment(self, hp_before_dict: Dict[str, float], damage_profile: Dict[str, float]) -> float:
         """
