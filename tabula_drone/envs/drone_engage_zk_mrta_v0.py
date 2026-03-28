@@ -556,7 +556,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             
             target.attributes.apply_damage(damage_profile)
 
-            rewards[agent_id] += self._compute_active_shot_reward(
+            rewards[agent_id] = self._compute_active_shot_reward(
                 target=target,
                 hp_before=hp_before,
                 hp_before_dict=hp_before_dict,
@@ -852,15 +852,18 @@ class DroneEngageZKMRTA(ParallelEnv):
         """Return the canonical reward for a shot on an active target."""
         hp_after = target.hp_current
 
+        if REWARD_MODE == "MF_DOT_PRODUCT":
+            return self._reward_mf_dot_product(target, damage_profile)
         if REWARD_MODE == "DAMAGE_EFFICIENCY":
             return self._reward_damage_efficiency(hp_before_dict, damage_profile)
         if REWARD_MODE == "DOMINANT_ATTRIBUTE":
             return self._reward_dynamic_dominant_attribute(damage_profile, target)
         if REWARD_MODE == "ATTRIBUTE_ALIGNMENT":
             return self._reward_attribute_alignment(hp_before_dict, damage_profile)
-        if REWARD_MODE == "MF_DOT_PRODUCT":
-            return self._reward_mf_dot_product(target, damage_profile)
-        return self._reward_hp_reduction(hp_before, hp_after)
+        if REWARD_MODE == "HP_REDUCTION":
+            return self._reward_hp_reduction(hp_before, hp_after)
+        
+        raise ValueError(f"Unknown reward mode: {REWARD_MODE}")
 
     def _compute_observed_reward(
         self,
@@ -878,8 +881,10 @@ class DroneEngageZKMRTA(ParallelEnv):
 
         noise = self.rng.normal(0, self.reward_noise) if self.reward_noise > 0 else 0.0
         observed_reward = base_reward + noise
+       
         if REWARD_MODE == "MF_DOT_PRODUCT":
             return float(observed_reward)
+
         return float(np.clip(observed_reward, 0.0, 1.0))
 
     def _reward_mf_dot_product(
