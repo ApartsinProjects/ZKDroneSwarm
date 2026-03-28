@@ -63,7 +63,6 @@ class DroneEngageZKMRTA(ParallelEnv):
         class_attribute_mapping: Dict[str, Dict[str, float]] = None,
         weapon_damage_profile_mapping: Dict[str, Dict[str, float]] = None,
         reward_noise: float = 0.0,
-        observation_noise: float = 0.0,
         mode: str = "episodic",
         builder: Optional[Any] = None,
     ):
@@ -85,8 +84,6 @@ class DroneEngageZKMRTA(ParallelEnv):
             weapon_damage_profile_mapping: Dict mapping weapon types to damage profile dicts.
                 Required - must be provided.
             reward_noise: Gaussian noise σ added to actual rewards (default 0.0)
-            observation_noise: Additional Gaussian noise σ when observing other
-                agents' rewards in collaborative mode (default 0.0)
         """
         super().__init__()
         
@@ -95,7 +92,6 @@ class DroneEngageZKMRTA(ParallelEnv):
         self.max_steps = max_steps
         self.scenario_id = scenario_id
         self.reward_noise = reward_noise
-        self.observation_noise = observation_noise
         self.mode = mode
         self.builder = builder
         self.cumulative_neutralizations: int = 0
@@ -466,7 +462,6 @@ class DroneEngageZKMRTA(ParallelEnv):
             for other_agent_id in self.possible_agents:
                 observed_rewards.append(
                     self._compute_observed_reward(
-                        observer_agent_id=agent_id,
                         source_agent_id=other_agent_id,
                     )
                 )
@@ -869,7 +864,6 @@ class DroneEngageZKMRTA(ParallelEnv):
 
     def _compute_observed_reward(
         self,
-        observer_agent_id: str,
         source_agent_id: str,
     ) -> float:
         """Return the learner-facing reward observation for one agent event.
@@ -882,12 +876,7 @@ class DroneEngageZKMRTA(ParallelEnv):
         if base_reward < 0.0:
             return base_reward
 
-        if observer_agent_id == source_agent_id:
-            noise = self.rng.normal(0, self.reward_noise) if self.reward_noise > 0 else 0.0
-        else:
-            total_noise_std = (self.reward_noise ** 2 + self.observation_noise ** 2) ** 0.5
-            noise = self.rng.normal(0, total_noise_std) if total_noise_std > 0 else 0.0
-
+        noise = self.rng.normal(0, self.reward_noise) if self.reward_noise > 0 else 0.0
         observed_reward = base_reward + noise
         if REWARD_MODE == "MF_DOT_PRODUCT":
             return float(observed_reward)

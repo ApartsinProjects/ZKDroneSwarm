@@ -668,11 +668,6 @@ def main():
     # Build configurations
     drones_config, targets_config = builder.build()
     
-    # Get CF noise parameters from config (with defaults)
-    cf_config = getattr(config, 'collaborative_filtering', None)
-    reward_noise = cf_config.reward_noise if cf_config else 0.1
-    observation_noise = cf_config.observation_noise if cf_config else 0.05
-    
     # Run episodes
     if config.environment.mode == "episodic":
         num_episodes = config.environment.episodic.num_episodes
@@ -718,13 +713,6 @@ def main():
     else:
         reward_noise = 0.0
     
-    if mf_config and mf_config.observation_noise is not None:
-        observation_noise = mf_config.observation_noise
-    elif cf_config and cf_config.observation_noise is not None:
-        observation_noise = cf_config.observation_noise
-    else:
-        observation_noise = 0.0
-    
     # Create single environment (reused across all policies)
     num_targets = len(targets_config)
     env = DroneEngageZKMRTA(
@@ -736,7 +724,6 @@ def main():
         class_attribute_mapping=config.mappings.class_attribute_mapping,
         weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
         reward_noise=reward_noise,
-        observation_noise=observation_noise,
         mode=config.environment.mode,
         builder=builder,
     )

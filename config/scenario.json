@@ -74,7 +74,16 @@
   },
   "collaborative_filtering": {
     "reward_noise": 0.2,
-    "observation_noise": 0.2,
+    "matrix_factorization_cf": {
+      "latent_dim": 8,
+      "learning_rate": 0.01,
+      "lambda_reg": 0.02,
+      "epsilon": 0.3,
+      "epsilon_decay": 0.9995,
+      "epsilon_min": 0.02,
+      "selection_noise": 0.0,
+      "anti_signal_weight": 1.0
+    },    
     "selfish_ep_greedy_cf": {
       "latent_dim": 3,
       "learning_rate": 0.05,
@@ -103,16 +112,6 @@
       "confidence_threshold": 0.8,
       "social_reward_clip_min": -0.5,
       "max_episodes": 100
-    },
-    "matrix_factorization_cf": {
-      "latent_dim": 16,
-      "learning_rate": 0.01,
-      "lambda_reg": 0.02,
-      "epsilon": 0.3,
-      "epsilon_decay": 0.9995,
-      "epsilon_min": 0.02,
-      "selection_noise": 0.0,
-      "anti_signal_weight": 1.0
     }
   },
   "logging": {

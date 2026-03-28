@@ -116,7 +116,6 @@ class MFPolicyConfig:
     epsilon_decay: Optional[float] = None
     epsilon_min: Optional[float] = None
     reward_noise: Optional[float] = None
-    observation_noise: Optional[float] = None
     selection_noise: Optional[float] = None
     anti_signal_weight: Optional[float] = None
 
@@ -125,7 +124,6 @@ class MFPolicyConfig:
 class CollaborativeFilteringConfig:
     """Collaborative filtering policy configuration."""
     reward_noise: float
-    observation_noise: float
     ep_greedy_cf: Optional[EpGreedyCFConfig] = None
     ucb_cf: Optional[UCBCFConfig] = None
     coordinated_ep_greedy_cf: Optional[EpGreedyCFConfig] = None
@@ -579,7 +577,6 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     epsilon_decay = data.get("epsilon_decay")
     epsilon_min = data.get("epsilon_min")
     reward_noise = data.get("reward_noise")
-    observation_noise = data.get("observation_noise")
     selection_noise = data.get("selection_noise")
     anti_signal_weight = data.get("anti_signal_weight")
 
@@ -598,8 +595,6 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         print("Note, using default value 0.02 for hyperparameter epsilon_min (matrix_factorization_cf)")
     if reward_noise is None:
         print("Note, reward_noise not specified for matrix_factorization_cf, will inherit from collaborative_filtering section")
-    if observation_noise is None:
-        print("Note, observation_noise not specified for matrix_factorization_cf, will inherit from collaborative_filtering section")
     if selection_noise is None:
         print("Note, using default value 0.0 for hyperparameter selection_noise (matrix_factorization_cf)")
     if anti_signal_weight is None:
@@ -627,9 +622,6 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     if reward_noise is not None:
         if not isinstance(reward_noise, (int, float)) or reward_noise < 0:
             raise ValueError("matrix_factorization_cf.reward_noise must be >= 0")
-    if observation_noise is not None:
-        if not isinstance(observation_noise, (int, float)) or observation_noise < 0:
-            raise ValueError("matrix_factorization_cf.observation_noise must be >= 0")
     if selection_noise is not None:
         if not isinstance(selection_noise, (int, float)) or selection_noise < 0:
             raise ValueError("matrix_factorization_cf.selection_noise must be >= 0")
@@ -645,7 +637,6 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         epsilon_decay=float(epsilon_decay) if epsilon_decay is not None else None,
         epsilon_min=float(epsilon_min) if epsilon_min is not None else None,
         reward_noise=float(reward_noise) if reward_noise is not None else None,
-        observation_noise=float(observation_noise) if observation_noise is not None else None,
         selection_noise=float(selection_noise) if selection_noise is not None else None,
         anti_signal_weight=float(anti_signal_weight) if anti_signal_weight is not None else None,
     )
@@ -655,7 +646,7 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
     """Parse collaborative filtering configuration section (optional)."""
     if data is None:
         return None
-    _validate_required_keys(data, ["reward_noise", "observation_noise"], "collaborative_filtering")
+    _validate_required_keys(data, ["reward_noise"], "collaborative_filtering")
     
     # Parse nested policy configs
     ep_greedy_cf = _parse_ep_greedy_cf_config(data.get("ep_greedy_cf"))
@@ -666,7 +657,6 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
     
     return CollaborativeFilteringConfig(
         reward_noise=float(data["reward_noise"]),
-        observation_noise=float(data["observation_noise"]),
         ep_greedy_cf=ep_greedy_cf,
         ucb_cf=ucb_cf,
         selfish_ep_greedy_cf=selfish_ep_greedy_cf,

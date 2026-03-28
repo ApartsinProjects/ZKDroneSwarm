@@ -38,12 +38,8 @@ The environment supports two observation modes controlled by `observation_mode` 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `reward_noise` | float | 0.0 | Gaussian noise σ added to actual rewards |
-| `observation_noise` | float | 0.0 | Additional Gaussian noise σ when observing other agents' rewards |
 
-When both noise parameters are non-zero, an agent observing another agent's reward sees:
-`observed = true_reward + N(0, reward_noise) + N(0, observation_noise)`
-
-Own rewards have only `reward_noise`; observed rewards from others have both noise sources.
+Observed rewards are derived from the canonical reward with `reward_noise` applied.
 
 **Note:** Both modes maintain zero-knowledge about *capabilities* — agents never see HP values, damage profiles, weapon types, or class types. Collaborative mode only reveals *actions and outcomes*, not *why* those outcomes occurred.
 
