@@ -1,5 +1,15 @@
 {
-  "mappings_file": "mappings_cf_friendly.json",
+  "world_model": "latent",
+  "custom_world": {
+    "mappings_file": "mappings_cf_friendly.json"
+  },
+  "latent_world": {
+    "latent_dim": 3,
+    "num_modes": 3,
+    "drone_variance": 0.5,
+    "target_variance": 0.5,
+    "target_hp": 5.0
+  },
   "seed": 42,
   "world": {
     "size": [
@@ -19,7 +29,7 @@
     "verbose": false
   },  
   "drones": {
-    "count": 6,
+    "count": 9,
     "weapon_distribution": {
       "_A": 0.33,
       "_B": 0.33,
@@ -35,10 +45,10 @@
         0.4
       ]
     },
-    "min_distance_between_drones": 75.0
+    "min_distance_between_drones": 25.0
   },
   "targets": {
-    "count": 27,
+    "count": 35,
     "region": {
       "x_fraction": [
         0.1,
@@ -55,7 +65,7 @@
       "C": 0.33
     },
     "min_distance_from_drones": 50.0,
-    "min_distance_between_targets": 55.0
+    "min_distance_between_targets": 25.0
   },
   "policy": {
     "type": [

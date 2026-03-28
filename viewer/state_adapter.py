@@ -64,9 +64,13 @@ def extract_initial_state(
         # Fallback: infer from positions or use default
         world_size = _infer_world_size(scenario)
     
+    world_model = config.get("world_model", "custom")
+    latent_world = config.get("latent_world")
+
     # Extract drones
     drone_positions = scenario.get("drone_positions", [])
     weapon_assignments = scenario.get("weapon_assignments", {})
+    drone_mode_ids = scenario.get("drone_mode_ids", {})
     drones = []
     for i, pos in enumerate(drone_positions):
         drone_id = f"drone_{i}"
@@ -74,11 +78,13 @@ def extract_initial_state(
             "id": drone_id,
             "position": tuple(pos),
             "weapon_type": weapon_assignments.get(drone_id, "unknown"),
+            "mode_id": drone_mode_ids.get(drone_id),
         })
     
     # Extract targets
     target_positions = scenario.get("target_positions", [])
     target_classes = scenario.get("target_classes", [])
+    target_mode_ids = scenario.get("target_mode_ids", [])
     class_attribute_mapping = config.get("class_attribute_mapping", {})
     targets = []
     for i, pos in enumerate(target_positions):
@@ -92,6 +98,7 @@ def extract_initial_state(
             "position": tuple(pos),
             "class_type": class_type,
             "hp": hp,
+            "mode_id": target_mode_ids[i] if i < len(target_mode_ids) else None,
         })
     
     # Extract class attribute mapping
@@ -155,6 +162,8 @@ def extract_initial_state(
         "drones": drones,
         "targets": targets,
         "version": version,
+        "world_model": world_model,
+        "latent_world": latent_world,
         "class_attribute_mapping": class_attribute_mapping,
         "weapon_damage_profile_mapping": weapon_damage_profile_mapping,
         "summary": summary,

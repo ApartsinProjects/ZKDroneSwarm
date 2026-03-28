@@ -106,19 +106,38 @@ class EngagementLogger:
         self._target_pov = {target.id: [] for target in env.targets}
         
         # Store drone damage profiles for later use
-        self._drone_damage_profiles = {
-            drone.id: dict(drone.damage_profile) for drone in env.drones
-        }
+        self._drone_damage_profiles = {}
+        for drone in env.drones:
+            if hasattr(drone, 'damage_profile'):
+                self._drone_damage_profiles[drone.id] = dict(drone.damage_profile)
+            elif hasattr(drone, 'latent_vector'):
+                self._drone_damage_profiles[drone.id] = {
+                    f"d{i}": v for i, v in enumerate(drone.latent_vector)
+                }
+            else:
+                self._drone_damage_profiles[drone.id] = {}
         
         # Store target initial attributes for reference
-        self._target_initial_attributes = {
-            target.id: dict(target.attributes.initial_values) for target in env.targets
-        }
+        self._target_initial_attributes = {}
+        for target in env.targets:
+            if hasattr(target, 'attributes') and hasattr(target.attributes, 'initial_values'):
+                self._target_initial_attributes[target.id] = dict(target.attributes.initial_values)
+            elif hasattr(target, 'latent_vector'):
+                self._target_initial_attributes[target.id] = {
+                    f"d{i}": v for i, v in enumerate(target.latent_vector)
+                }
+            else:
+                self._target_initial_attributes[target.id] = {}
         
         # Store target classes for drone POV logging
-        self._target_classes = {
-            target.id: target.class_type for target in env.targets
-        }
+        self._target_classes = {}
+        for target in env.targets:
+            if hasattr(target, 'class_type'):
+                self._target_classes[target.id] = target.class_type
+            elif hasattr(target, 'mode_id'):
+                self._target_classes[target.id] = f"mode_{target.mode_id}"
+            else:
+                self._target_classes[target.id] = "unknown"
         
         # Initialize engagement counts per drone
         self._engagement_counts = {drone.id: {} for drone in env.drones}

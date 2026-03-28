@@ -77,6 +77,22 @@ class LoggingConfig:
 
 
 @dataclass
+class CustomWorldConfig:
+    """Custom-world generation configuration."""
+    mappings_file: str
+
+
+@dataclass
+class LatentWorldConfig:
+    """Latent-world benchmark generation configuration."""
+    latent_dim: int
+    num_modes: int
+    drone_variance: float
+    target_variance: float
+    target_hp: float
+
+
+@dataclass
 class MappingsConfig:
     """Mappings configuration for class attributes and weapon damage profiles."""
     class_attribute_mapping: Dict[str, Dict[str, float]]
@@ -135,15 +151,17 @@ class CollaborativeFilteringConfig:
 class ScenarioConfig:
     """Root configuration containing all scenario settings."""
     seed: int
+    world_model: str
     world: WorldConfig
     drones: DronesConfig
     targets: TargetsConfig
     environment: EnvironmentConfig
     policy: PolicyConfig
     logging: LoggingConfig
-    mappings: MappingsConfig
-    mappings_file: str = None
+    custom_world: Optional[CustomWorldConfig] = None
+    mappings: Optional[MappingsConfig] = None
     collaborative_filtering: CollaborativeFilteringConfig = None
+    latent_world: Optional[LatentWorldConfig] = None
 
 
 def _validate_required_keys(data: dict, required_keys: List[str], context: str) -> None:
@@ -160,6 +178,19 @@ def _parse_world_config(data: dict) -> WorldConfig:
     if not isinstance(size, list) or len(size) != 2:
         raise ValueError("world.size must be a list of two numbers [width, height]")
     return WorldConfig(size=tuple(size))
+
+
+def _parse_custom_world_config(data: dict) -> CustomWorldConfig:
+    """Parse custom-world configuration section."""
+    if not isinstance(data, dict):
+        raise ValueError("custom world_model requires a custom_world configuration object")
+
+    _validate_required_keys(data, ["mappings_file"], "custom_world")
+    mappings_file = data["mappings_file"]
+    if not isinstance(mappings_file, str) or not mappings_file:
+        raise ValueError("custom_world.mappings_file must be a non-empty string")
+
+    return CustomWorldConfig(mappings_file=mappings_file)
 
 
 def _parse_drones_config(data: dict) -> DronesConfig:
@@ -674,6 +705,43 @@ def _parse_logging_config(data: dict) -> LoggingConfig:
     return LoggingConfig(output_dir=str(data["output_dir"]))
 
 
+def _parse_latent_world_config(data: dict) -> LatentWorldConfig:
+    """Parse latent-world benchmark generation settings."""
+    if data is None:
+        raise ValueError("latent world_model requires a latent_world configuration object")
+
+    _validate_required_keys(
+        data,
+        ["latent_dim", "num_modes", "drone_variance", "target_variance", "target_hp"],
+        "latent_world",
+    )
+
+    latent_dim = data["latent_dim"]
+    num_modes = data["num_modes"]
+    drone_variance = data["drone_variance"]
+    target_variance = data["target_variance"]
+    target_hp = data["target_hp"]
+
+    if not isinstance(latent_dim, int) or latent_dim < 1:
+        raise ValueError("latent_world.latent_dim must be an integer >= 1")
+    if not isinstance(num_modes, int) or num_modes < 1:
+        raise ValueError("latent_world.num_modes must be an integer >= 1")
+    if not isinstance(drone_variance, (int, float)) or drone_variance < 0:
+        raise ValueError("latent_world.drone_variance must be >= 0")
+    if not isinstance(target_variance, (int, float)) or target_variance < 0:
+        raise ValueError("latent_world.target_variance must be >= 0")
+    if not isinstance(target_hp, (int, float)) or target_hp <= 0:
+        raise ValueError("latent_world.target_hp must be > 0")
+
+    return LatentWorldConfig(
+        latent_dim=latent_dim,
+        num_modes=num_modes,
+        drone_variance=float(drone_variance),
+        target_variance=float(target_variance),
+        target_hp=float(target_hp),
+    )
+
+
 def _parse_mappings_config(data: dict) -> MappingsConfig:
     """
     Parse and validate mappings configuration.
@@ -809,25 +877,38 @@ def load_config(path: str) -> ScenarioConfig:
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in configuration file {path}: {e}")
     
+    world_model = str(data.get("world_model", "custom"))
+    if world_model == "legacy":
+        world_model = "custom"
+    if world_model not in {"custom", "latent"}:
+        raise ValueError("world_model must be 'custom' or 'latent' ('legacy' is still accepted as an alias for 'custom')")
+    if "mappings_file" in data:
+        raise ValueError("Root-level 'mappings_file' is no longer supported; use custom_world.mappings_file")
+
     _validate_required_keys(
         data,
         ["seed", "world", "drones", "targets", "environment", "policy", "logging"],
         "root"
     )
-    
+
     seed = data["seed"]
     if not isinstance(seed, int):
         raise ValueError("seed must be an integer")
-    
-    # Load mappings from same directory as scenario config
+
+    custom_world = None
+    latent_world = None
+    mappings = None
     config_dir = os.path.dirname(path)
-    mappings_file = data.get("mappings_file")
-    if mappings_file is None:
-        raise ValueError("Missing required key 'mappings_file' in scenario config")
-    mappings_path = os.path.join(config_dir, mappings_file)
-    if not os.path.exists(mappings_path):
-        raise FileNotFoundError(f"Mappings file not found: {mappings_path}")
-    mappings = load_mappings(mappings_path)
+
+    if world_model == "custom":
+        custom_world = _parse_custom_world_config(data.get("custom_world"))
+        mappings_file = custom_world.mappings_file
+        mappings_path = os.path.join(config_dir, mappings_file)
+        if not os.path.exists(mappings_path):
+            raise FileNotFoundError(f"Mappings file not found: {mappings_path}")
+        mappings = load_mappings(mappings_path)
+    else:
+        latent_world = _parse_latent_world_config(data.get("latent_world"))
     
     # Parse optional collaborative_filtering config
     cf_config = _parse_collaborative_filtering_config(data.get("collaborative_filtering"))
@@ -842,13 +923,15 @@ def load_config(path: str) -> ScenarioConfig:
     
     return ScenarioConfig(
         seed=seed,
+        world_model=world_model,
         world=world_config,
         drones=drones_config,
         targets=targets_config,
         environment=env_config,
         policy=policy_config,
         logging=logging_config,
-        mappings_file=mappings_file,
+        custom_world=custom_world,
         mappings=mappings,
-        collaborative_filtering=cf_config
+        collaborative_filtering=cf_config,
+        latent_world=latent_world,
     )

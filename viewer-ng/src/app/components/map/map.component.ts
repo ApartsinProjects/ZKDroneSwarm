@@ -177,4 +177,21 @@ export class MapComponent {
 
     return null;
   }
+
+  protected getDroneLabel(drone: ViewMapEntity): string {
+    const type = drone.weaponType || '';
+    return type.startsWith('mode_') ? '' : type;
+  }
+
+  protected getTargetLabel(target: ViewMapEntity): string {
+    const type = target.classType || '';
+    const label = type.startsWith('mode_') ? '' : type;
+    
+    // Format HP to 1 decimal place if it has a fractional part
+    const hpValue = target.hp ?? 0;
+    const hpLabel = Number.isInteger(hpValue) ? hpValue.toString() : hpValue.toFixed(1);
+    
+    if (!label) return hpLabel;
+    return `${label}-${hpLabel}`;
+  }
 }

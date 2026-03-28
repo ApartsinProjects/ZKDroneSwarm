@@ -17,6 +17,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from tabula_drone.config import load_config
 from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, REWARD_MODE
+from tabula_drone.envs.drone_engage_latent_mrta import DroneEngageLatentMRTA
 from tabula_drone.logging import EnvironmentLogger
 from tabula_drone.utils.engagement_analysis_utils import (
     build_target_x_drone_table,
@@ -36,8 +37,10 @@ from tabula_drone.policies.utils.visualizer_bakery import (
     TSNE_MODE_PER_EPISODE,
     TSNE_MODE_PER_EPISODE_ALIGNED,
     enrich_learning_state_dir,
+    _iter_learning_state_files,
 )
 from tabula_drone.scenarios import ScenarioBuilder
+from tabula_drone.scenarios.latent_scenario_builder import LatentScenarioBuilder
 from tabula_drone.utils.console_rendering import ConsolePrinter
 from tabula_drone.utils.metrics_manager import (
     EpisodeMetrics,
@@ -70,7 +73,10 @@ def attach_target_classes_to_learning_state(
         target_classes = list(diagnostics["target_classes"])
     else:
         targets = env.targets or []
-        target_classes = [target.class_type for target in targets]
+        target_classes = [
+            getattr(target, "class_type", f"mode_{getattr(target, 'mode_id', '?')}")
+            for target in targets
+        ]
 
     learning_state = dict(episode_state)
     learning_state["target_classes"] = target_classes
@@ -141,6 +147,9 @@ def create_policy(
     Returns:
         Policy instance
     """
+    if config.world_model == "latent" and policy_type == "min_ttk_oracle":
+        raise ValueError(f"{policy_type} is not supported for latent world_model")
+
     if policy_type == "min_ttk_oracle":
         agent_weapon_profiles = {
             f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
@@ -152,10 +161,17 @@ def create_policy(
             allow_noop=config.policy.allow_noop,
         )
     elif policy_type == "max_damage_oracle":
-        agent_weapon_profiles = {
-            f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
-            for idx, drone_cfg in enumerate(drones_config)
-        }
+        if config.world_model == "latent":
+            # Build agent weapon profiles from latent vectors
+            agent_weapon_profiles = {
+                f"drone_{idx}": {f"d{i}": v for i, v in enumerate(drone_cfg["latent_vector"])}
+                for idx, drone_cfg in enumerate(drones_config)
+            }
+        else:
+            agent_weapon_profiles = {
+                f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
+                for idx, drone_cfg in enumerate(drones_config)
+            }
         return OptimalAssignmentOracle(
             agent_weapon_profiles=agent_weapon_profiles,
             seed=config.seed,
@@ -617,7 +633,7 @@ def show_policy_best_episode_performance_vs_random(
 
         printer.policy_performance_comparison(
             mode=mode,
-            mappings_file=config.mappings_file,
+            mappings_file=get_mappings_file(config),
             headers=headers,
             cmp_data=cmp_data,
         )
@@ -634,36 +650,67 @@ def show_engagement_tables(
         printer.engagement_table(pt, headers, payload)
 
 
+def get_mappings_file(config: Any) -> Optional[str]:
+    """Return the active custom-world mappings file, if any."""
+    if getattr(config, "custom_world", None) is not None:
+        return config.custom_world.mappings_file
+    return None
+
+
 def main():
     """Main demo execution."""
     
     # Load configuration from file
     config = load_config(CONFIG_PATH)
-    
-    # Environment configuration using ScenarioBuilder
-    builder = ScenarioBuilder(
-        world_size=config.world.size,
-        seed=config.seed,
-        class_attribute_mapping=config.mappings.class_attribute_mapping,
-        weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-    )
-    
-    # Configure drones with count, region, and weapon distribution
-    builder.with_drones(
-        count=config.drones.count,
-        region=config.drones.region,
-        min_distance_between_drones=config.drones.min_distance_between_drones,
-        weapon_distribution=config.drones.weapon_distribution
-    )
-    
-    # Configure targets with spatial constraints and class distribution
-    builder.with_targets(
-        count=config.targets.count,
-        region=config.targets.region,
-        class_distribution=config.targets.class_distribution,
-        min_distance_from_drones=config.targets.min_distance_from_drones,
-        min_distance_between_targets=config.targets.min_distance_between_targets
-    )
+
+    if config.world_model == "latent":
+        if config.latent_world is None:
+            raise ValueError("latent world_model requires parsed latent_world config")
+
+        builder = LatentScenarioBuilder(
+            world_size=config.world.size,
+            latent_dim=config.latent_world.latent_dim,
+            num_modes=config.latent_world.num_modes,
+            drone_variance=config.latent_world.drone_variance,
+            target_variance=config.latent_world.target_variance,
+            seed=config.seed,
+        )
+        builder.with_drones(
+            count=config.drones.count,
+            region=config.drones.region,
+            min_distance_between_drones=config.drones.min_distance_between_drones,
+        )
+        builder.with_targets(
+            count=config.targets.count,
+            region=config.targets.region,
+            min_distance_from_drones=config.targets.min_distance_from_drones,
+            min_distance_between_targets=config.targets.min_distance_between_targets,
+        )
+    else:
+        # Environment configuration using ScenarioBuilder
+        builder = ScenarioBuilder(
+            world_size=config.world.size,
+            seed=config.seed,
+            class_attribute_mapping=config.mappings.class_attribute_mapping,
+            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
+        )
+
+        # Configure drones with count, region, and weapon distribution
+        builder.with_drones(
+            count=config.drones.count,
+            region=config.drones.region,
+            min_distance_between_drones=config.drones.min_distance_between_drones,
+            weapon_distribution=config.drones.weapon_distribution
+        )
+
+        # Configure targets with spatial constraints and class distribution
+        builder.with_targets(
+            count=config.targets.count,
+            region=config.targets.region,
+            class_distribution=config.targets.class_distribution,
+            min_distance_from_drones=config.targets.min_distance_from_drones,
+            min_distance_between_targets=config.targets.min_distance_between_targets
+        )
     
     # Build configurations
     drones_config, targets_config = builder.build()
@@ -679,7 +726,7 @@ def main():
     
     printer.demo_header(
         config_path=CONFIG_PATH,
-        mappings_file=config.mappings_file,
+        mappings_file=get_mappings_file(config),
         world_size=config.world.size,
         seed=config.seed,
         policy_types=config.policy.type,
@@ -715,18 +762,37 @@ def main():
     
     # Create single environment (reused across all policies)
     num_targets = len(targets_config)
-    env = DroneEngageZKMRTA(
-        world_size=config.world.size,
-        max_steps=config.environment.max_steps,
-        drones_config=drones_config,
-        targets_config=targets_config,
-        scenario_id=config.environment.scenario_id,
-        class_attribute_mapping=config.mappings.class_attribute_mapping,
-        weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-        reward_noise=reward_noise,
-        mode=config.environment.mode,
-        builder=builder,
-    )
+    if config.world_model == "latent":
+        env = DroneEngageLatentMRTA(
+            world_size=config.world.size,
+            max_steps=config.environment.max_steps,
+            drones_config=drones_config,
+            targets_config=targets_config,
+            scenario_id=config.environment.scenario_id,
+            reward_noise=reward_noise,
+            mode=config.environment.mode,
+            builder=builder,
+            latent_world={
+                "latent_dim": config.latent_world.latent_dim,
+                "num_modes": config.latent_world.num_modes,
+                "drone_variance": config.latent_world.drone_variance,
+                "target_variance": config.latent_world.target_variance,
+                "target_hp": config.latent_world.target_hp,
+            },
+        )
+    else:
+        env = DroneEngageZKMRTA(
+            world_size=config.world.size,
+            max_steps=config.environment.max_steps,
+            drones_config=drones_config,
+            targets_config=targets_config,
+            scenario_id=config.environment.scenario_id,
+            class_attribute_mapping=config.mappings.class_attribute_mapping,
+            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
+            reward_noise=reward_noise,
+            mode=config.environment.mode,
+            builder=builder,
+        )
     
     # Create all policies upfront
     policies = create_all_policies(config, drones_config, num_targets)
@@ -799,6 +865,7 @@ def main():
                     policy.get_learning_state(),
                     env,
                 )
+                # Persist learning state for offline enrichment (e.g. t-SNE)
                 environment_logger.save_learning_state(
                     episode_state=episode_state,
                     episode_num=episode_num,
@@ -852,15 +919,11 @@ def main():
         if not is_deterministic and policy_type == "matrix_factorization_cf":
             learning_state_dir = environment_logger.get_learning_state_dir()
             tsne_mode = TSNE_MODE_PER_EPISODE #TSNE_MODE_PER_EPISODE_ALIGNED
-            state_files = sorted(
-                os.path.join(learning_state_dir, filename)
-                for filename in os.listdir(learning_state_dir)
-                if filename.startswith("learning_state_") and filename.endswith(".json")
-            )
+            state_files = _iter_learning_state_files(learning_state_dir)
 
             if state_files:
                 print("Starting t-SNE enrichment for all learning_state artifacts...")
-                # enrich_learning_state_dir(learning_state_dir, mode=tsne_mode)
+                enrich_learning_state_dir(learning_state_dir, mode=tsne_mode)
                 print("Finished t-SNE enrichment for all learning_state artifacts.")
 
         if 'final' in steps:

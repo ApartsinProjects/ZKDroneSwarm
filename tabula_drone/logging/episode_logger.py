@@ -225,19 +225,53 @@ class EpisodeLogger:
         """
         drone_positions = [list(drone.position) for drone in env.drones]
         target_positions = [list(target.position) for target in env.targets]
-        weapon_assignments = {
-            drone.id: drone.weapon_type for drone in env.drones
-        }
-        target_classes = [target.class_type for target in env.targets]
-        
-        return {
+
+        scenario: Dict[str, Any] = {
             "num_drones": env.num_drones,
             "num_targets": env.num_targets,
             "drone_positions": drone_positions,
             "target_positions": target_positions,
-            "weapon_assignments": weapon_assignments,
-            "target_classes": target_classes,
         }
+
+        drone_mode_ids = {}
+        for drone in env.drones:
+            if hasattr(drone, "mode_id"):
+                drone_mode_ids[drone.id] = int(drone.mode_id)
+        
+        if drone_mode_ids:
+            scenario["drone_mode_ids"] = drone_mode_ids
+
+        target_mode_ids = []
+        for target in env.targets:
+            if hasattr(target, "mode_id"):
+                target_mode_ids.append(int(target.mode_id))
+        
+        if target_mode_ids:
+            scenario["target_mode_ids"] = target_mode_ids
+
+        # Build weapon assignments (with fallback to mode_id for latent compatibility)
+        weapon_assignments = {}
+        for drone in env.drones:
+            if hasattr(drone, "weapon_type"):
+                weapon_assignments[drone.id] = drone.weapon_type
+            elif hasattr(drone, "mode_id"):
+                weapon_assignments[drone.id] = f"mode_{drone.mode_id}"
+        
+        if weapon_assignments:
+            scenario["weapon_assignments"] = weapon_assignments
+
+        # Build target classes (with fallback to mode_id for latent compatibility)
+        target_classes = []
+        for target in env.targets:
+            if hasattr(target, "class_type"):
+                target_classes.append(target.class_type)
+            elif hasattr(target, "mode_id"):
+                target_classes.append(f"mode_{target.mode_id}")
+        
+        if target_classes:
+            scenario["target_classes"] = target_classes
+
+        return scenario
     
     def build_shared_config_snapshot(self, env: Any) -> Dict[str, Any]:
         """
@@ -252,13 +286,31 @@ class EpisodeLogger:
         Returns:
             Config dict for visualization
         """
-        return {
+        config: Dict[str, Any] = {
             "world_size": list(env.world_size),
             "max_steps": env.max_steps,
             "scenario_id": env.scenario_id,
-            "class_attribute_mapping": dict(env.class_attribute_mapping),
-            "weapon_damage_profile_mapping": dict(env.weapon_damage_profile_mapping),
+            "world_model": getattr(env, "world_model", "custom"),
         }
+
+        if hasattr(env, "class_attribute_mapping") and env.class_attribute_mapping is not None:
+            config["class_attribute_mapping"] = dict(env.class_attribute_mapping)
+        if hasattr(env, "weapon_damage_profile_mapping") and env.weapon_damage_profile_mapping is not None:
+            config["weapon_damage_profile_mapping"] = dict(env.weapon_damage_profile_mapping)
+
+        latent_world = getattr(env, "latent_world", None)
+        if latent_world is not None:
+            if isinstance(latent_world, dict):
+                config["latent_world"] = dict(latent_world)
+            else:
+                config["latent_world"] = {
+                    "latent_dim": getattr(latent_world, "latent_dim", None),
+                    "num_modes": getattr(latent_world, "num_modes", None),
+                    "drone_variance": getattr(latent_world, "drone_variance", None),
+                    "target_variance": getattr(latent_world, "target_variance", None),
+                }
+
+        return config
 
     def _build_policy_config_snapshot(self, env: Any) -> Dict[str, Any]:
         """Build the policy-local config snapshot stored in each episode."""

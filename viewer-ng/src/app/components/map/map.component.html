@@ -84,7 +84,9 @@
               [alt]="target.id"
               [style.opacity]="getTargetOpacity(target)"
             />
-            <div class="map-target__label">{{ target.classType || '?' }}-{{ target.hp ?? '?' }}</div>
+            @if (getTargetLabel(target); as label) {
+              <div class="map-target__label">{{ label }}</div>
+            }
           </div>
         }
 
@@ -99,7 +101,9 @@
               [src]="assetPaths.drone"
               [alt]="drone.id"
             />
-            <div class="map-drone__label">{{ drone.weaponType || '?' }}</div>
+            @if (getDroneLabel(drone); as label) {
+              <div class="map-drone__label">{{ label }}</div>
+            }
           </div>
         }
 
