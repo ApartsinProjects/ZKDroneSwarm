@@ -250,37 +250,18 @@ The policy uses an **$\epsilon$-Greedy Strategy** with a multiplicative decay sc
 
 ---
 
-## 5. Advanced Swarm Coordination: Solving for Persistence
-
-By operating in **Continuous Mode**, we uncovered critical coordination failures that necessitated two advanced algorithmic components. These ensure the swarm acts as a distributed unit rather than a collection of selfish agents.
-
-### 5.1 The Coordination Challenge
-In Episodic mode, the environment "forces" coordination: once a target is dead, it is gone, and drones must find new tasks. In **Continuous Mode**, the "best" target stays on the board forever via respawning, which leading to a catastrophic **Synchronization Trap**.
-
-### 5.2 Solution 1: Target Identity Persistence
-For Matrix Factorization to learn in a continuous world, the environment enforces **Identity Preservation** during respawns.
-*   **Logical Consistency**: When a target dies and respawns, it retains its **Target Class** (e.g., if Slot 3 was Class A, the new object in Slot 3 remains Class A). 
-*   **Why it Matters**: This ensures the learned "Vulnerability Profile" in the $U$ matrix remains valid across thousands of steps. Without this, the model would suffer from "Catastrophic Interference" as target profiles shifted randomly.
-
-### 5.3 Solution 2: Softmax De-Confliction
-To "shatter" agent synchronization, the policy implements **Boltzmann (Softmax) Sampling** during the exploitation phase (controlled by `selection_noise`). This allows the swarm to "spread out" across the top engageable targets, maintaining throughput and avoiding pile-ons.
-
-### 5.4 Performance Metric: Collisions
-A successful `MatrixFactorizationPolicy` is measured not just by neutralizations, but by its **Coordination Efficiency**. We explicitly track **Collisions** (multiple drones firing at the same target in a single step) as a primary metric.
-A successful `MatrixFactorizationPolicy` in Continuous mode is measured by its **Coordination Efficiency**. We explicitly track **Collisions** (multiple drones firing at the same target in a single step) as a primary metric. High collisions indicate a failure of de-confliction, while high neutralized counts with low collisions indicate a high-functioning, "Surgically Distributed" swarm.
-
-## 6. Measuring Performance: Evaluation Metrics for Persistent Swarms
+## 5. Measuring Performance: Evaluation Metrics for Persistent Swarms
 
 To evaluate the effectiveness of the `MatrixFactorizationPolicy`, especially across different modes of engagement, we employ a multi-dimensional KPI suite. These metrics differentiate between raw "killing power" and the "surgical coordination" of the swarm.
 
-### 6.1 Damage Efficiency (Dmg Eff)
+### 5.1 Damage Efficiency (Dmg Eff)
 *   **Tactical Focus**: Weapon-target alignment ("The Brain").
 *   **Motivation**: Validates that drones have successfully identified target classes vulnerable to their specific weapon profiles. This is the primary indicator that the Matrix Factorization model has converged and correctly identified latent physics.
 *   **Calculation**: $\frac{\text{Total Net Damage}}{\text{Total Gross Damage}}$
     *   **Total Net Damage**: The actual reduction in target health. If a shot could deal 50 damage but the target has only 10 HP left, only **10** points count as net damage.
     *   **Total Gross Damage**: The raw damage capacity expended by all shots fired (sum of weapon damage profiles for every action). High efficiency confirms "surgical" fire.
 
-### 6.2 Swarm Coordination & De-confliction
+### 5.2 Swarm Coordination & De-confliction
 *   **Tactical Focus**: Collective behavior health ("The Social").
 *   **Motivation**: Measures the swarm's ability to act as a distributed unit and avoid redundant actions. High coordination ensures lethal potential is not "trapped" in a few high-value targets while others are neglected.
 *   **Metrics**:
@@ -290,22 +271,40 @@ To evaluate the effectiveness of the `MatrixFactorizationPolicy`, especially acr
     *   **Coordination Score (N/C)**: Quantifies the "purity" of the swarm effort by measuring the number of successful neutralizations achieved for every Collision ($\frac{\text{Total Neutralized}}{\text{Total Collisions}}$). A high score confirms the swarm has learned to "spread out" via selection noise.
     *   **Total Overkill**: While often seen as a fire-control metric, overkill is a critical indicator of **Swarm Synchronization**. 
         *   **Calculation**: $\sum \max(0, \text{Damage Dealt} - \text{Target HP Remaining})$.
-        *   **Why it's Coordination**: In MF, high overkill values suggest drones are "over-committing" to targets because their local models are not synchronized or their situational updates are lagging behind the global reality. It represents the "hidden friction" of distributed action.
+        *   **Why it's Coordination**: This metric is only calculated during the specific step where a target transitions to neutralized, reflecting the "spending" of excess effort during the final blow.
 
-### 6.3 Neutralization Throughput (N/100)
+### 5.3 Neutralization Throughput (N/100)
 *   **Tactical Focus**: Used primarily in **Continuous Mode**.
 *   **Motivation**: In a persistent tactical horizon, the goal is not "clearing the board" but maintaining a high **Rate of Productivity**. This metric allows direct comparison between simulations of different lengths by normalizing output.
 *   **Calculation**: $\frac{\text{Total Neutralized}}{\text{Total Steps}} \times 100$
 
-### 6.4 Ammo Efficiency (Ammo Eff)
+### 5.4 Ammo Efficiency (Ammo Eff)
 *   **Tactical Focus**: Resource management.
 *   **Motivation**: Evaluates the lethal utility of every shot fired. High ammo efficiency indicates the swarm is minimizing wasted shots on non-vulnerable or already-neutralized targets.
 *   **Calculation**: $\frac{\text{Total Neutralized}}{\text{Total Ammo Used}}$
 
-### 6.5 Shots Per Target
+### 5.5 Shots Per Target
 *   **Tactical Focus**: Primarily used in **Episodic Mode**.
 *   **Motivation**: Measures the average number of actions required to fully neutralize a single target. 
 *   **Calculation**: $\frac{\text{Total Ammo Used}}{\text{Targets Neutralized}}$
+
+## 6. Continuous Mode: Advanced Swarm Coordination
+
+By operating in **Continuous Mode**, we uncovered critical coordination failures that necessitated two advanced algorithmic components. These ensure the swarm acts as a distributed unit rather than a collection of selfish agents.
+
+### 6.1 The Coordination Challenge
+In Episodic mode, the environment "forces" coordination: once a target is dead, it is gone, and drones must find new tasks. In **Continuous Mode**, the "best" target stays on the board forever via respawning, which leading to a catastrophic **Synchronization Trap**.
+
+### 6.2 Solution 1: Target Identity Persistence
+For Matrix Factorization to learn in a continuous world, the environment enforces **Identity Preservation** during respawns.
+*   **Logical Consistency**: When a target dies and respawns, it retains its **Target Class** (e.g., if Slot 3 was Class A, the new object in Slot 3 remains Class A). 
+*   **Why it Matters**: This ensures the learned "Vulnerability Profile" in the $U$ matrix remains valid across thousands of steps. Without this, the model would suffer from "Catastrophic Interference" as target profiles shifted randomly.
+
+### 6.3 Solution 2: Softmax De-Confliction
+To "shatter" agent synchronization, the policy implements **Boltzmann (Softmax) Sampling** during the exploitation phase (controlled by `selection_noise`). This allows the swarm to "spread out" across the top engageable targets, maintaining throughput and avoiding pile-ons.
+
+### 6.4 Performance Metric: Collisions
+A successful `MatrixFactorizationPolicy` is measured not just by neutralizations, but by its **Coordination Efficiency**. We explicitly track **Collisions** (multiple drones firing at the same target in a single step) as a primary metric. High collisions indicate a failure of de-confliction, while high neutralized counts with low collisions indicate a high-functioning, "Surgically Distributed" swarm.
 
 ---
 
