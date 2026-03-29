@@ -365,6 +365,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
         collisions = 0
         neutralizations_this_step = 0
 
+        reward_mode = "cosine" # "cosine" or "damage"
         for agent_id in processing_order:
             action = actions[agent_id]
             self.last_actions[agent_id] = action
@@ -404,11 +405,28 @@ class DroneEngageLatentMRTA(ParallelEnv):
                 if overkill_amount > 0:
                     step_overkill[target_idx] = step_overkill.get(target_idx, 0.0) + overkill_amount
 
-            # Reward = actual damage dealt (capped at hp_before, no credit for overkill)
+            # Reward = cosine similarity (direction-only alignment, independent of damage)
+            drone_vec = np.array(drone.latent_vector, dtype=np.float64)
+            target_vec = np.array(target.latent_vector, dtype=np.float64)
+            drone_norm = np.linalg.norm(drone_vec)
+            target_norm = np.linalg.norm(target_vec)
+            
+            if drone_norm > 0 and target_norm > 0:
+                cosine_similarity = raw_dot / (drone_norm * target_norm)
+                reward = float(cosine_similarity)
+            else:
+                reward = 0.0
+            
+            rewards[agent_id] = reward
+            self.last_rewards[agent_id] = reward
+            
+            # Track effective damage for metrics (independent of reward)
             effective_damage = min(damage, hp_before)
-            rewards[agent_id] = effective_damage
-            self.last_rewards[agent_id] = effective_damage
             step_net_damage[agent_id] = effective_damage
+
+            if(reward_mode == "damage"):
+                rewards[agent_id] = effective_damage
+                self.last_rewards[agent_id] = effective_damage
 
         self.cumulative_neutralizations += neutralizations_this_step
         if self.world is not None:
