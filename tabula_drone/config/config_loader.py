@@ -90,6 +90,7 @@ class LatentWorldConfig:
     drone_variance: float
     target_variance: float
     target_hp: float
+    center_mode: str = "random"  # "random", "orthogonal", "one_hot"
 
 
 @dataclass
@@ -140,7 +141,7 @@ class MFPolicyConfig:
 class CollaborativeFilteringConfig:
     """Collaborative filtering policy configuration."""
     reward_noise: float
-    enable_tsne_enrichment: bool = True
+    enable_tsne_enrichment: bool = False
     ep_greedy_cf: Optional[EpGreedyCFConfig] = None
     ucb_cf: Optional[UCBCFConfig] = None
     coordinated_ep_greedy_cf: Optional[EpGreedyCFConfig] = None
@@ -688,7 +689,7 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
     matrix_factorization_cf = _parse_mf_policy_config(data.get("matrix_factorization_cf"))
     
     # Parse enable_tsne_enrichment with default True
-    enable_tsne_enrichment = data.get("enable_tsne_enrichment", True)
+    enable_tsne_enrichment = data.get("enable_tsne_enrichment", False)
     if not isinstance(enable_tsne_enrichment, bool):
         raise ValueError("collaborative_filtering.enable_tsne_enrichment must be a boolean")
     
@@ -728,6 +729,7 @@ def _parse_latent_world_config(data: dict) -> LatentWorldConfig:
     drone_variance = data["drone_variance"]
     target_variance = data["target_variance"]
     target_hp = data["target_hp"]
+    center_mode = data.get("center_mode", "random")
 
     if not isinstance(latent_dim, int) or latent_dim < 1:
         raise ValueError("latent_world.latent_dim must be an integer >= 1")
@@ -739,6 +741,10 @@ def _parse_latent_world_config(data: dict) -> LatentWorldConfig:
         raise ValueError("latent_world.target_variance must be >= 0")
     if not isinstance(target_hp, (int, float)) or target_hp <= 0:
         raise ValueError("latent_world.target_hp must be > 0")
+    if center_mode not in ("random", "orthogonal", "one_hot"):
+        raise ValueError("latent_world.center_mode must be 'random', 'orthogonal', or 'one_hot'")
+    if center_mode == "one_hot" and num_modes > latent_dim:
+        raise ValueError("latent_world: one_hot center_mode requires num_modes <= latent_dim")
 
     return LatentWorldConfig(
         latent_dim=latent_dim,
@@ -746,6 +752,7 @@ def _parse_latent_world_config(data: dict) -> LatentWorldConfig:
         drone_variance=float(drone_variance),
         target_variance=float(target_variance),
         target_hp=float(target_hp),
+        center_mode=center_mode,
     )
 
 

@@ -41,6 +41,7 @@ class LatentScenarioBuilder:
         drone_variance: float,
         target_variance: float,
         seed: Optional[int] = None,
+        center_mode: str = "random",
     ):
         if latent_dim < 1:
             raise ValueError("latent_dim must be >= 1")
@@ -50,6 +51,10 @@ class LatentScenarioBuilder:
             raise ValueError("drone_variance must be >= 0")
         if target_variance < 0:
             raise ValueError("target_variance must be >= 0")
+        if center_mode not in ("random", "orthogonal", "one_hot"):
+            raise ValueError("center_mode must be 'random', 'orthogonal', or 'one_hot'")
+        if center_mode == "one_hot" and num_modes > latent_dim:
+            raise ValueError("one_hot center_mode requires num_modes <= latent_dim")
 
         self.world_size = world_size
         self.latent_dim = latent_dim
@@ -57,6 +62,7 @@ class LatentScenarioBuilder:
         self.drone_variance = drone_variance
         self.target_variance = target_variance
         self.seed = seed
+        self.center_mode = center_mode
         self._rng = np.random.RandomState(seed)
         self._drone_params: Optional[DroneParams] = None
         self._target_params: Optional[TargetParams] = None
@@ -65,12 +71,45 @@ class LatentScenarioBuilder:
         self.mode_centers = self._sample_mode_centers()
 
     def _sample_mode_centers(self) -> np.ndarray:
-        """Sample shared Gaussian-mixture centers."""
+        """Sample shared Gaussian-mixture centers based on center_mode."""
+        if self.center_mode == "random":
+            return self._sample_mode_centers_random()
+        elif self.center_mode == "orthogonal":
+            return self._sample_mode_centers_orthogonal()
+        elif self.center_mode == "one_hot":
+            return self._sample_mode_centers_one_hot()
+        else:
+            raise ValueError(f"Unknown center_mode: {self.center_mode}")
+
+    def _sample_mode_centers_random(self) -> np.ndarray:
+        """Sample random Gaussian centers (default behavior)."""
         return self._rng.normal(
             loc=0.0,
             scale=1.0,
             size=(self.num_modes, self.latent_dim),
         ).astype(np.float64)
+
+    def _sample_mode_centers_orthogonal(self) -> np.ndarray:
+        """Generate orthogonal unit vectors as mode centers."""
+        # Use QR decomposition to generate orthogonal vectors
+        # Start with random matrix, then orthogonalize
+        A = self._rng.normal(
+            loc=0.0,
+            scale=1.0,
+            size=(self.latent_dim, self.num_modes),
+        ).astype(np.float64)
+        Q, _ = np.linalg.qr(A)
+        # Q is (latent_dim, num_modes) with orthogonal columns
+        # Transpose to get (num_modes, latent_dim)
+        centers = Q.T[:self.num_modes]
+        return centers.astype(np.float64)
+
+    def _sample_mode_centers_one_hot(self) -> np.ndarray:
+        """Generate one-hot vectors as mode centers."""
+        centers = np.zeros((self.num_modes, self.latent_dim), dtype=np.float64)
+        for i in range(self.num_modes):
+            centers[i, i] = 1.0
+        return centers
 
     def with_drones(
         self,

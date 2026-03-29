@@ -8,7 +8,8 @@
     "num_modes": 3,
     "drone_variance": 0.0,
     "target_variance": 0.0,
-    "target_hp": 5.0
+    "target_hp": 5.0,
+    "center_mode": "one_hot"
   },
   "seed": 42,
   "world": {
@@ -18,10 +19,10 @@
     ]
   },
   "environment": {
-    "max_steps":2500,
+    "max_steps":250,
     "mode": "episodic",
     "episodic": {
-      "num_episodes": 45
+      "num_episodes": 35
     },
     "continuous": {
       "logging_interval_steps": 500
@@ -29,7 +30,7 @@
     "verbose": false
   },  
   "drones": {
-    "count": 6,
+    "count": 12,
     "weapon_distribution": {
       "_A": 0.33,
       "_B": 0.33,
@@ -48,7 +49,7 @@
     "min_distance_between_drones": 25.0
   },
   "targets": {
-    "count": 6,
+    "count": 54,
     "region": {
       "x_fraction": [
         0.1,
@@ -84,7 +85,7 @@
   },
   "collaborative_filtering": {
     "reward_noise": 0.2,
-    "enable_tsne_enrichment": false,
+    "enable_tsne_enrichment": true,
     "matrix_factorization_cf": {
       "latent_dim": 8,
       "learning_rate": 0.01,
