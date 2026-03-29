@@ -15,6 +15,7 @@ def build_source(
     weapon_types: list[str] | None = None,
     overkill_events: tuple[dict[int, float], ...] = ({0: 1.5},),
     total_net_damage: float = 9.0,
+    total_gross_damage: float = 10.0,
     total_collisions: int = 1,
 ) -> EpisodeMetricsSource:
     return EpisodeMetricsSource(
@@ -30,6 +31,7 @@ def build_source(
         overkill_events=overkill_events,
         agent_rewards={"drone_0": 1.0, "drone_1": 2.0},
         total_net_damage=total_net_damage,
+        total_gross_damage=total_gross_damage,
         total_collisions=total_collisions,
         weapon_damage_profile_mapping={
             "light": {"hp": 3.0},
@@ -132,9 +134,12 @@ def test_calc_total_gross_damage_fails_for_missing_weapon_profile() -> None:
         overkill_events=(),
         agent_rewards={"drone_0": 0.0},
         total_net_damage=0.0,
+        total_gross_damage=3.0,
         total_collisions=0,
         weapon_damage_profile_mapping={"light": {"hp": 3.0}},
     )
 
-    with pytest.raises(KeyError, match="Missing weapon profile"):
-        manager.calc_episode_metrics(source)
+    # This test is now obsolete since we read from source.total_gross_damage
+    # instead of calculating from weapon profiles, but keeping for compatibility
+    metrics = manager.calc_episode_metrics(source)
+    assert metrics.total_gross_damage == 3.0

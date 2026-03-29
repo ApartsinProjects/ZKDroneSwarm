@@ -302,7 +302,7 @@ def create_all_policies(
 
 
 def run_episode(
-    env: DroneEngageZKMRTA,
+    env: DroneEngageLatentMRTA,
     policy: IPolicy,
     episode_num: int,
     verbose: bool = False,
@@ -358,6 +358,7 @@ def run_episode(
     done = False
     overkill_events: List[Dict[int, float]] = []
     total_net_damage = 0.0
+    total_gross_damage = 0.0
     total_collisions = 0
     
     # Episode loop
@@ -399,7 +400,8 @@ def run_episode(
             total_rewards[agent_id] += rewards[agent_id]
             
         # Sum actual HP removed from targets from ground truth (info)
-        total_net_damage += sum(shared_info["net_damage"].values())
+        total_net_damage += shared_info["net_damage"]
+        total_gross_damage += shared_info["total_gross_damage"]
         
         # Track collisions
         total_collisions += shared_info.get("collisions", 0)
@@ -437,6 +439,7 @@ def run_episode(
         overkill_events=tuple(overkill_events),
         agent_rewards=total_rewards.copy(),
         total_net_damage=total_net_damage,
+        total_gross_damage=total_gross_damage,
         total_collisions=total_collisions,
         weapon_damage_profile_mapping=env.weapon_damage_profile_mapping,
     )

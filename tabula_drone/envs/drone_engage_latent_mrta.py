@@ -271,13 +271,14 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self,
         actions: Dict[str, int],
         processing_order: Optional[List[str]] = None,
-        net_damage: Optional[Dict[str, float]] = None,
+        net_damage: Optional[float] = None,
         neutralizations_this_step: Optional[int] = None,
         cumulative_neutralizations: Optional[int] = None,
         collisions: Optional[int] = None,
         target_selections: Optional[Dict[int, List[str]]] = None,
         overkill: Optional[Dict[int, float]] = None,
         done_reason: Optional[str] = None,
+        total_gross_damage: Optional[float] = None,
     ) -> Dict[str, Any]:
         snapshot = EnvDiagnosticsSnapshot(
             step_index=self.world.time_step if self.world is not None else 0,
@@ -303,6 +304,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
             target_selections=target_selections,
             overkill=overkill,
             done_reason=done_reason,
+            total_gross_damage=total_gross_damage,
         )
         self._latest_diagnostics = snapshot
         return snapshot.to_dict()
@@ -360,10 +362,11 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self.rng.shuffle(processing_order)
 
         target_selections: Dict[int, List[str]] = {}
-        step_net_damage = {agent_id: 0.0 for agent_id in self.agents}
+        step_net_damage = 0.0
         step_overkill: Dict[int, float] = {}
         collisions = 0
         neutralizations_this_step = 0
+        step_gross_damage = 0.0
 
         reward_mode = "cosine" # "cosine" or "damage"
         for agent_id in processing_order:
@@ -385,6 +388,8 @@ class DroneEngageLatentMRTA(ParallelEnv):
             target = self.targets[target_idx]
             if not target.is_active:
                 # Target already dead — wasted shot
+                raw_dot_wasted = self._dot_product_reward(drone, target)
+                step_gross_damage += max(0.0, raw_dot_wasted)
                 rewards[agent_id] = -1.0
                 self.last_rewards[agent_id] = -1.0
                 continue
@@ -392,6 +397,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
             raw_dot = self._dot_product_reward(drone, target)
             # Damage is the non-negative part of the dot product
             damage = max(0.0, raw_dot)
+            step_gross_damage += damage
 
             hp_before = target.hp
             target.hp -= damage
@@ -422,7 +428,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
             
             # Track effective damage for metrics (independent of reward)
             effective_damage = min(damage, hp_before)
-            step_net_damage[agent_id] = effective_damage
+            step_net_damage += effective_damage
 
             if(reward_mode == "damage"):
                 rewards[agent_id] = effective_damage
@@ -451,6 +457,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
             target_selections=target_selections,
             overkill=step_overkill,
             done_reason=done_reason,
+            total_gross_damage=step_gross_damage,
         )
         infos = self._wrap_shared_info(shared_info)
 

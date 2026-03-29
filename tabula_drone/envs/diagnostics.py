@@ -30,13 +30,14 @@ class EnvDiagnosticsSnapshot:
     target_classes: List[str]
     target_active: List[bool]
     processing_order: Optional[List[str]] = None
-    net_damage: Optional[Dict[str, float]] = None
+    net_damage: Optional[float] = None
     neutralizations_this_step: Optional[int] = None
     cumulative_neutralizations: Optional[int] = None
     collisions: Optional[int] = None
     target_selections: Optional[Dict[int, List[str]]] = None
     overkill: Optional[Dict[int, float]] = None
     done_reason: Optional[str] = None
+    total_gross_damage: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize this snapshot into a plain dict for boundary consumers."""
@@ -61,6 +62,7 @@ class EnvDiagnosticsSnapshot:
             "target_selections": self.target_selections,
             "overkill": self.overkill,
             "done_reason": self.done_reason,
+            "total_gross_damage": self.total_gross_damage,
         }
 
         for key, value in optional_fields.items():

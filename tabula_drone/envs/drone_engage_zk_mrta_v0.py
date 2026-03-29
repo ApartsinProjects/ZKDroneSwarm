@@ -374,13 +374,14 @@ class DroneEngageZKMRTA(ParallelEnv):
         self,
         actions: Dict[str, int],
         processing_order: Optional[List[str]] = None,
-        net_damage: Optional[Dict[str, float]] = None,
+        net_damage: Optional[float] = None,
         neutralizations_this_step: Optional[int] = None,
         cumulative_neutralizations: Optional[int] = None,
         collisions: Optional[int] = None,
         target_selections: Optional[Dict[int, List[str]]] = None,
         overkill: Optional[Dict[int, float]] = None,
         done_reason: Optional[str] = None,
+        total_gross_damage: Optional[float] = None,
     ) -> Dict[str, Any]:
         """
         Build info dictionary with metrics for logging/analysis.
@@ -412,6 +413,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             target_selections=target_selections,
             overkill=overkill,
             done_reason=done_reason,
+            total_gross_damage=total_gross_damage,
         )
         self._latest_diagnostics = snapshot
         return snapshot.to_dict()
@@ -517,9 +519,10 @@ class DroneEngageZKMRTA(ParallelEnv):
 
         # Track metrics across all drones
         overkill_map: Dict[int, float] = {}
-        step_net_damage: Dict[str, float] = {agent_id: 0.0 for agent_id in self.agents}
+        step_net_damage = 0.0
         newly_neutralized_indices: List[int] = []
         target_selections: Dict[int, List[str]] = {}
+        step_gross_damage = 0.0
 
         # Process each drone sequentially
         for agent_id in processing_order:
@@ -542,6 +545,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             # Check if target is still active
             if not target.is_active:
                 # Wasted shot - target already neutralized
+                step_gross_damage += sum(drone.damage_profile.values())
                 rewards[agent_id] = -1.0
                 continue
             
@@ -549,10 +553,11 @@ class DroneEngageZKMRTA(ParallelEnv):
             hp_before = target.hp_current
             hp_before_dict = dict(target.attributes.attributes)
             damage_profile = drone.damage_profile
+            step_gross_damage += sum(damage_profile.values())
             
             # Calculate absolute net damage (ground truth)
             net_dmg = sum(min(hp_before_dict.get(k, 0), v) for k, v in damage_profile.items())
-            step_net_damage[agent_id] = net_dmg
+            step_net_damage += net_dmg
             
             target.attributes.apply_damage(damage_profile)
 
@@ -637,6 +642,7 @@ class DroneEngageZKMRTA(ParallelEnv):
             target_selections=target_selections,
             overkill=overkill_map if overkill_map else None,
             done_reason=done_reason,
+            total_gross_damage=step_gross_damage,
         )
 
         infos = self._wrap_shared_info(shared_info)

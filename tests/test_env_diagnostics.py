@@ -71,7 +71,7 @@ def test_step_updates_diagnostics_and_keeps_infos_minimal() -> None:
     payload = diagnostics.to_dict()
     assert payload["step_index"] == 1
     assert payload["actions"] == actions
-    assert payload["net_damage"] == {"drone_0": 0.0, "drone_1": 0.0}
+    assert payload["net_damage"] == 0.0
     assert payload["neutralizations_this_step"] == 0
     assert payload["cumulative_neutralizations"] == 0
     assert payload["collisions"] == 0

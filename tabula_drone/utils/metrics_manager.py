@@ -24,6 +24,7 @@ class EpisodeMetricsSource:
     overkill_events: Sequence[Mapping[int, float]]
     agent_rewards: Dict[str, float]
     total_net_damage: float
+    total_gross_damage: float
     total_collisions: int
     weapon_damage_profile_mapping: Mapping[str, Mapping[str, float]]
 
@@ -103,10 +104,7 @@ class MetricsManager:
         targets_neutralized = self._calc_targets_neutralized(raw.final_diagnostics)
         total_ammo_used = self._calc_total_ammo_used(raw.final_diagnostics)
         total_overkill = self._calc_total_overkill(raw.overkill_events)
-        total_gross_damage = self._calc_total_gross_damage(
-            raw.final_diagnostics,
-            raw.weapon_damage_profile_mapping,
-        )
+        total_gross_damage = self._calc_total_gross_damage(raw)
         ammo_eff = targets_neutralized / total_ammo_used if total_ammo_used > 0 else 0.0
         dmg_eff = (
             raw.total_net_damage / total_gross_damage
@@ -255,27 +253,9 @@ class MetricsManager:
 
     @staticmethod
     def _calc_total_gross_damage(
-        final_diagnostics: Mapping[str, Any],
-        weapon_damage_profile_mapping: Mapping[str, Mapping[str, float]],
+        source: EpisodeMetricsSource,
     ) -> float:
-        ammo_used = final_diagnostics.get("ammo_used", {})
-        weapon_types = final_diagnostics.get("weapon_types", [])
-        total_gross_damage = 0.0
-        for agent_id, ammo in ammo_used.items():
-            parts = agent_id.split("_")
-            if len(parts) != 2 or not parts[1].isdigit():
-                raise ValueError(f"Invalid agent id format: {agent_id!r}")
-            agent_idx = int(parts[1])
-            if agent_idx < 0 or agent_idx >= len(weapon_types):
-                raise ValueError(
-                    f"Agent index {agent_idx} out of range for weapon_types length {len(weapon_types)}"
-                )
-            weapon_type = weapon_types[agent_idx]
-            if weapon_type not in weapon_damage_profile_mapping:
-                raise KeyError(f"Missing weapon profile for weapon type: {weapon_type!r}")
-            damage_per_shot = sum(weapon_damage_profile_mapping[weapon_type].values())
-            total_gross_damage += ammo * damage_per_shot
-        return total_gross_damage
+        return source.total_gross_damage
 
 
 def format_metric_display(val: Union[float, str], fmt: str = "{}") -> str:
