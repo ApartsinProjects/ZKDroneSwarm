@@ -2,37 +2,34 @@ import math
 
 import pytest
 
-from tabula_drone.utils.metrics_manager import EpisodeMetricsSource, MetricsManager
+from tabula_drone.utils.metrics_manager import EpisodeMetrics, MetricsManager
 
 
-def build_source(
+def build_metrics(
     *,
+    mode: str = "episodic",
     episode: int = 1,
     steps: int = 5,
     done_reason: str = "all_targets_neutralized",
-    cumulative_neutralizations: int = 2,
-    ammo_used: dict[str, int] | None = None,
-    weapon_types: list[str] | None = None,
-    overkill_events: tuple[dict[int, float], ...] = ({0: 1.5},),
+    targets_neutralized: int = 2,
+    total_ammo_used: int = 3,
+    total_overkill: float = 1.5,
     total_net_damage: float = 9.0,
     total_gross_damage: float = 10.0,
     total_collisions: int = 1,
-) -> EpisodeMetricsSource:
-    return EpisodeMetricsSource(
+) -> EpisodeMetrics:
+    return EpisodeMetrics(
         episode=episode,
         steps=steps,
-        final_diagnostics={
-            "done_reason": done_reason,
-            "cumulative_neutralizations": cumulative_neutralizations,
-            "ammo_used": ammo_used if ammo_used is not None else {"drone_0": 2, "drone_1": 1},
-            "weapon_types": weapon_types if weapon_types is not None else ["light", "medium"],
-            "target_active": [False, False],
-        },
-        overkill_events=overkill_events,
-        agent_rewards={"drone_0": 1.0, "drone_1": 2.0},
+        mode=mode,
+        done_reason=done_reason,
+        targets_neutralized=targets_neutralized,
+        total_ammo_used=total_ammo_used,
+        total_overkill=total_overkill,
         total_net_damage=total_net_damage,
         total_gross_damage=total_gross_damage,
         total_collisions=total_collisions,
+        agent_rewards={"drone_0": 1.0, "drone_1": 2.0},
         weapon_damage_profile_mapping={
             "light": {"hp": 3.0},
             "medium": {"hp": 4.0},
@@ -42,9 +39,7 @@ def build_source(
 
 def test_calc_episode_metrics_episodic_formulas() -> None:
     manager = MetricsManager("episodic")
-    source = build_source()
-
-    metrics = manager.calc_episode_metrics(source)
+    metrics = build_metrics()
 
     assert metrics.mode == "episodic"
     assert metrics.targets_neutralized == 2
@@ -61,9 +56,7 @@ def test_calc_episode_metrics_episodic_formulas() -> None:
 
 def test_calc_episode_metrics_continuous_formulas() -> None:
     manager = MetricsManager("continuous")
-    source = build_source(steps=4, cumulative_neutralizations=2, total_collisions=0)
-
-    metrics = manager.calc_episode_metrics(source)
+    metrics = build_metrics(mode="continuous", steps=4, targets_neutralized=2, total_collisions=0)
 
     assert metrics.mode == "continuous"
     assert metrics.shots_per_target is None
@@ -74,8 +67,8 @@ def test_calc_episode_metrics_continuous_formulas() -> None:
 
 def test_calc_total_episodes_metrics_episodic_summary_and_representative() -> None:
     manager = MetricsManager("episodic")
-    episode_1 = build_source(episode=1, steps=10, cumulative_neutralizations=2)
-    episode_2 = build_source(episode=2, steps=6, cumulative_neutralizations=1, done_reason="max_steps_reached")
+    episode_1 = build_metrics(episode=1, steps=10, targets_neutralized=2)
+    episode_2 = build_metrics(episode=2, steps=6, targets_neutralized=1, done_reason="max_steps_reached")
 
     summary = manager.calc_total_episodes_metrics([episode_1, episode_2])
 
@@ -91,8 +84,8 @@ def test_calc_total_episodes_metrics_episodic_summary_and_representative() -> No
 
 def test_calc_total_episodes_metrics_continuous_representative_is_last() -> None:
     manager = MetricsManager("continuous")
-    episode_1 = build_source(episode=1, steps=10)
-    episode_2 = build_source(episode=2, steps=6)
+    episode_1 = build_metrics(mode="continuous", episode=1, steps=10)
+    episode_2 = build_metrics(mode="continuous", episode=2, steps=6)
 
     summary = manager.calc_total_episodes_metrics([episode_1, episode_2])
 
@@ -100,46 +93,4 @@ def test_calc_total_episodes_metrics_continuous_representative_is_last() -> None
     assert summary.representative_episode.episode == 2
 
 
-def test_calc_total_gross_damage_fails_for_invalid_agent_id() -> None:
-    manager = MetricsManager("episodic")
-    source = build_source(ammo_used={"invalid_agent": 1})
-
-    with pytest.raises(ValueError, match="Invalid agent id format"):
-        manager.calc_episode_metrics(source)
-
-
-def test_calc_total_gross_damage_fails_for_out_of_range_agent_index() -> None:
-    manager = MetricsManager("episodic")
-    source = build_source(
-        ammo_used={"drone_2": 1},
-        weapon_types=["light", "medium"],
-    )
-
-    with pytest.raises(ValueError, match="out of range"):
-        manager.calc_episode_metrics(source)
-
-
-def test_calc_total_gross_damage_fails_for_missing_weapon_profile() -> None:
-    manager = MetricsManager("episodic")
-    source = EpisodeMetricsSource(
-        episode=1,
-        steps=1,
-        final_diagnostics={
-            "done_reason": "max_steps_reached",
-            "cumulative_neutralizations": 0,
-            "ammo_used": {"drone_0": 1},
-            "weapon_types": ["heavy"],
-            "target_active": [True],
-        },
-        overkill_events=(),
-        agent_rewards={"drone_0": 0.0},
-        total_net_damage=0.0,
-        total_gross_damage=3.0,
-        total_collisions=0,
-        weapon_damage_profile_mapping={"light": {"hp": 3.0}},
-    )
-
-    # This test is now obsolete since we read from source.total_gross_damage
-    # instead of calculating from weapon profiles, but keeping for compatibility
-    metrics = manager.calc_episode_metrics(source)
-    assert metrics.total_gross_damage == 3.0
+# Removed obsolete validation tests - gross damage is now provided directly by runner

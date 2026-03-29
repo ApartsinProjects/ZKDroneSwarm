@@ -44,7 +44,6 @@ from tabula_drone.scenarios.latent_scenario_builder import LatentScenarioBuilder
 from tabula_drone.utils.console_rendering import ConsolePrinter
 from tabula_drone.utils.metrics_manager import (
     EpisodeMetrics,
-    EpisodeMetricsSource,
     MetricsManager,
     PolicyRunSummary,
 )
@@ -307,7 +306,6 @@ def run_episode(
     episode_num: int,
     verbose: bool = False,
     environment_logger: Optional[EnvironmentLogger] = None,
-    metrics_manager: Optional[MetricsManager] = None,
     seed: Optional[int] = None,
     total_episodes: Optional[int] = None,
     flush_interval: Optional[int] = None,
@@ -431,19 +429,28 @@ def run_episode(
             done_reason=shared_info.get("done_reason"),
         )
     
-    manager = metrics_manager or MetricsManager(env.mode)
-    source = EpisodeMetricsSource(
+    # Extract fields from final diagnostics
+    done_reason = shared_info.get("done_reason")
+    targets_neutralized = shared_info.get("cumulative_neutralizations", 0)
+    ammo_used_dict = shared_info.get("ammo_used", {})
+    total_ammo_used = sum(ammo_used_dict.values())
+    total_overkill = sum(sum(event.values()) for event in overkill_events)
+    
+    # Construct EpisodeMetrics directly (calculates efficiency in __post_init__)
+    metrics = EpisodeMetrics(
         episode=episode_num,
         steps=step_count,
-        final_diagnostics=shared_info,
-        overkill_events=tuple(overkill_events),
-        agent_rewards=total_rewards.copy(),
+        mode=env.mode,
+        done_reason=done_reason,
+        targets_neutralized=targets_neutralized,
+        total_ammo_used=total_ammo_used,
+        total_overkill=total_overkill,
         total_net_damage=total_net_damage,
         total_gross_damage=total_gross_damage,
         total_collisions=total_collisions,
+        agent_rewards=total_rewards.copy(),
         weapon_damage_profile_mapping=env.weapon_damage_profile_mapping,
     )
-    metrics = manager.calc_episode_metrics(source)
 
     # Print summary
     if verbose:
@@ -857,7 +864,6 @@ def main():
                 episode_num=episode_num,
                 verbose=config.environment.verbose,
                 environment_logger=environment_logger,
-                metrics_manager=policy_metrics_manager,
                 seed=episode_seed,  #config.seed
                 total_episodes=num_episodes,
                 flush_interval=flush_interval,
