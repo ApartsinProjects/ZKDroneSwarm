@@ -402,7 +402,6 @@ class DroneEngageZKMRTA(ParallelEnv):
             ammo_used={drone.id: drone.ammo_used for drone in self.drones},
             weapon_types=[drone.weapon_type for drone in self.drones],
             target_hps=[target.hp_current for target in self.targets],
-            target_attributes=[dict(target.attributes.attributes) for target in self.targets],
             target_classes=[target.class_type for target in self.targets],
             target_active=[target.is_active for target in self.targets],
             processing_order=processing_order,

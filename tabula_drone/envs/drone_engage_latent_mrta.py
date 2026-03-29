@@ -287,13 +287,6 @@ class DroneEngageLatentMRTA(ParallelEnv):
             ammo_used={drone.id: drone.ammo_used for drone in self.drones or []},
             weapon_types=[f"mode_{drone.mode_id}" for drone in self.drones or []],
             target_hps=[target.hp for target in self.targets or []],
-            target_attributes=[
-                {
-                    f"d{i}": v * (target.hp / target.hp_initial if target.hp_initial > 0 else 0.0)
-                    for i, v in enumerate(target.latent_vector)
-                }
-                for target in self.targets or []
-            ],
             target_classes=[f"mode_{target.mode_id}" for target in self.targets or []],
             target_active=[target.is_active for target in self.targets or []],
             processing_order=processing_order,

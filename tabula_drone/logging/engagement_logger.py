@@ -32,8 +32,7 @@ class EngagementLogger:
                         "target": {
                             "target_id": "<string>",
                             "class": "<string>",
-                            "status": "active" | "eliminated",
-                            "attributes": {"<attr>": <float>, ...}
+                            "status": "active" | "eliminated"
                         } | null,
                         "damage": {"<attr>": <float>, ...} | null,
                         "reward": <float>
@@ -49,8 +48,6 @@ class EngagementLogger:
                         "damage": {"<attr>": <float>, ...},
                         "hp_before": <float>,
                         "hp_after": <float>,
-                        "attributes_before": {"<attr>": <float>, ...},
-                        "attributes_after": {"<attr>": <float>, ...},
                         "eliminated": <bool>,
                         "eliminator": "<drone_id>" | null  (only if eliminated)
                     },
@@ -171,7 +168,6 @@ class EngagementLogger:
             rewards: Dict of {agent_id: reward}
             info: Info dict from env.step()
         """
-        target_attributes = info.get("target_attributes", [])
         target_active = info.get("target_active", [])
         target_hps = info.get("target_hps", [])
         
@@ -195,7 +191,6 @@ class EngagementLogger:
                 damage_profile = self._drone_damage_profiles.get(drone_id, {})
                 
                 # Get target state after damage
-                target_attrs_after = target_attributes[target_idx] if target_idx < len(target_attributes) else {}
                 is_active = target_active[target_idx] if target_idx < len(target_active) else True
                 hp_after = target_hps[target_idx] if target_idx < len(target_hps) else 0.0
                 
@@ -210,7 +205,6 @@ class EngagementLogger:
                         "target_id": target_id,
                         "class": self._target_classes.get(target_id),
                         "status": target_status,
-                        "attributes": dict(target_attrs_after),
                     },
                     "damage": dict(damage_profile),
                     "reward": reward,
@@ -223,13 +217,10 @@ class EngagementLogger:
                 self._engagement_counts[drone_id][target_id] += 1
                 
                 # Build target POV entry (only if target was actually hit, not wasted)
-                # Post-calculate attributes_before = attributes_after + damage
-                attrs_before = {}
-                for attr_name, after_val in target_attrs_after.items():
-                    damage_val = damage_profile.get(attr_name, 0.0)
-                    attrs_before[attr_name] = after_val + damage_val
-                
-                hp_before = sum(attrs_before.values())
+                # Calculate hp_before by adding damage to hp_after
+                # For latent world, damage is scalar; for ZK world, sum damage profile
+                total_damage = sum(damage_profile.values()) if damage_profile else 0.0
+                hp_before = hp_after + total_damage
                 
                 # Check if this shot eliminated the target
                 eliminated = not is_active and self._eliminations.get(target_id) is None
@@ -240,8 +231,6 @@ class EngagementLogger:
                     "damage": dict(damage_profile),
                     "hp_before": hp_before,
                     "hp_after": hp_after,
-                    "attributes_before": attrs_before,
-                    "attributes_after": dict(target_attrs_after),
                     "eliminated": eliminated,
                 }
                 

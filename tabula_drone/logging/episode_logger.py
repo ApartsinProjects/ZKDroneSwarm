@@ -227,29 +227,13 @@ class EpisodeLogger:
         target_positions = [list(target.position) for target in env.targets]
 
         scenario: Dict[str, Any] = {
-            "num_drones": env.num_drones,
-            "num_targets": env.num_targets,
+            "num_drones": len(env.drones),
+            "num_targets": len(env.targets),
             "drone_positions": drone_positions,
             "target_positions": target_positions,
         }
 
-        drone_mode_ids = {}
-        for drone in env.drones:
-            if hasattr(drone, "mode_id"):
-                drone_mode_ids[drone.id] = int(drone.mode_id)
-        
-        if drone_mode_ids:
-            scenario["drone_mode_ids"] = drone_mode_ids
-
-        target_mode_ids = []
-        for target in env.targets:
-            if hasattr(target, "mode_id"):
-                target_mode_ids.append(int(target.mode_id))
-        
-        if target_mode_ids:
-            scenario["target_mode_ids"] = target_mode_ids
-
-        # Build weapon assignments (with fallback to mode_id for latent compatibility)
+        # Build weapon assignments (works for both custom and latent worlds)
         weapon_assignments = {}
         for drone in env.drones:
             if hasattr(drone, "weapon_type"):
@@ -260,7 +244,7 @@ class EpisodeLogger:
         if weapon_assignments:
             scenario["weapon_assignments"] = weapon_assignments
 
-        # Build target classes (with fallback to mode_id for latent compatibility)
+        # Build target classes (works for both custom and latent worlds)
         target_classes = []
         for target in env.targets:
             if hasattr(target, "class_type"):
@@ -271,6 +255,19 @@ class EpisodeLogger:
         if target_classes:
             scenario["target_classes"] = target_classes
 
+        # Build initial target HPs for viewer display
+        target_initial_hps = []
+        for target in env.targets:
+            if hasattr(target, "hp_initial"):
+                target_initial_hps.append(float(target.hp_initial))
+            elif hasattr(target, "hp"):
+                target_initial_hps.append(float(target.hp))
+            else:
+                target_initial_hps.append(0.0)
+        
+        if target_initial_hps:
+            scenario["target_initial_hps"] = target_initial_hps
+
         return scenario
     
     def build_shared_config_snapshot(self, env: Any) -> Dict[str, Any]:
@@ -278,7 +275,7 @@ class EpisodeLogger:
         Build config snapshot from environment configuration.
         
         Captures visualization-relevant configuration:
-        - world_size, max_steps, scenario_id, class_attribute_mapping
+        - world_size, max_steps, scenario_id, world_model, latent_world
         
         Args:
             env: The environment instance
@@ -292,11 +289,6 @@ class EpisodeLogger:
             "scenario_id": env.scenario_id,
             "world_model": getattr(env, "world_model", "custom"),
         }
-
-        if hasattr(env, "class_attribute_mapping") and env.class_attribute_mapping is not None:
-            config["class_attribute_mapping"] = dict(env.class_attribute_mapping)
-        if hasattr(env, "weapon_damage_profile_mapping") and env.weapon_damage_profile_mapping is not None:
-            config["weapon_damage_profile_mapping"] = dict(env.weapon_damage_profile_mapping)
 
         latent_world = getattr(env, "latent_world", None)
         if latent_world is not None:
@@ -348,7 +340,6 @@ class EpisodeLogger:
         """
         step_info = {
             "target_hps": info.get("target_hps", []),
-            "target_attributes": info.get("target_attributes", []),
             "target_active": info.get("target_active", []),
             "ammo_used": info.get("ammo_used", {}),
         }

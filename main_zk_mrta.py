@@ -365,7 +365,11 @@ def run_episode(
         reference_agent_id = env.agents[0]
         
         # Policy selects actions for all agents (uniform interface)
-        actions = policy.select_actions(obs, infos)
+        # Try passing env for oracle policies, fallback to basic signature for others
+        try:
+            actions = policy.select_actions(obs, infos, env=env)
+        except TypeError:
+            actions = policy.select_actions(obs, infos)
 
         # Environment step
         obs, rewards, terminations, truncations, infos = env.step(actions)

@@ -60,6 +60,28 @@ class OracleTimeToKillPolicy(IPolicy):
         """Bind an env-owned diagnostics provider for privileged state lookup."""
         self._diagnostics_provider = provider
 
+    def _extract_target_state_from_env(self, env: Any) -> List[Dict[str, float]]:
+        """Extract target state directly from environment."""
+        targets_state = []
+        if not hasattr(env, 'targets'):
+            return targets_state
+        
+        for target in env.targets:
+            if hasattr(target, 'attributes') and hasattr(target.attributes, 'attributes'):
+                # ZK world: explicit attributes
+                targets_state.append(dict(target.attributes.attributes))
+            elif hasattr(target, 'latent_vector') and hasattr(target, 'hp'):
+                # Latent world: HP-scaled latent vectors
+                hp_ratio = target.hp / target.hp_initial if target.hp_initial > 0 else 0.0
+                targets_state.append({
+                    f"d{i}": v * hp_ratio
+                    for i, v in enumerate(target.latent_vector)
+                })
+            else:
+                targets_state.append({})
+        
+        return targets_state
+    
     def _get_shared_info(self, infos: EnvInfos) -> Dict[str, Any]:
         if self._diagnostics_provider is not None:
             return self._diagnostics_provider()
@@ -194,9 +216,10 @@ class OracleTimeToKillPolicy(IPolicy):
         self,
         obs: Dict[str, Any],
         infos: EnvInfos,
+        env: Any = None,
     ) -> Dict[str, int]:
         """
-        Select actions for all agents using privileged target state.
+        Select actions for all agents.
         
         Each agent independently selects the target with minimum hits-to-kill
         based on their own weapon profile.
@@ -205,13 +228,21 @@ class OracleTimeToKillPolicy(IPolicy):
         Args:
             obs: Dict of {agent_id: observation_array}
             infos: Environment infos dict keyed by agent_id
+            env: Environment instance (optional, for direct state access)
         
         Returns:
             actions: Dict of {agent_id: action}
         """
-        shared_info = self._get_shared_info(infos)
-        num_targets = len(shared_info.get("target_active", []))
-        targets_state = shared_info.get("target_attributes", [])
+        # Read target state directly from environment
+        if env is not None:
+            targets_state = self._extract_target_state_from_env(env)
+            num_targets = len(env.targets) if hasattr(env, 'targets') else 0
+        else:
+            # Fallback to info dict (legacy)
+            shared_info = self._get_shared_info(infos)
+            num_targets = len(shared_info.get("target_active", []))
+            targets_state = shared_info.get("target_attributes", [])
+        
         return {
             agent_id: self.select_action(agent_id, observation, num_targets, targets_state)
             for agent_id, observation in obs.items()

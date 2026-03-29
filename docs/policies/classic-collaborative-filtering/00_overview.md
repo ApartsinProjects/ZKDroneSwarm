@@ -46,6 +46,34 @@ In a typical ZK-MRTA scenario, drones are dropped into an environment without kn
 ### 2.2 The Collaborative Insight
 Even if **Drone A** has never fired at **Target X**, it can learn about Target X by watching **Drone B**'s success or failure. If Drone A knows (from other interactions) that it has a similar weapon profile to Drone B, it can infer that Target X will be a good (or bad) match for itself as well.
 
+### 2.3 The Learning Challenge: Discovering Hidden Structure
+
+The environment contains a **ground truth latent structure** that the policy must discover through observation. Understanding this relationship is crucial to interpreting what the P and U matrices represent.
+
+#### The Environment's True Latent Vectors
+The environment assigns fixed latent vectors at initialization:
+- **Drone latent vectors**: Each drone has a hidden weapon profile (e.g., `[1.348, -0.492, 0.505]`)
+- **Target latent vectors**: Each target has a hidden vulnerability profile (e.g., `[1.948, 0.692, -0.425]`)
+- **Reward calculation**: When a drone attacks a target, the reward is computed as the **dot product** of their vectors: `reward = drone_vector · target_vector`
+
+These vectors define the actual game mechanics - they are the **ground truth** that determines all rewards.
+
+#### The Policy's Learned Matrices (P and U)
+The collaborative filtering policy maintains its own matrices:
+- **P (drone embeddings)**: The policy's learned approximation of drone weapon profiles
+- **U (target embeddings)**: The policy's learned approximation of target vulnerability profiles
+- **Initially random**: Both matrices start with random values
+- **Refined through SGD**: Updated based on observed rewards using `P @ U.T ≈ observed_rewards`
+
+#### The Connection
+The policy is attempting to **reverse-engineer** the environment's hidden structure:
+
+1. **Environment has**: True latent vectors that define rewards (never directly observed)
+2. **Policy learns**: P and U matrices that approximate those vectors (through trial and error)
+3. **If learning succeeds**: The learned matrices converge such that `P ≈ drone_latent_vectors` and `U ≈ target_latent_vectors`
+
+**Key insight**: The policy never sees the actual latent vectors - it only observes rewards and must infer the underlying structure. The P and U matrices are the policy's **learned estimate** of the environment's true physics. Success is measured by how well these estimates enable accurate reward prediction and optimal target selection.
+
 ---
 
 ## 3. Operational Environments: Modes of Engagement

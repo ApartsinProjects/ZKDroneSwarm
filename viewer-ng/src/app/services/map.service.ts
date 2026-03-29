@@ -22,6 +22,7 @@ export interface ApiEnvironmentResponse {
     target_positions?: [number, number][];
     weapon_assignments?: Record<string, string>;
     target_classes?: string[];
+    target_initial_hps?: number[];
   };
 }
 
@@ -73,11 +74,11 @@ export class MapService {
     const [rawWidth = 1000, rawHeight = 1000] = payload.config.world_size ?? [];
     const width = rawWidth || 1000;
     const height = rawHeight || 1000;
-    const classAttributeMapping = payload.config.class_attribute_mapping ?? {};
     const weaponAssignments = payload.scenario.weapon_assignments ?? {};
     const dronePositions = payload.scenario.drone_positions ?? [];
     const targetPositions = payload.scenario.target_positions ?? [];
     const targetClasses = payload.scenario.target_classes ?? [];
+    const targetInitialHps = payload.scenario.target_initial_hps ?? [];
 
     return {
       run: {
@@ -100,26 +101,20 @@ export class MapService {
       ),
       targets: targetPositions.map((position, index) => {
         const classType = targetClasses[index] || 'unknown';
+        const hp = targetInitialHps[index] ?? 0;
 
         return this.toViewEntity(
           {
             id: `target_${index}`,
             position,
             classType,
-            hp: this.sumAttributes(classAttributeMapping[classType] || {})
+            hp
           },
           width,
           height
         );
       })
     };
-  }
-
-  private sumAttributes(attributes: Record<string, number>): number {
-    return Object.values(attributes).reduce(
-      (sum, value) => sum + (Number.isFinite(value) ? value : 0),
-      0
-    );
   }
 
   private toViewEntity(entity: ApiMapEntity, width: number, height: number): ViewMapEntity {

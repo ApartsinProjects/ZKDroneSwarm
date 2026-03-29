@@ -26,7 +26,6 @@ class EnvDiagnosticsSnapshot:
     ammo_used: Dict[str, int]
     weapon_types: List[str]
     target_hps: List[float]
-    target_attributes: List[Dict[str, float]]
     target_classes: List[str]
     target_active: List[bool]
     processing_order: Optional[List[str]] = None
@@ -48,7 +47,6 @@ class EnvDiagnosticsSnapshot:
             "ammo_used": copy.deepcopy(self.ammo_used),
             "weapon_types": list(self.weapon_types),
             "target_hps": list(self.target_hps),
-            "target_attributes": copy.deepcopy(self.target_attributes),
             "target_classes": list(self.target_classes),
             "target_active": list(self.target_active),
         }
