@@ -740,6 +740,9 @@ def main():
             targets_config=targets_config,
     )
     printer.separator()
+
+    printer.latent_world_debug(drones_config, targets_config, precision=3, max_components=6)
+
     
     # Create EnvironmentLogger for structured logging orchestration
     environment_logger = EnvironmentLogger(
@@ -793,7 +796,7 @@ def main():
             mode=config.environment.mode,
             builder=builder,
         )
-    
+        
     # Create all policies upfront
     policies = create_all_policies(config, drones_config, num_targets)
     
@@ -916,7 +919,10 @@ def main():
         
         # Enrich all learning_state artifacts for matrix factorization with t-SNE
         # as a post-processing step, keeping the training loop itself fast.
-        if not is_deterministic and policy_type == "matrix_factorization_cf":
+        if (not is_deterministic and 
+            policy_type == "matrix_factorization_cf" and
+            config.collaborative_filtering and
+            config.collaborative_filtering.enable_tsne_enrichment):
             learning_state_dir = environment_logger.get_learning_state_dir()
             tsne_mode = TSNE_MODE_PER_EPISODE #TSNE_MODE_PER_EPISODE_ALIGNED
             state_files = _iter_learning_state_files(learning_state_dir)

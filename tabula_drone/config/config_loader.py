@@ -140,6 +140,7 @@ class MFPolicyConfig:
 class CollaborativeFilteringConfig:
     """Collaborative filtering policy configuration."""
     reward_noise: float
+    enable_tsne_enrichment: bool = True
     ep_greedy_cf: Optional[EpGreedyCFConfig] = None
     ucb_cf: Optional[UCBCFConfig] = None
     coordinated_ep_greedy_cf: Optional[EpGreedyCFConfig] = None
@@ -686,8 +687,14 @@ def _parse_collaborative_filtering_config(data: dict) -> CollaborativeFilteringC
     coordinated_ep_greedy_cf = _parse_coordinated_ep_greedy_cf_config(data.get("coordinated_ep_greedy_cf"))
     matrix_factorization_cf = _parse_mf_policy_config(data.get("matrix_factorization_cf"))
     
+    # Parse enable_tsne_enrichment with default True
+    enable_tsne_enrichment = data.get("enable_tsne_enrichment", True)
+    if not isinstance(enable_tsne_enrichment, bool):
+        raise ValueError("collaborative_filtering.enable_tsne_enrichment must be a boolean")
+    
     return CollaborativeFilteringConfig(
         reward_noise=float(data["reward_noise"]),
+        enable_tsne_enrichment=enable_tsne_enrichment,
         ep_greedy_cf=ep_greedy_cf,
         ucb_cf=ucb_cf,
         selfish_ep_greedy_cf=selfish_ep_greedy_cf,

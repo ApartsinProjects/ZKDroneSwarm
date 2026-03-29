@@ -6,8 +6,8 @@
   "latent_world": {
     "latent_dim": 3,
     "num_modes": 3,
-    "drone_variance": 0.5,
-    "target_variance": 0.5,
+    "drone_variance": 0.0,
+    "target_variance": 0.0,
     "target_hp": 5.0
   },
   "seed": 42,
@@ -29,7 +29,7 @@
     "verbose": false
   },  
   "drones": {
-    "count": 9,
+    "count": 6,
     "weapon_distribution": {
       "_A": 0.33,
       "_B": 0.33,
@@ -48,7 +48,7 @@
     "min_distance_between_drones": 25.0
   },
   "targets": {
-    "count": 35,
+    "count": 6,
     "region": {
       "x_fraction": [
         0.1,
@@ -84,6 +84,7 @@
   },
   "collaborative_filtering": {
     "reward_noise": 0.2,
+    "enable_tsne_enrichment": false,
     "matrix_factorization_cf": {
       "latent_dim": 8,
       "learning_rate": 0.01,

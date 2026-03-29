@@ -1,7 +1,7 @@
 """Console printer for the demo orchestrator."""
 
 import builtins
-from typing import Any, Dict, List, TextIO
+from typing import Any, Dict, List, TextIO, Tuple
 
 from tabulate import tabulate
 
@@ -491,3 +491,72 @@ class ConsolePrinter:
 
     def demo_complete(self) -> None:
         self._emit("\nDemo complete! ✓", end="")
+
+    def latent_world_debug(
+        self,
+        drones_config: List[Dict[str, Any]],
+        targets_config: List[Dict[str, Any]],
+        precision: int = 3,
+        max_components: int = 6,
+    ) -> None:
+        """Display latent-world drone weapons and target attributes grouped by mode.
+
+        Args:
+            drones_config: List of drone configs with 'mode_id' and 'latent_vector' keys.
+            targets_config: List of target configs with 'mode_id' and 'latent_vector' keys.
+            precision: Decimal places for vector component display.
+            max_components: Maximum latent vector components to show (truncates if longer).
+        """
+        from collections import defaultdict
+
+        drones_by_mode: Dict[int, List[Tuple[int, Tuple[float, ...]]]] = defaultdict(list)
+        targets_by_mode: Dict[int, List[Tuple[int, Tuple[float, ...]]]] = defaultdict(list)
+
+        for idx, dcfg in enumerate(drones_config):
+            mode_id = int(dcfg.get("mode_id", -1))
+            latent_vector = tuple(float(v) for v in dcfg.get("latent_vector", []))
+            drones_by_mode[mode_id].append((idx, latent_vector))
+
+        for idx, tcfg in enumerate(targets_config):
+            mode_id = int(tcfg.get("mode_id", -1))
+            latent_vector = tuple(float(v) for v in tcfg.get("latent_vector", []))
+            targets_by_mode[mode_id].append((idx, latent_vector))
+
+        all_modes = sorted(set(drones_by_mode.keys()) | set(targets_by_mode.keys()))
+
+        lines = ["", "=" * 60, "LATENT WORLD DEBUG (Gaussian Mixture)", "=" * 60]
+
+        for mode_id in all_modes:
+            lines.append(f"\nMode {mode_id}:")
+            lines.append("-" * 40)
+
+            drones = drones_by_mode.get(mode_id, [])
+            if drones:
+                lines.append(f"  Drones (Weapons): {len(drones)}")
+                for d_idx, vec in drones:
+                    vec_str = self._format_vector(vec, precision, max_components)
+                    lines.append(f"    D{d_idx}: [{vec_str}]")
+            else:
+                lines.append("  Drones: None")
+
+            targets = targets_by_mode.get(mode_id, [])
+            if targets:
+                lines.append(f"  Targets (Attributes): {len(targets)}")
+                for t_idx, vec in targets:
+                    vec_str = self._format_vector(vec, precision, max_components)
+                    lines.append(f"    T{t_idx}: [{vec_str}]")
+            else:
+                lines.append("  Targets: None")
+
+        lines.extend(["=" * 60, ""])
+        self._emit("\n".join(lines), end="")
+
+    def _format_vector(self, vec: Tuple[float, ...], precision: int, max_components: int) -> str:
+        """Format a vector tuple for display with truncation if needed."""
+        if not vec:
+            return ""
+        if len(vec) <= max_components:
+            return ", ".join(f"{v:.{precision}f}" for v in vec)
+        shown = vec[:max_components]
+        formatted = ", ".join(f"{v:.{precision}f}" for v in shown)
+        return f"{formatted}, ... ({len(vec) - max_components} more)"
