@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, input, output } from '@angular/core';
+import { Component, computed, input, output, inject, signal } from '@angular/core';
 import { extent } from 'd3-array';
 import { scaleLinear } from 'd3-scale';
 import { LearningStateEpisodeDto } from '../../services/policies.service';
+import { LatentWorldService } from '../../services/latent-world.service';
 
 type PlotPoint = {
   x: number;
@@ -61,6 +62,17 @@ const TARGET_CLASS_COLORS = [
   '#af52de', // Vibrant Purple
 ];
 
+const MODE_COLORS = [
+  '#ff3b30',
+  '#007aff',
+  '#4cd964',
+  '#ff9500',
+  '#5856d6',
+  '#ff2d55',
+  '#5ac8fa',
+  '#af52de',
+];
+
 @Component({
   selector: 'app-embedding-visualization-panel',
   standalone: true,
@@ -75,6 +87,8 @@ const TARGET_CLASS_COLORS = [
                 type="button"
                 class="embedding-panel__agent-item"
                 [class.embedding-panel__agent-item--active]="agentIndex === model.selectedAgent"
+                [style.border-color]="getDroneBorderColor(agentIndex)"
+                [style.border-style]="'line'"
                 (click)="selectedAgentChange.emit(agentIndex)"
               >
                 <img
@@ -289,16 +303,49 @@ const TARGET_CLASS_COLORS = [
 })
 export class EmbeddingVisualizationPanel {
   protected readonly MARGIN = MARGIN;
+  private latentWorldService = inject(LatentWorldService);
 
   readonly snapshots = input<LearningStateEpisodeDto[]>([]);
   readonly currentSnapshot = input<LearningStateEpisodeDto | null>(null);
   readonly selectedAgent = input(0);
   readonly selectedAgentChange = output<number>();
+  
+  private latentVectorsSignal = signal<any>(null);
+  readonly latentVectors = this.latentVectorsSignal.asReadonly();
+
+  constructor() {
+    this.latentWorldService.getLatentVectors().subscribe({
+      next: (data) => this.latentVectorsSignal.set(data),
+      error: (err) => {
+        console.error('Failed to load latent vectors for embedding panel:', err);
+        this.latentVectorsSignal.set(null);
+      }
+    });
+  }
 
   readonly agentIndices = computed(() => {
     const agents = this.currentSnapshot()?.learningState.episodeState?.agents ?? [];
     return Array.from({ length: agents.length }, (_, index) => index);
   });
+
+  protected getDroneBorderColor(agentIndex: number): string {
+    const latentData = this.latentVectors();
+    if (!latentData?.drones) {
+      return 'rgba(92, 77, 57, 0.15)';
+    }
+    
+    const drone = latentData.drones.find((d: any) => {
+      const droneId = d.id;
+      const match = droneId.match(/drone[_-]?(\d+)/);
+      return match && parseInt(match[1]) === agentIndex;
+    });
+    
+    if (!drone || drone.mode_id === undefined) {
+      return 'rgba(92, 77, 57, 0.15)';
+    }
+    
+    return MODE_COLORS[drone.mode_id % MODE_COLORS.length];
+  }
 
   readonly plotModel = computed<PlotModel | null>(() => {
     const currentSnapshot = this.currentSnapshot();
