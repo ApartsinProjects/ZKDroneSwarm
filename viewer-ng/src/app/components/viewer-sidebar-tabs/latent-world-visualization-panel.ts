@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, input } from '@angular/core';
+import { Component, computed, input, signal } from '@angular/core';
 import { extent } from 'd3-array';
 import { scaleLinear } from 'd3-scale';
 import { LatentVectorsData } from '../../services/latent-world.service';
@@ -89,20 +89,6 @@ const MODE_COLORS = [
           <h3 class="latent-panel__title">Latent World Structure</h3>
           <p class="latent-panel__subtitle">Ground truth latent vectors (t-SNE projection)</p>
         </div>
-
-        @if (model.legendItems.length > 0) {
-          <div class="latent-panel__legend" aria-label="Mode legend">
-            @for (item of model.legendItems; track item.modeId) {
-              <span class="latent-panel__legend-item">
-                <span
-                  class="latent-panel__legend-swatch"
-                  [style.background]="item.color"
-                ></span>
-                {{ item.label }}
-              </span>
-            }
-          </div>
-        }
 
         <div class="latent-panel__content">
           <div class="latent-panel__left">
@@ -246,6 +232,27 @@ const MODE_COLORS = [
               }
             </svg>
             </div>
+
+            <div class="latent-panel__controls">
+              <button 
+                class="toggle-btn"
+                [class.toggle-btn--inactive]="!showDrones()"
+                (click)="showDrones.set(!showDrones())"
+                type="button"
+                aria-label="Toggle drones visibility"
+              >
+                <img src="assets/map/drone.png" alt="Drone" class="toggle-btn__icon" />
+              </button>
+              <button 
+                class="toggle-btn"
+                [class.toggle-btn--inactive]="!showTargets()"
+                (click)="showTargets.set(!showTargets())"
+                type="button"
+                aria-label="Toggle targets visibility"
+              >
+                <img src="assets/map/target_1.png" alt="Target" class="toggle-btn__icon" />
+              </button>
+            </div>
           </div>
 
           @if (configModel(); as config) {
@@ -313,9 +320,20 @@ export class LatentWorldVisualizationPanel {
   protected readonly MARGIN = MARGIN;
 
   readonly latentVectors = input<LatentVectorsData | null>(null);
+  
+  readonly showDrones = signal(true);
+  readonly showTargets = signal(true);
 
   protected formatVector(vector: number[]): string {
     return vector.map(v => v.toFixed(1)).join(', ');
+  }
+
+  protected toggleDrones(): void {
+    this.showDrones.set(!this.showDrones());
+  }
+
+  protected toggleTargets(): void {
+    this.showTargets.set(!this.showTargets());
   }
 
   readonly configModel = computed<ConfigModel | null>(() => {
@@ -398,7 +416,7 @@ export class LatentWorldVisualizationPanel {
       ])
     );
 
-    const drones: PlotNode[] = data.drones.map((drone, index) => ({
+    const allDrones: PlotNode[] = data.drones.map((drone, index) => ({
       x: dronePoints[index].x,
       y: dronePoints[index].y,
       id: drone.id,
@@ -409,7 +427,7 @@ export class LatentWorldVisualizationPanel {
       py: yScale(dronePoints[index].y)
     }));
 
-    const targets: PlotNode[] = data.targets.map((target, index) => ({
+    const allTargets: PlotNode[] = data.targets.map((target, index) => ({
       x: targetPoints[index].x,
       y: targetPoints[index].y,
       id: target.id,
@@ -419,6 +437,9 @@ export class LatentWorldVisualizationPanel {
       px: xScale(targetPoints[index].x),
       py: yScale(targetPoints[index].y)
     }));
+
+    const drones = this.showDrones() ? allDrones : [];
+    const targets = this.showTargets() ? allTargets : [];
 
     return {
       width: WIDTH,
