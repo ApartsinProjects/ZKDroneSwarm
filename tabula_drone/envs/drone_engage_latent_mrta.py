@@ -6,7 +6,7 @@ used by the current collaborative policies, while replacing the custom
 class/weapon semantics with hidden latent vectors and MF dot-product reward.
 """
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -79,7 +79,15 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self.reward_noise = reward_noise
         self.mode = mode
         self.builder = builder
-        self.latent_world = dict(latent_world) if latent_world is not None else None
+        # Convert latent_world to dict if it's a dataclass, otherwise use as-is
+        if latent_world is not None:
+            if isinstance(latent_world, dict):
+                self.latent_world = dict(latent_world)
+            else:
+                # Assume it's a dataclass instance
+                self.latent_world = asdict(latent_world)
+        else:
+            self.latent_world = None
         self.target_hp = float(self.latent_world.get("target_hp", 1.0)) if self.latent_world else 1.0
         self.num_modes = self._infer_num_modes()
         self.class_attribute_mapping = {

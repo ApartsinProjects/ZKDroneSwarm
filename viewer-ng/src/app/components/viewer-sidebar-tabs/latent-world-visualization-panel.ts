@@ -30,6 +30,27 @@ type PlotLegendItem = {
   color: string;
 };
 
+type ConfigModeCard = {
+  modeId: number;
+  color: string;
+  droneCount: number;
+  targetCount: number;
+  drones: Array<{ id: string; latent_vector: number[] }>;
+  targets: Array<{ id: string; latent_vector: number[] }>;
+};
+
+type ConfigModel = {
+  globalConfig: {
+    latent_dim: number;
+    num_modes: number;
+    drone_variance: number;
+    target_variance: number;
+    target_hp: number;
+    center_mode: string;
+  };
+  modes: ConfigModeCard[];
+};
+
 type PlotModel = {
   width: number;
   height: number;
@@ -83,113 +104,201 @@ const MODE_COLORS = [
           </div>
         }
 
-        <div class="latent-panel__stage">
-          <svg
-            class="latent-panel__svg"
-            [attr.viewBox]="'0 0 ' + model.width + ' ' + model.height"
-            role="img"
-            aria-label="Latent world visualization"
-          >
-            <g>
-              @for (tick of model.xTicks; track tick.value) {
-                <line
-                  class="latent-grid__line"
-                  [attr.x1]="tick.x"
-                  [attr.x2]="tick.x"
-                  [attr.y1]="MARGIN.top"
-                  [attr.y2]="model.height - MARGIN.bottom"
-                  stroke="rgba(126, 104, 62, 0.12)"
-                  stroke-dasharray="4 6"
-                />
-                <text
-                  [attr.x]="tick.x"
-                  [attr.y]="model.height - 12"
-                  text-anchor="middle"
-                  font-size="10"
-                  fill="#7a6850"
-                >
-                  {{ tick.value }}
-                </text>
-              }
-
-              @for (tick of model.yTicks; track tick.value) {
-                <line
-                  class="latent-grid__line"
-                  [attr.x1]="MARGIN.left"
-                  [attr.x2]="model.width - MARGIN.right"
-                  [attr.y1]="tick.y"
-                  [attr.y2]="tick.y"
-                  stroke="rgba(126, 104, 62, 0.12)"
-                  stroke-dasharray="4 6"
-                />
-                <text
-                  [attr.x]="MARGIN.left - 10"
-                  [attr.y]="(tick.y ?? 0) + 4"
-                  text-anchor="end"
-                  font-size="10"
-                  fill="#7a6850"
-                >
-                  {{ tick.value }}
-                </text>
-              }
-
-              @if (model.zeroX !== null) {
-                <line
-                  [attr.x1]="model.zeroX"
-                  [attr.x2]="model.zeroX"
-                  [attr.y1]="MARGIN.top"
-                  [attr.y2]="model.height - MARGIN.bottom"
-                  stroke="rgba(109, 90, 61, 0.2)"
-                />
-              }
-
-              @if (model.zeroY !== null) {
-                <line
-                  [attr.x1]="MARGIN.left"
-                  [attr.x2]="model.width - MARGIN.right"
-                  [attr.y1]="model.zeroY"
-                  [attr.y2]="model.zeroY"
-                  stroke="rgba(109, 90, 61, 0.2)"
-                />
-              }
-            </g>
-
-            @for (target of model.targets; track target.id) {
-              <circle
-                class="latent-node latent-node--target-bg"
-                [attr.cx]="target.px"
-                [attr.cy]="target.py"
-                r="8"
-                [attr.fill]="target.color"
-                opacity="0.4"
-              />
-              <image
-                class="latent-node latent-node--target"
-                [attr.x]="target.px - 9"
-                [attr.y]="target.py - 13"
-                width="15"
-                height="18"
-                xlink:href="assets/map/target_1.png"
-              />
+        <div class="latent-panel__content">
+          <div class="latent-panel__left">
+            @if (configModel(); as config) {
+              <div class="config-card config-card--global">
+                <h4 class="config-card__title">Global Configuration</h4>
+                <div class="config-card__content config-card__content--grid">
+                  <div class="config-item">
+                    <span class="config-item__label">Latent Dimension:</span>
+                    <span class="config-item__value">{{ config.globalConfig.latent_dim }}</span>
+                  </div>
+                  <div class="config-item">
+                    <span class="config-item__label">Number of Modes:</span>
+                    <span class="config-item__value">{{ config.globalConfig.num_modes }}</span>
+                  </div>
+                  <div class="config-item">
+                    <span class="config-item__label">Drone Variance:</span>
+                    <span class="config-item__value">{{ config.globalConfig.drone_variance }}</span>
+                  </div>
+                  <div class="config-item">
+                    <span class="config-item__label">Target Variance:</span>
+                    <span class="config-item__value">{{ config.globalConfig.target_variance }}</span>
+                  </div>
+                  <div class="config-item">
+                    <span class="config-item__label">Target HP:</span>
+                    <span class="config-item__value">{{ config.globalConfig.target_hp }}</span>
+                  </div>
+                  <div class="config-item">
+                    <span class="config-item__label">Center Mode:</span>
+                    <span class="config-item__value">{{ config.globalConfig.center_mode }}</span>
+                  </div>
+                </div>
+              </div>
             }
 
-            @for (drone of model.drones; track drone.id) {
-              <circle
-                class="latent-node--drone-shadow"
-                [attr.cx]="drone.px"
-                [attr.cy]="drone.py + 12"
-                r="8"
-              />
-              <image
-                class="latent-node latent-node--drone"
-                [attr.x]="drone.px - 16"
-                [attr.y]="drone.py - 18"
-                width="32"
-                height="32"
-                xlink:href="assets/map/drone.png"
-              />
-            }
-          </svg>
+            <div class="latent-panel__stage">
+            <svg
+              class="latent-panel__svg"
+              [attr.viewBox]="'0 0 ' + model.width + ' ' + model.height"
+              role="img"
+              aria-label="Latent world visualization"
+            >
+              <g>
+                @for (tick of model.xTicks; track tick.value) {
+                  <line
+                    class="latent-grid__line"
+                    [attr.x1]="tick.x"
+                    [attr.x2]="tick.x"
+                    [attr.y1]="MARGIN.top"
+                    [attr.y2]="model.height - MARGIN.bottom"
+                    stroke="rgba(126, 104, 62, 0.12)"
+                    stroke-dasharray="4 6"
+                  />
+                  <text
+                    [attr.x]="tick.x"
+                    [attr.y]="model.height - 12"
+                    text-anchor="middle"
+                    font-size="10"
+                    fill="#7a6850"
+                  >
+                    {{ tick.value }}
+                  </text>
+                }
+
+                @for (tick of model.yTicks; track tick.value) {
+                  <line
+                    class="latent-grid__line"
+                    [attr.x1]="MARGIN.left"
+                    [attr.x2]="model.width - MARGIN.right"
+                    [attr.y1]="tick.y"
+                    [attr.y2]="tick.y"
+                    stroke="rgba(126, 104, 62, 0.12)"
+                    stroke-dasharray="4 6"
+                  />
+                  <text
+                    [attr.x]="MARGIN.left - 10"
+                    [attr.y]="(tick.y ?? 0) + 4"
+                    text-anchor="end"
+                    font-size="10"
+                    fill="#7a6850"
+                  >
+                    {{ tick.value }}
+                  </text>
+                }
+
+                @if (model.zeroX !== null) {
+                  <line
+                    [attr.x1]="model.zeroX"
+                    [attr.x2]="model.zeroX"
+                    [attr.y1]="MARGIN.top"
+                    [attr.y2]="model.height - MARGIN.bottom"
+                    stroke="rgba(109, 90, 61, 0.2)"
+                  />
+                }
+
+                @if (model.zeroY !== null) {
+                  <line
+                    [attr.x1]="MARGIN.left"
+                    [attr.x2]="model.width - MARGIN.right"
+                    [attr.y1]="model.zeroY"
+                    [attr.y2]="model.zeroY"
+                    stroke="rgba(109, 90, 61, 0.2)"
+                  />
+                }
+              </g>
+
+              @for (target of model.targets; track target.id) {
+                <circle
+                  class="latent-node latent-node--target-bg"
+                  [attr.cx]="target.px"
+                  [attr.cy]="target.py"
+                  r="8"
+                  [attr.fill]="target.color"
+                  opacity="0.4"
+                />
+                <image
+                  class="latent-node latent-node--target"
+                  [attr.x]="target.px - 9"
+                  [attr.y]="target.py - 13"
+                  width="15"
+                  height="18"
+                  xlink:href="assets/map/target_1.png"
+                />
+              }
+
+              @for (drone of model.drones; track drone.id) {
+                <circle
+                  class="latent-node--drone-shadow"
+                  [attr.cx]="drone.px"
+                  [attr.cy]="drone.py + 12"
+                  r="8"
+                />
+                <image
+                  class="latent-node latent-node--drone"
+                  [attr.x]="drone.px - 16"
+                  [attr.y]="drone.py - 18"
+                  width="32"
+                  height="32"
+                  xlink:href="assets/map/drone.png"
+                />
+              }
+            </svg>
+            </div>
+          </div>
+
+          @if (configModel(); as config) {
+            <div class="latent-panel__config">
+
+              @for (mode of config.modes; track mode.modeId) {
+                <div class="config-card">
+                  <h4 class="config-card__title">
+                    <span class="config-card__mode-swatch" [style.background]="mode.color"></span>
+                    Mode {{ mode.modeId }}
+                  </h4>
+                  <div class="config-card__content">
+                    <div class="config-counts-row">
+                      <div class="config-item">
+                        <span class="config-item__label">Drones:</span>
+                        <span class="config-item__value">{{ mode.droneCount }}</span>
+                      </div>
+                      <div class="config-item">
+                        <span class="config-item__label">Targets:</span>
+                        <span class="config-item__value">{{ mode.targetCount }}</span>
+                      </div>
+                    </div>
+
+                    <div class="config-sections-row">
+                      @if (mode.drones.length > 0) {
+                        <div class="config-section">
+                          <div class="config-section__title">Drone Vectors</div>
+                          @for (drone of mode.drones; track drone.id) {
+                            <div class="vector-item">
+                              <span class="vector-item__id">{{ drone.id }}:</span>
+                              <span class="vector-item__values">{{ formatVector(drone.latent_vector) }}</span>
+                            </div>
+                          }
+                        </div>
+                      }
+
+                      @if (mode.targets.length > 0) {
+                        <div class="config-section">
+                          <div class="config-section__title">Target Vectors (top 3)</div>
+                          @for (target of mode.targets; track target.id) {
+                            <div class="vector-item">
+                              <span class="vector-item__id">{{ target.id }}:</span>
+                              <span class="vector-item__values">{{ formatVector(target.latent_vector) }}</span>
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              }
+            </div>
+          }
         </div>
       </div>
     } @else {
@@ -204,6 +313,55 @@ export class LatentWorldVisualizationPanel {
   protected readonly MARGIN = MARGIN;
 
   readonly latentVectors = input<LatentVectorsData | null>(null);
+
+  protected formatVector(vector: number[]): string {
+    return vector.map(v => v.toFixed(1)).join(', ');
+  }
+
+  readonly configModel = computed<ConfigModel | null>(() => {
+    const data = this.latentVectors();
+    if (!data || !data.config) {
+      return null;
+    }
+
+    const uniqueModes = new Set([
+      ...data.drones.map(d => d.mode_id),
+      ...data.targets.map(t => t.mode_id)
+    ]);
+
+    const modeColorMap = new Map(
+      Array.from(uniqueModes).sort().map((modeId, index) => [
+        modeId,
+        MODE_COLORS[index % MODE_COLORS.length]
+      ])
+    );
+
+    const modes: ConfigModeCard[] = Array.from(uniqueModes).sort().map(modeId => {
+      const modeDrones = data.drones.filter(d => d.mode_id === modeId);
+      const modeTargets = data.targets.filter(t => t.mode_id === modeId).slice(0, 3);
+
+      return {
+        modeId,
+        color: modeColorMap.get(modeId) ?? MODE_COLORS[0],
+        droneCount: modeDrones.length,
+        targetCount: data.targets.filter(t => t.mode_id === modeId).length,
+        drones: modeDrones.map(d => ({ id: d.id, latent_vector: d.latent_vector })),
+        targets: modeTargets.map(t => ({ id: t.id, latent_vector: t.latent_vector }))
+      };
+    });
+
+    return {
+      globalConfig: {
+        latent_dim: data.config.latent_dim,
+        num_modes: data.config.num_modes,
+        drone_variance: data.config.drone_variance,
+        target_variance: data.config.target_variance,
+        target_hp: data.config.target_hp,
+        center_mode: data.config.center_mode
+      },
+      modes
+    };
+  });
 
   readonly plotModel = computed<PlotModel | null>(() => {
     const data = this.latentVectors();

@@ -796,6 +796,7 @@ def main():
                 "drone_variance": config.latent_world.drone_variance,
                 "target_variance": config.latent_world.target_variance,
                 "target_hp": config.latent_world.target_hp,
+                "center_mode": config.latent_world.center_mode,
             },
         )
     else:
