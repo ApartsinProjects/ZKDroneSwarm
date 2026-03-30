@@ -1,0 +1,61 @@
+.latent-node {
+  transition: cx 0.08s linear, cy 0.08s linear, x 0.08s linear, y 0.08s linear;
+}
+
+.latent-node--drone {
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.25));
+}
+
+.latent-node--drone-shadow {
+  fill: rgba(0, 0, 0, 0.1);
+  filter: blur(2px);
+  transition: cx 0.08s linear, cy 0.08s linear;
+}
+
+.latent-panel__header {
+  padding: 0 0 12px 0;
+  border-bottom: 1px solid rgba(92, 77, 57, 0.15);
+  margin-bottom: 16px;
+}
+
+.latent-panel__title {
+  margin: .5rem 0 .25rem 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #5c4d39;
+}
+
+.latent-panel__subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: #7a6850;
+}
+
+.latent-panel__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #5c4d39;
+}
+
+.latent-panel__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.latent-panel__legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(92, 77, 57, 0.18);
+}
+
+.analysis-placeholder {
+  padding: 40px 20px;
+  text-align: center;
+  color: #7a6850;
+  font-size: 14px;
+}

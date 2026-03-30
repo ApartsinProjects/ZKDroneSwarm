@@ -268,6 +268,66 @@ class EpisodeLogger:
         if target_initial_hps:
             scenario["target_initial_hps"] = target_initial_hps
 
+        # Build latent vectors with t-SNE projection for latent world visualization
+        if hasattr(env, "world_model") and env.world_model == "latent":
+            from sklearn.manifold import TSNE
+            import numpy as np
+            
+            # Extract 3D latent vectors from drones and targets
+            drone_vectors = []
+            drone_metadata = []
+            for drone in env.drones:
+                if hasattr(drone, "latent_vector"):
+                    drone_vectors.append(list(drone.latent_vector))
+                    drone_metadata.append({
+                        "id": drone.id,
+                        "mode_id": drone.mode_id if hasattr(drone, "mode_id") else 0
+                    })
+            
+            target_vectors = []
+            target_metadata = []
+            for target in env.targets:
+                if hasattr(target, "latent_vector"):
+                    target_vectors.append(list(target.latent_vector))
+                    target_metadata.append({
+                        "id": target.id,
+                        "mode_id": target.mode_id if hasattr(target, "mode_id") else 0
+                    })
+            
+            # Apply t-SNE if we have vectors
+            if drone_vectors and target_vectors:
+                # Combine all vectors for unified projection
+                all_vectors = np.array(drone_vectors + target_vectors)
+                
+                # Apply t-SNE with fixed random state for determinism
+                tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, len(all_vectors) - 1))
+                tsne_coords = tsne.fit_transform(all_vectors)
+                
+                # Split back into drones and targets
+                num_drones = len(drone_vectors)
+                drone_tsne = tsne_coords[:num_drones]
+                target_tsne = tsne_coords[num_drones:]
+                
+                # Build latent_vectors structure
+                scenario["latent_vectors"] = {
+                    "drones": [
+                        {
+                            "id": meta["id"],
+                            "mode_id": meta["mode_id"],
+                            "tsne_coords": [float(coord[0]), float(coord[1])]
+                        }
+                        for meta, coord in zip(drone_metadata, drone_tsne)
+                    ],
+                    "targets": [
+                        {
+                            "id": meta["id"],
+                            "mode_id": meta["mode_id"],
+                            "tsne_coords": [float(coord[0]), float(coord[1])]
+                        }
+                        for meta, coord in zip(target_metadata, target_tsne)
+                    ]
+                }
+
         return scenario
     
     def build_shared_config_snapshot(self, env: Any) -> Dict[str, Any]:

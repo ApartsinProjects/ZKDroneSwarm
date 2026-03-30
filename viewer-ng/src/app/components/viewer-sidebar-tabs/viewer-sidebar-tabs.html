@@ -182,6 +182,12 @@
               </div>
             }
           </div>
+        } @else if (tab.id === 'latent-world') {
+          <div class="analysis-panel">
+            <app-latent-world-visualization-panel
+              [latentVectors]="latentVectors()"
+            />
+          </div>
         }
       </div>
     </section>

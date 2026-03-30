@@ -6,8 +6,8 @@
   "latent_world": {
     "latent_dim": 3,
     "num_modes": 3,
-    "drone_variance": 0.2,
-    "target_variance": 0.2,
+    "drone_variance": 0.0,
+    "target_variance": 0.0,
     "target_hp": 5.0,
     "center_mode": "one_hot"
   },
@@ -85,7 +85,7 @@
   },
   "collaborative_filtering": {
     "reward_noise": 0.2,
-    "enable_tsne_enrichment": true,
+    "enable_tsne_enrichment": false,
     "matrix_factorization_cf": {
       "latent_dim": 8,
       "learning_rate": 0.01,
