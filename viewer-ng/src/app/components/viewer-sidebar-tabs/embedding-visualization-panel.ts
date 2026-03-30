@@ -86,20 +86,6 @@ const TARGET_CLASS_COLORS = [
               </button>
             }
           </div>
-
-          @if (model.legendItems.length > 0) {
-            <div class="embedding-panel__legend" aria-label="Target class legend">
-              @for (item of model.legendItems; track item.className) {
-                <span class="embedding-panel__legend-item">
-                  <span
-                    class="embedding-panel__legend-swatch"
-                    [style.background]="item.color"
-                  ></span>
-                  {{ item.className }}
-                </span>
-              }
-            </div>
-          }
         </div>
 
         <div class="embedding-panel__stage">

@@ -36,8 +36,5 @@ export class PoliciesComponent {
 
     this.crossEpisodeBrowser.loadEpisodes(policyName);
     this.embeddingBrowser.loadSnapshots(policyName);
-    
-    // Switch to HP & Active Target tab
-    this.sidebarTabService.setActiveTab('hp-active-target');
   }
 }
