@@ -30,7 +30,7 @@ class EpisodeLogger:
         data = logger.to_dict()
     """
     
-    VERSION = "1.3"
+    VERSION = "1.4"
     
     def __init__(self, output_dir: str = "logs/", policy_type: Optional[str] = None):
         """
@@ -268,12 +268,28 @@ class EpisodeLogger:
         if target_initial_hps:
             scenario["target_initial_hps"] = target_initial_hps
 
-        # Build latent vectors with t-SNE projection for latent world visualization
+        # Build unified latent world structure with config and entity data
         if hasattr(env, "world_model") and env.world_model == "latent":
             from sklearn.manifold import TSNE
             import numpy as np
             
-            # Extract 3D latent vectors from drones and targets
+            # Extract latent world config
+            latent_world_config = {}
+            latent_world = getattr(env, "latent_world", None)
+            if latent_world is not None:
+                if isinstance(latent_world, dict):
+                    latent_world_config = dict(latent_world)
+                else:
+                    latent_world_config = {
+                        "latent_dim": getattr(latent_world, "latent_dim", None),
+                        "num_modes": getattr(latent_world, "num_modes", None),
+                        "drone_variance": getattr(latent_world, "drone_variance", None),
+                        "target_variance": getattr(latent_world, "target_variance", None),
+                        "target_hp": getattr(latent_world, "target_hp", None),
+                        "center_mode": getattr(latent_world, "center_mode", None),
+                    }
+            
+            # Extract latent vectors from drones and targets
             drone_vectors = []
             drone_metadata = []
             for drone in env.drones:
@@ -281,7 +297,8 @@ class EpisodeLogger:
                     drone_vectors.append(list(drone.latent_vector))
                     drone_metadata.append({
                         "id": drone.id,
-                        "mode_id": drone.mode_id if hasattr(drone, "mode_id") else 0
+                        "mode_id": drone.mode_id if hasattr(drone, "mode_id") else 0,
+                        "latent_vector": list(drone.latent_vector)
                     })
             
             target_vectors = []
@@ -291,7 +308,8 @@ class EpisodeLogger:
                     target_vectors.append(list(target.latent_vector))
                     target_metadata.append({
                         "id": target.id,
-                        "mode_id": target.mode_id if hasattr(target, "mode_id") else 0
+                        "mode_id": target.mode_id if hasattr(target, "mode_id") else 0,
+                        "latent_vector": list(target.latent_vector)
                     })
             
             # Apply t-SNE if we have vectors
@@ -308,12 +326,14 @@ class EpisodeLogger:
                 drone_tsne = tsne_coords[:num_drones]
                 target_tsne = tsne_coords[num_drones:]
                 
-                # Build latent_vectors structure
-                scenario["latent_vectors"] = {
+                # Build unified latent_world structure
+                scenario["latent_world"] = {
+                    "config": latent_world_config,
                     "drones": [
                         {
                             "id": meta["id"],
                             "mode_id": meta["mode_id"],
+                            "latent_vector": meta["latent_vector"],
                             "tsne_coords": [float(coord[0]), float(coord[1])]
                         }
                         for meta, coord in zip(drone_metadata, drone_tsne)
@@ -322,6 +342,7 @@ class EpisodeLogger:
                         {
                             "id": meta["id"],
                             "mode_id": meta["mode_id"],
+                            "latent_vector": meta["latent_vector"],
                             "tsne_coords": [float(coord[0]), float(coord[1])]
                         }
                         for meta, coord in zip(target_metadata, target_tsne)
@@ -335,7 +356,9 @@ class EpisodeLogger:
         Build config snapshot from environment configuration.
         
         Captures visualization-relevant configuration:
-        - world_size, max_steps, scenario_id, world_model, latent_world
+        - world_size, max_steps, scenario_id, world_model
+        
+        Note: latent_world config now lives in scenario.latent_world.config
         
         Args:
             env: The environment instance
@@ -349,18 +372,6 @@ class EpisodeLogger:
             "scenario_id": env.scenario_id,
             "world_model": getattr(env, "world_model", "custom"),
         }
-
-        latent_world = getattr(env, "latent_world", None)
-        if latent_world is not None:
-            if isinstance(latent_world, dict):
-                config["latent_world"] = dict(latent_world)
-            else:
-                config["latent_world"] = {
-                    "latent_dim": getattr(latent_world, "latent_dim", None),
-                    "num_modes": getattr(latent_world, "num_modes", None),
-                    "drone_variance": getattr(latent_world, "drone_variance", None),
-                    "target_variance": getattr(latent_world, "target_variance", None),
-                }
 
         return config
 
