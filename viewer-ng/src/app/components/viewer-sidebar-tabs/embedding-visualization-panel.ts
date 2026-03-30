@@ -88,7 +88,7 @@ const MODE_COLORS = [
                 class="embedding-panel__agent-item"
                 [class.embedding-panel__agent-item--active]="agentIndex === model.selectedAgent"
                 [style.border-color]="getDroneBorderColor(agentIndex)"
-                [style.border-style]="'line'"
+                [style.background]="getDroneBackground(agentIndex, agentIndex === model.selectedAgent)"
                 (click)="selectedAgentChange.emit(agentIndex)"
               >
                 <img
@@ -248,24 +248,30 @@ const MODE_COLORS = [
       align-items: center;
       gap: 4px;
       padding: 6px 10px;
-      border: 1px solid rgba(92, 77, 57, 0.15);
-      border-radius: 8px;
-      background: transparent;
+      border: 0.4px solid rgba(92, 77, 57, 0.15);
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      transition: all 0.2s ease;
       color: #5c4d39;
       font-size: 11px;
       font-weight: 600;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+      position: relative;
     }
 
     .embedding-panel__agent-item:hover {
-      background: rgba(52, 152, 219, 0.08);
-      border-color: rgba(52, 152, 219, 0.3);
+      background: linear-gradient(135deg, rgba(52, 152, 219, 0.12) 0%, rgba(52, 152, 219, 0.05) 100%);
+      border-color: rgba(52, 152, 219, 0.4);
+      box-shadow: 0 3px 8px rgba(52, 152, 219, 0.15);
+      transform: translateY(-1px);
     }
 
     .embedding-panel__agent-item--active {
-      background: rgba(52, 152, 219, 0.14);
-      border-color: #3498db;
+      background: linear-gradient(135deg, rgba(52, 152, 219, 0.18) 0%, rgba(52, 152, 219, 0.08) 100%);
+      border-color: rgba(52, 152, 219, 0.4);
+      box-shadow: 0 4px 12px rgba(52, 152, 219, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.2), 0 0 0 1.6px rgba(52, 152, 219, 0.3);
+      transform: translateY(-2px);
     }
 
     .embedding-panel__agent-icon {
@@ -345,6 +351,25 @@ export class EmbeddingVisualizationPanel {
     }
     
     return MODE_COLORS[drone.mode_id % MODE_COLORS.length];
+  }
+
+  protected getDroneBackground(agentIndex: number, isActive: boolean): string {
+    if (!isActive) {
+      return 'linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%)';
+    }
+
+    const modeColor = this.getDroneBorderColor(agentIndex);
+    if (modeColor === 'rgba(92, 77, 57, 0.15)') {
+      return 'linear-gradient(135deg, rgba(52, 152, 219, 0.18) 0%, rgba(52, 152, 219, 0.08) 100%)';
+    }
+
+    // Convert hex to RGB and create light gradient
+    const hex = modeColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    
+    return `linear-gradient(135deg, rgba(${r}, ${g}, ${b}, 0.18) 0%, rgba(${r}, ${g}, ${b}, 0.08) 100%)`;
   }
 
   readonly plotModel = computed<PlotModel | null>(() => {
