@@ -44,7 +44,6 @@ class OptimalAssignmentOracle(IPolicy):
     
     def __init__(
         self,
-        agent_weapon_profiles: Dict[str, Dict[str, float]],
         seed: Optional[int] = None,
         allow_noop: bool = True,
     ):
@@ -52,20 +51,14 @@ class OptimalAssignmentOracle(IPolicy):
         Initialize optimal assignment oracle.
         
         Args:
-            agent_weapon_profiles: Dict mapping agent_id to weapon damage profile.
-                                   e.g., {"drone_0": {"armor": 10.0, "shields": 5.0}, ...}
             seed: Random seed for reproducibility (unused, kept for interface consistency)
             allow_noop: If True, unassigned drones get action 0. If False, they get -1.
         """
-        self.agent_weapon_profiles = {
-            agent_id: {k: float(v) for k, v in profile.items()}
-            for agent_id, profile in agent_weapon_profiles.items()
-        }
         self.rng = np.random.RandomState(seed)
         self.allow_noop = allow_noop
         
-        self.agent_ids = sorted(self.agent_weapon_profiles.keys())
-        self.num_agents = len(self.agent_ids)
+        self.agent_ids: Optional[List[str]] = None
+        self.num_agents: int = 0
         
         self._attribute_names: Optional[List[str]] = None
         self._diagnostics_provider: Optional[DiagnosticsProvider] = None
@@ -78,6 +71,27 @@ class OptimalAssignmentOracle(IPolicy):
         if self._diagnostics_provider is not None:
             return self._diagnostics_provider()
         return extract_shared_info(infos)
+    
+    def _extract_drone_state_from_env(self, env: Any) -> List[Dict[str, float]]:
+        """Extract drone state directly from environment.
+        
+        Reads drone latent vectors (weapon profiles) from env.drones.
+        Symmetric with _extract_target_state_from_env.
+        """
+        drones_state = []
+        if not hasattr(env, 'drones'):
+            return drones_state
+        
+        for drone in env.drones:
+            if hasattr(drone, 'latent_vector'):
+                drones_state.append({
+                    f"d{i}": v
+                    for i, v in enumerate(drone.latent_vector)
+                })
+            else:
+                drones_state.append({})
+        
+        return drones_state
     
     def _extract_target_state_from_env(self, env: Any) -> List[Dict[str, float]]:
         """Extract target state directly from environment.
@@ -111,20 +125,24 @@ class OptimalAssignmentOracle(IPolicy):
             self._attribute_names = sorted(targets_state[0].keys())
         return self._attribute_names or []
     
-    def _build_agent_vectors(self, attribute_names: List[str]) -> np.ndarray:
+    def _build_agent_vectors(
+        self,
+        drones_state: List[Dict[str, float]],
+        attribute_names: List[str],
+    ) -> np.ndarray:
         """
-        Build agent vectors from weapon damage profiles.
+        Build agent vectors from drone state.
         
         Args:
+            drones_state: List of drone attribute dicts
             attribute_names: Ordered list of attribute names
         
         Returns:
             Agent vectors array of shape (num_agents, num_attributes)
         """
         vectors = []
-        for agent_id in self.agent_ids:
-            profile = self.agent_weapon_profiles[agent_id]
-            vec = [profile.get(attr, 0.0) for attr in attribute_names]
+        for drone_attrs in drones_state:
+            vec = [drone_attrs.get(attr, 0.0) for attr in attribute_names]
             vectors.append(vec)
         return np.array(vectors, dtype=np.float64)
     
@@ -318,12 +336,19 @@ class OptimalAssignmentOracle(IPolicy):
         """
         Select actions using privileged HP-aware focus-fire planning.
         """
+        # Initialize agent_ids on first call
+        if self.agent_ids is None:
+            self.agent_ids = sorted(obs.keys())
+            self.num_agents = len(self.agent_ids)
+        
         if env is not None:
+            drones_state = self._extract_drone_state_from_env(env)
             targets_state = self._extract_target_state_from_env(env)
             num_targets = len(env.targets) if hasattr(env, "targets") else 0
         else:
             shared_info = self._get_shared_info(infos)
             num_targets = len(shared_info.get("target_active", []))
+            drones_state = shared_info.get("drone_attributes", [])
             targets_state = shared_info.get("target_attributes", [])
 
         first_obs = next(iter(obs.values()))
@@ -336,7 +361,7 @@ class OptimalAssignmentOracle(IPolicy):
                 for agent_id in self.agent_ids
             }
 
-        agent_vectors = self._build_agent_vectors(attribute_names)
+        agent_vectors = self._build_agent_vectors(drones_state, attribute_names)
         target_vectors = self._build_target_vectors(targets_state, attribute_names)
 
         if env is not None and hasattr(env, "targets"):

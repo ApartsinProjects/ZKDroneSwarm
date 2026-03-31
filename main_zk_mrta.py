@@ -141,13 +141,7 @@ def create_policy(
         Policy instance
     """
     if policy_type == "max_damage_oracle":
-        # Build agent weapon profiles from latent vectors
-        agent_weapon_profiles = {
-            f"drone_{idx}": {f"d{i}": v for i, v in enumerate(drone_cfg["latent_vector"])}
-            for idx, drone_cfg in enumerate(drones_config)
-        }
         return OptimalAssignmentOracle(
-            agent_weapon_profiles=agent_weapon_profiles,
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
         )

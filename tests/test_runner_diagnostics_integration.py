@@ -43,10 +43,6 @@ def test_run_episode_uses_env_diagnostics_with_random_policy() -> None:
 def test_run_episode_uses_env_diagnostics_with_max_damage_oracle() -> None:
     env = build_test_env()
     policy = OptimalAssignmentOracle(
-        agent_weapon_profiles={
-            "drone_0": {"hp": 3.0},
-            "drone_1": {"hp": 4.0},
-        },
         allow_noop=True,
     )
 
