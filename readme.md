@@ -113,22 +113,6 @@ Direct construction via `DroneEngageZKMRTA(...)` is still supported, but
 python3 main_zk_mrta.py
 ```
 
-### Episode Viewer
-
-Visualize episode logs with the built-in viewer:
-
-```bash
-# Show latest episode (auto-discovers from logs/)
-python3 -m viewer show
-
-# Show specific episode
-python3 -m viewer show --episode logs/episode_xxx.json
-```
-
-The viewer displays a split-panel view (60/40 layout) with:
-- **Left panel:** Map with world bounds, grid, drones (triangles by weapon type), targets (circles)
-- **Right panel:** Tabbed info panel for additional details
-
 ## Project Structure
 
 ```
@@ -139,7 +123,7 @@ TabulaDrone/
 │   ├── logging/           # Episode logging
 │   ├── policies/          # Policy implementations
 │   └── scenarios/         # Scenario utilities
-├── viewer/                # Episode visualization CLI
+├── viewer-ng/             # Angular episode visualization web app
 ├── tests/                 # Test suite
 ├── logs/                  # Episode log output (generated)
 ├── config/                # Scenario configuration files
