@@ -314,4 +314,88 @@ def soft_reset(self, episode_count: Optional[int] = None) -> None:
 
 Thus, the learned matrices $P^{(a)}$ and $U^{(a)}$ are retained across episodes, and $\varepsilon$ continues to decay throughout training. This means the training process is effectively cumulative, even though evaluation is organized episodically.
 
-The current configuration uses a **factorization dimension of 8** for the policy, while the true latent world has dimension **3**. So the learner is not trying to recover the hidden vectors exactly in an identifiable sense. Rather, it is learning an internal predictive representation that is sufficiently expressive to model the interaction structure from observations alone. This is a useful distinction because it frames the policy as recovering a workable latent approximation, not the exact ground-truth coordinates.
+The current configuration uses a **factorization dimension of 3** for the policy, matching the true latent world dimension of **3**. This dimension is configurable via the `collaborative_filtering.matrix_factorization_cf.latent_dim` parameter. When the policy dimension matches the world dimension, the learner has the capacity to recover representations that align with the true latent structure. However, the policy can also be configured with a different dimension—either smaller (forcing compression) or larger (providing additional representational flexibility)—allowing the learner to discover an internal predictive representation that may differ from the ground-truth coordinates while still effectively modeling the interaction structure from observations alone.
+
+---
+
+## 6. Evaluation and Metrics
+
+The environment tracks several metrics to evaluate policy performance and coordination efficiency. These metrics capture both the effectiveness of task completion and the efficiency of resource utilization.
+
+### Total Ammo Used
+
+Total ammo used measures the cumulative number of shots fired by all drones across an episode. Each engagement action counts as one shot, regardless of the damage dealt or whether the target was already inactive. This metric provides a direct measure of resource consumption:
+
+$$\text{Total Ammo} = \sum_{t=1}^{T} \sum_{i=1}^{N} \mathbb{1}[\text{drone } i \text{ fired at step } t]$$
+
+where $T$ is the episode length and $N$ is the number of drones. Lower values indicate more efficient resource usage, though this must be balanced against task completion requirements.
+
+### Shots per Target
+
+Shots per target measures the average number of shots required to neutralize each target. It is computed as the ratio of total ammo used to the number of targets destroyed:
+
+$$\text{Shots per Target} = \frac{\text{Total Ammo Used}}{\text{Number of Targets Destroyed}}$$
+
+This metric directly captures coordination efficiency. The theoretical minimum is determined by the target HP and the damage potential of optimally matched drones. Values significantly above this minimum indicate coordination failures such as:
+
+* **Overkill**: Multiple drones firing at a target that is nearly depleted
+* **Mismatched assignments**: Drones engaging targets with low compatibility scores
+* **Sequential inefficiency**: Targets being engaged by poorly matched drones before well-matched ones
+
+Since each target has HP of 5.0 and damage values depend on latent compatibility, an ideal policy would minimize shots per target by learning the compatibility structure and coordinating assignments accordingly.
+
+### Total Gross Damage
+
+Total gross damage measures the sum of all nonnegative damage produced by the swarm's shots, including damage that is later wasted by overkill. For each engagement where drone $i$ fires at target $j$, the damage is computed as:
+
+$$d_{ij} = \max(0, (\mathbf{z}^{(d)}_i)^\top \mathbf{z}^{(t)}_j)$$
+
+Total gross damage accumulates all such values across the episode:
+
+$$\text{Total Gross Damage} = \sum_{t=1}^{T} \sum_{i=1}^{N} d_{ij}(t)$$
+
+This metric captures the total damage potential exercised by the swarm, regardless of whether that damage was useful. It includes damage applied to targets that were already nearly depleted, as well as shots fired at inactive targets.
+
+### Total Net Damage
+
+Total net damage measures the sum of effective damage actually applied to target HP, capped by each target's remaining HP at the time of engagement. For each shot, the effective damage is:
+
+$$d^{\text{eff}}_{ij} = \min(d_{ij}, \text{HP}_j^{\text{before}})$$
+
+where $\text{HP}_j^{\text{before}}$ is the target's HP before the shot. Total net damage is:
+
+$$\text{Total Net Damage} = \sum_{t=1}^{T} \sum_{i=1}^{N} d^{\text{eff}}_{ij}(t)$$
+
+For fully successful episodes where all targets are neutralized, this equals $\text{target\_hp} \times \text{targets\_count}$. Values below this theoretical maximum indicate that some targets were not fully destroyed.
+
+### Damage Efficiency
+
+Damage efficiency measures the ratio of useful damage to attempted damage:
+
+$$\text{Dmg Eff} = \frac{\text{Total Net Damage}}{\text{Total Gross Damage}}$$
+
+This metric quantifies how much inflicted damage was not wasted. A value of 1.0 indicates perfect efficiency—every point of damage contributed to neutralizing targets. Lower values indicate coordination failures where damage was wasted through overkill or poor target selection. This metric is particularly sensitive to the timing and coordination of engagements, as it penalizes scenarios where multiple drones fire at nearly-depleted targets.
+
+### Total Collisions
+
+Total collisions measures the number of same-step events in which multiple drones select the same target. At each step, if $k$ drones select the same target, this contributes $k-1$ collisions:
+
+$$\text{Collisions}_t = \sum_{j=1}^{M} \max(0, |\{i : a_i(t) = j\}| - 1)$$
+
+where $a_i(t)$ is the action (target selection) of drone $i$ at step $t$. Total collisions accumulates these across the episode:
+
+$$\text{Total Collisions} = \sum_{t=1}^{T} \text{Collisions}_t$$
+
+This metric serves as a direct indicator of redundant decentralized assignment. High collision counts suggest that the swarm is not effectively coordinating target selection, leading to wasted effort and reduced throughput. However, collisions are not inherently penalized in the reward signal—they manifest as inefficiency only through their downstream effects on overkill and ammo usage.
+
+### Total Overkill
+
+Total overkill measures the cumulative excess damage applied beyond a target's remaining HP after neutralization. When a shot reduces a target's HP below zero, the absolute value of the negative HP represents wasted damage:
+
+$$\text{Overkill}_{ij} = \max(0, -\text{HP}_j^{\text{after}})$$
+
+where $\text{HP}_j^{\text{after}}$ is the target's HP after drone $i$'s shot. Total overkill accumulates all such excess damage:
+
+$$\text{Total Overkill} = \sum_{t=1}^{T} \sum_{i=1}^{N} \text{Overkill}_{ij}(t)$$
+
+This metric captures wasted fire caused by redundant or poorly timed engagements. Overkill occurs when multiple drones engage the same target in quick succession, or when a single drone applies more damage than needed to neutralize a target. Unlike collisions, which only count simultaneous selections, overkill quantifies the actual damage waste resulting from poor coordination across both simultaneous and sequential engagements.
