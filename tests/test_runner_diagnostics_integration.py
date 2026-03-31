@@ -1,36 +1,27 @@
 import json
 
 from main_zk_mrta import attach_target_classes_to_learning_state, run_episode
-from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
+from tabula_drone.envs.drone_engage_latent_mrta import DroneEngageLatentMRTA
 from tabula_drone.logging import EnvironmentLogger
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
-from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.random_policy import RandomPolicy
 
 
-def build_test_env() -> DroneEngageZKMRTA:
-    return DroneEngageZKMRTA(
+def build_test_env() -> DroneEngageLatentMRTA:
+    return DroneEngageLatentMRTA(
         world_size=(100.0, 100.0),
         max_steps=3,
         drones_config=[
-            {"position": (10.0, 10.0), "weapon_type": "light"},
-            {"position": (20.0, 20.0), "weapon_type": "medium"},
+            {"position": (10.0, 10.0), "latent_vector": [1.0, 0.0, 0.0], "mode_id": 0},
+            {"position": (20.0, 20.0), "latent_vector": [0.0, 1.0, 0.0], "mode_id": 1},
         ],
         targets_config=[
-            {"position": (30.0, 30.0), "class_type": "A"},
-            {"position": (40.0, 40.0), "class_type": "B"},
+            {"position": (30.0, 30.0), "latent_vector": [1.0, 0.0, 0.0], "mode_id": 0, "hp": 1.0},
+            {"position": (40.0, 40.0), "latent_vector": [0.0, 1.0, 0.0], "mode_id": 1, "hp": 1.0},
         ],
         scenario_id="runner_test",
-        class_attribute_mapping={
-            "A": {"hp": 10.0},
-            "B": {"hp": 12.0},
-        },
-        weapon_damage_profile_mapping={
-            "light": {"hp": 3.0},
-            "medium": {"hp": 4.0},
-        },
         mode="episodic",
     )
 

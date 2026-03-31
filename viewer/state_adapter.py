@@ -64,7 +64,6 @@ def extract_initial_state(
         # Fallback: infer from positions or use default
         world_size = _infer_world_size(scenario)
     
-    world_model = config.get("world_model", "custom")
     latent_world = config.get("latent_world")
 
     # Extract drones

@@ -1,29 +1,21 @@
 from pettingzoo.test import parallel_api_test
 
-from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA
+from tabula_drone.envs.drone_engage_latent_mrta import DroneEngageLatentMRTA
 
 
-def build_test_env() -> DroneEngageZKMRTA:
-    return DroneEngageZKMRTA(
+def build_test_env() -> DroneEngageLatentMRTA:
+    return DroneEngageLatentMRTA(
         world_size=(100.0, 100.0),
         max_steps=5,
         drones_config=[
-            {"position": (10.0, 10.0), "weapon_type": "light"},
-            {"position": (20.0, 20.0), "weapon_type": "medium"},
+            {"position": (10.0, 10.0), "latent_vector": [1.0, 0.0, 0.0], "mode_id": 0},
+            {"position": (20.0, 20.0), "latent_vector": [0.0, 1.0, 0.0], "mode_id": 1},
         ],
         targets_config=[
-            {"position": (30.0, 30.0), "class_type": "A"},
-            {"position": (40.0, 40.0), "class_type": "B"},
+            {"position": (30.0, 30.0), "latent_vector": [1.0, 0.0, 0.0], "mode_id": 0, "hp": 10.0},
+            {"position": (40.0, 40.0), "latent_vector": [0.0, 1.0, 0.0], "mode_id": 1, "hp": 12.0},
         ],
         scenario_id="parallel_api_test",
-        class_attribute_mapping={
-            "A": {"hp": 10.0},
-            "B": {"hp": 12.0},
-        },
-        weapon_damage_profile_mapping={
-            "light": {"hp": 3.0},
-            "medium": {"hp": 4.0},
-        },
         mode="episodic",
     )
 

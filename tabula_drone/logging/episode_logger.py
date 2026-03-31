@@ -370,7 +370,6 @@ class EpisodeLogger:
             "world_size": list(env.world_size),
             "max_steps": env.max_steps,
             "scenario_id": env.scenario_id,
-            "world_model": getattr(env, "world_model", "custom"),
         }
 
         return config

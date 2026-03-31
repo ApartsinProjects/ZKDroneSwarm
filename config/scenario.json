@@ -1,8 +1,4 @@
 {
-  "world_model": "latent",
-  "custom_world": {
-    "mappings_file": "mappings_cf_friendly.json"
-  },
   "latent_world": {
     "latent_dim": 3,
     "num_modes": 3,
