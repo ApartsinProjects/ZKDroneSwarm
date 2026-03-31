@@ -51,7 +51,7 @@ The sampled vectors are then embedded into the generated drone and target config
 }
 ```
 
-A useful sharpening here is that the benchmark contains a **true hidden structure**, but not necessarily a perfectly recoverable symbolic structure. The agents do not learn mode IDs directly; they only interact with outcomes induced by these continuous vectors. The mode center generation is controlled by `"center_mode"`, which supports three options:
+The benchmark contains a **true hidden structure**, but not necessarily a perfectly recoverable symbolic structure. The agents do not learn mode IDs directly; they only interact with outcomes induced by these continuous vectors. The mode center generation is controlled by `"center_mode"`, which supports three options:
 
 - **`"one_hot"`**: Creates orthogonal mode centers aligned with coordinate axes, making hidden factors especially clean and separable
 - **`"orthogonal"`**: Generates orthogonal mode centers via random rotation, preserving separability while removing axis alignment
@@ -101,7 +101,7 @@ $$o_t^{(a)} =
 
 where $\mathbf{s}_{t-1}$ is the vector of previously selected targets by all drones, and $\tilde{\mathbf{r}}_{t-1}$ is the vector of observed rewards.
 
-What is important to sharpen here is that the setting is not merely partially observable in a generic sense; it is specifically designed so that the **entire compatibility structure is hidden**. The agents know where targets are and whether they remain active, but they do not know why a given drone matches a given target well. Learning therefore has to emerge from inference over public interaction history rather than access to privileged features. This makes the benchmark a direct analogue of collaborative filtering: the latent factors exist, but only sparse interaction outcomes are observable.
+The setting is not merely partially observable in a generic sense; it is specifically designed so that the **entire compatibility structure is hidden**. The agents know where targets are and whether they remain active, but they do not know why a given drone matches a given target well. Learning therefore has to emerge from inference over public interaction history rather than access to privileged features. This makes the benchmark a direct analogue of collaborative filtering: the latent factors exist, but only sparse interaction outcomes are observable.
 
 ---
 
@@ -162,7 +162,7 @@ if len(target_selections[target_idx]) > 1:
 
 This creates two important coordination effects. First, **overkill** occurs when the applied damage exceeds the target's remaining HP, causing part of the effort to be wasted. Second, **contention** arises when several agents select the same target, especially because only some of those shots may contribute useful damage once the target is depleted.
 
-The key clarification to add is that these are primarily **task-level inefficiencies**, not standalone reward terms. The environment tracks collisions, overkill, net damage, and gross damage as diagnostics, but the learning signal itself is still local. This distinction matters because the benchmark separates the global execution objective from the immediate scalar reward observed by each agent. In other words, good coordination is necessary for task efficiency, but it is not handed to the policy as a direct centralized score.
+These are primarily **task-level inefficiencies**, not standalone reward terms. The environment tracks collisions, overkill, net damage, and gross damage as diagnostics, but the learning signal itself is still local. This distinction matters because the benchmark separates the global execution objective from the immediate scalar reward observed by each agent. In other words, good coordination is necessary for task efficiency, but it is not handed to the policy as a direct centralized score.
 
 ---
 
@@ -207,7 +207,7 @@ There is also a special anti-signal for wasted actions: if a drone fires at a ta
 rewards[agent_id] = -1.0
 ```
 
-A subtle but important sharpening is that **collisions themselves are not directly penalized by a dedicated collision reward term**. Instead, poor coordination becomes costly indirectly: agents may waste shots on already neutralized targets, create overkill, or fail to distribute effort efficiently. Thus, the reward signal is informative but incomplete. It carries local compatibility information, while broader notions of team efficiency remain embedded in the environment dynamics and evaluation metrics rather than in the scalar reward alone.
+Importantly, **collisions themselves are not directly penalized by a dedicated collision reward term**. Instead, poor coordination becomes costly indirectly: agents may waste shots on already neutralized targets, create overkill, or fail to distribute effort efficiently. Thus, the reward signal is informative but incomplete. It carries local compatibility information, while broader notions of team efficiency remain embedded in the environment dynamics and evaluation metrics rather than in the scalar reward alone.
 
 ---
 
@@ -253,7 +253,7 @@ After each action, exploration decays multiplicatively:
 self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 ```
 
-This detail is worth keeping explicit: the agent does not merely "shift from exploration to exploitation" abstractly — the shift is implemented through a decaying exploration schedule, which gradually reduces random exploration as learning progresses.
+The exploration-exploitation transition is implemented through a decaying exploration schedule, which gradually reduces random exploration as learning progresses.
 
 ### Learning from shared interaction data
 
@@ -314,4 +314,4 @@ def soft_reset(self, episode_count: Optional[int] = None) -> None:
 
 Thus, the learned matrices $P^{(a)}$ and $U^{(a)}$ are retained across episodes, and $\varepsilon$ continues to decay throughout training. This means the training process is effectively cumulative, even though evaluation is organized episodically.
 
-A final point worth making explicit is that the current configuration uses a **factorization dimension of 8** for the policy, while the true latent world has dimension **3**. So the learner is not trying to recover the hidden vectors exactly in an identifiable sense. Rather, it is learning an internal predictive representation that is sufficiently expressive to model the interaction structure from observations alone. This is a useful distinction because it frames the policy as recovering a workable latent approximation, not the exact ground-truth coordinates.
+The current configuration uses a **factorization dimension of 8** for the policy, while the true latent world has dimension **3**. So the learner is not trying to recover the hidden vectors exactly in an identifiable sense. Rather, it is learning an internal predictive representation that is sufficiently expressive to model the interaction structure from observations alone. This is a useful distinction because it frames the policy as recovering a workable latent approximation, not the exact ground-truth coordinates.
