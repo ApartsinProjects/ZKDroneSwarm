@@ -16,7 +16,6 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
 from tabula_drone.config import load_config
-from tabula_drone.envs.drone_engage_zk_mrta_v0 import DroneEngageZKMRTA, REWARD_MODE
 from tabula_drone.envs.drone_engage_latent_mrta import DroneEngageLatentMRTA
 from tabula_drone.logging import EnvironmentLogger
 from tabula_drone.utils.engagement_analysis_utils import (
@@ -25,11 +24,7 @@ from tabula_drone.utils.engagement_analysis_utils import (
     load_analysis,
 )
 from tabula_drone.policies.random_policy import RandomPolicy
-from tabula_drone.policies.min_ttk_oracle import OracleTimeToKillPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
-from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
-from tabula_drone.policies.selfish_ep_greedy_cf_policy import SelfishEpGreedyCFPolicy
-from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.base import IPolicy, bind_diagnostics_provider
@@ -39,7 +34,6 @@ from tabula_drone.policies.utils.visualizer_bakery import (
     enrich_learning_state_dir,
     _iter_learning_state_files,
 )
-from tabula_drone.scenarios import ScenarioBuilder
 from tabula_drone.scenarios.latent_scenario_builder import LatentScenarioBuilder
 from tabula_drone.utils.console_rendering import ConsolePrinter
 from tabula_drone.utils.metrics_manager import (
@@ -52,7 +46,7 @@ CONFIG_PATH = "config/scenario.json"
 printer = ConsolePrinter()
 
 
-def get_env_diagnostics(env: DroneEngageZKMRTA) -> Dict[str, Any]:
+def get_env_diagnostics(env: DroneEngageLatentMRTA) -> Dict[str, Any]:
     """Read the env-owned diagnostics payload used by the runner and logger."""
     if env.diagnostics is None:
         return {}
@@ -61,7 +55,7 @@ def get_env_diagnostics(env: DroneEngageZKMRTA) -> Dict[str, Any]:
 
 def attach_target_classes_to_learning_state(
     episode_state: Optional[Dict[str, Any]],
-    env: DroneEngageZKMRTA,
+    env: DroneEngageLatentMRTA,
 ) -> Optional[Dict[str, Any]]:
     """Add shared target classes to a learning-state payload using env target order."""
     if episode_state is None:
@@ -146,109 +140,17 @@ def create_policy(
     Returns:
         Policy instance
     """
-    if config.world_model == "latent" and policy_type == "min_ttk_oracle":
-        raise ValueError(f"{policy_type} is not supported for latent world_model")
-
-    if policy_type == "min_ttk_oracle":
+    if policy_type == "max_damage_oracle":
+        # Build agent weapon profiles from latent vectors
         agent_weapon_profiles = {
-            f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
+            f"drone_{idx}": {f"d{i}": v for i, v in enumerate(drone_cfg["latent_vector"])}
             for idx, drone_cfg in enumerate(drones_config)
         }
-        return OracleTimeToKillPolicy(
-            agent_weapon_profiles=agent_weapon_profiles,
-            seed=config.seed,
-            allow_noop=config.policy.allow_noop,
-        )
-    elif policy_type == "max_damage_oracle":
-        if config.world_model == "latent":
-            # Build agent weapon profiles from latent vectors
-            agent_weapon_profiles = {
-                f"drone_{idx}": {f"d{i}": v for i, v in enumerate(drone_cfg["latent_vector"])}
-                for idx, drone_cfg in enumerate(drones_config)
-            }
-        else:
-            agent_weapon_profiles = {
-                f"drone_{idx}": dict(config.mappings.weapon_damage_profile_mapping[drone_cfg["weapon_type"]])
-                for idx, drone_cfg in enumerate(drones_config)
-            }
         return OptimalAssignmentOracle(
             agent_weapon_profiles=agent_weapon_profiles,
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
         )
-    elif policy_type == "ucb_cf":
-        if num_targets is None:
-            raise ValueError("num_targets is required for ucb_cf policy")
-        # Extract hyperparameters from config, use defaults if not specified
-        ucb_cfg = None
-        if config.collaborative_filtering:
-            ucb_cfg = config.collaborative_filtering.ucb_cf
-        return UCBCFPolicy(
-            num_agents=len(drones_config),
-            num_targets=num_targets,
-            latent_dim=ucb_cfg.latent_dim if ucb_cfg and ucb_cfg.latent_dim else 2,
-            learning_rate=ucb_cfg.learning_rate if ucb_cfg and ucb_cfg.learning_rate else 0.01,
-            ucb_c=ucb_cfg.ucb_c if ucb_cfg and ucb_cfg.ucb_c else 0.5,
-            seed=config.seed,
-        )
-    elif policy_type == "selfish_ep_greedy_cf":
-        if num_targets is None:
-            raise ValueError("num_targets is required for selfish_ep_greedy_cf policy")
-        # Extract hyperparameters from dedicated config section
-        if not config.collaborative_filtering or not config.collaborative_filtering.selfish_ep_greedy_cf:
-            raise ValueError("selfish_ep_greedy_cf policy requires collaborative_filtering.selfish_ep_greedy_cf config section")
-        selfish_cfg = config.collaborative_filtering.selfish_ep_greedy_cf
-        # Create one policy instance per agent (true decentralization)
-        num_agents = len(drones_config)
-        policies = {}
-        for agent_idx in range(num_agents):
-            agent_id = f"drone_{agent_idx}"
-            policies[agent_id] = SelfishEpGreedyCFPolicy(
-                num_targets=num_targets,
-                agent_idx=agent_idx,
-                num_agents=num_agents,
-                latent_dim=selfish_cfg.latent_dim if selfish_cfg.latent_dim else 2,
-                learning_rate=selfish_cfg.learning_rate if selfish_cfg.learning_rate else 0.01,
-                epsilon=selfish_cfg.epsilon if selfish_cfg.epsilon else 0.3,
-                epsilon_decay=selfish_cfg.epsilon_decay if selfish_cfg.epsilon_decay else 0.99,
-                epsilon_min=selfish_cfg.epsilon_min if selfish_cfg.epsilon_min else 0.05,
-                social_trust_factor=selfish_cfg.social_trust_factor if getattr(selfish_cfg, "social_trust_factor", None) is not None else 0.3,
-                divergence_threshold=selfish_cfg.divergence_threshold if getattr(selfish_cfg, "divergence_threshold", None) is not None else 0.5,
-                confidence_threshold=selfish_cfg.confidence_threshold if getattr(selfish_cfg, "confidence_threshold", None) is not None else 0.8,
-                social_reward_clip_min=selfish_cfg.social_reward_clip_min if getattr(selfish_cfg, "social_reward_clip_min", None) is not None else -0.5,
-                max_episodes=selfish_cfg.max_episodes if getattr(selfish_cfg, "max_episodes", None) is not None else 100,
-                seed=config.seed + agent_idx if config.seed else None,
-            )
-        return MultiAgentPolicy(policies)
-    elif policy_type == "coordinated_ep_greedy_cf":
-        if num_targets is None:
-            raise ValueError("num_targets is required for coordinated_ep_greedy_cf policy")
-        # Extract hyperparameters from dedicated config section (required)
-        if not config.collaborative_filtering or not config.collaborative_filtering.coordinated_ep_greedy_cf:
-            raise ValueError("coordinated_ep_greedy_cf policy requires collaborative_filtering.coordinated_ep_greedy_cf config section")
-        coord_cfg = config.collaborative_filtering.coordinated_ep_greedy_cf
-        # Create one policy instance per agent (true decentralization with coordination)
-        num_agents = len(drones_config)
-        policies = {}
-        for agent_idx in range(num_agents):
-            agent_id = f"drone_{agent_idx}"
-            policies[agent_id] = CoordinatedEpGreedyCFPolicy(
-                num_targets=num_targets,
-                agent_idx=agent_idx,
-                num_agents=num_agents,
-                latent_dim=coord_cfg.latent_dim if coord_cfg.latent_dim else 2,
-                learning_rate=coord_cfg.learning_rate if coord_cfg.learning_rate else 0.01,
-                epsilon=coord_cfg.epsilon if coord_cfg.epsilon else 0.3,
-                epsilon_decay=coord_cfg.epsilon_decay if coord_cfg.epsilon_decay else 0.99,
-                epsilon_min=coord_cfg.epsilon_min if coord_cfg.epsilon_min else 0.05,
-                social_trust_factor=coord_cfg.social_trust_factor if getattr(coord_cfg, "social_trust_factor", None) is not None else 0.3,
-                divergence_threshold=coord_cfg.divergence_threshold if getattr(coord_cfg, "divergence_threshold", None) is not None else 0.5,
-                confidence_threshold=coord_cfg.confidence_threshold if getattr(coord_cfg, "confidence_threshold", None) is not None else 0.8,
-                social_reward_clip_min=coord_cfg.social_reward_clip_min if getattr(coord_cfg, "social_reward_clip_min", None) is not None else -0.5,
-                max_episodes=coord_cfg.max_episodes if getattr(coord_cfg, "max_episodes", None) is not None else 100,
-                seed=config.seed + agent_idx if config.seed else None,
-            )
-        return MultiAgentPolicy(policies)
     elif policy_type == "matrix_factorization_cf":
         if num_targets is None:
             raise ValueError("num_targets is required for matrix_factorization_cf policy")
@@ -647,7 +549,7 @@ def show_policy_best_episode_performance_vs_random(
 
         printer.policy_performance_comparison(
             mode=mode,
-            mappings_file=get_mappings_file(config),
+            mappings_file=None,
             headers=headers,
             cmp_data=cmp_data,
         )
@@ -664,68 +566,35 @@ def show_engagement_tables(
         printer.engagement_table(pt, headers, payload)
 
 
-def get_mappings_file(config: Any) -> Optional[str]:
-    """Return the active custom-world mappings file, if any."""
-    if getattr(config, "custom_world", None) is not None:
-        return config.custom_world.mappings_file
-    return None
-
-
 def main():
     """Main demo execution."""
     
     # Load configuration from file
     config = load_config(CONFIG_PATH)
 
-    if config.world_model == "latent":
-        if config.latent_world is None:
-            raise ValueError("latent world_model requires parsed latent_world config")
+    if config.latent_world is None:
+        raise ValueError("latent world_model requires parsed latent_world config")
 
-        builder = LatentScenarioBuilder(
-            world_size=config.world.size,
-            latent_dim=config.latent_world.latent_dim,
-            num_modes=config.latent_world.num_modes,
-            drone_variance=config.latent_world.drone_variance,
-            target_variance=config.latent_world.target_variance,
-            seed=config.seed,
-            center_mode=config.latent_world.center_mode,
-        )
-        builder.with_drones(
-            count=config.drones.count,
-            region=config.drones.region,
-            min_distance_between_drones=config.drones.min_distance_between_drones,
-        )
-        builder.with_targets(
-            count=config.targets.count,
-            region=config.targets.region,
-            min_distance_from_drones=config.targets.min_distance_from_drones,
-            min_distance_between_targets=config.targets.min_distance_between_targets,
-        )
-    else:
-        # Environment configuration using ScenarioBuilder
-        builder = ScenarioBuilder(
-            world_size=config.world.size,
-            seed=config.seed,
-            class_attribute_mapping=config.mappings.class_attribute_mapping,
-            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-        )
-
-        # Configure drones with count, region, and weapon distribution
-        builder.with_drones(
-            count=config.drones.count,
-            region=config.drones.region,
-            min_distance_between_drones=config.drones.min_distance_between_drones,
-            weapon_distribution=config.drones.weapon_distribution
-        )
-
-        # Configure targets with spatial constraints and class distribution
-        builder.with_targets(
-            count=config.targets.count,
-            region=config.targets.region,
-            class_distribution=config.targets.class_distribution,
-            min_distance_from_drones=config.targets.min_distance_from_drones,
-            min_distance_between_targets=config.targets.min_distance_between_targets
-        )
+    builder = LatentScenarioBuilder(
+        world_size=config.world.size,
+        latent_dim=config.latent_world.latent_dim,
+        num_modes=config.latent_world.num_modes,
+        drone_variance=config.latent_world.drone_variance,
+        target_variance=config.latent_world.target_variance,
+        seed=config.seed,
+        center_mode=config.latent_world.center_mode,
+    )
+    builder.with_drones(
+        count=config.drones.count,
+        region=config.drones.region,
+        min_distance_between_drones=config.drones.min_distance_between_drones,
+    )
+    builder.with_targets(
+        count=config.targets.count,
+        region=config.targets.region,
+        min_distance_from_drones=config.targets.min_distance_from_drones,
+        min_distance_between_targets=config.targets.min_distance_between_targets,
+    )
     
     # Build configurations
     drones_config, targets_config = builder.build()
@@ -741,18 +610,11 @@ def main():
     
     printer.demo_header(
         config_path=CONFIG_PATH,
-        mappings_file=get_mappings_file(config),
+        mappings_file=None,
         world_size=config.world.size,
         seed=config.seed,
         policy_types=config.policy.type,
         num_episodes=num_episodes,
-    )
-    if (False):
-        printer.initial_setup(
-            class_attribute_mapping=config.mappings.class_attribute_mapping,
-            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-            drones_config=drones_config,
-            targets_config=targets_config,
     )
     printer.separator()
 
@@ -780,38 +642,24 @@ def main():
     
     # Create single environment (reused across all policies)
     num_targets = len(targets_config)
-    if config.world_model == "latent":
-        env = DroneEngageLatentMRTA(
-            world_size=config.world.size,
-            max_steps=config.environment.max_steps,
-            drones_config=drones_config,
-            targets_config=targets_config,
-            scenario_id=config.environment.scenario_id,
-            reward_noise=reward_noise,
-            mode=config.environment.mode,
-            builder=builder,
-            latent_world={
-                "latent_dim": config.latent_world.latent_dim,
-                "num_modes": config.latent_world.num_modes,
-                "drone_variance": config.latent_world.drone_variance,
-                "target_variance": config.latent_world.target_variance,
-                "target_hp": config.latent_world.target_hp,
-                "center_mode": config.latent_world.center_mode,
-            },
-        )
-    else:
-        env = DroneEngageZKMRTA(
-            world_size=config.world.size,
-            max_steps=config.environment.max_steps,
-            drones_config=drones_config,
-            targets_config=targets_config,
-            scenario_id=config.environment.scenario_id,
-            class_attribute_mapping=config.mappings.class_attribute_mapping,
-            weapon_damage_profile_mapping=config.mappings.weapon_damage_profile_mapping,
-            reward_noise=reward_noise,
-            mode=config.environment.mode,
-            builder=builder,
-        )
+    env = DroneEngageLatentMRTA(
+        world_size=config.world.size,
+        max_steps=config.environment.max_steps,
+        drones_config=drones_config,
+        targets_config=targets_config,
+        scenario_id=config.environment.scenario_id,
+        reward_noise=reward_noise,
+        mode=config.environment.mode,
+        builder=builder,
+        latent_world={
+            "latent_dim": config.latent_world.latent_dim,
+            "num_modes": config.latent_world.num_modes,
+            "drone_variance": config.latent_world.drone_variance,
+            "target_variance": config.latent_world.target_variance,
+            "target_hp": config.latent_world.target_hp,
+            "center_mode": config.latent_world.center_mode,
+        },
+    )
         
     # Create all policies upfront
     policies = create_all_policies(config, drones_config, num_targets)

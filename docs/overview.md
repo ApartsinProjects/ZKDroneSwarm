@@ -1,0 +1,317 @@
+# Latent ZK-MRTA Environment: Technical Overview
+
+This document provides a precise technical specification of the latent zero-knowledge multi-robot task allocation (ZK-MRTA) benchmark environment and the decentralized matrix factorization learning mechanism.
+
+**Notation conventions**: We distinguish between the **true hidden environment structure** and the **learned policy representations**. Environment latent vectors are denoted $\mathbf{z}^{(d)}_i$ (drone $i$) and $\mathbf{z}^{(t)}_j$ (target $j$), with dimension $d_z$. Policy embeddings are denoted $P^{(a)}$ (drone matrix) and $U^{(a)}$ (target matrix) for agent $a$, with factorization dimension $d_f$. This distinction is critical: agents never observe the true $\mathbf{z}$ vectors and must learn their own approximations through interaction.
+
+---
+
+## 1. Latent Benchmark Construction
+
+The latent benchmark is constructed by defining a shared hidden latent space of dimension $d_z$, together with a small set of latent mode centers $\{\mathbf{c}_1,\dots,\mathbf{c}_K\}$. These mode centers act as the underlying factors that govern compatibility between drones and targets. Both drones and targets are sampled from Gaussian distributions around these same centers, creating a consistent but unobserved low-rank interaction structure. In the current setup, this structure is controlled by:
+
+```json
+"latent_world": {
+  "latent_dim": 3,
+  "num_modes": 3,
+  "drone_variance": 0.01,
+  "target_variance": 0.01,
+  "target_hp": 5.0,
+  "center_mode": "one_hot"
+}
+```
+
+Formally, for each drone $i$ and target $j$, a mode $m \in \{1,\dots,K\}$ is first sampled, and then a latent vector is drawn around the corresponding center:
+
+$$\mathbf{z}^{(d)}_i \sim \mathcal{N}(\mathbf{c}_{m_i}, \sigma_d^2 I),
+\qquad
+\mathbf{z}^{(t)}_j \sim \mathcal{N}(\mathbf{c}_{m_j}, \sigma_t^2 I)$$
+
+where $\mathbf{z}^{(d)}_i \in \mathbb{R}^{d_z}$ is the hidden latent vector of drone $i$, and $\mathbf{z}^{(t)}_j \in \mathbb{R}^{d_z}$ is the hidden latent vector of target $j$.
+
+This is implemented directly in the latent scenario builder:
+
+```python
+mode_id = int(self._rng.randint(0, self.num_modes))
+center = self.mode_centers[mode_id]
+sample = self._rng.normal(
+    loc=center,
+    scale=np.sqrt(variance),
+    size=self.latent_dim,
+)
+```
+
+The sampled vectors are then embedded into the generated drone and target configurations:
+
+```python
+{
+    "position": position,
+    "mode_id": mode_id,
+    "latent_vector": latent_vector,
+}
+```
+
+The benchmark contains a **true hidden structure**, but not necessarily a perfectly recoverable symbolic structure. The agents do not learn mode IDs directly; they only interact with outcomes induced by these continuous vectors. The mode center generation is controlled by `"center_mode"`, which supports three options:
+
+- **`"one_hot"`**: Creates orthogonal mode centers aligned with coordinate axes, making hidden factors especially clean and separable
+- **`"orthogonal"`**: Generates orthogonal mode centers via random rotation, preserving separability while removing axis alignment
+- **`"random"`**: Produces arbitrary random mode centers, creating a more challenging latent structure
+
+In the present configuration, `"center_mode": "one_hot"` is used, which combined with the small variances keeps samples tightly clustered around axis-aligned centers. This gives the benchmark a controlled low-rank geometry without exposing it explicitly to the agents.
+
+---
+
+## 2. Zero-Knowledge Observation Model
+
+The zero-knowledge observation model enforces a strict separation between the hidden structure that governs interactions and the information actually available to the agents. Although the environment internally represents drones and targets by their latent vectors $\mathbf{z}^{(d)}_i$ and $\mathbf{z}^{(t)}_j$, these quantities are never exposed in the observation space.
+
+Instead, at each step, each agent observes only the visible world state, consisting of target positions and whether each target is still active:
+
+```python
+target_obs.extend([x, y, 1.0 if target.is_active else 0.0])
+```
+
+In addition, every agent observes the most recent joint action profile of all drones:
+
+```python
+selected_targets = np.array(
+    [self.last_actions.get(aid, 0) for aid in self.possible_agents],
+    dtype=np.int32,
+)
+```
+
+and the most recent observed reward signals:
+
+```python
+observed_rewards = np.array(
+    [self._compute_observed_reward(aid) for aid in self.possible_agents],
+    dtype=np.float32,
+)
+```
+
+Thus, the observation available to agent $a$ at time $t$ can be summarized as:
+
+$$o_t^{(a)} =
+\Big(
+\text{target positions},
+\text{target active flags},
+\mathbf{s}_{t-1},
+\tilde{\mathbf{r}}_{t-1}
+\Big)$$
+
+where $\mathbf{s}_{t-1}$ is the vector of previously selected targets by all drones, and $\tilde{\mathbf{r}}_{t-1}$ is the vector of observed rewards.
+
+The setting is not merely partially observable in a generic sense; it is specifically designed so that the **entire compatibility structure is hidden**. The agents know where targets are and whether they remain active, but they do not know why a given drone matches a given target well. Learning therefore has to emerge from inference over public interaction history rather than access to privileged features. This makes the benchmark a direct analogue of collaborative filtering: the latent factors exist, but only sparse interaction outcomes are observable.
+
+---
+
+## 3. Target HP and Engagement Mechanics
+
+The environment introduces a persistent sequential interaction dynamic through target health (HP), converting what could have been a one-shot matching problem into a multi-step coordination problem. Each target is initialized with a fixed HP budget:
+
+```json
+"target_hp": 5.0
+```
+
+which is assigned at reset:
+
+```python
+hp=self.target_hp,
+hp_initial=self.target_hp,
+is_active=True,
+```
+
+When drone $i$ engages target $j$, the environment first computes a latent compatibility score using the hidden vectors:
+
+$$g_{ij} = (\mathbf{z}^{(d)}_i)^\top \mathbf{z}^{(t)}_j$$
+
+Damage is then defined as the nonnegative part of this score:
+
+$$d_{ij} = \max(0, g_{ij})$$
+
+and the target HP is updated accordingly:
+
+```python
+raw_dot = self._dot_product_reward(drone, target)
+damage = max(0.0, raw_dot)
+target.hp -= damage
+```
+
+A target remains active until its HP reaches zero:
+
+```python
+if target.hp <= 0:
+    target.hp = 0.0
+    target.is_active = False
+```
+
+The environment also processes simultaneous selections in a randomized order:
+
+```python
+processing_order = list(self.agents)
+self.rng.shuffle(processing_order)
+```
+
+and records how many drones selected the same target:
+
+```python
+target_selections.setdefault(target_idx, []).append(agent_id)
+if len(target_selections[target_idx]) > 1:
+    collisions += 1
+```
+
+This creates two important coordination effects. First, **overkill** occurs when the applied damage exceeds the target's remaining HP, causing part of the effort to be wasted. Second, **contention** arises when several agents select the same target, especially because only some of those shots may contribute useful damage once the target is depleted.
+
+These are primarily **task-level inefficiencies**, not standalone reward terms. The environment tracks collisions, overkill, net damage, and gross damage as diagnostics, but the learning signal itself is still local. This distinction matters because the benchmark separates the global execution objective from the immediate scalar reward observed by each agent. In other words, good coordination is necessary for task efficiency, but it is not handed to the policy as a direct centralized score.
+
+---
+
+## 4. Reward Signal Design
+
+The reward signal is designed to reveal latent compatibility while remaining local, incomplete, and potentially noisy. Importantly, the reward is **not** equal to the actual damage applied to the target. Instead, after computing the latent dot product $g_{ij}$, the environment converts it into a direction-only alignment score using cosine similarity:
+
+$$r_{ij} = \frac{(\mathbf{z}^{(d)}_i)^\top \mathbf{z}^{(t)}_j}
+{|\mathbf{z}^{(d)}_i| \cdot |\mathbf{z}^{(t)}_j|}$$
+
+This is implemented directly as:
+
+```python
+cosine_similarity = raw_dot / (drone_norm * target_norm)
+reward = float(cosine_similarity)
+```
+
+This design choice is important because it decouples **task impact** from **learning signal**. Damage depends on the nonnegative magnitude of the dot product, while reward depends on angular similarity. As a result, a drone is encouraged to learn which targets are aligned with it, not necessarily which targets will produce the greatest immediate HP reduction in a globally efficient plan.
+
+The observed reward may then be corrupted by additive Gaussian noise:
+
+$$\tilde{r}_{ij} = r_{ij} + \epsilon,
+\qquad
+\epsilon \sim \mathcal{N}(0, \sigma_r^2)$$
+
+through:
+
+```python
+base_reward = self.last_rewards.get(source_agent_id, 0.0)
+noise = self.rng.normal(0, self.reward_noise)
+```
+
+with the current configuration using:
+
+```json
+"reward_noise": 0.2
+```
+
+There is also a special anti-signal for wasted actions: if a drone fires at a target that is already inactive, it receives a negative reward:
+
+```python
+rewards[agent_id] = -1.0
+```
+
+Importantly, **collisions themselves are not directly penalized by a dedicated collision reward term**. Instead, poor coordination becomes costly indirectly: agents may waste shots on already neutralized targets, create overkill, or fail to distribute effort efficiently. Thus, the reward signal is informative but incomplete. It carries local compatibility information, while broader notions of team efficiency remain embedded in the environment dynamics and evaluation metrics rather than in the scalar reward alone.
+
+---
+
+## 5. Decentralized Matrix Factorization: Learning and Prediction
+
+The learning mechanism is based on decentralized matrix factorization, where each drone independently maintains a local latent model of the interaction space. To keep the notation precise, it is useful to distinguish between the **true hidden environment vectors** $\mathbf{z}^{(d)}_i$, $\mathbf{z}^{(t)}_j$ and the **learned policy embeddings**. For agent $a$, the learned model consists of:
+
+* a drone embedding matrix $P^{(a)} \in \mathbb{R}^{N \times d_f}$
+* a target embedding matrix $U^{(a)} \in \mathbb{R}^{d_f \times M}$
+
+where $N$ is the number of drones, $M$ is the number of targets, and $d_f$ is the factorization dimension used by the policy.
+
+The predicted utility assigned by agent $a$ to drone $i$ engaging target $j$ is:
+
+$$\hat{r}^{(a)}_{ij} = \big(P^{(a)}_{i,:}\big)^\top U^{(a)}_{:,j}$$
+
+This is implemented in the policy as:
+
+```python
+return float(self.P[drone_idx] @ self.U[:, target_idx])
+```
+
+### Prediction and action selection
+
+At decision time, agent $a$ uses only its own row $P^{(a)}_{a,:}$ to score active targets. Action selection follows an $\varepsilon$-greedy strategy:
+
+* with probability $\varepsilon$, the agent explores by choosing a random active target;
+* otherwise, it exploits by selecting the target with the highest predicted score.
+
+```python
+if self.rng.random() < self.epsilon:
+    valid_actions = [t + 1 for t in active_targets]
+    action = int(self.rng.choice(valid_actions))
+else:
+    scores = np.array([self.predict_reward(t_idx) for t_idx in active_targets])
+    best_idx = np.argmax(scores)
+    action = active_targets[best_idx] + 1
+```
+
+After each action, exploration decays multiplicatively:
+
+```python
+self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+```
+
+The exploration-exploitation transition is implemented through a decaying exploration schedule, which gradually reduces random exploration as learning progresses.
+
+### Learning from shared interaction data
+
+Although the policy is decentralized, each drone observes the public swarm interaction stream through the observation vector. For every drone-target-reward event $(i,j,\tilde r_{ij})$, the local model computes a prediction error:
+
+$$e^{(a)}_{ij} = \hat{r}^{(a)}_{ij} - \tilde r_{ij}$$
+
+and updates its embeddings using SGD with $L_2$ regularization:
+
+$$P^{(a)}_{i,:}
+\leftarrow
+P^{(a)}_{i,:}
+- \eta \left( 2 e^{(a)}_{ij} U^{(a)}_{:,j} + \lambda P^{(a)}_{i,:} \right)$$
+
+$$U^{(a)}_{:,j}
+\leftarrow
+U^{(a)}_{:,j}
+- \eta \left( 2 e^{(a)}_{ij} P^{(a)}_{i,:} + \lambda U^{(a)}_{:,j} \right)$$
+
+implemented as:
+
+```python
+predicted = self._predict_for_drone(drone_idx, target_idx)
+error = predicted - float(reward)
+
+self.P[drone_idx] -= self.learning_rate * (
+    2.0 * error * u_t + self.lambda_reg * p_i
+)
+self.U[:, target_idx] -= self.learning_rate * (
+    2.0 * error * p_i + self.lambda_reg * u_t
+)
+```
+
+Negative rewards are optionally reweighted:
+
+```python
+if reward < 0:
+    error *= self.anti_signal_weight
+```
+
+### Decentralization and training horizon
+
+A crucial point to sharpen is that decentralization here means **no parameter sharing**: each drone owns its own $P^{(a)}$ and $U^{(a)}$, and these parameters are never synchronized directly across agents. Coordination emerges only because all agents observe the same public action-reward history and update their private models accordingly.
+
+Another important detail is that learning persists across episodes. In the current episodic setup, the environment runs for 35 episodes, but the matrix factorization policy does not reset its learned parameters between episodes:
+
+```python
+if not is_deterministic and episode_num > 1:
+    policy.soft_reset()
+```
+
+while:
+
+```python
+def soft_reset(self, episode_count: Optional[int] = None) -> None:
+    pass
+```
+
+Thus, the learned matrices $P^{(a)}$ and $U^{(a)}$ are retained across episodes, and $\varepsilon$ continues to decay throughout training. This means the training process is effectively cumulative, even though evaluation is organized episodically.
+
+The current configuration uses a **factorization dimension of 8** for the policy, while the true latent world has dimension **3**. So the learner is not trying to recover the hidden vectors exactly in an identifiable sense. Rather, it is learning an internal predictive representation that is sufficiently expressive to model the interaction structure from observations alone. This is a useful distinction because it frames the policy as recovering a workable latent approximation, not the exact ground-truth coordinates.

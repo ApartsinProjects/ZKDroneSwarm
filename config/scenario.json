@@ -1,8 +1,4 @@
 {
-  "world_model": "latent",
-  "custom_world": {
-    "mappings_file": "mappings_cf_friendly.json"
-  },
   "latent_world": {
     "latent_dim": 3,
     "num_modes": 3,
@@ -77,8 +73,6 @@
     "all_types": [
       "max_damage_oracle",
       "random",
-      "selfish_ep_greedy_cf",
-      "coordinated_ep_greedy_cf",
       "matrix_factorization_cf"
     ],
     "allow_noop": false
@@ -95,35 +89,6 @@
       "epsilon_min": 0.02,
       "selection_noise": 0.0,
       "anti_signal_weight": 1.0
-    },    
-    "selfish_ep_greedy_cf": {
-      "latent_dim": 3,
-      "learning_rate": 0.05,
-      "epsilon": 0.3,
-      "epsilon_decay": 0.995,
-      "epsilon_min": 0.05,
-      "social_trust_factor": 0,
-      "divergence_threshold": 0.5,
-      "confidence_threshold": 0.8,
-      "social_reward_clip_min": -0.5,
-      "max_episodes": 10
-    },
-    "ucb_cf": {
-      "latent_dim": 2,
-      "learning_rate": 0.01,
-      "ucb_c": 0.5
-    },
-    "coordinated_ep_greedy_cf": {
-      "latent_dim": 5,
-      "learning_rate": 0.05,
-      "epsilon": 0.3,
-      "epsilon_decay": 0.99,
-      "epsilon_min": 0.05,
-      "social_trust_factor": 0.3,
-      "divergence_threshold": 0.5,
-      "confidence_threshold": 0.8,
-      "social_reward_clip_min": -0.5,
-      "max_episodes": 100
     }
   },
   "logging": {
