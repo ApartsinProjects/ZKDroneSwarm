@@ -25,9 +25,6 @@ from tabula_drone.utils.engagement_analysis_utils import (
 )
 from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
-from tabula_drone.policies.ucb_cf_policy import UCBCFPolicy
-from tabula_drone.policies.selfish_ep_greedy_cf_policy import SelfishEpGreedyCFPolicy
-from tabula_drone.policies.coordinated_ep_greedy_cf_policy import CoordinatedEpGreedyCFPolicy
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
 from tabula_drone.policies.base import IPolicy, bind_diagnostics_provider
@@ -154,79 +151,6 @@ def create_policy(
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
         )
-    elif policy_type == "ucb_cf":
-        if num_targets is None:
-            raise ValueError("num_targets is required for ucb_cf policy")
-        # Extract hyperparameters from config, use defaults if not specified
-        ucb_cfg = None
-        if config.collaborative_filtering:
-            ucb_cfg = config.collaborative_filtering.ucb_cf
-        return UCBCFPolicy(
-            num_agents=len(drones_config),
-            num_targets=num_targets,
-            latent_dim=ucb_cfg.latent_dim if ucb_cfg and ucb_cfg.latent_dim else 2,
-            learning_rate=ucb_cfg.learning_rate if ucb_cfg and ucb_cfg.learning_rate else 0.01,
-            ucb_c=ucb_cfg.ucb_c if ucb_cfg and ucb_cfg.ucb_c else 0.5,
-            seed=config.seed,
-        )
-    elif policy_type == "selfish_ep_greedy_cf":
-        if num_targets is None:
-            raise ValueError("num_targets is required for selfish_ep_greedy_cf policy")
-        # Extract hyperparameters from dedicated config section
-        if not config.collaborative_filtering or not config.collaborative_filtering.selfish_ep_greedy_cf:
-            raise ValueError("selfish_ep_greedy_cf policy requires collaborative_filtering.selfish_ep_greedy_cf config section")
-        selfish_cfg = config.collaborative_filtering.selfish_ep_greedy_cf
-        # Create one policy instance per agent (true decentralization)
-        num_agents = len(drones_config)
-        policies = {}
-        for agent_idx in range(num_agents):
-            agent_id = f"drone_{agent_idx}"
-            policies[agent_id] = SelfishEpGreedyCFPolicy(
-                num_targets=num_targets,
-                agent_idx=agent_idx,
-                num_agents=num_agents,
-                latent_dim=selfish_cfg.latent_dim if selfish_cfg.latent_dim else 2,
-                learning_rate=selfish_cfg.learning_rate if selfish_cfg.learning_rate else 0.01,
-                epsilon=selfish_cfg.epsilon if selfish_cfg.epsilon else 0.3,
-                epsilon_decay=selfish_cfg.epsilon_decay if selfish_cfg.epsilon_decay else 0.99,
-                epsilon_min=selfish_cfg.epsilon_min if selfish_cfg.epsilon_min else 0.05,
-                social_trust_factor=selfish_cfg.social_trust_factor if getattr(selfish_cfg, "social_trust_factor", None) is not None else 0.3,
-                divergence_threshold=selfish_cfg.divergence_threshold if getattr(selfish_cfg, "divergence_threshold", None) is not None else 0.5,
-                confidence_threshold=selfish_cfg.confidence_threshold if getattr(selfish_cfg, "confidence_threshold", None) is not None else 0.8,
-                social_reward_clip_min=selfish_cfg.social_reward_clip_min if getattr(selfish_cfg, "social_reward_clip_min", None) is not None else -0.5,
-                max_episodes=selfish_cfg.max_episodes if getattr(selfish_cfg, "max_episodes", None) is not None else 100,
-                seed=config.seed + agent_idx if config.seed else None,
-            )
-        return MultiAgentPolicy(policies)
-    elif policy_type == "coordinated_ep_greedy_cf":
-        if num_targets is None:
-            raise ValueError("num_targets is required for coordinated_ep_greedy_cf policy")
-        # Extract hyperparameters from dedicated config section (required)
-        if not config.collaborative_filtering or not config.collaborative_filtering.coordinated_ep_greedy_cf:
-            raise ValueError("coordinated_ep_greedy_cf policy requires collaborative_filtering.coordinated_ep_greedy_cf config section")
-        coord_cfg = config.collaborative_filtering.coordinated_ep_greedy_cf
-        # Create one policy instance per agent (true decentralization with coordination)
-        num_agents = len(drones_config)
-        policies = {}
-        for agent_idx in range(num_agents):
-            agent_id = f"drone_{agent_idx}"
-            policies[agent_id] = CoordinatedEpGreedyCFPolicy(
-                num_targets=num_targets,
-                agent_idx=agent_idx,
-                num_agents=num_agents,
-                latent_dim=coord_cfg.latent_dim if coord_cfg.latent_dim else 2,
-                learning_rate=coord_cfg.learning_rate if coord_cfg.learning_rate else 0.01,
-                epsilon=coord_cfg.epsilon if coord_cfg.epsilon else 0.3,
-                epsilon_decay=coord_cfg.epsilon_decay if coord_cfg.epsilon_decay else 0.99,
-                epsilon_min=coord_cfg.epsilon_min if coord_cfg.epsilon_min else 0.05,
-                social_trust_factor=coord_cfg.social_trust_factor if getattr(coord_cfg, "social_trust_factor", None) is not None else 0.3,
-                divergence_threshold=coord_cfg.divergence_threshold if getattr(coord_cfg, "divergence_threshold", None) is not None else 0.5,
-                confidence_threshold=coord_cfg.confidence_threshold if getattr(coord_cfg, "confidence_threshold", None) is not None else 0.8,
-                social_reward_clip_min=coord_cfg.social_reward_clip_min if getattr(coord_cfg, "social_reward_clip_min", None) is not None else -0.5,
-                max_episodes=coord_cfg.max_episodes if getattr(coord_cfg, "max_episodes", None) is not None else 100,
-                seed=config.seed + agent_idx if config.seed else None,
-            )
-        return MultiAgentPolicy(policies)
     elif policy_type == "matrix_factorization_cf":
         if num_targets is None:
             raise ValueError("num_targets is required for matrix_factorization_cf policy")
