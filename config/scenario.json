@@ -87,7 +87,7 @@
     "reward_noise": 0.2,
     "enable_tsne_enrichment": true,
     "matrix_factorization_cf": {
-      "latent_dim": 8,
+      "latent_dim": 3,
       "learning_rate": 0.01,
       "lambda_reg": 0.02,
       "epsilon": 0.3,
