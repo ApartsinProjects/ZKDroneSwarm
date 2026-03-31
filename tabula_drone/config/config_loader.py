@@ -24,7 +24,6 @@ class DronesConfig:
     count: int
     region: Tuple[Tuple[float, float], Tuple[float, float]]
     min_distance_between_drones: float
-    weapon_distribution: Dict[str, float]
 
 
 @dataclass
@@ -32,7 +31,6 @@ class TargetsConfig:
     """Target configuration."""
     count: int
     region: Tuple[Tuple[float, float], Tuple[float, float]]
-    class_distribution: Dict[str, float]
     min_distance_from_drones: float
     min_distance_between_targets: float
 
@@ -170,7 +168,7 @@ def _parse_drones_config(data: dict) -> DronesConfig:
     """Parse drones configuration section."""
     _validate_required_keys(
         data,
-        ["count", "region", "min_distance_between_drones", "weapon_distribution"],
+        ["count", "region", "min_distance_between_drones"],
         "drones"
     )
     
@@ -183,15 +181,10 @@ def _parse_drones_config(data: dict) -> DronesConfig:
     y_fraction = tuple(region_data["y_fraction"])
     region = (x_fraction, y_fraction)
     
-    weapon_distribution = data["weapon_distribution"]
-    if not isinstance(weapon_distribution, dict):
-        raise ValueError("drones.weapon_distribution must be a dictionary")
-    
     return DronesConfig(
         count=count,
         region=region,
-        min_distance_between_drones=float(data["min_distance_between_drones"]),
-        weapon_distribution=weapon_distribution
+        min_distance_between_drones=float(data["min_distance_between_drones"])
     )
 
 
@@ -199,7 +192,7 @@ def _parse_targets_config(data: dict) -> TargetsConfig:
     """Parse targets configuration section."""
     _validate_required_keys(
         data,
-        ["count", "region", "class_distribution", "min_distance_from_drones", "min_distance_between_targets"],
+        ["count", "region", "min_distance_from_drones", "min_distance_between_targets"],
         "targets"
     )
     
@@ -212,14 +205,9 @@ def _parse_targets_config(data: dict) -> TargetsConfig:
     y_fraction = tuple(region_data["y_fraction"])
     region = (x_fraction, y_fraction)
     
-    class_distribution = data["class_distribution"]
-    if not isinstance(class_distribution, dict):
-        raise ValueError("targets.class_distribution must be a dictionary")
-    
     return TargetsConfig(
         count=count,
         region=region,
-        class_distribution=class_distribution,
         min_distance_from_drones=float(data["min_distance_from_drones"]),
         min_distance_between_targets=float(data["min_distance_between_targets"])
     )

@@ -39,24 +39,6 @@ def test_run_episode_uses_env_diagnostics_with_random_policy() -> None:
     assert set(metrics.agent_rewards.keys()) == {"drone_0", "drone_1"}
 
 
-def test_run_episode_uses_env_diagnostics_with_ttk_oracle() -> None:
-    env = build_test_env()
-    policy = OracleTimeToKillPolicy(
-        agent_weapon_profiles={
-            "drone_0": {"hp": 3.0},
-            "drone_1": {"hp": 4.0},
-        },
-        allow_noop=True,
-    )
-
-    metrics = run_episode(env, policy, episode_num=1, seed=7)
-
-    assert metrics.episode == 1
-    assert metrics.steps >= 1
-    assert metrics.total_ammo_used >= 0
-    assert metrics.done_reason is not None
-    assert set(metrics.agent_rewards.keys()) == {"drone_0", "drone_1"}
-
 
 def test_run_episode_uses_env_diagnostics_with_max_damage_oracle() -> None:
     env = build_test_env()
@@ -108,25 +90,6 @@ def test_run_episode_uses_env_diagnostics_with_matrix_factorization_policy() -> 
     assert metrics.done_reason is not None
     assert set(metrics.agent_rewards.keys()) == {"drone_0", "drone_1"}
 
-
-def test_attach_target_classes_to_learning_state_uses_env_target_order() -> None:
-    env = build_test_env()
-    env.reset(seed=7)
-
-    episode_state = {
-        "agents": [
-            {
-                "agent_idx": 0,
-                "target_lv": [[0.1, 0.2], [0.3, 0.4]],
-            }
-        ]
-    }
-
-    augmented = attach_target_classes_to_learning_state(episode_state, env)
-
-    assert augmented is not None
-    assert augmented["target_classes"] == ["A", "B"]
-    assert augmented["agents"] == episode_state["agents"]
 
 
 def test_run_episode_uses_environment_logger_boundary(tmp_path) -> None:

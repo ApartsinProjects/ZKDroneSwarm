@@ -4,7 +4,7 @@
     "num_modes": 3,
     "drone_variance": 0.01,
     "target_variance": 0.01,
-    "target_hp": 5.0,
+    "target_hp": 10.0,
     "center_mode": "one_hot"
   },
   "seed": 42,
@@ -27,11 +27,6 @@
   },  
   "drones": {
     "count": 9,
-    "weapon_distribution": {
-      "_A": 0.33,
-      "_B": 0.33,
-      "_C": 0.33
-    },
     "region": {
       "x_fraction": [
         0.35,
@@ -45,7 +40,7 @@
     "min_distance_between_drones": 25.0
   },
   "targets": {
-    "count": 36,
+    "count": 54,
     "region": {
       "x_fraction": [
         0.1,
@@ -56,19 +51,14 @@
         0.75
       ]
     },
-    "class_distribution": {
-      "A": 0.33,
-      "B": 0.33,
-      "C": 0.33
-    },
     "min_distance_from_drones": 50.0,
     "min_distance_between_targets": 25.0
   },
   "policy": {
     "type": [
-      "random",
-      "max_damage_oracle",
-      "matrix_factorization_cf"
+        "random",
+        "max_damage_oracle",
+        "matrix_factorization_cf"
     ],
     "all_types": [
       "max_damage_oracle",
@@ -79,7 +69,7 @@
   },
   "collaborative_filtering": {
     "reward_noise": 0.2,
-    "enable_tsne_enrichment": true,
+    "enable_tsne_enrichment": false,
     "matrix_factorization_cf": {
       "latent_dim": 3,
       "learning_rate": 0.01,
