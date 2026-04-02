@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { PoliciesService } from '../../services/policies.service';
@@ -21,8 +21,10 @@ export class PoliciesComponent {
   private embeddingBrowser = inject(EmbeddingBrowserService);
   private sidebarTabService = inject(SidebarTabService);
   public policies = toSignal(this.policiesService.getPolicies());
+  public selectedPolicy = signal<string | null>(null);
   
   onPolicyClick(policyName: string): void {
+    this.selectedPolicy.set(policyName);
     console.log(`Selected policy: ${policyName}`);
     this.policiesService.getBestEpisode(policyName).subscribe({
       next: (episode) => {

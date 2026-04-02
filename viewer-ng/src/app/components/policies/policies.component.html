@@ -3,7 +3,9 @@
   @if (policies(); as policyList) {
     <dl class="policies-meta">
       @for (policy of policyList; track policy) {
-        <div class="policy-card" (click)="onPolicyClick(policy)">
+        <div class="policy-card" 
+             [class.policy-card--active]="selectedPolicy() === policy"
+             (click)="onPolicyClick(policy)">
           <dt>Policy</dt>
           <dd>{{ policy }}</dd>
         </div>
