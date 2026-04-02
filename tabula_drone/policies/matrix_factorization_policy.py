@@ -51,6 +51,7 @@ class MatrixFactorizationPolicy:
         epsilon_min: float = 0.02,
         anti_signal_weight: float = 0.1,
         selection_noise: float = 0.0,
+        use_integration_matrix: bool = False,
         seed: Optional[int] = None,
     ):
         """
@@ -81,6 +82,7 @@ class MatrixFactorizationPolicy:
         self.epsilon_min = epsilon_min
         self.anti_signal_weight = anti_signal_weight
         self.selection_noise = selection_noise
+        self.use_integration_matrix = use_integration_matrix
         self.seed = seed
 
         self.rng = np.random.RandomState(seed)
@@ -89,6 +91,11 @@ class MatrixFactorizationPolicy:
         self.P: np.ndarray = None  # (num_agents, latent_dim)
         self.U: np.ndarray = None  # (latent_dim, num_targets)
         self._init_matrices()
+
+        # Integration-matrix state (only when mode is active)
+        if self.use_integration_matrix:
+            self.M_sum = np.zeros((self.num_agents, self.num_targets), dtype=np.float64)
+            self.M_count = np.zeros((self.num_agents, self.num_targets), dtype=np.float64)
 
         # Action counter for logging
         self.step_count = 0
@@ -200,6 +207,24 @@ class MatrixFactorizationPolicy:
         
         return action
 
+    def _update_integration_matrix(
+        self, drone_idx: int, target_idx: int, reward: float
+    ) -> float:
+        """
+        Accumulate raw reward into integration matrix and return running average.
+
+        Args:
+            drone_idx: Drone index (0-based)
+            target_idx: Target index (0-based)
+            reward: Raw observed reward
+
+        Returns:
+            M_avg for this (drone, target) pair
+        """
+        self.M_sum[drone_idx, target_idx] += reward
+        self.M_count[drone_idx, target_idx] += 1.0
+        return self.M_sum[drone_idx, target_idx] / self.M_count[drone_idx, target_idx]
+
     def update_from_observation(self, observation: Dict[str, Any]) -> None:
         """
         Update local P and U matrices from collaborative mode observation.
@@ -229,7 +254,13 @@ class MatrixFactorizationPolicy:
 
             # Compute prediction and error
             predicted = self._predict_for_drone(drone_idx, target_idx)
-            error = predicted - float(reward)
+            if self.use_integration_matrix:
+                m_avg = self._update_integration_matrix(
+                    drone_idx, target_idx, float(reward)
+                )
+                error = predicted - m_avg
+            else:
+                error = predicted - float(reward)
 
             # Weight the anti-signal (contention/wasted shots)
             if reward < 0:
@@ -261,6 +292,9 @@ class MatrixFactorizationPolicy:
         """Full reset: reinitialize all latent matrices, step counter, and exploration state."""
         self.rng = np.random.RandomState(self.seed)
         self._init_matrices()
+        if self.use_integration_matrix:
+            self.M_sum[:] = 0.0
+            self.M_count[:] = 0.0
         self.step_count = 0
         self.epsilon = self.initial_epsilon
 
@@ -286,7 +320,7 @@ class MatrixFactorizationPolicy:
         agent_emb_full = self.agent_emb.tolist()
         target_emb_full = self.target_emb.tolist()
 
-        return {
+        state = {
             "agent_idx": self.agent_idx,
             "agent_emb": agent_emb_full,
             "target_emb": target_emb_full,
@@ -301,3 +335,16 @@ class MatrixFactorizationPolicy:
                 "best_target": best_target,
             },
         }
+
+        if self.use_integration_matrix:
+            m_avg = np.divide(
+                self.M_sum, self.M_count,
+                out=np.zeros_like(self.M_sum),
+                where=self.M_count > 0,
+            )
+            state["integration_matrix"] = {
+                "M_avg": m_avg.tolist(),
+                "M_count": self.M_count.tolist(),
+            }
+
+        return state

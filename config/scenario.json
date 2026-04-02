@@ -68,9 +68,10 @@
     "allow_noop": false
   },
   "collaborative_filtering": {
-    "reward_noise": 0.2,
-    "enable_tsne_enrichment": true,
+    "reward_noise": 0.4,
+    "enable_tsne_enrichment": false,
     "matrix_factorization_cf": {
+      "use_integration_matrix": true,
       "latent_dim": 3,
       "learning_rate": 0.01,
       "lambda_reg": 0.02,

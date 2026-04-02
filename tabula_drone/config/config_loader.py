@@ -120,6 +120,7 @@ class MFPolicyConfig:
     reward_noise: Optional[float] = None
     selection_noise: Optional[float] = None
     anti_signal_weight: Optional[float] = None
+    use_integration_matrix: Optional[bool] = None
 
 
 @dataclass
@@ -571,6 +572,7 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     reward_noise = data.get("reward_noise")
     selection_noise = data.get("selection_noise")
     anti_signal_weight = data.get("anti_signal_weight")
+    use_integration_matrix = data.get("use_integration_matrix")
 
     # Log defaults
     if latent_dim is None:
@@ -620,6 +622,9 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
     if anti_signal_weight is not None:
         if not isinstance(anti_signal_weight, (int, float)) or anti_signal_weight < 0:
             raise ValueError("matrix_factorization_cf.anti_signal_weight must be >= 0")
+    if use_integration_matrix is not None:
+        if not isinstance(use_integration_matrix, bool):
+            raise ValueError("matrix_factorization_cf.use_integration_matrix must be a boolean")
 
     return MFPolicyConfig(
         latent_dim=latent_dim,
@@ -631,6 +636,7 @@ def _parse_mf_policy_config(data: dict) -> MFPolicyConfig:
         reward_noise=float(reward_noise) if reward_noise is not None else None,
         selection_noise=float(selection_noise) if selection_noise is not None else None,
         anti_signal_weight=float(anti_signal_weight) if anti_signal_weight is not None else None,
+        use_integration_matrix=use_integration_matrix,
     )
 
 

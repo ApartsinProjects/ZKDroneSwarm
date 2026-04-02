@@ -167,6 +167,7 @@ def create_policy(
                 epsilon_min=mf_cfg.epsilon_min if mf_cfg and mf_cfg.epsilon_min is not None else 0.02,
                 anti_signal_weight=mf_cfg.anti_signal_weight if mf_cfg and mf_cfg.anti_signal_weight is not None else 0.1,
                 selection_noise=mf_cfg.selection_noise if mf_cfg and hasattr(mf_cfg, 'selection_noise') and mf_cfg.selection_noise is not None else 0.0,
+                use_integration_matrix=bool(mf_cfg.use_integration_matrix) if mf_cfg and mf_cfg.use_integration_matrix is not None else False,
                 seed=config.seed + agent_idx if config.seed else None,
             )
         return MultiAgentPolicy(policies)
