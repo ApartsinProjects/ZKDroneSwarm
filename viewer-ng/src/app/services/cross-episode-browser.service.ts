@@ -104,6 +104,7 @@ export class CrossEpisodeBrowserService {
   private readonly _selectedPolicyId = signal<string | null>(null);
   private readonly _currentIndex = signal(-1);
   private readonly _isLoading = signal(false);
+  private readonly _policyIndexMap = new Map<string, number>();
 
   readonly episodes = this._episodes.asReadonly();
   readonly randomEpisodes = this._randomEpisodes.asReadonly();
@@ -151,7 +152,6 @@ export class CrossEpisodeBrowserService {
 
   loadEpisodes(policyId: string): void {
     this._isLoading.set(true);
-    this._currentIndex.set(-1);
     this._selectedPolicyId.set(policyId);
 
     const selectedEpisodes$ = this.policiesService.getAllEpisodes(policyId);
@@ -174,7 +174,11 @@ export class CrossEpisodeBrowserService {
         this._episodes.set(sortedSelectedEpisodes);
         this._randomEpisodes.set(sortedRandomEpisodes);
         if (sortedSelectedEpisodes.length > 0) {
-          this._currentIndex.set(0);
+          const savedIndex = this._policyIndexMap.get(policyId) ?? 0;
+          const validIndex = Math.min(savedIndex, sortedSelectedEpisodes.length - 1);
+          this._currentIndex.set(validIndex);
+        } else {
+          this._currentIndex.set(-1);
         }
         this._isLoading.set(false);
       },
@@ -189,6 +193,10 @@ export class CrossEpisodeBrowserService {
   setIndex(index: number): void {
     if (index >= 0 && index < this._episodes().length) {
       this._currentIndex.set(index);
+      const policyId = this._selectedPolicyId();
+      if (policyId !== null) {
+        this._policyIndexMap.set(policyId, index);
+      }
     }
   }
 
