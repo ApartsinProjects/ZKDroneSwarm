@@ -4,6 +4,7 @@ import { extent } from 'd3-array';
 import { scaleLinear } from 'd3-scale';
 import { LearningStateEpisodeDto } from '../../services/policies.service';
 import { LatentWorldService } from '../../services/latent-world.service';
+import { Embedding3DRenderer } from './embedding-3d-renderer';
 
 type PlotPoint = {
   x: number;
@@ -47,6 +48,28 @@ type PlotModel = {
   zeroY: number | null;
 };
 
+export type PlotPoint3D = {
+  x: number;
+  y: number;
+  z: number;
+};
+
+export type PlotNode3D = PlotPoint3D & {
+  id: string;
+  label: string;
+  className?: string;
+  color: string;
+};
+
+export type PlotData3D = {
+  agent: PlotNode3D;
+  targets: PlotNode3D[];
+  bounds: {
+    min: PlotPoint3D;
+    max: PlotPoint3D;
+  };
+};
+
 const WIDTH = 560;
 const HEIGHT = 360;
 const MARGIN = { top: 20, right: 20, bottom: 40, left: 54 };
@@ -76,7 +99,7 @@ const MODE_COLORS = [
 @Component({
   selector: 'app-embedding-visualization-panel',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, Embedding3DRenderer],
   template: `
     @if (plotModel(); as model) {
       <div class="embedding-panel">
@@ -100,15 +123,25 @@ const MODE_COLORS = [
               </button>
             }
           </div>
+
+          <label class="embedding-panel__mode-toggle">
+            <input 
+              type="checkbox" 
+              [checked]="is3DMode()" 
+              (change)="is3DMode.set($any($event.target).checked)"
+            />
+            <span>3D View</span>
+          </label>
         </div>
 
         <div class="embedding-panel__stage">
-          <svg
-            class="embedding-panel__svg"
-            [attr.viewBox]="'0 0 ' + model.width + ' ' + model.height"
-            role="img"
-            aria-label="Embedding trajectory chart"
-          >
+          @if (!is3DMode()) {
+            <svg
+              class="embedding-panel__svg"
+              [attr.viewBox]="'0 0 ' + model.width + ' ' + model.height"
+              role="img"
+              aria-label="Embedding trajectory chart"
+            >
             <g>
               @for (tick of model.xTicks; track tick.value) {
                 <line
@@ -209,7 +242,16 @@ const MODE_COLORS = [
               height="32"
               xlink:href="assets/map/drone.png"
             />
-          </svg>
+            </svg>
+          } @else {
+            @if (plotModel3D(); as data3D) {
+              <app-embedding-3d-renderer [plotData]="data3D" />
+            } @else {
+              <div class="analysis-placeholder">
+                No 3D embedding data available (requires at least 3 dimensions).
+              </div>
+            }
+          }
         </div>
 
 
@@ -305,6 +347,29 @@ const MODE_COLORS = [
       border-radius: 999px;
       border: 1px solid rgba(92, 77, 57, 0.18);
     }
+
+    .embedding-panel__mode-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: 500;
+      color: #5c4d39;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .embedding-panel__mode-toggle input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #3498db;
+    }
+
+    .embedding-panel__mode-toggle span {
+      white-space: nowrap;
+    }
   `],
 })
 export class EmbeddingVisualizationPanel {
@@ -318,6 +383,8 @@ export class EmbeddingVisualizationPanel {
   
   private latentVectorsSignal = signal<any>(null);
   readonly latentVectors = this.latentVectorsSignal.asReadonly();
+
+  readonly is3DMode = signal(false);
 
   constructor() {
     this.latentWorldService.getLatentVectors().subscribe({
@@ -453,6 +520,55 @@ export class EmbeddingVisualizationPanel {
     };
   });
 
+  readonly plotModel3D = computed<PlotData3D | null>(() => {
+    const currentSnapshot = this.currentSnapshot();
+    if (!currentSnapshot) {
+      return null;
+    }
+
+    const currentState = currentSnapshot?.learningState.episodeState;
+    const currentAgents = currentState?.agents ?? [];
+    if (currentAgents.length === 0) {
+      return null;
+    }
+
+    const selectedAgentIndex = Math.min(this.selectedAgent(), currentAgents.length - 1);
+    const currentAgentState = currentAgents[selectedAgentIndex];
+    
+    const agentPoint = this.readPoint3D(currentAgentState?.['agent_emb']);
+    const targetPoints = this.readPoints3D(currentAgentState?.['target_emb']);
+    
+    if (!agentPoint || targetPoints.length === 0) {
+      return null;
+    }
+
+    const currentTargetClasses = this.readTargetClasses(
+      currentState?.['target_classes'],
+      targetPoints.length,
+    );
+    const classColorMap = this.buildClassColorMap(this.snapshots());
+
+    const agent: PlotNode3D = {
+      ...agentPoint,
+      id: `agent-${selectedAgentIndex}`,
+      label: `A${selectedAgentIndex}`,
+      color: AGENT_COLOR,
+    };
+
+    const targets: PlotNode3D[] = targetPoints.map((point, index) => ({
+      ...point,
+      id: `target-${index}`,
+      label: `T${index} (${currentTargetClasses[index]})`,
+      color: this.colorForClass(currentTargetClasses[index], classColorMap),
+      className: currentTargetClasses[index],
+    }));
+
+    const allPoints = [agentPoint, ...targetPoints];
+    const bounds = this.computeBounds3D(allPoints);
+
+    return { agent, targets, bounds };
+  });
+
   private readPoint(value: unknown): PlotPoint | null {
     if (!Array.isArray(value) || value.length < 2) {
       return null;
@@ -537,6 +653,53 @@ export class EmbeddingVisualizationPanel {
       color,
       px: xScale(point.x),
       py: yScale(point.y),
+    };
+  }
+
+  private readPoint3D(value: unknown): PlotPoint3D | null {
+    if (!Array.isArray(value) || value.length < 3) {
+      return null;
+    }
+
+    const x = Number(value[0]);
+    const y = Number(value[1]);
+    const z = Number(value[2]);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+      return null;
+    }
+
+    return { x, y, z };
+  }
+
+  private readPoints3D(value: unknown): PlotPoint3D[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .map((point) => this.readPoint3D(point))
+      .filter((point): point is PlotPoint3D => point !== null);
+  }
+
+  private computeBounds3D(points: PlotPoint3D[]): { min: PlotPoint3D; max: PlotPoint3D } {
+    if (points.length === 0) {
+      return {
+        min: { x: -1, y: -1, z: -1 },
+        max: { x: 1, y: 1, z: 1 },
+      };
+    }
+
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
+    const zs = points.map((p) => p.z);
+
+    const [minX = -1, maxX = 1] = extent(xs);
+    const [minY = -1, maxY = 1] = extent(ys);
+    const [minZ = -1, maxZ = 1] = extent(zs);
+
+    return {
+      min: { x: minX, y: minY, z: minZ },
+      max: { x: maxX, y: maxY, z: maxZ },
     };
   }
 }

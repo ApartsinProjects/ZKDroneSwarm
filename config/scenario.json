@@ -69,7 +69,7 @@
   },
   "collaborative_filtering": {
     "reward_noise": 0.4,
-    "enable_tsne_enrichment": false,
+    "enable_tsne_enrichment": true,
     "matrix_factorization_cf": {
       "use_integration_matrix": true,
       "latent_dim": 3,

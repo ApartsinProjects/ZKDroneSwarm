@@ -1,0 +1,164 @@
+import { Component, ElementRef, ViewChild, input, AfterViewInit, OnDestroy, NgZone, inject, effect } from '@angular/core';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { PlotData3D } from './embedding-visualization-panel';
+
+@Component({
+  selector: 'app-embedding-3d-renderer',
+  standalone: true,
+  template: '<canvas #canvas></canvas>',
+  styles: [`
+    :host {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  `],
+})
+export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
+  private ngZone = inject(NgZone);
+
+  readonly plotData = input.required<PlotData3D>();
+
+  @ViewChild('canvas', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
+
+  private scene!: THREE.Scene;
+  private camera!: THREE.PerspectiveCamera;
+  private renderer!: THREE.WebGLRenderer;
+  private controls!: OrbitControls;
+  private animationFrameId: number | null = null;
+  private sceneInitialized = false;
+
+  constructor() {
+    effect(() => {
+      const data = this.plotData();
+      if (this.sceneInitialized && data) {
+        this.clearScene();
+        this.buildScene();
+      }
+    });
+  }
+
+  ngAfterViewInit(): void {
+    const canvas = this.canvasRef.nativeElement;
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0xf5f5dc);
+
+    this.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    this.camera.position.set(2, 2, 2);
+    this.camera.lookAt(0, 0, 0);
+
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.renderer.setSize(width, height);
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    this.scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    directionalLight.position.set(5, 5, 5);
+    this.scene.add(directionalLight);
+
+    this.controls = new OrbitControls(this.camera, canvas);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+
+    this.buildScene();
+    this.sceneInitialized = true;
+    this.animate();
+  }
+
+  private clearScene(): void {
+    const objectsToRemove: THREE.Object3D[] = [];
+    this.scene.traverse((object: THREE.Object3D) => {
+      if (object instanceof THREE.Mesh) {
+        objectsToRemove.push(object);
+      } else if (object instanceof THREE.GridHelper) {
+        objectsToRemove.push(object);
+      }
+    });
+
+    objectsToRemove.forEach((object) => {
+      this.scene.remove(object);
+      if (object instanceof THREE.Mesh) {
+        object.geometry.dispose();
+        if (object.material instanceof THREE.Material) {
+          object.material.dispose();
+        }
+      }
+    });
+  }
+
+  private buildScene(): void {
+    const data = this.plotData();
+
+    const gridHelper = new THREE.GridHelper(10, 10, 0x888888, 0xcccccc);
+    this.scene.add(gridHelper);
+
+    const agentGeometry = new THREE.SphereGeometry(0.05, 32, 32);
+    const agentMaterial = new THREE.MeshStandardMaterial({ color: data.agent.color });
+    const agentMesh = new THREE.Mesh(agentGeometry, agentMaterial);
+    agentMesh.position.set(data.agent.x, data.agent.z, -data.agent.y);
+    this.scene.add(agentMesh);
+
+    data.targets.forEach((target) => {
+      const targetGeometry = new THREE.SphereGeometry(0.03, 32, 32);
+      const targetMaterial = new THREE.MeshStandardMaterial({ color: target.color });
+      const targetMesh = new THREE.Mesh(targetGeometry, targetMaterial);
+      targetMesh.position.set(target.x, target.z, -target.y);
+      this.scene.add(targetMesh);
+    });
+
+    const bounds = data.bounds;
+    const centerX = (bounds.min.x + bounds.max.x) / 2;
+    const centerY = (bounds.min.y + bounds.max.y) / 2;
+    const centerZ = (bounds.min.z + bounds.max.z) / 2;
+    const rangeX = bounds.max.x - bounds.min.x;
+    const rangeY = bounds.max.y - bounds.min.y;
+    const rangeZ = bounds.max.z - bounds.min.z;
+    const maxRange = Math.max(rangeX, rangeY, rangeZ, 0.5);
+    const distance = Math.max(maxRange * 4, 2);
+
+    this.camera.position.set(centerX + distance, centerZ + distance, -(centerY + distance));
+    this.camera.lookAt(centerX, centerZ, -centerY);
+    this.controls.target.set(centerX, centerZ, -centerY);
+    this.controls.update();
+  }
+
+  private animate(): void {
+    this.ngZone.runOutsideAngular(() => {
+      const loop = () => {
+        this.animationFrameId = requestAnimationFrame(loop);
+        this.controls.update();
+        this.renderer.render(this.scene, this.camera);
+      };
+      loop();
+    });
+  }
+
+  ngOnDestroy(): void {
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+    
+    if (this.controls) {
+      this.controls.dispose();
+    }
+    
+    if (this.renderer) {
+      this.renderer.dispose();
+    }
+    
+    if (this.scene) {
+      this.clearScene();
+    }
+  }
+}
