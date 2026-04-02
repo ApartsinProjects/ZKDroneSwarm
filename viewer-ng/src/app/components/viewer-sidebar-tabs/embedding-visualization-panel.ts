@@ -386,8 +386,14 @@ export class EmbeddingVisualizationPanel {
 
     const selectedAgentIndex = Math.min(this.selectedAgent(), currentAgents.length - 1);
     const currentAgentState = currentAgents[selectedAgentIndex];
-    const currentAgentPoint = this.readPoint(currentAgentState?.['agent_lv']);
-    const currentTargetPoints = this.readPoints(currentAgentState?.['target_lv']);
+    const currentAgentPoint = this.readPoint(
+      currentAgentState?.['agent_emb_2d'] || 
+      (Array.isArray(currentAgentState?.['agent_emb']) ? currentAgentState['agent_emb'].slice(0, 2) : undefined)
+    );
+    const currentTargetPoints = this.readPoints(
+      currentAgentState?.['target_emb_2d'] || 
+      (Array.isArray(currentAgentState?.['target_emb']) ? currentAgentState['target_emb'].map((t: any) => Array.isArray(t) ? t.slice(0, 2) : t) : undefined)
+    );
     if (!currentAgentPoint || currentTargetPoints.length === 0) {
       return null;
     }

@@ -2,8 +2,8 @@
   "latent_world": {
     "latent_dim": 3,
     "num_modes": 3,
-    "drone_variance": 0.01,
-    "target_variance": 0.01,
+    "drone_variance": 0.02,
+    "target_variance": 0.02,
     "target_hp": 10.0,
     "center_mode": "one_hot"
   },

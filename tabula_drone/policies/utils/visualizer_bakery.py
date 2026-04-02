@@ -98,9 +98,9 @@ def _iter_learning_state_files(directorypath: str) -> List[str]:
 
 
 def _apply_embedding(agent_entry: Dict[str, Any], embedding: np.ndarray) -> None:
-    """Write a 2D embedding back into an agent entry."""
-    agent_entry["agent_lv"] = embedding[0].tolist()
-    agent_entry["target_lv"] = embedding[1:].tolist()
+    """Write 2D t-SNE projection into separate visualization fields."""
+    agent_entry["agent_emb_2d"] = embedding[0].tolist()
+    agent_entry["target_emb_2d"] = embedding[1:].tolist()
 
 
 def _enrich_learning_state_dir_per_episode(directorypath: str) -> None:

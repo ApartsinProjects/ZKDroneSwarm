@@ -89,21 +89,21 @@ def show_learning_path(
         first_policy = next(iter(policies_dict.values()))
         latent_dim = first_policy.latent_dim
         # Collect agent vectors from each agent's private state
-        agent_lv = [policies_dict[f"drone_{i}"].agent_lv for i in range(len(policies_dict))]
+        agent_emb = [policies_dict[f"drone_{i}"].agent_emb for i in range(len(policies_dict))]
         # Use first agent's target estimates (they may differ between agents)
-        target_lv = first_policy.target_lv
+        target_emb = first_policy.target_emb
     else:
         cf_policy = policy
         latent_dim = cf_policy.latent_dim
-        agent_lv = cf_policy.agent_lv
-        target_lv = cf_policy.target_lv
+        agent_emb = cf_policy.agent_emb
+        target_emb = cf_policy.target_emb
     
     # Agent latent vectors
     agent_headers = ["Agent", "Weapon"] + [f"d{i}" for i in range(latent_dim)]
     agent_rows = []
     for i, drone_cfg in enumerate(drones_config):
         row = [f"A{i}", drone_cfg["weapon_type"][:4]]
-        row.extend([f"{v:.3f}" for v in agent_lv[i]])
+        row.extend([f"{v:.3f}" for v in agent_emb[i]])
         agent_rows.append(row)
     agent_rows_sorted = sorted(agent_rows, key=lambda r: r[1])
 
@@ -112,7 +112,7 @@ def show_learning_path(
     target_rows = []
     for i, target_cfg in enumerate(targets_config):
         row = [f"T{i}", target_cfg["class_type"][:4]]
-        row.extend([f"{v:.3f}" for v in target_lv[i]])
+        row.extend([f"{v:.3f}" for v in target_emb[i]])
         target_rows.append(row)
     target_rows_sorted = sorted(target_rows, key=lambda r: r[1])
     printer.learning_path(
@@ -369,8 +369,8 @@ def run_episode(
 
 
 def compute_alignment_score(
-    agent_lv: np.ndarray,
-    target_lv: np.ndarray,
+    agent_emb: np.ndarray,
+    target_emb: np.ndarray,
     drones_config: List[Dict[str, Any]],
     targets_config: List[Dict[str, Any]],
 ) -> float:
@@ -381,8 +381,8 @@ def compute_alignment_score(
     then returns average dot product of optimal pairs: structural→A, breach→B, systems→C.
     
     Args:
-        agent_lv: Agent latent vectors, shape (num_agents, latent_dim)
-        target_lv: Target latent vectors, shape (num_targets, latent_dim)
+        agent_emb: Agent embedding vectors, shape (num_agents, latent_dim)
+        target_emb: Target embedding vectors, shape (num_targets, latent_dim)
         drones_config: List of drone configs with 'weapon_type' key
         targets_config: List of target configs with 'class_type' key
     
@@ -400,14 +400,14 @@ def compute_alignment_score(
     for weapon in optimal_pairs.keys():
         indices = [i for i, d in enumerate(drones_config) if d["weapon_type"] == weapon]
         if indices:
-            agent_centroids[weapon] = np.mean(agent_lv[indices], axis=0)
+            agent_centroids[weapon] = np.mean(agent_emb[indices], axis=0)
     
     # Compute target centroids per class type
     target_centroids = {}
     for cls in optimal_pairs.values():
         indices = [i for i, t in enumerate(targets_config) if t["class_type"] == cls]
         if indices:
-            target_centroids[cls] = np.mean(target_lv[indices], axis=0)
+            target_centroids[cls] = np.mean(target_emb[indices], axis=0)
     
     # Compute average dot product of optimal pairs
     dot_products = []
@@ -427,7 +427,7 @@ def analyze_agent_clustering(policy, drone_weapon_map):
     Prints similarity scores between drones to see if they are clustering by weapon.
     drone_weapon_map: List of weapons assigned to agents (e.g., ['structural', 'breach', ...])
     """
-    vectors = policy.agent_lv
+    vectors = policy.agent_emb
     sim_matrix = cosine_similarity(vectors)
     similarity_lines = []
     for i in range(len(vectors)):

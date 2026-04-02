@@ -3,7 +3,7 @@ Decentralized Matrix Factorization Policy for ZK-MRTA Environment.
 
 Implements classical collaborative-filtering matrix factorization adapted
 for decentralized online ZK-MRTA. Each drone maintains a unified local
-latent model (P and U matrices) learned via SGD with L2 regularization
+embedding model (P and U matrices) learned via SGD with L2 regularization
 from public swarm interaction events.
 
 This is a standalone policy that does NOT inherit from BaseCFAgentPolicy.
@@ -21,9 +21,9 @@ class MatrixFactorizationPolicy:
     """
     Decentralized Collaborative Matrix-Factorization policy for ZK-MRTA.
 
-    Each drone maintains its own local latent model:
-    - P: drone latent matrix (num_agents x latent_dim) — rows represent drones
-    - U: target latent matrix (latent_dim x num_targets) — columns represent targets
+    Each drone maintains its own local embedding model:
+    - P: drone embedding matrix (num_agents x latent_dim) — rows represent drones
+    - U: target embedding matrix (latent_dim x num_targets) — columns represent targets
 
     Predicted utility of drone i engaging target t:
         r_hat = P[i].T @ U[:, t]
@@ -60,7 +60,7 @@ class MatrixFactorizationPolicy:
             num_targets: Number of targets in the environment
             agent_idx: This drone's index (0-based)
             num_agents: Total number of drones
-            latent_dim: Dimension of latent vectors (default 8)
+            latent_dim: Dimension of embedding vectors (default 8)
             learning_rate: SGD learning rate η (default 0.01)
             lambda_reg: L2 regularization coefficient λ (default 0.02)
             epsilon: Initial exploration rate (default 0.20)
@@ -85,7 +85,7 @@ class MatrixFactorizationPolicy:
 
         self.rng = np.random.RandomState(seed)
 
-        # Local latent matrices
+        # Local embedding matrices
         self.P: np.ndarray = None  # (num_agents, latent_dim)
         self.U: np.ndarray = None  # (latent_dim, num_targets)
         self._init_matrices()
@@ -103,13 +103,13 @@ class MatrixFactorizationPolicy:
         )
 
     @property
-    def agent_lv(self) -> np.ndarray:
-        """Visualization alias: this drone's latent row in P. Shape: (latent_dim,)."""
+    def agent_emb(self) -> np.ndarray:
+        """Visualization alias: this drone's embedding row in P. Shape: (latent_dim,)."""
         return self.P[self.agent_idx]
 
     @property
-    def target_lv(self) -> np.ndarray:
-        """Visualization alias: target latent vectors transposed. Shape: (num_targets, latent_dim)."""
+    def target_emb(self) -> np.ndarray:
+        """Visualization alias: target embedding vectors transposed. Shape: (num_targets, latent_dim)."""
         return self.U.T
 
     def predict_reward(self, target_idx: int) -> float:
@@ -264,18 +264,14 @@ class MatrixFactorizationPolicy:
         self.step_count = 0
         self.epsilon = self.initial_epsilon
 
-    def get_learning_state(self, include_tsne: bool = False) -> Optional[Dict[str, Any]]:
+    def get_learning_state(self) -> Optional[Dict[str, Any]]:
         """
         Return learning state for logging/visualization.
 
-        Args:
-            include_tsne: Deprecated. Live t-SNE is not supported here; logs are
-                enriched offline after training completes.
-
         Returns:
-            Dict with this drone's latent model state.
-            agent_lv and target_lv contain the first 2 dimensions of raw vectors.
-            P and U contain the full latent matrices for offline enrichment.
+            Dict with this drone's embedding model state.
+            agent_emb and target_emb contain the full embedding vectors.
+            P and U contain the full embedding matrices for offline enrichment.
         """
         predicted_rewards = [
             float(self.predict_reward(t)) for t in range(self.num_targets)
@@ -286,14 +282,14 @@ class MatrixFactorizationPolicy:
         ]
         best_target = int(ranked_targets[0]) if ranked_targets else None
 
-        # 2D visualization coordinates are upgraded later by offline t-SNE enrichment.
-        agent_lv_2d = self.agent_lv[:2].tolist()
-        target_lv_2d = self.target_lv[:, :2].tolist()
+        # Full embedding vectors for analysis and visualization
+        agent_emb_full = self.agent_emb.tolist()
+        target_emb_full = self.target_emb.tolist()
 
         return {
             "agent_idx": self.agent_idx,
-            "agent_lv": agent_lv_2d,
-            "target_lv": target_lv_2d,
+            "agent_emb": agent_emb_full,
+            "target_emb": target_emb_full,
             "P": self.P.tolist(),
             "U": self.U.tolist(),
             "epsilon": self.epsilon,
