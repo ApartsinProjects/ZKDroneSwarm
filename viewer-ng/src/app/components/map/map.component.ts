@@ -93,6 +93,22 @@ export class MapComponent {
     return new Map(targets.map((target) => [target.id, Math.max(0, target.hp ?? 0)]));
   });
 
+  protected readonly droneRotationsByIdDeg = computed(() => {
+    const scene = this.activeScene();
+    const engagements = scene?.engagements ?? [];
+    const rotations = new Map<string, number>();
+
+    for (const eng of engagements) {
+      const deltaX = eng.targetLeftPct - eng.droneLeftPct;
+      const deltaY = eng.targetTopPct - eng.droneTopPct;
+      const angleRad = Math.atan2(deltaY, deltaX);
+      const angleDeg = (angleRad * 180 / Math.PI) - 90;
+      rotations.set(eng.droneId, angleDeg);
+    }
+
+    return rotations;
+  });
+
   protected readonly episodeMetrics = computed(() => {
     const ep = this.episodeState.currentEpisode();
     if (!ep) {
@@ -193,5 +209,13 @@ export class MapComponent {
     
     if (!label) return hpLabel;
     return `${label}-${hpLabel}`;
+  }
+
+  protected getDroneRotation(drone: ViewMapEntity): string {
+    const rotationDeg = this.droneRotationsByIdDeg().get(drone.id);
+    if (rotationDeg === undefined) {
+      return '';
+    }
+    return `rotate(${rotationDeg}deg)`;
   }
 }

@@ -100,6 +100,7 @@
               class="map-entity map-entity--drone"
               [src]="assetPaths.drone"
               [alt]="drone.id"
+              [style.transform]="getDroneRotation(drone)"
             />
             @if (getDroneLabel(drone); as label) {
               <div class="map-drone__label">{{ label }}</div>
