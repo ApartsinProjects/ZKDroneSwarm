@@ -124,16 +124,43 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
     const minZ = bounds.min.z;
     const maxZ = bounds.max.z;
     const rangeZ = maxZ - minZ;
+    const minX = bounds.min.x;
+    const maxX = bounds.max.x;
+    const rangeX = maxX - minX;
+    const minY = bounds.min.y;
+    const maxY = bounds.max.y;
+    const rangeY = maxY - minY;
     
     const numHorizontalGrids = 5;
     for (let i = 1; i <= numHorizontalGrids; i++) {
       const height = minZ + (rangeZ * i / (numHorizontalGrids + 1));
-      const horizontalGrid = new THREE.GridHelper(10, 10, 0xaaaaaa, 0xdddddd);
+      const horizontalGrid = new THREE.GridHelper(10, 20, 0xaaaaaa, 0xdddddd);
       horizontalGrid.rotation.x = Math.PI / 2;
       horizontalGrid.position.y = height;
-      horizontalGrid.material.opacity = 0.8;
+      horizontalGrid.material.opacity = 0.3;
       horizontalGrid.material.transparent = true;
       this.scene.add(horizontalGrid);
+    }
+
+    const numVerticalGridsX = 5;
+    for (let i = 1; i <= numVerticalGridsX; i++) {
+      const xPos = minX + (rangeX * i / (numVerticalGridsX + 1));
+      const verticalGridX = new THREE.GridHelper(10, 20, 0xaaaaaa, 0xdddddd);
+      verticalGridX.rotation.z = Math.PI / 2;
+      verticalGridX.position.x = xPos;
+      verticalGridX.material.opacity = 0.3;
+      verticalGridX.material.transparent = true;
+      this.scene.add(verticalGridX);
+    }
+
+    const numVerticalGridsY = 5;
+    for (let i = 1; i <= numVerticalGridsY; i++) {
+      const yPos = minY + (rangeY * i / (numVerticalGridsY + 1));
+      const verticalGridY = new THREE.GridHelper(10, 20, 0xaaaaaa, 0xdddddd);
+      verticalGridY.position.z = -yPos;
+      verticalGridY.material.opacity = 0.3;
+      verticalGridY.material.transparent = true;
+      this.scene.add(verticalGridY);
     }
 
     const droneTexture = this.textureLoader.load('assets/map/drone.png');
