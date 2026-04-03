@@ -33,6 +33,8 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
   private controls!: OrbitControls;
   private animationFrameId: number | null = null;
   private sceneInitialized = false;
+  private isFirstBuild = true;
+  private textureLoader = new THREE.TextureLoader();
 
   constructor() {
     effect(() => {
@@ -81,6 +83,8 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
     this.scene.traverse((object: THREE.Object3D) => {
       if (object instanceof THREE.Mesh) {
         objectsToRemove.push(object);
+      } else if (object instanceof THREE.Sprite) {
+        objectsToRemove.push(object);
       } else if (object instanceof THREE.GridHelper) {
         objectsToRemove.push(object);
       }
@@ -90,6 +94,10 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
       this.scene.remove(object);
       if (object instanceof THREE.Mesh) {
         object.geometry.dispose();
+        if (object.material instanceof THREE.Material) {
+          object.material.dispose();
+        }
+      } else if (object instanceof THREE.Sprite) {
         if (object.material instanceof THREE.Material) {
           object.material.dispose();
         }
@@ -103,11 +111,12 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
     const gridHelper = new THREE.GridHelper(10, 10, 0x888888, 0xcccccc);
     this.scene.add(gridHelper);
 
-    const agentGeometry = new THREE.SphereGeometry(0.05, 32, 32);
-    const agentMaterial = new THREE.MeshStandardMaterial({ color: data.agent.color });
-    const agentMesh = new THREE.Mesh(agentGeometry, agentMaterial);
-    agentMesh.position.set(data.agent.x, data.agent.z, -data.agent.y);
-    this.scene.add(agentMesh);
+    const droneTexture = this.textureLoader.load('assets/map/drone.png');
+    const agentMaterial = new THREE.SpriteMaterial({ map: droneTexture, sizeAttenuation: false });
+    const agentSprite = new THREE.Sprite(agentMaterial);
+    agentSprite.scale.set(0.18, 0.18, 1);
+    agentSprite.position.set(data.agent.x, data.agent.z, -data.agent.y);
+    this.scene.add(agentSprite);
 
     data.targets.forEach((target) => {
       const targetGeometry = new THREE.SphereGeometry(0.03, 32, 32);
@@ -121,14 +130,19 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
     const centerX = (bounds.min.x + bounds.max.x) / 2;
     const centerY = (bounds.min.y + bounds.max.y) / 2;
     const centerZ = (bounds.min.z + bounds.max.z) / 2;
-    const rangeX = bounds.max.x - bounds.min.x;
-    const rangeY = bounds.max.y - bounds.min.y;
-    const rangeZ = bounds.max.z - bounds.min.z;
-    const maxRange = Math.max(rangeX, rangeY, rangeZ, 0.5);
-    const distance = Math.max(maxRange * 4, 2);
 
-    this.camera.position.set(centerX + distance, centerZ + distance, -(centerY + distance));
-    this.camera.lookAt(centerX, centerZ, -centerY);
+    if (this.isFirstBuild) {
+      const rangeX = bounds.max.x - bounds.min.x;
+      const rangeY = bounds.max.y - bounds.min.y;
+      const rangeZ = bounds.max.z - bounds.min.z;
+      const maxRange = Math.max(rangeX, rangeY, rangeZ, 0.5);
+      const distance = Math.max(maxRange * 4, 2);
+
+      this.camera.position.set(centerX + distance, centerZ + distance, -(centerY + distance));
+      this.camera.lookAt(centerX, centerZ, -centerY);
+      this.isFirstBuild = false;
+    }
+
     this.controls.target.set(centerX, centerZ, -centerY);
     this.controls.update();
   }
