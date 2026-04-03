@@ -401,10 +401,16 @@
   }
 }
 
+.analysis-slider-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .analysis-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 100%;
+  flex: 1;
   height: 6px;
   background: rgba(102, 86, 52, 0.1);
   border-radius: 3px;
@@ -428,6 +434,50 @@
       box-shadow: 0 0 0 6px rgba(231, 196, 125, 0.2);
     }
   }
+}
+
+.playback-button {
+  appearance: none;
+  border: 1px solid rgba(126, 104, 62, 0.18);
+  border-radius: 50%;
+  background: rgba(255, 248, 233, 0.9);
+  color: #6d5a3d;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(91, 69, 28, 0.08);
+  flex-shrink: 0;
+  
+  &:hover {
+    background: rgba(231, 196, 125, 0.2);
+    border-color: rgba(173, 124, 58, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(91, 69, 28, 0.12);
+  }
+  
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(91, 69, 28, 0.1);
+  }
+  
+  &:focus-visible {
+    outline: 3px solid rgba(84, 128, 167, 0.28);
+    outline-offset: 2px;
+  }
+  
+  svg {
+    display: block;
+  }
+}
+
+.playback-button--playing {
+  background: rgba(231, 196, 125, 0.25);
+  border-color: rgba(173, 124, 58, 0.5);
+  color: #312519;
 }
 
 @media (max-width: 1380px) {

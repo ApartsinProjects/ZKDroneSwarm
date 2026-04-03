@@ -1,4 +1,4 @@
-import { Component, signal, inject, effect } from '@angular/core';
+import { Component, signal, inject, effect, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CrossEpisodeBrowserService } from '../../services/cross-episode-browser.service';
 import { EpisodeAnalysisChart } from './episode-analysis-chart';
@@ -28,7 +28,7 @@ const SIDEBAR_TABS: ReadonlyArray<SidebarTabDefinition> = [
   templateUrl: './viewer-sidebar-tabs.html',
   styleUrl: './viewer-sidebar-tabs.scss',
 })
-export class ViewerSidebarTabs {
+export class ViewerSidebarTabs implements OnDestroy {
   private browserService = inject(CrossEpisodeBrowserService);
   private embeddingBrowser = inject(EmbeddingBrowserService);
   private latentWorldService = inject(LatentWorldService);
@@ -47,6 +47,9 @@ export class ViewerSidebarTabs {
   protected readonly embeddingError = this.embeddingBrowser.error;
   protected readonly embeddingSelectedAgent = this.embeddingBrowser.selectedAgent;
   protected readonly latentVectors = signal<any>(null);
+  protected readonly isPlaying = signal(false);
+  private playbackIntervalId: number | null = null;
+  private readonly PLAYBACK_INTERVAL_MS = 500;
 
   constructor() {
     this.latentWorldService.getLatentVectors().subscribe({
@@ -82,5 +85,44 @@ export class ViewerSidebarTabs {
 
   protected onEmbeddingAgentSelected(index: number): void {
     this.embeddingBrowser.setSelectedAgent(index);
+  }
+
+  protected togglePlayback(): void {
+    if (this.isPlaying()) {
+      this.stopPlayback();
+    } else {
+      this.startPlayback();
+    }
+  }
+
+  private startPlayback(): void {
+    if (this.currentIndex() >= this.totalEpisodes() - 1) {
+      this.browserService.setIndex(0);
+    }
+    this.isPlaying.set(true);
+    this.playbackIntervalId = window.setInterval(() => {
+      this.advanceEpisode();
+    }, this.PLAYBACK_INTERVAL_MS);
+  }
+
+  private stopPlayback(): void {
+    this.isPlaying.set(false);
+    if (this.playbackIntervalId !== null) {
+      clearInterval(this.playbackIntervalId);
+      this.playbackIntervalId = null;
+    }
+  }
+
+  private advanceEpisode(): void {
+    const nextIndex = this.currentIndex() + 1;
+    if (nextIndex >= this.totalEpisodes()) {
+      this.stopPlayback();
+    } else {
+      this.browserService.setIndex(nextIndex);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopPlayback();
   }
 }
