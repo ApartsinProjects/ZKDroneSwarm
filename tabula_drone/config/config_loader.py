@@ -83,6 +83,7 @@ class LatentWorldConfig:
     target_variance: float
     target_hp: float
     center_mode: str = "random"  # "random", "orthogonal", "one_hot"
+    epsilon: float = 0.1  # For softmax-style one_hot mode
 
 
 @dataclass
@@ -695,6 +696,7 @@ def _parse_latent_world_config(data: dict) -> LatentWorldConfig:
     target_variance = data["target_variance"]
     target_hp = data["target_hp"]
     center_mode = data.get("center_mode", "random")
+    epsilon = data.get("epsilon", 0.1)
 
     if not isinstance(latent_dim, int) or latent_dim < 1:
         raise ValueError("latent_world.latent_dim must be an integer >= 1")
@@ -710,6 +712,8 @@ def _parse_latent_world_config(data: dict) -> LatentWorldConfig:
         raise ValueError("latent_world.center_mode must be 'random', 'orthogonal', or 'one_hot'")
     if center_mode == "one_hot" and num_modes > latent_dim:
         raise ValueError("latent_world: one_hot center_mode requires num_modes <= latent_dim")
+    if not isinstance(epsilon, (int, float)) or epsilon <= 0 or epsilon >= 1:
+        raise ValueError("latent_world.epsilon must be in range (0, 1)")
 
     return LatentWorldConfig(
         latent_dim=latent_dim,
@@ -718,6 +722,7 @@ def _parse_latent_world_config(data: dict) -> LatentWorldConfig:
         target_variance=float(target_variance),
         target_hp=float(target_hp),
         center_mode=center_mode,
+        epsilon=float(epsilon),
     )
 
 

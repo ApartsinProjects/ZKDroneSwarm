@@ -578,6 +578,7 @@ def main():
         target_variance=config.latent_world.target_variance,
         seed=config.seed,
         center_mode=config.latent_world.center_mode,
+        epsilon=config.latent_world.epsilon,
     )
     builder.with_drones(
         count=config.drones.count,

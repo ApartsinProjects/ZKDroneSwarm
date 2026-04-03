@@ -42,6 +42,7 @@ class LatentScenarioBuilder:
         target_variance: float,
         seed: Optional[int] = None,
         center_mode: str = "random",
+        epsilon: float = 0.1,
     ):
         if latent_dim < 1:
             raise ValueError("latent_dim must be >= 1")
@@ -55,6 +56,8 @@ class LatentScenarioBuilder:
             raise ValueError("center_mode must be 'random', 'orthogonal', or 'one_hot'")
         if center_mode == "one_hot" and num_modes > latent_dim:
             raise ValueError("one_hot center_mode requires num_modes <= latent_dim")
+        if epsilon <= 0 or epsilon >= 1:
+            raise ValueError("epsilon must be in range (0, 1)")
 
         self.world_size = world_size
         self.latent_dim = latent_dim
@@ -63,6 +66,7 @@ class LatentScenarioBuilder:
         self.target_variance = target_variance
         self.seed = seed
         self.center_mode = center_mode
+        self.epsilon = epsilon
         self._rng = np.random.RandomState(seed)
         self._drone_params: Optional[DroneParams] = None
         self._target_params: Optional[TargetParams] = None
@@ -82,12 +86,13 @@ class LatentScenarioBuilder:
             raise ValueError(f"Unknown center_mode: {self.center_mode}")
 
     def _sample_mode_centers_random(self) -> np.ndarray:
-        """Sample random Gaussian centers (default behavior)."""
-        return self._rng.normal(
+        """Sample mode centers in log-space, then exponentiate."""
+        log_centers = self._rng.normal(
             loc=0.0,
             scale=1.0,
             size=(self.num_modes, self.latent_dim),
         ).astype(np.float64)
+        return np.exp(log_centers)
 
     def _sample_mode_centers_orthogonal(self) -> np.ndarray:
         """Generate orthogonal unit vectors as mode centers."""
@@ -105,10 +110,13 @@ class LatentScenarioBuilder:
         return centers.astype(np.float64)
 
     def _sample_mode_centers_one_hot(self) -> np.ndarray:
-        """Generate one-hot vectors as mode centers."""
-        centers = np.zeros((self.num_modes, self.latent_dim), dtype=np.float64)
+        """Generate softmax-style one-hot vectors as mode centers."""
+        off_value = self.epsilon / (self.latent_dim - 1)
+        on_value = 1.0 - self.epsilon
+        
+        centers = np.full((self.num_modes, self.latent_dim), off_value, dtype=np.float64)
         for i in range(self.num_modes):
-            centers[i, i] = 1.0
+            centers[i, i] = on_value
         return centers
 
     def with_drones(
@@ -223,17 +231,18 @@ class LatentScenarioBuilder:
         return positions
 
     def _sample_latent_vector(self, variance: float) -> Tuple[int, Tuple[float, ...]]:
-        """Sample one latent vector from the shared Gaussian mixture."""
+        """Sample latent vector in log-space, then exponentiate."""
         mode_id = int(self._rng.randint(0, self.num_modes))
-        center = self.mode_centers[mode_id]
+        log_center = np.log(self.mode_centers[mode_id])
         if variance == 0:
-            sample = center
+            log_sample = log_center
         else:
-            sample = self._rng.normal(
-                loc=center,
+            log_sample = self._rng.normal(
+                loc=log_center,
                 scale=np.sqrt(variance),
                 size=self.latent_dim,
             )
+        sample = np.exp(log_sample)
         return mode_id, tuple(float(value) for value in sample)
 
     def build(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
