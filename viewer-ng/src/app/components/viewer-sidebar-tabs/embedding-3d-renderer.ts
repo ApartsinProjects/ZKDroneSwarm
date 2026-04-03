@@ -87,6 +87,8 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
         objectsToRemove.push(object);
       } else if (object instanceof THREE.GridHelper) {
         objectsToRemove.push(object);
+      } else if (object instanceof THREE.Line) {
+        objectsToRemove.push(object);
       }
     });
 
@@ -101,6 +103,13 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
         if (object.material instanceof THREE.Material) {
           object.material.dispose();
         }
+      } else if (object instanceof THREE.Line) {
+        if (object instanceof THREE.Line) {
+          (object as THREE.Line).geometry.dispose();
+          if ((object as THREE.Line).material instanceof THREE.Material) {
+            ((object as THREE.Line).material as THREE.Material).dispose();
+          }
+        }
       }
     });
   }
@@ -110,6 +119,22 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
 
     const gridHelper = new THREE.GridHelper(10, 10, 0x888888, 0xcccccc);
     this.scene.add(gridHelper);
+
+    const bounds = data.bounds;
+    const minZ = bounds.min.z;
+    const maxZ = bounds.max.z;
+    const rangeZ = maxZ - minZ;
+    
+    const numHorizontalGrids = 5;
+    for (let i = 1; i <= numHorizontalGrids; i++) {
+      const height = minZ + (rangeZ * i / (numHorizontalGrids + 1));
+      const horizontalGrid = new THREE.GridHelper(10, 10, 0xaaaaaa, 0xdddddd);
+      horizontalGrid.rotation.x = Math.PI / 2;
+      horizontalGrid.position.y = height;
+      horizontalGrid.material.opacity = 0.8;
+      horizontalGrid.material.transparent = true;
+      this.scene.add(horizontalGrid);
+    }
 
     const droneTexture = this.textureLoader.load('assets/map/drone.png');
     const agentMaterial = new THREE.SpriteMaterial({ map: droneTexture, sizeAttenuation: false });
@@ -142,7 +167,6 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
       this.scene.add(targetSprite);
     });
 
-    const bounds = data.bounds;
     const centerX = (bounds.min.x + bounds.max.x) / 2;
     const centerY = (bounds.min.y + bounds.max.y) / 2;
     const centerZ = (bounds.min.z + bounds.max.z) / 2;
@@ -150,7 +174,6 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
     if (this.isFirstBuild) {
       const rangeX = bounds.max.x - bounds.min.x;
       const rangeY = bounds.max.y - bounds.min.y;
-      const rangeZ = bounds.max.z - bounds.min.z;
       const maxRange = Math.max(rangeX, rangeY, rangeZ, 0.5);
       const distance = Math.max(maxRange * 4, 2);
 
