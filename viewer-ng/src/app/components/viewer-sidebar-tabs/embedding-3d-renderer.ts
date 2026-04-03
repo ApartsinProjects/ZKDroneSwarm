@@ -118,12 +118,28 @@ export class Embedding3DRenderer implements AfterViewInit, OnDestroy {
     agentSprite.position.set(data.agent.x, data.agent.z, -data.agent.y);
     this.scene.add(agentSprite);
 
+    const targetTexture = this.textureLoader.load('assets/map/target_1.png');
     data.targets.forEach((target) => {
-      const targetGeometry = new THREE.SphereGeometry(0.03, 32, 32);
-      const targetMaterial = new THREE.MeshStandardMaterial({ color: target.color });
-      const targetMesh = new THREE.Mesh(targetGeometry, targetMaterial);
-      targetMesh.position.set(target.x, target.z, -target.y);
-      this.scene.add(targetMesh);
+      const bgGeometry = new THREE.CircleGeometry(0.05, 32);
+      const bgMaterial = new THREE.MeshBasicMaterial({ 
+        color: target.color,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+      });
+      const bgCircle = new THREE.Mesh(bgGeometry, bgMaterial);
+      bgCircle.rotation.x = -Math.PI / 2;
+      bgCircle.position.set(target.x, target.z - 0.04, -target.y);
+      this.scene.add(bgCircle);
+
+      const targetMaterial = new THREE.SpriteMaterial({ 
+        map: targetTexture, 
+        sizeAttenuation: false 
+      });
+      const targetSprite = new THREE.Sprite(targetMaterial);
+      targetSprite.scale.set(0.12, 0.12, 1);
+      targetSprite.position.set(target.x, target.z, -target.y);
+      this.scene.add(targetSprite);
     });
 
     const bounds = data.bounds;
