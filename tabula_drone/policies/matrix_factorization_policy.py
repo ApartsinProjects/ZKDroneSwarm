@@ -304,7 +304,6 @@ class MatrixFactorizationPolicy:
 
         Returns:
             Dict with this drone's embedding model state.
-            agent_emb and target_emb contain the full embedding vectors.
             P and U contain the full embedding matrices for offline enrichment.
         """
         predicted_rewards = [
@@ -316,14 +315,8 @@ class MatrixFactorizationPolicy:
         ]
         best_target = int(ranked_targets[0]) if ranked_targets else None
 
-        # Full embedding vectors for analysis and visualization
-        agent_emb_full = self.agent_emb.tolist()
-        target_emb_full = self.target_emb.tolist()
-
         state = {
             "agent_idx": self.agent_idx,
-            "agent_emb": agent_emb_full,
-            "target_emb": target_emb_full,
             "P": self.P.tolist(),
             "U": self.U.tolist(),
             "epsilon": self.epsilon,

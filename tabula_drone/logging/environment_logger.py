@@ -71,7 +71,6 @@ class EnvironmentLogger:
         self._current_policy_path = os.path.join(self._scenario_path, policy_type)
 
         os.makedirs(self.get_episodes_dir(), exist_ok=True)
-        os.makedirs(self.get_analysis_dir(), exist_ok=True)
         if not is_deterministic:
             os.makedirs(self.get_learning_state_dir(), exist_ok=True)
 

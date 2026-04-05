@@ -453,14 +453,29 @@ export class EmbeddingVisualizationPanel {
 
     const selectedAgentIndex = Math.min(this.selectedAgent(), currentAgents.length - 1);
     const currentAgentState = currentAgents[selectedAgentIndex];
-    const currentAgentPoint = this.readPoint(
-      currentAgentState?.['agent_emb_2d'] || 
-      (Array.isArray(currentAgentState?.['agent_emb']) ? currentAgentState['agent_emb'].slice(0, 2) : undefined)
-    );
-    const currentTargetPoints = this.readPoints(
-      currentAgentState?.['target_emb_2d'] || 
-      (Array.isArray(currentAgentState?.['target_emb']) ? currentAgentState['target_emb'].map((t: any) => Array.isArray(t) ? t.slice(0, 2) : t) : undefined)
-    );
+    
+    // Extract agent embedding: prefer enriched 2D, fallback to P matrix
+    let agentEmbSource = currentAgentState?.['agent_emb_2d'];
+    if (!agentEmbSource) {
+      const P = currentAgentState?.['P'];
+      const agentIdx = typeof currentAgentState?.['agent_idx'] === 'number' 
+        ? currentAgentState['agent_idx'] 
+        : selectedAgentIndex;
+      agentEmbSource = (Array.isArray(P) && Array.isArray(P[agentIdx])) 
+        ? P[agentIdx].slice(0, 2) 
+        : undefined;
+    }
+    const currentAgentPoint = this.readPoint(agentEmbSource);
+    
+    // Extract target embeddings: prefer enriched 2D, fallback to U matrix
+    let targetEmbSource = currentAgentState?.['target_emb_2d'];
+    if (!targetEmbSource) {
+      const U = currentAgentState?.['U'];
+      targetEmbSource = (Array.isArray(U) && U.length > 0 && Array.isArray(U[0]))
+        ? U[0].map((_, colIdx) => U.map(row => row[colIdx]).slice(0, 2)) // Transpose and take first 2 dims
+        : undefined;
+    }
+    const currentTargetPoints = this.readPoints(targetEmbSource);
     if (!currentAgentPoint || currentTargetPoints.length === 0) {
       return null;
     }
@@ -535,8 +550,22 @@ export class EmbeddingVisualizationPanel {
     const selectedAgentIndex = Math.min(this.selectedAgent(), currentAgents.length - 1);
     const currentAgentState = currentAgents[selectedAgentIndex];
     
-    const agentPoint = this.readPoint3D(currentAgentState?.['agent_emb']);
-    const targetPoints = this.readPoints3D(currentAgentState?.['target_emb']);
+    // Extract agent embedding from P matrix
+    const P = currentAgentState?.['P'];
+    const agentIdx = typeof currentAgentState?.['agent_idx'] === 'number' 
+      ? currentAgentState['agent_idx'] 
+      : selectedAgentIndex;
+    const agentEmbSource = (Array.isArray(P) && Array.isArray(P[agentIdx])) 
+      ? P[agentIdx] 
+      : undefined;
+    const agentPoint = this.readPoint3D(agentEmbSource);
+    
+    // Extract target embeddings from U matrix
+    const U = currentAgentState?.['U'];
+    const targetEmbSource = (Array.isArray(U) && U.length > 0 && Array.isArray(U[0]))
+      ? U[0].map((_, colIdx) => U.map(row => row[colIdx])) // Transpose U to get targets
+      : undefined;
+    const targetPoints = this.readPoints3D(targetEmbSource);
     
     if (!agentPoint || targetPoints.length === 0) {
       return null;
