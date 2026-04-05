@@ -335,27 +335,20 @@ class ConsolePrinter:
 
     def policy_performance_comparison(
         self,
-        mode: str,
         mappings_file: str,
         headers: List[str],
         cmp_data: List[List[str]],
     ) -> None:
-        if mode == "continuous":
-            metric_lines = [
-                "Throughput = Neutralizations per 100 steps",
-                "Coordination = Neutralizations per Collision (higher = more de-conflicted)",
-            ]
-        else:
-            metric_lines = [
-                "Ammo Eff = targets / ammo (higher = fewer wasted shots)",
-                "Dmg Eff  = net_dmg / gross_dmg (higher = less overkill)",
-            ]
+        metric_lines = [
+            "Ammo Eff = targets / ammo (higher = fewer wasted shots)",
+            "Dmg Eff  = net_dmg / gross_dmg (higher = less overkill)",
+        ]
         lines = [
             "",
             "=" * 60,
             "POLICY PERFORMANCE COMPARISON (vs Random Baseline)",
             "=" * 60,
-            f"Mode: {mode.upper()} | Mappings: {mappings_file}",
+            f"Mappings: {mappings_file}",
             *metric_lines,
             tabulate(cmp_data, headers=headers, tablefmt="grid"),
             "=" * 60,
