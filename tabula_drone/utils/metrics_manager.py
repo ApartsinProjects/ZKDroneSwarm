@@ -21,7 +21,6 @@ class EpisodeMetrics:
     # Raw episode data
     episode: Optional[int]
     steps: int
-    mode: str
     done_reason: Optional[str]
     targets_neutralized: int
     total_ammo_used: int
@@ -36,9 +35,6 @@ class EpisodeMetrics:
     ammo_eff: float = field(init=False)
     dmg_eff: float = field(init=False)
     shots_per_target: Optional[float] = field(default=None, init=False)
-    throughput: Optional[float] = field(default=None, init=False)
-    coordination_score: Optional[float] = field(default=None, init=False)
-    coordination_str: Optional[str] = field(default=None, init=False)
     
     def __post_init__(self):
         # Calculate efficiency metrics
@@ -47,20 +43,9 @@ class EpisodeMetrics:
         object.__setattr__(self, 'dmg_eff',
             self.total_net_damage / self.total_gross_damage if self.total_gross_damage > 0 else 0.0)
         
-        # Mode-specific calculations
-        if self.mode == "episodic":
-            object.__setattr__(self, 'shots_per_target',
-                self.total_ammo_used / self.targets_neutralized if self.targets_neutralized > 0 else 0.0)
-        elif self.mode == "continuous":
-            object.__setattr__(self, 'throughput',
-                self.targets_neutralized / self.steps * 100 if self.steps > 0 else 0.0)
-            if self.total_collisions == 0:
-                object.__setattr__(self, 'coordination_score', float('inf'))
-                object.__setattr__(self, 'coordination_str', 'N/A')
-            else:
-                coord_score = self.targets_neutralized / self.total_collisions
-                object.__setattr__(self, 'coordination_score', coord_score)
-                object.__setattr__(self, 'coordination_str', f"{coord_score:.2f}")
+        # Calculate shots per target
+        object.__setattr__(self, 'shots_per_target',
+            self.total_ammo_used / self.targets_neutralized if self.targets_neutralized > 0 else 0.0)
 
     @property
     def total_reward(self) -> float:
@@ -76,7 +61,6 @@ class EpisodeMetrics:
 class PolicyRunSummary:
     """Summary of one policy across all of its episodes."""
 
-    mode: str
     episode_count: int
     avg_steps: float
     avg_targets: float
@@ -95,10 +79,8 @@ class PolicyRunSummary:
 class MetricsManager:
     """Calculate metrics for a single policy run."""
 
-    def __init__(self, mode: str) -> None:
-        if mode not in {"episodic", "continuous"}:
-            raise ValueError(f"Unsupported mode: {mode!r}")
-        self.mode = mode
+    def __init__(self) -> None:
+        pass
 
     def calc_episode_metrics(self, metrics: EpisodeMetrics) -> EpisodeMetrics:
         """
@@ -118,7 +100,6 @@ class MetricsManager:
         ]
         if not normalized:
             return PolicyRunSummary(
-                mode=self.mode,
                 episode_count=0,
                 avg_steps=0.0,
                 avg_targets=0.0,
@@ -152,14 +133,9 @@ class MetricsManager:
             if avg_gross_damage > 0
             else 0.0
         )
-        representative_episode = (
-            normalized[-1]
-            if self.mode == "continuous"
-            else min(normalized, key=lambda item: item.steps)
-        )
+        representative_episode = min(normalized, key=lambda item: item.steps)
 
         return PolicyRunSummary(
-            mode=self.mode,
             episode_count=episode_count,
             avg_steps=avg_steps,
             avg_targets=avg_targets,

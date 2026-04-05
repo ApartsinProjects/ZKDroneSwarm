@@ -42,20 +42,12 @@ class EpisodicModeConfig:
 
 
 @dataclass
-class ContinuousModeConfig:
-    """Continuous mode configuration."""
-    logging_interval_steps: int
-
-
-@dataclass
 class EnvironmentConfig:
     """Environment configuration."""
     max_steps: int
-    mode: str
     verbose: bool
     scenario_id: str
     episodic: Optional[EpisodicModeConfig] = None
-    continuous: Optional[ContinuousModeConfig] = None
 
 
 @dataclass
@@ -226,42 +218,22 @@ def _parse_environment_config(data: dict) -> EnvironmentConfig:
     verbose = bool(data["verbose"])
     scenario_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-    # Handle Mode Toggling
-    mode = data.get("mode", "episodic")
-    if mode not in ["episodic", "continuous"]:
-        raise ValueError(f"environment.mode must be 'episodic' or 'continuous', got '{mode}'")
-
-    episodic_config = None
-    continuous_config = None
-
-    if mode == "episodic":
-        # Check for nested config or flat num_episodes (backward compat)
-        if "episodic" in data:
-            e_data = data["episodic"]
-            _validate_required_keys(e_data, ["num_episodes"], "environment.episodic")
-            episodic_config = EpisodicModeConfig(num_episodes=int(e_data["num_episodes"]))
-        elif "num_episodes" in data:
-            # Fallback for flat structure
-            episodic_config = EpisodicModeConfig(num_episodes=int(data["num_episodes"]))
-        else:
-            raise ValueError("Episodic mode requires 'num_episodes' (either nested or flat)")
-            
-    elif mode == "continuous":
-        if "continuous" not in data:
-            raise ValueError("Continuous mode requires 'continuous' configuration object")
-        c_data = data["continuous"]
-        _validate_required_keys(c_data, ["logging_interval_steps"], "environment.continuous")
-        continuous_config = ContinuousModeConfig(
-            logging_interval_steps=int(c_data["logging_interval_steps"])
-        )
+    # Parse episodic configuration
+    if "episodic" in data:
+        e_data = data["episodic"]
+        _validate_required_keys(e_data, ["num_episodes"], "environment.episodic")
+        episodic_config = EpisodicModeConfig(num_episodes=int(e_data["num_episodes"]))
+    elif "num_episodes" in data:
+        # Fallback for flat structure
+        episodic_config = EpisodicModeConfig(num_episodes=int(data["num_episodes"]))
+    else:
+        raise ValueError("Episodic mode requires 'num_episodes' (either nested or flat)")
 
     return EnvironmentConfig(
         max_steps=max_steps,
-        mode=mode,
         verbose=verbose,
         scenario_id=scenario_id,
-        episodic=episodic_config,
-        continuous=continuous_config
+        episodic=episodic_config
     )
 
 

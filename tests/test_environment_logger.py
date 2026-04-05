@@ -9,7 +9,6 @@ def test_environment_logger_start_policy_creates_active_episode_logger(tmp_path:
     env_logger = EnvironmentLogger(
         output_dir=str(tmp_path),
         scenario_id="scenario_alpha",
-        mode="continuous",
     )
 
     env_logger.start_policy("random_policy", is_deterministic=False)
@@ -19,7 +18,6 @@ def test_environment_logger_start_policy_creates_active_episode_logger(tmp_path:
 
     assert isinstance(episode_logger, EpisodeLogger)
     assert episode_logger is env_logger.active_episode_logger
-    assert episode_logger.mode == "continuous"
     assert (expected_policy_dir / "episodes").is_dir()
     assert (expected_policy_dir / "analysis").is_dir()
     assert (expected_policy_dir / "learning_state").is_dir()
@@ -238,65 +236,6 @@ def test_environment_logger_start_episode_persists_shared_environment_artifact(t
     )
 
 
-def test_environment_logger_handle_flush_persists_learning_state_checkpoint(tmp_path: Path) -> None:
-    env_logger = EnvironmentLogger(
-        output_dir=str(tmp_path),
-        scenario_id="scenario_delta",
-        mode="continuous",
-    )
-    env_logger.start_policy("policy_y", is_deterministic=False)
-
-    env_logger.configure_continuous_flush(
-        episode_num=3,
-        learning_state_provider=lambda: {
-            "target_classes": ["A", "B", "B", "C"],
-            "agents": [{"agent_lv": [1.0, 2.0]}],
-        },
-        num_agents=2,
-        num_targets=4,
-        latent_dim=2,
-    )
-
-    env_logger.handle_flush(10)
-
-    learning_state_path = (
-        tmp_path
-        / "scenario_delta"
-        / "policy_y"
-        / "learning_state"
-        / "learning_state_ep03_step_00010.json"
-    )
-
-    assert learning_state_path.is_file()
-    assert learning_state_path.read_text() == (
-        '{\n'
-        '  "version": "1.0",\n'
-        '  "scenario_id": "scenario_delta",\n'
-        '  "episode_num": 3,\n'
-        '  "policy_type": "policy_y",\n'
-        '  "num_agents": 2,\n'
-        '  "num_targets": 4,\n'
-        '  "latent_dim": 2,\n'
-        '  "episode_state": {\n'
-        '    "target_classes": [\n'
-        '      "A",\n'
-        '      "B",\n'
-        '      "B",\n'
-        '      "C"\n'
-        '    ],\n'
-        '    "agents": [\n'
-        '      {\n'
-        '        "agent_lv": [\n'
-        '          1.0,\n'
-        '          2.0\n'
-        '        ]\n'
-        '      }\n'
-        '    ]\n'
-        '  }\n'
-        '}'
-    )
-
-
 def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(tmp_path: Path) -> None:
     env_logger = EnvironmentLogger(
         output_dir=str(tmp_path),
@@ -342,15 +281,8 @@ def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(
         truncated=False,
         info={"target_hps": [1.0]},
     )
-    flush_result = env_logger.flush_episode(3)
     env_logger.end_episode(total_rewards={"drone_0": 4.0}, done_reason="done")
 
-    episodes_dir = tmp_path / "scenario_epsilon" / "policy_z" / "episodes"
-    analysis_path = (
-        tmp_path / "scenario_epsilon" / "policy_z" / "analysis" / "analysis_ep01_step_00003.json"
-    )
-    assert flush_result == str(episodes_dir / "episode_ep01_step_00003.json")
-    assert not analysis_path.exists()
     assert calls == [
         (
             "start",
@@ -374,7 +306,6 @@ def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(
                 "info": {"target_hps": [1.0]},
             },
         ),
-        ("clear_buffers",),
         (
             "end",
             {

@@ -59,7 +59,6 @@ class DroneEngageLatentMRTA(ParallelEnv):
         targets_config: List[Dict[str, Any]] = None,
         scenario_id: str = "latent_mrta_benchmark",
         reward_noise: float = 0.0,
-        mode: str = "episodic",
         builder: Optional[Any] = None,
         latent_world: Optional[Dict[str, Any]] = None,
     ):
@@ -77,7 +76,6 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self.targets_config = targets_config
         self.scenario_id = scenario_id
         self.reward_noise = reward_noise
-        self.mode = mode
         self.builder = builder
         # Convert latent_world to dict if it's a dataclass, otherwise use as-is
         if latent_world is not None:

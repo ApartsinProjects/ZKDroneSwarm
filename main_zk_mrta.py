@@ -205,7 +205,6 @@ def run_episode(
     environment_logger: Optional[EnvironmentLogger] = None,
     seed: Optional[int] = None,
     total_episodes: Optional[int] = None,
-    flush_interval: Optional[int] = None,
 ) -> EpisodeMetrics:
     """
     Run a single episode with the given policy.
@@ -288,11 +287,6 @@ def run_episode(
                 truncated=truncated,
                 info=shared_info,
             )
-            
-            # Periodic flush for continuous mode
-            if flush_interval and step_count % flush_interval == 0:
-                environment_logger.flush_episode(step_count)
-                environment_logger.handle_flush(step_count)
         
         # Update total rewards and track net damage
         for agent_id in env.agents:
@@ -341,7 +335,6 @@ def run_episode(
     metrics = EpisodeMetrics(
         episode=episode_num,
         steps=step_count,
-        mode=env.mode,
         done_reason=done_reason,
         targets_neutralized=targets_neutralized,
         total_ammo_used=total_ammo_used,
@@ -477,7 +470,6 @@ def show_policy_best_episode_performance_vs_random(
     config: Any,
     policy_summaries: Dict[str, PolicyRunSummary],
 ) -> None:
-    mode = config.environment.mode
     policy_best_metrics = {}
     for policy_type in config.policy.type:
         policy_summary = policy_summaries.get(policy_type)
@@ -499,30 +491,8 @@ def show_policy_best_episode_performance_vs_random(
             return f"{fmt.format(val)} ({sign}{pct:.0f}%)"
 
         cmp_data = []
-        if mode == "continuous":
-            headers = ["Policy", "Throughput (N/100)", "Coordination (N/C)", "Ammo Eff", "Dmg Eff"]
-            for pt in config.policy.type:
-                if pt in policy_best_metrics:
-                    m = policy_best_metrics[pt]
-                    if pt == "random":
-                        cmp_data.append([
-                            pt,
-                            f"{m.throughput:.1f} (base)",
-                            f"{m.coordination_str} (base)",
-                            f"{m.ammo_eff:.3f} (base)",
-                            f"{m.dmg_eff:.1%} (base)",
-                        ])
-                    else:
-                        cmp_data.append([
-                            pt,
-                            fmt_pct(m.throughput, rand.throughput, "{:.1f}", True),
-                            fmt_pct(m.coordination_score, rand.coordination_score, "{:.2f}", True) if m.coordination_score != float('inf') else "Perfect",
-                            fmt_pct(m.ammo_eff, rand.ammo_eff, "{:.3f}", True),
-                            fmt_pct(m.dmg_eff, rand.dmg_eff, "{:.1%}", True),
-                        ])
-        else:
-            headers = ["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"]
-            for pt in config.policy.type:
+        headers = ["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"]
+        for pt in config.policy.type:
                 if pt in policy_best_metrics:
                     m = policy_best_metrics[pt]
                     if pt == "random":
@@ -543,7 +513,6 @@ def show_policy_best_episode_performance_vs_random(
                         ])
 
         printer.policy_performance_comparison(
-            mode=mode,
             mappings_file=None,
             headers=headers,
             cmp_data=cmp_data,
@@ -596,11 +565,7 @@ def main():
     drones_config, targets_config = builder.build()
     
     # Run episodes
-    if config.environment.mode == "episodic":
-        num_episodes = config.environment.episodic.num_episodes
-    else:
-        # Continuous mode is effectively 1 long episode per policy
-        num_episodes = 1
+    num_episodes = config.environment.episodic.num_episodes
     all_metrics: List[EpisodeMetrics] = []
     policy_summaries: Dict[str, PolicyRunSummary] = {}
     
@@ -620,8 +585,7 @@ def main():
     # Create EnvironmentLogger for structured logging orchestration
     environment_logger = EnvironmentLogger(
         output_dir=config.logging.output_dir,
-        scenario_id=config.environment.scenario_id,
-        mode=config.environment.mode
+        scenario_id=config.environment.scenario_id
     )
     
     # Determine noise settings based on active policies
@@ -645,7 +609,6 @@ def main():
         targets_config=targets_config,
         scenario_id=config.environment.scenario_id,
         reward_noise=reward_noise,
-        mode=config.environment.mode,
         builder=builder,
         latent_world={
             "latent_dim": config.latent_world.latent_dim,
@@ -664,7 +627,7 @@ def main():
     engagement_tables = {}
     for policy_type, policy in policies.items():
         printer.policy_run_header(policy_type)
-        policy_metrics_manager = MetricsManager(config.environment.mode)
+        policy_metrics_manager = MetricsManager()
         policy_episode_metrics: List[EpisodeMetrics] = []
         
         # Get policy metadata from policy attributes
@@ -685,28 +648,6 @@ def main():
             # This ensures that ENV noise/ordering is reproducible across runs
             episode_seed = config.seed + episode_num if config.seed is not None else None
 
-            # Determine flush interval for continuous mode
-            flush_interval = None
-            if config.environment.mode == "continuous":
-                flush_interval = config.environment.continuous.logging_interval_steps
-
-            environment_logger.configure_continuous_flush(
-                episode_num=episode_num,
-                learning_state_provider=(
-                    (
-                        lambda: attach_target_classes_to_learning_state(
-                            policy.get_learning_state(),
-                            env,
-                        )
-                    )
-                    if not is_deterministic
-                    else None
-                ),
-                num_agents=getattr(policy, "num_agents", len(drones_config)),
-                num_targets=getattr(policy, "num_targets", len(targets_config)),
-                latent_dim=getattr(policy, "latent_dim", None),
-            )
-
             metrics = run_episode(
                 env=env,
                 policy=policy,
@@ -715,7 +656,6 @@ def main():
                 environment_logger=environment_logger,
                 seed=episode_seed,  #config.seed
                 total_episodes=num_episodes,
-                flush_interval=flush_interval,
             )
             all_metrics.append(metrics)
             policy_episode_metrics.append(metrics)
@@ -746,34 +686,24 @@ def main():
             )
             
             # Per-run summary
-            if config.environment.mode == "continuous":
-                printer.continuous_run_progress(
-                    steps=metrics.steps,
-                    throughput=metrics.throughput,
-                    coordination=metrics.coordination_str,
-                    ammo_eff=metrics.ammo_eff,
-                    collisions=metrics.total_collisions,
-                )
-            else:
-                printer.episode_run_progress(
-                    episode_num=episode_num,
-                    steps=metrics.steps,
-                    targets_neutralized=metrics.targets_neutralized,
-                    total_net_damage=metrics.total_net_damage,
-                    total_overkill=metrics.total_overkill,
-                    total_reward=metrics.total_reward,
-                )
+            printer.episode_run_progress(
+                episode_num=episode_num,
+                steps=metrics.steps,
+                targets_neutralized=metrics.targets_neutralized,
+                total_net_damage=metrics.total_net_damage,
+                total_overkill=metrics.total_overkill,
+                total_reward=metrics.total_reward,
+            )
             
             # Debug: Analyze agent clustering for CF policies
             # if False and not is_deterministic:
             #     drone_weapons = [d["weapon_type"] for d in drones_config]
             #     analyze_agent_clustering(policy, drone_weapons)
         
-        # Save policy artifacts for episodic or continuous mode
+        # Save policy artifacts
         result = environment_logger.save_policy_episodes()
 
-        if config.environment.mode != "continuous":
-            printer.saved_episodes(result["files"])
+        printer.saved_episodes(result["files"])
         steps = result['steps']
         
         # Enrich all learning_state artifacts for matrix factorization with t-SNE
@@ -807,17 +737,11 @@ def main():
 
         best_episode_num = result.get("best_episode_num")
         if best_episode_num is not None:
-            # Check for analysis file (naming depends on mode)
-            if config.environment.mode == "continuous":
-                analysis_path = os.path.join(
-                    environment_logger.get_analysis_dir(),
-                    "analysis_continuous_final.json",
-                )
-            else:
-                analysis_path = os.path.join(
-                    environment_logger.get_analysis_dir(),
-                    f"analysis_ep{best_episode_num:02d}.json",
-                )
+            # Check for analysis file
+            analysis_path = os.path.join(
+                environment_logger.get_analysis_dir(),
+                f"analysis_ep{best_episode_num:02d}.json",
+            )
             if os.path.exists(analysis_path):
                 analysis_data = load_analysis(analysis_path)
                 drone_engagement_counts = extract_drone_engagement_counts(analysis_data)
