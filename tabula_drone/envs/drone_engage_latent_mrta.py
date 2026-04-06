@@ -61,6 +61,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
         reward_noise: float = 0.0,
         builder: Optional[Any] = None,
         latent_world: Optional[Dict[str, Any]] = None,
+        target_hp: float = 1.0,
     ):
         super().__init__()
 
@@ -86,7 +87,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
                 self.latent_world = asdict(latent_world)
         else:
             self.latent_world = None
-        self.target_hp = float(self.latent_world.get("target_hp", 1.0)) if self.latent_world else 1.0
+        self.target_hp = float(target_hp)
         self.num_modes = self._infer_num_modes()
         self.class_attribute_mapping = {
             f"mode_{mode_id}": {"latent_reward": self.target_hp}

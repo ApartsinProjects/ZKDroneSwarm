@@ -7,9 +7,10 @@ that reads and validates JSON configuration files.
 
 import json
 import os
+import warnings
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 
 @dataclass
@@ -33,6 +34,7 @@ class TargetsConfig:
     region: Tuple[Tuple[float, float], Tuple[float, float]]
     min_distance_from_drones: float
     min_distance_between_targets: float
+    target_hp: float
 
 
 @dataclass
@@ -67,15 +69,44 @@ class LoggingConfig:
 
 
 @dataclass
-class LatentWorldConfig:
-    """Latent-world benchmark generation configuration."""
+class DroneLatentConfig:
+    """Drone-specific latent configuration for independent mode."""
+    num_modes: int
+    drone_variance: float
+
+
+@dataclass
+class TargetLatentConfig:
+    """Target-specific latent configuration for independent mode."""
+    num_modes: int
+    target_variance: float
+
+
+@dataclass
+class CommonLatentWorldConfig:
+    """Common mode latent configuration with shared mode centers."""
+    mode: str
     latent_dim: int
     num_modes: int
     drone_variance: float
     target_variance: float
-    target_hp: float
-    center_mode: str = "random"  # "random", "orthogonal", "one_hot"
-    epsilon: float = 0.1  # For softmax-style one_hot mode
+    center_mode: str = "random"
+    epsilon: float = 0.1
+
+
+@dataclass
+class IndependentLatentWorldConfig:
+    """Independent mode latent configuration with separate drone/target mode centers."""
+    mode: str
+    latent_dim: int
+    center_mode: str
+    epsilon: float
+    drones: DroneLatentConfig
+    targets: TargetLatentConfig
+
+
+# Type alias for mode-specific latent world configurations
+LatentWorldConfig = Union[CommonLatentWorldConfig, IndependentLatentWorldConfig]
 
 
 @dataclass
@@ -186,7 +217,7 @@ def _parse_targets_config(data: dict) -> TargetsConfig:
     """Parse targets configuration section."""
     _validate_required_keys(
         data,
-        ["count", "region", "min_distance_from_drones", "min_distance_between_targets"],
+        ["count", "region", "min_distance_from_drones", "min_distance_between_targets", "target_hp"],
         "targets"
     )
     
@@ -199,11 +230,16 @@ def _parse_targets_config(data: dict) -> TargetsConfig:
     y_fraction = tuple(region_data["y_fraction"])
     region = (x_fraction, y_fraction)
     
+    target_hp = data["target_hp"]
+    if not isinstance(target_hp, (int, float)) or target_hp <= 0:
+        raise ValueError("targets.target_hp must be > 0")
+    
     return TargetsConfig(
         count=count,
         region=region,
         min_distance_from_drones=float(data["min_distance_from_drones"]),
-        min_distance_between_targets=float(data["min_distance_between_targets"])
+        min_distance_between_targets=float(data["min_distance_between_targets"]),
+        target_hp=float(target_hp)
     )
 
 
@@ -656,46 +692,149 @@ def _parse_latent_world_config(data: dict) -> LatentWorldConfig:
     if data is None:
         raise ValueError("latent world_model requires a latent_world configuration object")
 
-    _validate_required_keys(
-        data,
-        ["latent_dim", "num_modes", "drone_variance", "target_variance", "target_hp"],
-        "latent_world",
-    )
-
-    latent_dim = data["latent_dim"]
-    num_modes = data["num_modes"]
-    drone_variance = data["drone_variance"]
-    target_variance = data["target_variance"]
-    target_hp = data["target_hp"]
+    # Detect and validate mode
+    mode = data.get("mode")
+    if mode is None:
+        warnings.warn(
+            "latent_world.mode field is missing. Defaulting to 'common' mode. "
+            "This behavior is deprecated and will be removed in a future version. "
+            "Please add \"mode\": \"common\" to your latent_world configuration.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        mode = "common"
+    
+    if mode not in ("common", "independent"):
+        raise ValueError("latent_world.mode must be 'common' or 'independent'")
+    
+    # Validate shared parameters
     center_mode = data.get("center_mode", "random")
     epsilon = data.get("epsilon", 0.1)
-
-    if not isinstance(latent_dim, int) or latent_dim < 1:
-        raise ValueError("latent_world.latent_dim must be an integer >= 1")
-    if not isinstance(num_modes, int) or num_modes < 1:
-        raise ValueError("latent_world.num_modes must be an integer >= 1")
-    if not isinstance(drone_variance, (int, float)) or drone_variance < 0:
-        raise ValueError("latent_world.drone_variance must be >= 0")
-    if not isinstance(target_variance, (int, float)) or target_variance < 0:
-        raise ValueError("latent_world.target_variance must be >= 0")
-    if not isinstance(target_hp, (int, float)) or target_hp <= 0:
-        raise ValueError("latent_world.target_hp must be > 0")
+    
     if center_mode not in ("random", "orthogonal", "one_hot"):
         raise ValueError("latent_world.center_mode must be 'random', 'orthogonal', or 'one_hot'")
-    if center_mode == "one_hot" and num_modes > latent_dim:
-        raise ValueError("latent_world: one_hot center_mode requires num_modes <= latent_dim")
     if not isinstance(epsilon, (int, float)) or epsilon <= 0 or epsilon >= 1:
         raise ValueError("latent_world.epsilon must be in range (0, 1)")
 
-    return LatentWorldConfig(
-        latent_dim=latent_dim,
-        num_modes=num_modes,
-        drone_variance=float(drone_variance),
-        target_variance=float(target_variance),
-        target_hp=float(target_hp),
-        center_mode=center_mode,
-        epsilon=float(epsilon),
-    )
+    # Select active section based on mode
+    if mode == "common":
+        if "common" not in data:
+            raise ValueError("latent_world.common section is required when mode is 'common'")
+        section_data = data["common"]
+    elif mode == "independent":
+        if "independent" not in data:
+            raise ValueError("latent_world.independent section is required when mode is 'independent'")
+        section_data = data["independent"]
+    else:
+        # Should never reach here due to mode validation above
+        raise ValueError(f"Unexpected mode value: {mode}")
+
+    # Branch on mode for mode-specific parsing
+    if mode == "common":
+        # Common mode: flat structure with shared mode centers
+        _validate_required_keys(
+            section_data,
+            ["latent_dim", "num_modes", "drone_variance", "target_variance"],
+            "latent_world.common",
+        )
+
+        latent_dim = section_data["latent_dim"]
+        num_modes = section_data["num_modes"]
+        drone_variance = section_data["drone_variance"]
+        target_variance = section_data["target_variance"]
+
+        if not isinstance(latent_dim, int) or latent_dim < 1:
+            raise ValueError("latent_world.latent_dim must be an integer >= 1")
+        if not isinstance(num_modes, int) or num_modes < 1:
+            raise ValueError("latent_world.num_modes must be an integer >= 1")
+        if not isinstance(drone_variance, (int, float)) or drone_variance < 0:
+            raise ValueError("latent_world.drone_variance must be >= 0")
+        if not isinstance(target_variance, (int, float)) or target_variance < 0:
+            raise ValueError("latent_world.target_variance must be >= 0")
+        if center_mode == "one_hot" and num_modes > latent_dim:
+            raise ValueError("latent_world: one_hot center_mode requires num_modes <= latent_dim")
+
+        return CommonLatentWorldConfig(
+            mode=mode,
+            latent_dim=latent_dim,
+            num_modes=num_modes,
+            drone_variance=float(drone_variance),
+            target_variance=float(target_variance),
+            center_mode=center_mode,
+            epsilon=float(epsilon),
+        )
+    
+    elif mode == "independent":
+        # Independent mode: nested drones/targets with separate mode centers
+        _validate_required_keys(section_data, ["drones", "targets"], "latent_world.independent")
+        
+        # Parse latent_dim from root level (shared by drones and targets)
+        latent_dim = data.get("latent_dim")
+        if latent_dim is None:
+            raise ValueError("latent_world.latent_dim is required for independent mode")
+        if not isinstance(latent_dim, int) or latent_dim < 1:
+            raise ValueError("latent_world.latent_dim must be an integer >= 1")
+        
+        drones_data = section_data["drones"]
+        targets_data = section_data["targets"]
+        
+        if not isinstance(drones_data, dict):
+            raise ValueError("latent_world.drones must be an object")
+        if not isinstance(targets_data, dict):
+            raise ValueError("latent_world.targets must be an object")
+        
+        # Validate drones config
+        _validate_required_keys(
+            drones_data,
+            ["num_modes", "drone_variance"],
+            "latent_world.drones",
+        )
+        
+        drone_num_modes = drones_data["num_modes"]
+        drone_variance = drones_data["drone_variance"]
+        
+        if not isinstance(drone_num_modes, int) or drone_num_modes < 1:
+            raise ValueError("latent_world.drones.num_modes must be an integer >= 1")
+        if not isinstance(drone_variance, (int, float)) or drone_variance < 0:
+            raise ValueError("latent_world.drones.drone_variance must be >= 0")
+        if center_mode == "one_hot" and drone_num_modes > latent_dim:
+            raise ValueError("latent_world.drones: one_hot center_mode requires num_modes <= latent_dim")
+        
+        # Validate targets config
+        _validate_required_keys(
+            targets_data,
+            ["num_modes", "target_variance"],
+            "latent_world.targets",
+        )
+        
+        target_num_modes = targets_data["num_modes"]
+        target_variance = targets_data["target_variance"]
+        
+        if not isinstance(target_num_modes, int) or target_num_modes < 1:
+            raise ValueError("latent_world.targets.num_modes must be an integer >= 1")
+        if not isinstance(target_variance, (int, float)) or target_variance < 0:
+            raise ValueError("latent_world.targets.target_variance must be >= 0")
+        if center_mode == "one_hot" and target_num_modes > latent_dim:
+            raise ValueError("latent_world.targets: one_hot center_mode requires num_modes <= latent_dim")
+        
+        return IndependentLatentWorldConfig(
+            mode=mode,
+            latent_dim=latent_dim,
+            center_mode=center_mode,
+            epsilon=float(epsilon),
+            drones=DroneLatentConfig(
+                num_modes=drone_num_modes,
+                drone_variance=float(drone_variance),
+            ),
+            targets=TargetLatentConfig(
+                num_modes=target_num_modes,
+                target_variance=float(target_variance),
+            ),
+        )
+    
+    else:
+        # Should never reach here due to mode validation above
+        raise ValueError(f"Unexpected mode value: {mode}")
 
 
 def load_config(path: str) -> ScenarioConfig:

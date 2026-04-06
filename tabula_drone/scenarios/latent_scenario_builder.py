@@ -9,6 +9,12 @@ from typing import Any, Dict, List, Optional, Tuple, TypedDict
 
 import numpy as np
 
+from tabula_drone.config.config_loader import (
+    LatentWorldConfig,
+    CommonLatentWorldConfig,
+    IndependentLatentWorldConfig,
+)
+
 
 class DroneParams(TypedDict):
     """Type definition for latent drone configuration parameters."""
@@ -36,43 +42,106 @@ class LatentScenarioBuilder:
     def __init__(
         self,
         world_size: Tuple[float, float],
-        latent_dim: int,
-        num_modes: int,
-        drone_variance: float,
-        target_variance: float,
+        config: LatentWorldConfig,
+        target_hp: float,
         seed: Optional[int] = None,
-        center_mode: str = "random",
-        epsilon: float = 0.1,
     ):
-        if latent_dim < 1:
-            raise ValueError("latent_dim must be >= 1")
-        if num_modes < 1:
-            raise ValueError("num_modes must be >= 1")
-        if drone_variance < 0:
-            raise ValueError("drone_variance must be >= 0")
-        if target_variance < 0:
-            raise ValueError("target_variance must be >= 0")
-        if center_mode not in ("random", "orthogonal", "one_hot"):
-            raise ValueError("center_mode must be 'random', 'orthogonal', or 'one_hot'")
-        if center_mode == "one_hot" and num_modes > latent_dim:
-            raise ValueError("one_hot center_mode requires num_modes <= latent_dim")
-        if epsilon <= 0 or epsilon >= 1:
-            raise ValueError("epsilon must be in range (0, 1)")
-
+        # Store config and basic parameters
         self.world_size = world_size
-        self.latent_dim = latent_dim
-        self.num_modes = num_modes
-        self.drone_variance = drone_variance
-        self.target_variance = target_variance
+        self.config = config
         self.seed = seed
-        self.center_mode = center_mode
-        self.epsilon = epsilon
         self._rng = np.random.RandomState(seed)
         self._drone_params: Optional[DroneParams] = None
         self._target_params: Optional[TargetParams] = None
-
-        # Shared mixture centers define the latent world for both sides.
-        self.mode_centers = self._sample_mode_centers()
+        
+        # Detect mode and extract parameters based on config type
+        if isinstance(config, CommonLatentWorldConfig):
+            # Common mode: extract flat parameters
+            self.mode = "common"
+            self.latent_dim = config.latent_dim
+            self.num_modes = config.num_modes
+            self.drone_variance = config.drone_variance
+            self.target_variance = config.target_variance
+            self.target_hp = target_hp
+            self.center_mode = config.center_mode
+            self.epsilon = config.epsilon
+            
+            # Validation for common mode
+            if self.latent_dim < 1:
+                raise ValueError("latent_dim must be >= 1")
+            if self.num_modes < 1:
+                raise ValueError("num_modes must be >= 1")
+            if self.drone_variance < 0:
+                raise ValueError("drone_variance must be >= 0")
+            if self.target_variance < 0:
+                raise ValueError("target_variance must be >= 0")
+            if self.target_hp <= 0:
+                raise ValueError("target_hp must be > 0")
+            if self.center_mode not in ("random", "orthogonal", "one_hot"):
+                raise ValueError("center_mode must be 'random', 'orthogonal', or 'one_hot'")
+            if self.center_mode == "one_hot" and self.num_modes > self.latent_dim:
+                raise ValueError("one_hot center_mode requires num_modes <= latent_dim")
+            if self.epsilon <= 0 or self.epsilon >= 1:
+                raise ValueError("epsilon must be in range (0, 1)")
+                
+        elif isinstance(config, IndependentLatentWorldConfig):
+            # Independent mode: extract nested parameters
+            self.mode = "independent"
+            self.drone_latent_dim = config.latent_dim
+            self.drone_num_modes = config.drones.num_modes
+            self.drone_variance = config.drones.drone_variance
+            self.target_latent_dim = config.latent_dim
+            self.target_num_modes = config.targets.num_modes
+            self.target_variance = config.targets.target_variance
+            self.target_hp = target_hp
+            self.center_mode = config.center_mode
+            self.epsilon = config.epsilon
+            
+            # Validation for independent mode
+            if self.drone_latent_dim < 1:
+                raise ValueError("drone latent_dim must be >= 1")
+            if self.drone_num_modes < 1:
+                raise ValueError("drone num_modes must be >= 1")
+            if self.target_latent_dim < 1:
+                raise ValueError("target latent_dim must be >= 1")
+            if self.target_num_modes < 1:
+                raise ValueError("target num_modes must be >= 1")
+            if self.drone_variance < 0:
+                raise ValueError("drone_variance must be >= 0")
+            if self.target_variance < 0:
+                raise ValueError("target_variance must be >= 0")
+            if self.target_hp <= 0:
+                raise ValueError("target_hp must be > 0")
+            if self.center_mode not in ("random", "orthogonal", "one_hot"):
+                raise ValueError("center_mode must be 'random', 'orthogonal', or 'one_hot'")
+            if self.center_mode == "one_hot":
+                if self.drone_num_modes > self.drone_latent_dim:
+                    raise ValueError("one_hot center_mode requires drone num_modes <= latent_dim")
+                if self.target_num_modes > self.target_latent_dim:
+                    raise ValueError("one_hot center_mode requires target num_modes <= latent_dim")
+            if self.epsilon <= 0 or self.epsilon >= 1:
+                raise ValueError("epsilon must be in range (0, 1)")
+            
+            # For backward compatibility, set common mode equivalents (used by some methods)
+            self.latent_dim = self.drone_latent_dim
+            self.num_modes = self.drone_num_modes
+        else:
+            raise ValueError(f"Unexpected config type: {type(config)}")
+        
+        # Create mode centers based on mode type
+        if self.mode == "common":
+            # Common mode: single shared set of mode centers
+            self.mode_centers = self._sample_mode_centers()
+        else:  # independent mode
+            # Independent mode: separate mode centers for drones and targets
+            self.drone_mode_centers = self._sample_mode_centers_for_entity(
+                num_modes=self.drone_num_modes,
+                latent_dim=self.drone_latent_dim
+            )
+            self.target_mode_centers = self._sample_mode_centers_for_entity(
+                num_modes=self.target_num_modes,
+                latent_dim=self.target_latent_dim
+            )
 
     def _sample_mode_centers(self) -> np.ndarray:
         """Sample shared Gaussian-mixture centers based on center_mode."""
@@ -118,6 +187,34 @@ class LatentScenarioBuilder:
         for i in range(self.num_modes):
             centers[i, i] = on_value
         return centers
+
+    def _sample_mode_centers_for_entity(self, num_modes: int, latent_dim: int) -> np.ndarray:
+        """Sample mode centers for a specific entity type with custom dimensions."""
+        if self.center_mode == "random":
+            log_centers = self._rng.normal(
+                loc=0.0,
+                scale=1.0,
+                size=(num_modes, latent_dim),
+            ).astype(np.float64)
+            return np.exp(log_centers)
+        elif self.center_mode == "orthogonal":
+            A = self._rng.normal(
+                loc=0.0,
+                scale=1.0,
+                size=(latent_dim, num_modes),
+            ).astype(np.float64)
+            Q, _ = np.linalg.qr(A)
+            centers = Q.T[:num_modes]
+            return centers.astype(np.float64)
+        elif self.center_mode == "one_hot":
+            off_value = self.epsilon / (latent_dim - 1)
+            on_value = 1.0 - self.epsilon
+            centers = np.full((num_modes, latent_dim), off_value, dtype=np.float64)
+            for i in range(num_modes):
+                centers[i, i] = on_value
+            return centers
+        else:
+            raise ValueError(f"Unknown center_mode: {self.center_mode}")
 
     def with_drones(
         self,
@@ -230,17 +327,40 @@ class LatentScenarioBuilder:
 
         return positions
 
-    def _sample_latent_vector(self, variance: float) -> Tuple[int, Tuple[float, ...]]:
-        """Sample latent vector in log-space, then exponentiate."""
-        mode_id = int(self._rng.randint(0, self.num_modes))
-        log_center = np.log(self.mode_centers[mode_id])
+    def _sample_latent_vector(self, variance: float, entity_type: str = 'drone') -> Tuple[int, Tuple[float, ...]]:
+        """Sample latent vector in log-space, then exponentiate.
+        
+        Args:
+            variance: Sampling variance
+            entity_type: 'drone' or 'target' - determines which mode centers to use in independent mode
+        """
+        # Select appropriate mode centers and dimensions based on mode
+        if self.mode == "common":
+            # Common mode: use shared mode centers
+            mode_centers = self.mode_centers
+            num_modes = self.num_modes
+            latent_dim = self.latent_dim
+        else:  # independent mode
+            # Independent mode: use entity-specific mode centers
+            if entity_type == 'drone':
+                mode_centers = self.drone_mode_centers
+                num_modes = self.drone_num_modes
+                latent_dim = self.drone_latent_dim
+            else:  # target
+                mode_centers = self.target_mode_centers
+                num_modes = self.target_num_modes
+                latent_dim = self.target_latent_dim
+        
+        # Sample from selected mode centers
+        mode_id = int(self._rng.randint(0, num_modes))
+        log_center = np.log(mode_centers[mode_id])
         if variance == 0:
             log_sample = log_center
         else:
             log_sample = self._rng.normal(
                 loc=log_center,
                 scale=np.sqrt(variance),
-                size=self.latent_dim,
+                size=latent_dim,
             )
         sample = np.exp(log_sample)
         return mode_id, tuple(float(value) for value in sample)
@@ -261,7 +381,7 @@ class LatentScenarioBuilder:
 
         drones_config: List[Dict[str, Any]] = []
         for position in drone_positions:
-            mode_id, latent_vector = self._sample_latent_vector(self.drone_variance)
+            mode_id, latent_vector = self._sample_latent_vector(self.drone_variance, entity_type='drone')
             drones_config.append(
                 {
                     "position": position,
@@ -281,7 +401,7 @@ class LatentScenarioBuilder:
 
         targets_config: List[Dict[str, Any]] = []
         for position in target_positions:
-            mode_id, latent_vector = self._sample_latent_vector(self.target_variance)
+            mode_id, latent_vector = self._sample_latent_vector(self.target_variance, entity_type='target')
             targets_config.append(
                 {
                     "position": position,

@@ -539,15 +539,12 @@ def main():
     if config.latent_world is None:
         raise ValueError("latent world_model requires parsed latent_world config")
 
+    # Create builder with config object (handles both common and independent modes)
     builder = LatentScenarioBuilder(
         world_size=config.world.size,
-        latent_dim=config.latent_world.latent_dim,
-        num_modes=config.latent_world.num_modes,
-        drone_variance=config.latent_world.drone_variance,
-        target_variance=config.latent_world.target_variance,
+        config=config.latent_world,
+        target_hp=config.targets.target_hp,
         seed=config.seed,
-        center_mode=config.latent_world.center_mode,
-        epsilon=config.latent_world.epsilon,
     )
     builder.with_drones(
         count=config.drones.count,
@@ -602,6 +599,17 @@ def main():
     
     # Create single environment (reused across all policies)
     num_targets = len(targets_config)
+    
+    # Build latent_world dict for logging (use builder's extracted values)
+    latent_world_dict = {
+        "mode": builder.mode,
+        "latent_dim": builder.latent_dim,
+        "num_modes": builder.num_modes,
+        "drone_variance": builder.drone_variance,
+        "target_variance": builder.target_variance,
+        "center_mode": builder.center_mode,
+    }
+    
     env = DroneEngageLatentMRTA(
         world_size=config.world.size,
         max_steps=config.environment.max_steps,
@@ -610,14 +618,8 @@ def main():
         scenario_id=config.environment.scenario_id,
         reward_noise=reward_noise,
         builder=builder,
-        latent_world={
-            "latent_dim": config.latent_world.latent_dim,
-            "num_modes": config.latent_world.num_modes,
-            "drone_variance": config.latent_world.drone_variance,
-            "target_variance": config.latent_world.target_variance,
-            "target_hp": config.latent_world.target_hp,
-            "center_mode": config.latent_world.center_mode,
-        },
+        latent_world=latent_world_dict,
+        target_hp=config.targets.target_hp,
     )
         
     # Create all policies upfront

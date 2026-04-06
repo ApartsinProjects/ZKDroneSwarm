@@ -1,12 +1,24 @@
 {
   "latent_world": {
-    "latent_dim": 3,
-    "num_modes": 3,
-    "drone_variance": 0.2,
-    "target_variance": 0.2,
-    "target_hp": 10.0,
+    "mode": "independent",
     "center_mode": "one_hot",
-    "epsilon": 0.1
+    "epsilon": 0.1,
+    "latent_dim": 3,
+    "common": {
+      "num_modes": 3,
+      "drone_variance": 0.02,
+      "target_variance": 0.2
+    },
+    "independent": {
+      "drones": {
+        "num_modes": 3,
+        "drone_variance": 0.1
+      },
+      "targets": {
+        "num_modes": 3,
+        "target_variance": 0.1
+      }
+    }
   },
   "seed": 42,
   "world": {
@@ -16,8 +28,8 @@
     ]
   },
   "environment": {
-    "max_steps":250,
-    "num_episodes": 25,
+    "max_steps": 250,
+    "num_episodes": 35,
     "verbose": false
   },  
   "drones": {
@@ -32,10 +44,11 @@
         0.4
       ]
     },
-    "min_distance_between_drones": 75.0
+    "min_distance_between_drones": 50.0
   },
   "targets": {
     "count": 27,
+    "target_hp": 10.0,
     "region": {
       "x_fraction": [
         0.1,
@@ -64,10 +77,10 @@
   },
   "collaborative_filtering": {
     "reward_noise": 0.4,
-    "enable_tsne_enrichment": true,
+    "enable_tsne_enrichment": false,
     "matrix_factorization_cf": {
       "use_integration_matrix": true,
-      "latent_dim": 3,
+      "latent_dim": 6,
       "learning_rate": 0.01,
       "lambda_reg": 0.02,
       "epsilon": 0.3,
