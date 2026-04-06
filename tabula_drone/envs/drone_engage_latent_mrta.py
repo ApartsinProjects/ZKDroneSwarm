@@ -85,6 +85,8 @@ class DroneEngageLatentMRTA(ParallelEnv):
             else:
                 # Assume it's a dataclass instance
                 self.latent_world = asdict(latent_world)
+            # Ensure target_hp is included in the config for frontend display
+            self.latent_world["target_hp"] = float(target_hp)
         else:
             self.latent_world = None
         self.target_hp = float(target_hp)

@@ -12,11 +12,11 @@
     "independent": {
       "drones": {
         "num_modes": 3,
-        "drone_variance": 0.1
+        "drone_variance": 0.2
       },
       "targets": {
         "num_modes": 3,
-        "target_variance": 0.1
+        "target_variance": 0.2
       }
     }
   },
@@ -76,11 +76,11 @@
     "allow_noop": false
   },
   "collaborative_filtering": {
-    "reward_noise": 0.4,
-    "enable_tsne_enrichment": false,
+    "reward_noise": 0.1,
+    "enable_tsne_enrichment": true,
     "matrix_factorization_cf": {
       "use_integration_matrix": true,
-      "latent_dim": 6,
+      "latent_dim": 3,
       "learning_rate": 0.01,
       "lambda_reg": 0.02,
       "epsilon": 0.3,
