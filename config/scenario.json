@@ -6,7 +6,7 @@
     "latent_dim": 3,
     "common": {
       "num_modes": 3,
-      "drone_variance": 0.02,
+      "drone_variance": 0.2,
       "target_variance": 0.2
     },
     "independent": {
@@ -76,7 +76,7 @@
     "allow_noop": false
   },
   "collaborative_filtering": {
-    "reward_noise": 0.1,
+    "reward_noise": 0.0,
     "enable_tsne_enrichment": true,
     "matrix_factorization_cf": {
       "use_integration_matrix": true,

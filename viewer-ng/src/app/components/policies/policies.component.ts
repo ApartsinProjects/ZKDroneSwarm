@@ -5,6 +5,7 @@ import { PoliciesService } from '../../services/policies.service';
 import { EpisodeStateService } from '../../services/episode-state.service';
 import { CrossEpisodeBrowserService } from '../../services/cross-episode-browser.service';
 import { EmbeddingBrowserService } from '../../services/embedding-browser.service';
+import { IntegrationMatrixBrowserService } from '../../services/integration-matrix-browser.service';
 import { SidebarTabService } from '../../services/sidebar-tab.service';
 
 @Component({
@@ -19,6 +20,7 @@ export class PoliciesComponent {
   private episodeState = inject(EpisodeStateService);
   private crossEpisodeBrowser = inject(CrossEpisodeBrowserService);
   private embeddingBrowser = inject(EmbeddingBrowserService);
+  private integrationMatrixBrowser = inject(IntegrationMatrixBrowserService);
   private sidebarTabService = inject(SidebarTabService);
   public policies = toSignal(this.policiesService.getPolicies());
   public selectedPolicy = signal<string | null>(null);
@@ -38,5 +40,6 @@ export class PoliciesComponent {
 
     this.crossEpisodeBrowser.loadEpisodes(policyName);
     this.embeddingBrowser.loadSnapshots(policyName);
+    this.integrationMatrixBrowser.loadSnapshots(policyName);
   }
 }

@@ -142,6 +142,12 @@ class DroneEngageLatentMRTA(ParallelEnv):
                         shape=(self.num_drones,),
                         dtype=np.float32,
                     ),
+                    "target_was_active_at_engagement": spaces.Box(
+                        low=0,
+                        high=1,
+                        shape=(self.num_drones,),
+                        dtype=np.int8,
+                    ),
                 }
             )
             for agent_id in self.possible_agents
@@ -153,6 +159,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self.rng: Optional[np.random.RandomState] = None
         self.last_actions: Dict[str, int] = {}
         self.last_rewards: Dict[str, float] = {}
+        self.last_target_was_active_at_engagement: Dict[str, int] = {}
         self._latest_diagnostics: Optional[EnvDiagnosticsSnapshot] = None
         self.cumulative_neutralizations = 0
 
@@ -227,6 +234,9 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self._agents = self.possible_agents[:]
         self.last_actions = {agent_id: 0 for agent_id in self.possible_agents}
         self.last_rewards = {agent_id: 0.0 for agent_id in self.possible_agents}
+        self.last_target_was_active_at_engagement = {
+            agent_id: 0 for agent_id in self.possible_agents
+        }
         self.cumulative_neutralizations = 0
 
         observations = self._compute_observations()
@@ -251,10 +261,18 @@ class DroneEngageLatentMRTA(ParallelEnv):
                 [self._compute_observed_reward(aid) for aid in self.possible_agents],
                 dtype=np.float32,
             )
+            target_was_active_at_engagement = np.array(
+                [
+                    self.last_target_was_active_at_engagement.get(aid, 0)
+                    for aid in self.possible_agents
+                ],
+                dtype=np.int8,
+            )
             observations[agent_id] = {
                 "targets": target_array.copy(),
                 "selected_targets": selected_targets,
                 "observed_rewards": observed_rewards,
+                "target_was_active_at_engagement": target_was_active_at_engagement,
             }
         return observations
 
@@ -376,6 +394,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
             self.last_actions[agent_id] = action
             if action == 0:
                 self.last_rewards[agent_id] = 0.0
+                self.last_target_was_active_at_engagement[agent_id] = 0
                 continue
 
             drone_idx = int(agent_id.split("_")[1])
@@ -394,6 +413,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
                 step_gross_damage += max(0.0, raw_dot_wasted)
                 rewards[agent_id] = -1.0
                 self.last_rewards[agent_id] = -1.0
+                self.last_target_was_active_at_engagement[agent_id] = 0
                 continue
 
             raw_dot = self._dot_product_reward(drone, target)
@@ -427,6 +447,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
             
             rewards[agent_id] = reward
             self.last_rewards[agent_id] = reward
+            self.last_target_was_active_at_engagement[agent_id] = 1
             
             # Track effective damage for metrics (independent of reward)
             effective_damage = min(damage, hp_before)

@@ -222,6 +222,62 @@
               </div>
             }
           </div>
+        } @else if (tab.id === 'integration-matrix') {
+          <div class="analysis-panel">
+            @if (integrationMatrixIsLoading()) {
+              <div class="analysis-status">Loading integration matrix snapshots...</div>
+            } @else if (integrationMatrixError()) {
+              <div class="analysis-status">{{ integrationMatrixError() }}</div>
+            } @else if (totalEpisodes() > 0) {
+              <div class="analysis-controls">
+                <div class="analysis-meta">
+                  <span class="meta-label">Episode</span>
+                  <span class="meta-value">{{ currentSnapshot()?.episodeNum ?? (currentIndex() + 1) }} / {{ totalEpisodes() }}</span>
+                  <span class="meta-divider"></span>
+                  <span class="meta-label">Mode</span>
+                  <span class="meta-value">Auto-Fit</span>
+                </div>
+                <div class="analysis-slider-container">
+                  <input
+                    type="range"
+                    class="analysis-slider"
+                    [min]="0"
+                    [max]="totalEpisodes() - 1"
+                    [value]="currentIndex()"
+                    (input)="onSliderInput($event)"
+                  />
+                  <button
+                    type="button"
+                    class="playback-button"
+                    [class.playback-button--playing]="isPlaying()"
+                    (click)="togglePlayback()"
+                    [attr.aria-label]="isPlaying() ? 'Pause playback' : 'Play episodes'"
+                  >
+                    @if (isPlaying()) {
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <rect x="4" y="3" width="3" height="10" rx="1"/>
+                        <rect x="9" y="3" width="3" height="10" rx="1"/>
+                      </svg>
+                    } @else {
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M5 3l8 5-8 5V3z"/>
+                      </svg>
+                    }
+                  </button>
+                </div>
+              </div>
+              <app-integration-matrix-panel
+                [snapshots]="integrationMatrixSnapshots()"
+                [currentSnapshot]="integrationMatrixCurrentSnapshot()"
+                [selectedAgent]="integrationMatrixSelectedAgent()"
+                (selectedAgentChange)="onIntegrationMatrixAgentSelected($event)"
+              />
+            } @else {
+              <div class="analysis-placeholder">
+                Select a policy to explore integration matrix evolution
+              </div>
+            }
+          </div>
         } @else if (tab.id === 'latent-world') {
           <div class="analysis-panel">
             <app-latent-world-visualization-panel

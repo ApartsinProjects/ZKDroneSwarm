@@ -4,11 +4,13 @@ import { CrossEpisodeBrowserService } from '../../services/cross-episode-browser
 import { EpisodeAnalysisChart } from './episode-analysis-chart';
 import { EmbeddingBrowserService } from '../../services/embedding-browser.service';
 import { EmbeddingVisualizationPanel } from './embedding-visualization-panel';
+import { IntegrationMatrixBrowserService } from '../../services/integration-matrix-browser.service';
+import { IntegrationMatrixPanel } from './integration-matrix-panel';
 import { LatentWorldService } from '../../services/latent-world.service';
 import { LatentWorldVisualizationPanel } from './latent-world-visualization-panel';
 import { SidebarTabService } from '../../services/sidebar-tab.service';
 
-type SidebarTabId = 'hp-active-target' | 'embedding-visualization' | 'latent-world';
+type SidebarTabId = 'hp-active-target' | 'embedding-visualization' | 'latent-world' | 'integration-matrix';
 
 interface SidebarTabDefinition {
   id: SidebarTabId;
@@ -18,19 +20,21 @@ interface SidebarTabDefinition {
 const SIDEBAR_TABS: ReadonlyArray<SidebarTabDefinition> = [
   { id: 'latent-world', label: 'Latent World' },
   { id: 'hp-active-target', label: 'HP & Active Target' },
-  { id: 'embedding-visualization', label: 'Embedding Visualization' }
+  { id: 'embedding-visualization', label: 'Embedding Visualization' },
+  { id: 'integration-matrix', label: 'Integration Matrix' }
 ];
 
 @Component({
   selector: 'app-viewer-sidebar-tabs',
   standalone: true,
-  imports: [CommonModule, EpisodeAnalysisChart, EmbeddingVisualizationPanel, LatentWorldVisualizationPanel],
+  imports: [CommonModule, EpisodeAnalysisChart, EmbeddingVisualizationPanel, IntegrationMatrixPanel, LatentWorldVisualizationPanel],
   templateUrl: './viewer-sidebar-tabs.html',
   styleUrl: './viewer-sidebar-tabs.scss',
 })
 export class ViewerSidebarTabs implements OnDestroy {
   private browserService = inject(CrossEpisodeBrowserService);
   private embeddingBrowser = inject(EmbeddingBrowserService);
+  private integrationMatrixBrowser = inject(IntegrationMatrixBrowserService);
   private latentWorldService = inject(LatentWorldService);
   private sidebarTabService = inject(SidebarTabService);
 
@@ -46,6 +50,11 @@ export class ViewerSidebarTabs implements OnDestroy {
   protected readonly embeddingIsLoading = this.embeddingBrowser.isLoading;
   protected readonly embeddingError = this.embeddingBrowser.error;
   protected readonly embeddingSelectedAgent = this.embeddingBrowser.selectedAgent;
+  protected readonly integrationMatrixSnapshots = this.integrationMatrixBrowser.snapshots;
+  protected readonly integrationMatrixCurrentSnapshot = this.integrationMatrixBrowser.currentSnapshot;
+  protected readonly integrationMatrixIsLoading = this.integrationMatrixBrowser.isLoading;
+  protected readonly integrationMatrixError = this.integrationMatrixBrowser.error;
+  protected readonly integrationMatrixSelectedAgent = this.integrationMatrixBrowser.selectedAgent;
   protected readonly latentVectors = signal<any>(null);
   protected readonly isPlaying = signal(false);
   private playbackIntervalId: number | null = null;
@@ -85,6 +94,10 @@ export class ViewerSidebarTabs implements OnDestroy {
 
   protected onEmbeddingAgentSelected(index: number): void {
     this.embeddingBrowser.setSelectedAgent(index);
+  }
+
+  protected onIntegrationMatrixAgentSelected(index: number): void {
+    this.integrationMatrixBrowser.setSelectedAgent(index);
   }
 
   protected togglePlayback(): void {

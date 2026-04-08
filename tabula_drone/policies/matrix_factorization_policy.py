@@ -211,15 +211,20 @@ class MatrixFactorizationPolicy:
         self, drone_idx: int, target_idx: int, reward: float
     ) -> float:
         """
-        Accumulate raw reward into integration matrix and return running average.
+        Accumulate an eligible reward into the supervised interaction matrix.
+
+        The integration matrix serves as the MF supervision target. The environment
+        decides which public events are eligible for accumulation, allowing the
+        policy to learn a running mean over active-target rewards while excluding
+        dead-target penalties.
 
         Args:
             drone_idx: Drone index (0-based)
             target_idx: Target index (0-based)
-            reward: Raw observed reward
+            reward: Eligible observed reward
 
         Returns:
-            M_avg for this (drone, target) pair
+            M_avg for this (drone, target) pair after accumulation
         """
         self.M_sum[drone_idx, target_idx] += reward
         self.M_count[drone_idx, target_idx] += 1.0
@@ -237,10 +242,16 @@ class MatrixFactorizationPolicy:
             - Update: U[:, t] -= η * (2*e*P[i] + λ*U[:, t])
 
         Args:
-            observation: Dict with 'selected_targets' and 'observed_rewards' arrays
+            observation: Dict with 'selected_targets' and 'observed_rewards' arrays.
+                When integration-matrix mode is enabled, the environment may also
+                provide a 'target_was_active_at_engagement' mask aligned with
+                those arrays.
         """
         selected_targets = observation["selected_targets"]
         observed_rewards = observation["observed_rewards"]
+        target_was_active_at_engagement = observation.get(
+            "target_was_active_at_engagement"
+        )
 
         for drone_idx in range(self.num_agents):
             target_action = selected_targets[drone_idx]
@@ -255,6 +266,15 @@ class MatrixFactorizationPolicy:
             # Compute prediction and error
             predicted = self._predict_for_drone(drone_idx, target_idx)
             if self.use_integration_matrix:
+                use_for_supervision = True
+                if target_was_active_at_engagement is not None:
+                    use_for_supervision = bool(
+                        target_was_active_at_engagement[drone_idx]
+                    )
+
+                if not use_for_supervision:
+                    continue
+
                 m_avg = self._update_integration_matrix(
                     drone_idx, target_idx, float(reward)
                 )
@@ -330,6 +350,7 @@ class MatrixFactorizationPolicy:
         }
 
         if self.use_integration_matrix:
+            m_pred = self.P @ self.U
             m_avg = np.divide(
                 self.M_sum, self.M_count,
                 out=np.zeros_like(self.M_sum),
@@ -337,6 +358,7 @@ class MatrixFactorizationPolicy:
             )
             state["integration_matrix"] = {
                 "M_avg": m_avg.tolist(),
+                "M_pred": m_pred.tolist(),
                 "M_count": self.M_count.tolist(),
             }
 
