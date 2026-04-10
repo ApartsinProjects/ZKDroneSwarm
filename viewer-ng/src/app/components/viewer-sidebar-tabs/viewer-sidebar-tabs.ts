@@ -8,9 +8,10 @@ import { IntegrationMatrixBrowserService } from '../../services/integration-matr
 import { IntegrationMatrixPanel } from './integration-matrix-panel';
 import { LatentWorldService } from '../../services/latent-world.service';
 import { LatentWorldVisualizationPanel } from './latent-world-visualization-panel';
+import { PaperPanel } from './paper-panel';
 import { SidebarTabService } from '../../services/sidebar-tab.service';
 
-type SidebarTabId = 'hp-active-target' | 'embedding-visualization' | 'latent-world' | 'integration-matrix';
+type SidebarTabId = 'hp-active-target' | 'embedding-visualization' | 'latent-world' | 'integration-matrix' | 'paper';
 
 interface SidebarTabDefinition {
   id: SidebarTabId;
@@ -21,13 +22,14 @@ const SIDEBAR_TABS: ReadonlyArray<SidebarTabDefinition> = [
   { id: 'latent-world', label: 'Latent World' },
   { id: 'hp-active-target', label: 'HP & Active Target' },
   { id: 'embedding-visualization', label: 'Embedding Visualization' },
-  { id: 'integration-matrix', label: 'Integration Matrix' }
+  { id: 'integration-matrix', label: 'Integration Matrix' },
+  { id: 'paper', label: 'Paper' }
 ];
 
 @Component({
   selector: 'app-viewer-sidebar-tabs',
   standalone: true,
-  imports: [CommonModule, EpisodeAnalysisChart, EmbeddingVisualizationPanel, IntegrationMatrixPanel, LatentWorldVisualizationPanel],
+  imports: [CommonModule, EpisodeAnalysisChart, EmbeddingVisualizationPanel, IntegrationMatrixPanel, LatentWorldVisualizationPanel, PaperPanel],
   templateUrl: './viewer-sidebar-tabs.html',
   styleUrl: './viewer-sidebar-tabs.scss',
 })

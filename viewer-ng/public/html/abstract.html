@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abstract - Zero-Knowledge Multi-Robot Task Allocation</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ]
+        });"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            line-height: 1.8;
+            color: #2c2416;
+            background: white;
+            padding: 2rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        .abstract-container {
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a1410;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid rgba(126, 104, 62, 0.2);
+            letter-spacing: 0.02em;
+        }
+        
+        p {
+            font-size: 1rem;
+            margin-bottom: 1.25rem;
+            text-align: justify;
+            hyphens: auto;
+        }
+        
+        p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .katex {
+            font-size: 1.05em;
+        }
+        
+        .katex-display {
+            margin: 1.5rem 0;
+        }
+        
+        abbr {
+            text-decoration: none;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+    </style>
+</head>
+<body>
+    <div class="abstract-container">
+        <h1>Abstract</h1>
+        
+        <p>
+            Multi-Robot Task Allocation (MRTA) traditionally assumes that agents possess some prior knowledge of task properties, their own capabilities, or the capabilities of other agents, and often relies on explicit inter-agent communication. These assumptions limit the applicability of existing approaches in uncertain, decentralized, and communication-constrained environments. This work introduces Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA), a new problem formulation in which heterogeneous agents must allocate tasks without prior knowledge of task attributes, self-capabilities, or the capabilities of others, and without direct communication. Under this formulation, agents can learn only from the outcomes of their own actions and from indirect observation of the environment.
+        </p>
+        
+        <p>
+            To address this setting, this paper proposes a decentralized collaborative-filtering-inspired approach based on matrix factorization. The core idea is to reinterpret collaborative filtering not as preference prediction, but as latent utility estimation: agents infer hidden task suitability from sparse interaction outcomes collected over time. Each agent maintains a local latent model and independently selects tasks using estimated utilities, while coordination emerges indirectly through shared public observations rather than explicit parameter exchange.
+        </p>
+        
+        <p>
+            To support rigorous evaluation, the paper also presents a simulation benchmark for ZK-MRTA implemented as a Gymnasium-compatible PettingZoo parallel multi-agent environment. The framework enables comparison between decentralized strategies under controlled zero-knowledge assumptions and supports policy-agnostic performance metrics such as task completion efficiency, collision rate, overkill, and damage efficiency. The main contribution of this work is therefore threefold: the formalization of the ZK-MRTA problem, the introduction of a collaborative-filtering-based decentralized solution family, and the definition of an experimental benchmark for systematic analysis of task-allocation strategies in hidden, communication-free environments.
+        </p>
+    </div>
+</body>
+</html>

@@ -284,6 +284,10 @@
               [latentVectors]="latentVectors()"
             />
           </div>
+        } @else if (tab.id === 'paper') {
+          <div class="analysis-panel">
+            <app-paper-panel />
+          </div>
         }
       </div>
     </section>

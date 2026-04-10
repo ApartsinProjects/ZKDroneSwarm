@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-type SidebarTabId = 'hp-active-target' | 'embedding-visualization' | 'latent-world';
+type SidebarTabId = 'hp-active-target' | 'embedding-visualization' | 'latent-world' | 'integration-matrix' | 'paper';
 
 @Injectable({
   providedIn: 'root'
