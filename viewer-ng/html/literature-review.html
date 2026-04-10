@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Literature Review - Zero-Knowledge Multi-Robot Task Allocation</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ]
+        });"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            line-height: 1.8;
+            color: #2c2416;
+            background: white;
+            padding: 2rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        .literature-review-container {
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a1410;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid rgba(126, 104, 62, 0.2);
+            letter-spacing: 0.02em;
+        }
+        
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1a1410;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            letter-spacing: 0.01em;
+        }
+        
+        h2:first-of-type {
+            margin-top: 0;
+        }
+        
+        p {
+            font-size: 1rem;
+            margin-bottom: 1.25rem;
+            text-align: justify;
+            hyphens: auto;
+        }
+        
+        p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .katex {
+            font-size: 1.05em;
+        }
+        
+        .katex-display {
+            margin: 1.5rem 0;
+        }
+        
+        abbr {
+            text-decoration: none;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+    </style>
+</head>
+<body>
+    <div class="literature-review-container">
+        <h1>Literature Review</h1>
+        
+        <h2>2.1 Swarm Robotics and the Emergence of MRTA</h2>
+        
+        <p>
+            Swarm robotics studies how large groups of relatively simple agents can achieve coordinated behavior through decentralized interaction. Its key advantages are robustness, scalability, and flexibility, which make swarm-based systems attractive in domains such as disaster response, hazardous exploration, and military operations [2], [3], [5]. As robotic swarms become more heterogeneous, however, coordination becomes substantially more difficult, since agents may differ in sensing, mobility, endurance, or attack capability. This challenge motivates the study of Multi-Robot Task Allocation (MRTA), which concerns how tasks should be assigned to multiple agents in order to optimize overall system performance.
+        </p>
+        
+        <p>
+            Early work in MRTA focused largely on task-specific heuristics and bio-inspired coordination schemes. Over time, the field evolved toward more formal frameworks that support systematic classification and comparison of allocation problems and solution methods [2], [3], [5]. This shift was significant because it transformed MRTA from a collection of application-driven algorithms into a more unified research area with clearer assumptions, modeling choices, and evaluation criteria.
+        </p>
+        
+        <h2>2.2 Taxonomies and Classical Solution Families</h2>
+        
+        <p>
+            A foundational contribution to MRTA was the taxonomy introduced by Gerkey and Matarić, who categorized task-allocation problems along three dimensions: task type, assignment horizon, and the number of robots required per task [7]. Later work extended this taxonomy to address richer dependencies such as synchronization, precedence constraints, and multi-mission settings [8], [9]. These frameworks demonstrate that many realistic MRTA scenarios are dynamic, time-extended, and shaped by heterogeneous agent capabilities, making them considerably more complex than static matching problems.
+        </p>
+        
+        <p>
+            Within this broader landscape, several major solution families have emerged. Market-based approaches allocate tasks through bidding and utility exchange, offering a decentralized mechanism that can adapt to changing conditions, but they depend on meaningful utility estimation and communication among agents [4]. Optimization-based methods formulate allocation as a centralized or semi-centralized combinatorial problem and can produce high-quality solutions, yet they usually assume prior knowledge of task properties, agent capabilities, and environmental conditions [10], [14], [16]. Reinforcement-learning approaches allow policies to be learned from experience, but in multi-agent settings they face substantial challenges related to non-stationarity, scalability, and training complexity [11]. Coalition-formation methods are particularly relevant for tasks that require joint effort, but they also assume explicit reasoning about capabilities and at least partial communication or negotiation among agents [13].
+        </p>
+        
+        <p>
+            Although these approaches differ in methodology, they share a common premise: the allocation process relies on some combination of prior knowledge, explicit utility modeling, or inter-agent communication. This premise limits their suitability in environments where agents do not know task difficulty, do not know their own effectiveness in advance, and cannot exchange information directly.
+        </p>
+        
+        <h2>2.3 Decentralized Online Learning and the Exploration–Exploitation Trade-Off</h2>
+        
+        <p>
+            A separate line of research has addressed sequential decision-making under uncertainty from the perspective of multi-armed bandits and online learning. In the multi-armed bandit framework, an agent must repeatedly choose among actions with unknown reward distributions, balancing the exploration of unfamiliar options against the exploitation of currently promising ones. Contextual bandits extend this by conditioning action selection on observable features, while combinatorial bandits generalize to settings where multiple resources are allocated simultaneously. These models are relevant to task allocation because they formalize the core challenge agents face in ZK-MRTA: learning which tasks to select from limited and noisy outcome data, without prior knowledge of the underlying reward structure.
+        </p>
+        
+        <p>
+            In multi-agent settings, the decentralized partially observable Markov decision process (Dec-POMDP) provides a formal framework for independent agents acting under partial observability without communication. A common practical approach is independent learning, where each agent treats its own observation-action-reward stream as a separate learning problem, ignoring the non-stationarity introduced by other agents' evolving policies. While theoretically limited, independent learners have been shown to perform well in practice, particularly when agents share a common reward structure or can observe each other's actions [11]. This architecture is directly relevant to the present work, where each drone maintains a private model but observes public interaction outcomes.
+        </p>
+        
+        <p>
+            The exploration–exploitation trade-off is central to any online learning approach in the ZK-MRTA setting. Classical strategies include ε-greedy schedules with multiplicative decay, Upper Confidence Bound (UCB) methods that maintain optimistic estimates, and Boltzmann (softmax) selection that samples actions proportionally to exponentiated scores. Prisadnikov [19] investigated the exploration–exploitation trade-off specifically in the context of probabilistic matrix factorization for recommendation, demonstrating that the choice of exploration strategy has a significant impact on convergence behavior and final solution quality in sparse-data regimes. This finding is directly applicable to the present problem, where agents must balance exploiting emerging compatibility estimates against exploring under-observed task assignments.
+        </p>
+        
+        <p>
+            Despite their relevance, bandit and independent-learning approaches typically do not incorporate latent structure across agents and tasks. A bandit learner treats each agent-task pair as an independent arm, without leveraging the fact that similar agents may be effective on similar tasks. This limitation motivates the use of latent-factor models, which can generalize across the interaction space from sparse experience.
+        </p>
+        
+        <h2>2.4 The Gap in Existing MRTA Literature</h2>
+        
+        <p>
+            The central gap addressed in this research lies precisely at the intersection of the above literatures. Classical MRTA methods generally presuppose that agents can evaluate tasks using predefined knowledge, estimate their own fitness for execution, or coordinate through explicit communication. Bandit and online-learning approaches relax the prior-knowledge assumption but typically treat each agent-task pair independently, without modeling shared latent structure. In more realistic decentralized settings, an agent may not know whether it is suitable for a given task until after acting, and it may not be able to coordinate directly with other agents at all—but there may exist hidden regularities in the compatibility landscape that could be exploited if discovered.
+        </p>
+        
+        <p>
+            This motivates the formulation of Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA), a stricter variant of the MRTA problem in which agents have no prior knowledge of task attributes, no prior knowledge of their own or others' capabilities, and no communication channel. Instead, they must act and learn solely from observable interaction outcomes over time. In this sense, ZK-MRTA extends the existing MRTA literature by elevating uncertainty and communication absence from implementation challenges to defining assumptions of the problem itself.
+        </p>
+        
+        <p>
+            Conceptually, this setting is closest to the dynamic and heterogeneous side of established MRTA taxonomies, particularly the time-extended multi-robot setting captured in prior frameworks [7]–[9]. At the same time, it departs from the classical literature by removing the availability of explicit cost and feasibility information to the agents themselves. This makes ZK-MRTA not merely a new algorithmic variation, but a distinct formulation of decentralized task allocation.
+        </p>
+        
+        <h2>2.5 Collaborative Filtering as a Relevant Theoretical Foundation</h2>
+        
+        <p>
+            To address hidden agent-task compatibility under sparse observations, this research draws on collaborative filtering (CF), a mature family of methods from recommender systems [20], [21]. In classical recommendation settings, CF predicts unobserved user-item preferences from partially observed interaction data. In the present context, that logic is reinterpreted: agents correspond to users, tasks correspond to items, and observed task outcomes replace ratings. The goal is therefore not preference prediction, but the estimation of latent operational utility under decentralized and information-poor conditions.
+        </p>
+        
+        <p>
+            Collaborative-filtering methods are commonly divided into memory-based and model-based approaches. Memory-based methods rely directly on similarity computed from observed interactions, whereas model-based methods infer lower-dimensional latent structure behind the interaction matrix [20], [21]. Because ZK-MRTA naturally produces sparse and noisy observations, model-based methods are more relevant than similarity-based ones. In particular, Matrix Factorization (MF) offers a natural mechanism for representing both agents and tasks through latent vectors and predicting unobserved interactions from their compatibility.
+        </p>
+        
+        <p>
+            This perspective is especially valuable in the present setting because the interaction matrix is not available in advance. Instead, it must be constructed incrementally from experience. Accordingly, CF is not used here as a static recommendation engine, but as a mechanism for online latent-utility learning. The agent does not infer what it "prefers"; rather, it infers what it is likely to perform well on.
+        </p>
+        
+        <h2>2.6 Matrix Factorization, SVD, and Online Latent-Factor Learning</h2>
+        
+        <p>
+            Matrix Factorization has become one of the most influential model-based collaborative-filtering approaches because it explains observed interactions through low-dimensional latent representations [24], [25]. In the classical setting, a user-item matrix is approximated by the product of latent user and item factors, enabling the prediction of missing entries from shared structure in the data. Reinterpreted for ZK-MRTA, this means that agents and tasks can be embedded into a shared latent space in which predicted compatibility corresponds to expected task effectiveness.
+        </p>
+        
+        <p>
+            Singular Value Decomposition (SVD) and related factorization methods are especially relevant in sparse settings because they extract the dominant latent structure while suppressing noise [23]. Extensions such as SVD++ incorporate implicit feedback—not just explicit ratings but also which interactions were attempted—to improve prediction quality [25]. This is relevant to ZK-MRTA because agents learn not only from their own outcomes but also from observing which targets other agents selected and what results were observed. Probabilistic extensions of matrix factorization further improve robustness under uncertainty by modeling latent factors and observations in a probabilistic manner [24], [26]. These properties are important for ZK-MRTA, where observations are incomplete, indirect, and accumulated sequentially rather than provided as a fixed dataset.
+        </p>
+        
+        <p>
+            A critical distinction for the present work is between <strong>batch</strong> and <strong>online</strong> matrix factorization. Classical MF and SVD are typically applied to a static, partially observed matrix. In contrast, ZK-MRTA requires incremental updates as new observations arrive during sequential interaction. Online matrix factorization methods address this by updating latent factors via stochastic gradient descent (SGD) after each new observation, rather than recomputing the full decomposition. Brand [27] demonstrated that lightweight online SVD revisions can maintain factorization quality in streaming settings, making latent-factor models viable for real-time recommendation. In the ZK-MRTA context, this translates to agents that refine their latent models after every engagement, progressively improving their task-selection accuracy without requiring batch reprocessing of historical data.
+        </p>
+        
+        <p>
+            More recent work has explored neural collaborative filtering [28] and factorization machines [29], which offer greater representational flexibility but at the cost of increased model complexity, larger data requirements, and reduced interpretability. For the decentralized, low-data regime of ZK-MRTA, classical SGD-based matrix factorization provides a more appropriate balance between expressiveness and data efficiency.
+        </p>
+        
+        <p>
+            More broadly, latent-factor methods align well with the informational constraints of the problem. Since agents cannot directly observe hidden target types, true compatibility values, or full environment state descriptors, they must infer meaningful structure indirectly from action-outcome history. This is precisely the type of setting in which latent representations become useful: they provide a compact internal model for hidden regularities that cannot be accessed symbolically.
+        </p>
+        
+        <h2>2.7 Summary</h2>
+        
+        <p>
+            The literature shows that MRTA has matured into a well-structured field with established taxonomies and several powerful solution families. However, most existing approaches rely on assumptions that are too strong for the strict zero-knowledge setting, particularly prior knowledge of task-agent compatibility and explicit communication among agents. Online learning and bandit frameworks address the exploration challenge but do not leverage shared latent structure across the agent-task space. This motivates the formulation of ZK-MRTA as a distinct research problem.
+        </p>
+        
+        <p>
+            At the same time, the collaborative-filtering literature provides a suitable theoretical basis for learning hidden compatibility from sparse interaction data. In particular, model-based approaches such as Matrix Factorization and probabilistic latent-factor methods offer a principled way to estimate agent-task utility without requiring explicit feature engineering or centralized knowledge. When combined with online SGD-based updates and structured exploration strategies, these methods become applicable to the sequential, decentralized decision setting that ZK-MRTA defines. Together, these bodies of literature provide the conceptual foundation for the formal problem definition and method developed in this work.
+        </p>
+    </div>
+</body>
+</html>
