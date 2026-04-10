@@ -2,43 +2,50 @@
 
 This document provides a precise technical specification of the latent zero-knowledge multi-robot task allocation (ZK-MRTA) benchmark environment and the decentralized matrix factorization learning mechanism.
 
+The environment is implemented as a PettingZoo `ParallelEnv`, where all agents act simultaneously at each step, with action and observation spaces defined using Gymnasium `spaces`. This provides a standard multi-agent reinforcement learning interface while keeping the environment internals (latent vectors, compatibility structure) hidden from the agents.
+
 **Notation conventions**: We distinguish between the **true hidden environment structure** and the **learned policy representations**. Environment latent vectors are denoted $\mathbf{z}^{(d)}_i$ (drone $i$) and $\mathbf{z}^{(t)}_j$ (target $j$), with dimension $d_z$. Policy embeddings are denoted $P^{(a)}$ (drone matrix) and $U^{(a)}$ (target matrix) for agent $a$, with factorization dimension $d_f$. This distinction is critical: agents never observe the true $\mathbf{z}$ vectors and must learn their own approximations through interaction.
 
 ---
 
 ## 1. Latent Benchmark Construction
 
-The latent benchmark is constructed by defining a shared hidden latent space of dimension $d_z$, together with a small set of latent mode centers $\{\mathbf{c}_1,\dots,\mathbf{c}_K\}$. These mode centers act as the underlying factors that govern compatibility between drones and targets. Both drones and targets are sampled from Gaussian distributions around these same centers, creating a consistent but unobserved low-rank interaction structure. In the current setup, this structure is controlled by:
+The latent benchmark is constructed by defining a hidden latent space of dimension $d_z$, together with a small set of latent mode centers $\{\mathbf{c}_1,\dots,\mathbf{c}_K\}$. These mode centers act as the underlying factors that govern compatibility between drones and targets. Both drones and targets are sampled from log-normal distributions around these same centers, creating a consistent but unobserved low-rank interaction structure.
+
+The benchmark supports two structural modes. In **common mode**, drones and targets share a single set of mode centers. In **independent mode**, drones and targets each have their own set of mode centers (potentially with different counts), allowing asymmetric latent structures. The current setup uses independent mode:
 
 ```json
 "latent_world": {
+  "mode": "independent",
+  "center_mode": "one_hot",
+  "epsilon": 0.1,
   "latent_dim": 3,
-  "num_modes": 3,
-  "drone_variance": 0.01,
-  "target_variance": 0.01,
-  "target_hp": 5.0,
-  "center_mode": "one_hot"
+  "independent": {
+    "drones": { "num_modes": 3, "drone_variance": 0.2 },
+    "targets": { "num_modes": 3, "target_variance": 0.2 }
+  }
 }
 ```
 
-Formally, for each drone $i$ and target $j$, a mode $m \in \{1,\dots,K\}$ is first sampled, and then a latent vector is drawn around the corresponding center:
+Formally, for each drone $i$ and target $j$, a mode $m \in \{1,\dots,K\}$ is first sampled, and then a latent vector is drawn via log-normal sampling around the corresponding center. The sampling operates in log-space and then exponentiates, which guarantees strictly positive latent vectors:
 
-$$\mathbf{z}^{(d)}_i \sim \mathcal{N}(\mathbf{c}_{m_i}, \sigma_d^2 I),
+$$\log \mathbf{z}^{(d)}_i \sim \mathcal{N}(\log \mathbf{c}_{m_i}, \sigma_d^2 I),
 \qquad
-\mathbf{z}^{(t)}_j \sim \mathcal{N}(\mathbf{c}_{m_j}, \sigma_t^2 I)$$
+\log \mathbf{z}^{(t)}_j \sim \mathcal{N}(\log \mathbf{c}_{m_j}, \sigma_t^2 I)$$
 
-where $\mathbf{z}^{(d)}_i \in \mathbb{R}^{d_z}$ is the hidden latent vector of drone $i$, and $\mathbf{z}^{(t)}_j \in \mathbb{R}^{d_z}$ is the hidden latent vector of target $j$.
+where $\mathbf{z}^{(d)}_i \in \mathbb{R}_{>0}^{d_z}$ is the hidden latent vector of drone $i$, and $\mathbf{z}^{(t)}_j \in \mathbb{R}_{>0}^{d_z}$ is the hidden latent vector of target $j$.
 
 This is implemented directly in the latent scenario builder:
 
 ```python
-mode_id = int(self._rng.randint(0, self.num_modes))
-center = self.mode_centers[mode_id]
-sample = self._rng.normal(
-    loc=center,
+mode_id = int(self._rng.randint(0, num_modes))
+log_center = np.log(mode_centers[mode_id])
+log_sample = self._rng.normal(
+    loc=log_center,
     scale=np.sqrt(variance),
-    size=self.latent_dim,
+    size=latent_dim,
 )
+sample = np.exp(log_sample)
 ```
 
 The sampled vectors are then embedded into the generated drone and target configurations:
@@ -53,11 +60,11 @@ The sampled vectors are then embedded into the generated drone and target config
 
 The benchmark contains a **true hidden structure**, but not necessarily a perfectly recoverable symbolic structure. The agents do not learn mode IDs directly; they only interact with outcomes induced by these continuous vectors. The mode center generation is controlled by `"center_mode"`, which supports three options:
 
-- **`"one_hot"`**: Creates orthogonal mode centers aligned with coordinate axes, making hidden factors especially clean and separable
-- **`"orthogonal"`**: Generates orthogonal mode centers via random rotation, preserving separability while removing axis alignment
-- **`"random"`**: Produces arbitrary random mode centers, creating a more challenging latent structure
+- **`"one_hot"`**: Creates label-smoothed near-axis-aligned centers controlled by an `epsilon` parameter. With `epsilon = 0.1`, each center has a dominant component of $1 - \epsilon = 0.9$ on one axis and $\epsilon / (d_z - 1) \approx 0.05$ on others, making hidden factors clean and nearly separable while avoiding exact sparsity
+- **`"orthogonal"`**: Generates orthogonal mode centers via QR decomposition of a random matrix, preserving separability while removing axis alignment
+- **`"random"`**: Samples mode centers in log-space and exponentiates, producing strictly positive centers with a more challenging latent structure
 
-In the present configuration, `"center_mode": "one_hot"` is used, which combined with the small variances keeps samples tightly clustered around axis-aligned centers. This gives the benchmark a controlled low-rank geometry without exposing it explicitly to the agents.
+In the present configuration, `"center_mode": "one_hot"` is used with `epsilon = 0.1`. Combined with the log-normal sampling, this keeps latent vectors concentrated near the smoothed axis-aligned centers. This gives the benchmark a controlled low-rank geometry without exposing it explicitly to the agents.
 
 ---
 
@@ -96,10 +103,11 @@ $$o_t^{(a)} =
 \text{target positions},
 \text{target active flags},
 \mathbf{s}_{t-1},
-\tilde{\mathbf{r}}_{t-1}
+\tilde{\mathbf{r}}_{t-1},
+\mathbf{w}_{t-1}
 \Big)$$
 
-where $\mathbf{s}_{t-1}$ is the vector of previously selected targets by all drones, and $\tilde{\mathbf{r}}_{t-1}$ is the vector of observed rewards.
+where $\mathbf{s}_{t-1}$ is the vector of previously selected targets by all drones, $\tilde{\mathbf{r}}_{t-1}$ is the vector of observed rewards, and $\mathbf{w}_{t-1}$ is a binary mask indicating whether each drone's target was still active at the time of engagement. This last field is used by the integration-matrix learning mode (§5) to distinguish informative interactions from wasted shots on already-neutralized targets.
 
 The setting is not merely partially observable in a generic sense; it is specifically designed so that the **entire compatibility structure is hidden**. The agents know where targets are and whether they remain active, but they do not know why a given drone matches a given target well. Learning therefore has to emerge from inference over public interaction history rather than access to privileged features. This makes the benchmark a direct analogue of collaborative filtering: the latent factors exist, but only sparse interaction outcomes are observable.
 
@@ -110,7 +118,7 @@ The setting is not merely partially observable in a generic sense; it is specifi
 The environment introduces a persistent sequential interaction dynamic through target health (HP), converting what could have been a one-shot matching problem into a multi-step coordination problem. Each target is initialized with a fixed HP budget:
 
 ```json
-"target_hp": 5.0
+"target_hp": 10.0
 ```
 
 which is assigned at reset:
@@ -162,25 +170,31 @@ if len(target_selections[target_idx]) > 1:
 
 This creates two important coordination effects. First, **overkill** occurs when the applied damage exceeds the target's remaining HP, causing part of the effort to be wasted. Second, **contention** arises when several agents select the same target, especially because only some of those shots may contribute useful damage once the target is depleted.
 
+Note that when a drone fires at a target that is already inactive, the potential damage (based on the dot product) is still counted toward gross damage, even though no HP is actually removed. This affects the Damage Efficiency metric (§6).
+
 These are primarily **task-level inefficiencies**, not standalone reward terms. The environment tracks collisions, overkill, net damage, and gross damage as diagnostics, but the learning signal itself is still local. This distinction matters because the benchmark separates the global execution objective from the immediate scalar reward observed by each agent. In other words, good coordination is necessary for task efficiency, but it is not handed to the policy as a direct centralized score.
 
 ---
 
 ## 4. Reward Signal Design
 
-The reward signal is designed to reveal latent compatibility while remaining local, incomplete, and potentially noisy. Importantly, the reward is **not** equal to the actual damage applied to the target. Instead, after computing the latent dot product $g_{ij}$, the environment converts it into a direction-only alignment score using cosine similarity:
+The reward signal is designed to reveal latent compatibility while remaining local, incomplete, and potentially noisy. Importantly, the reward is **not** equal to the actual damage applied to the target. The environment supports two reward modes, controlled by an internal `reward_mode` selector (currently set to `"cosine"`):
+
+- **`"cosine"`** (default): After computing the latent dot product $g_{ij}$, the environment converts it into a direction-only alignment score using cosine similarity:
 
 $$r_{ij} = \frac{(\mathbf{z}^{(d)}_i)^\top \mathbf{z}^{(t)}_j}
 {|\mathbf{z}^{(d)}_i| \cdot |\mathbf{z}^{(t)}_j|}$$
 
-This is implemented directly as:
+- **`"damage"`**: The reward equals the effective damage applied to the target, i.e. $\min(d_{ij}, \text{HP}_j^{\text{before}})$.
+
+The cosine mode is implemented as:
 
 ```python
 cosine_similarity = raw_dot / (drone_norm * target_norm)
 reward = float(cosine_similarity)
 ```
 
-This design choice is important because it decouples **task impact** from **learning signal**. Damage depends on the nonnegative magnitude of the dot product, while reward depends on angular similarity. As a result, a drone is encouraged to learn which targets are aligned with it, not necessarily which targets will produce the greatest immediate HP reduction in a globally efficient plan.
+The cosine design choice is important because it decouples **task impact** from **learning signal**. Damage depends on the nonnegative magnitude of the dot product, while reward depends on angular similarity. As a result, a drone is encouraged to learn which targets are aligned with it, not necessarily which targets will produce the greatest immediate HP reduction in a globally efficient plan.
 
 The observed reward may then be corrupted by additive Gaussian noise:
 
@@ -198,8 +212,10 @@ noise = self.rng.normal(0, self.reward_noise)
 with the current configuration using:
 
 ```json
-"reward_noise": 0.2
+"reward_noise": 0.0
 ```
+
+When `reward_noise` is set to 0.0, rewards are passed through without corruption. Nonzero values introduce stochasticity that makes the learning problem harder.
 
 There is also a special anti-signal for wasted actions: if a drone fires at a target that is already inactive, it receives a negative reward:
 
@@ -247,6 +263,8 @@ else:
     action = active_targets[best_idx] + 1
 ```
 
+The exploit branch also supports an optional **Boltzmann (softmax) selection** mode, controlled by the `selection_noise` parameter. When `selection_noise > 0`, instead of argmax the agent samples targets proportionally to $\exp(\text{score} / \tau)$ where $\tau$ is the selection noise temperature. This provides a softer form of exploitation that can help de-conflict decentralized agents. In the current configuration, `selection_noise = 0.0`, so pure greedy is used.
+
 After each action, exploration decays multiplicatively:
 
 ```python
@@ -257,11 +275,21 @@ The exploration-exploitation transition is implemented through a decaying explor
 
 ### Learning from shared interaction data
 
-Although the policy is decentralized, each drone observes the public swarm interaction stream through the observation vector. For every drone-target-reward event $(i,j,\tilde r_{ij})$, the local model computes a prediction error:
+Although the policy is decentralized, each drone observes the public swarm interaction stream through the observation vector. The policy supports two supervision modes for computing the prediction error.
+
+**Direct mode** (when `use_integration_matrix` is false): For every drone-target-reward event $(i,j,\tilde r_{ij})$, the local model computes a prediction error directly against the observed reward:
 
 $$e^{(a)}_{ij} = \hat{r}^{(a)}_{ij} - \tilde r_{ij}$$
 
-and updates its embeddings using SGD with $L_2$ regularization:
+**Integration-matrix mode** (when `use_integration_matrix` is true, which is the current default): Instead of learning from raw observed rewards, the policy accumulates a running mean $\bar{M}_{ij}$ for each (drone, target) pair, updating only on events where the target was still active at the time of engagement (using the $\mathbf{w}$ mask from the observation). The prediction error is then computed against this running mean:
+
+$$\bar{M}^{(a)}_{ij} = \frac{\sum_k \tilde r^{(k)}_{ij}}{n_{ij}},
+\qquad
+e^{(a)}_{ij} = \hat{r}^{(a)}_{ij} - \bar{M}^{(a)}_{ij}$$
+
+This filters out dead-target penalties from the supervision signal and provides a more stable learning target as observations accumulate.
+
+In both modes, the embeddings are updated using SGD with $L_2$ regularization:
 
 $$P^{(a)}_{i,:}
 \leftarrow
@@ -277,7 +305,7 @@ implemented as:
 
 ```python
 predicted = self._predict_for_drone(drone_idx, target_idx)
-error = predicted - float(reward)
+error = predicted - float(reward)  # or predicted - m_avg in integration-matrix mode
 
 self.P[drone_idx] -= self.learning_rate * (
     2.0 * error * u_t + self.lambda_reg * p_i
@@ -342,7 +370,7 @@ This metric directly captures coordination efficiency. The theoretical minimum i
 * **Mismatched assignments**: Drones engaging targets with low compatibility scores
 * **Sequential inefficiency**: Targets being engaged by poorly matched drones before well-matched ones
 
-Since each target has HP of 5.0 and damage values depend on latent compatibility, an ideal policy would minimize shots per target by learning the compatibility structure and coordinating assignments accordingly.
+Since each target has HP of 10.0 and damage values depend on latent compatibility, an ideal policy would minimize shots per target by learning the compatibility structure and coordinating assignments accordingly.
 
 ### Total Gross Damage
 

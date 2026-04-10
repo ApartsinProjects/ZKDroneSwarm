@@ -97,6 +97,8 @@ As a result, the equivalent of the user-item matrix is not pre-existing. It must
 
 This is an important bridge statement because it explains why latent-factor reasoning is useful in the first place: the system must infer hidden structure from incomplete and gradually accumulated evidence.
 
+Notably, the current implementation makes this conceptual point concrete: when the integration-matrix mode is enabled, each drone literally maintains a running-mean interaction matrix accumulated from eligible public events, and uses it as the supervision target for its local matrix factorization. The sparse online matrix that this section describes as an analogy is now also a first-class object in the policy.
+
 ---
 
 ## 5. Decentralization Changes the Meaning of “Collaborative”
