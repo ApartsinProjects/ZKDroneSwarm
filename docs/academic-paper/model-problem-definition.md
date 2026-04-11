@@ -94,13 +94,13 @@ Both variants are supported by the framework. The current implementation tracks 
 
 At each time step $t$, each agent $a \in \mathcal{A}$ receives a local observation $o_t(a) \in O$, derived from the environment state. The observation is a structured tuple:
 
-$$o_t(a) = \Big(\mathbf{p},\ \mathbf{b},\ \mathbf{s}_{t-1},\ \tilde{\mathbf{r}}_{t-1},\ \mathbf{w}_{t-1}\Big)$$
+$$o_t(a) = \Big(\mathbf{p},\ \mathbf{b},\ \hat{\mathbf{s}}_{t-1},\ \tilde{\mathbf{r}}_{t-1},\ \mathbf{w}_{t-1}\Big)$$
 
 where:
 
 - $\mathbf{p} \in \mathbb{R}^{n \times 2}$ — spatial positions of all tasks
 - $\mathbf{b} \in \{0,1\}^n$ — binary active/inactive status of each task
-- $\mathbf{s}_{t-1} \in \{0,\ldots,n\}^m$ — the joint action vector from the previous step (which task each agent selected)
+- $\hat{\mathbf{s}}_{t-1} \in \{0,\ldots,n\}^m$ — the (possibly noisy) joint action vector from the previous step (which task each agent selected)
 - $\tilde{\mathbf{r}}_{t-1} \in \mathbb{R}^m$ — the (possibly noisy) reward received by each agent in the previous step
 - $\mathbf{w}_{t-1} \in \{0,1\}^m$ — a binary mask indicating whether each agent's selected task was still active at the time of engagement
 
@@ -228,7 +228,7 @@ The objective is to design decentralized agent behaviors that maximize global pe
 | $\mathbf{a}_t$ | Joint action of all agents |
 | $\mathbf{p}$ | Task position matrix |
 | $\mathbf{b}$ | Task active/inactive status vector |
-| $\mathbf{s}_{t-1}$ | Previous joint action vector (public) |
+| $\hat{\mathbf{s}}_{t-1}$ | Previous joint action vector (public, possibly noisy) |
 | $\tilde{\mathbf{r}}_{t-1}$ | Previous observed reward vector (public) |
 | $\mathbf{w}_{t-1}$ | Target-was-active-at-engagement mask |
 | $\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$ | Hidden latent vector of agent $a_i$ |
@@ -257,7 +257,7 @@ where:
 - $\mathcal{A} = \{a_1, \ldots, a_m\}$ is a finite set of agents, each associated with a hidden latent vector $\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$
 - $\mathcal{T} = \{t_1, \ldots, t_n\}$ is a finite set of tasks, each associated with a hidden latent vector $\mathbf{z}_j^{(t)} \in \mathbb{R}^d_{>0}$ and resilience $\text{HP}_j > 0$
 - $A$ is the discrete action space: $\{0\} \cup \{1, \ldots, n\}$ (no-op or task selection)
-- $O$ is the observation space: structured tuples $o_t(a) = (\mathbf{p}, \mathbf{b}, \mathbf{s}_{t-1}, \tilde{\mathbf{r}}_{t-1}, \mathbf{w}_{t-1})$ as defined in §6
+- $O$ is the observation space: structured tuples $o_t(a) = (\mathbf{p}, \mathbf{b}, \hat{\mathbf{s}}_{t-1}, \tilde{\mathbf{r}}_{t-1}, \mathbf{w}_{t-1})$ as defined in §6
 - $E$ is the environment transition function mapping $(\text{world state}_t, \mathbf{a}_t) \to (\text{world state}_{t+1}, \tilde{\mathbf{r}}_t, \mathbf{w}_t, \text{done}_t)$, where rewards are determined by the latent compatibility structure and reward mode (§8)
 - $M$ is a set of strategy-independent performance metrics as defined in §9
 

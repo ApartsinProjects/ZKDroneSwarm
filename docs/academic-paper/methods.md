@@ -68,17 +68,13 @@ This method is particularly well suited to ZK-MRTA because the relevant interact
 ---
 ## 5. Prediction, Action Selection, and Online Learning
 
-At decision time, each drone uses only its own latent row $P_{a,:}^{(a)}$ to evaluate currently active targets. Action selection follows an $\varepsilon$-greedy mechanism. With probability $\varepsilon$, the agent explores by selecting a random active target. Otherwise, it exploits by selecting the target with the highest predicted utility. The implementation also supports an optional Boltzmann-style alternative in the exploitation branch: when selection noise is positive, targets are sampled according to a softmax distribution over predicted utilities rather than by pure argmax. After each action, the exploration rate decays multiplicatively until it reaches a predefined floor.
+At decision time, each drone uses only its own latent row $P_{a,:}^{(a)}$ to evaluate currently active targets. Action selection follows an $\varepsilon$-greedy mechanism. With probability $\varepsilon$, the agent explores by selecting a random active target. Otherwise, it exploits by selecting the target with the highest predicted utility (pure greedy argmax). After each action, the exploration rate decays multiplicatively until it reaches a predefined floor.
 
 Formally, if $\mathcal{T}_t(a)$ is the set of active targets observed by agent $a$ at time $t$, then exploitation selects:
 
 $$a_t(a) = \arg\max_{j \in \mathcal{T}_t(a)} \hat{r}_{aj}^{(a)}$$
 
-while exploration samples uniformly from $\mathcal{T}_t(a)$. When softmax selection is enabled, the policy instead samples according to:
-
-$$\Pr(a_t(a) = j) \propto \exp\left(\frac{\hat{r}_{aj}^{(a)}}{\tau}\right)$$
-
-where $\tau > 0$ is the selection-noise temperature (corresponding to the `selection_noise` hyperparameter). As $\tau \to 0$ the distribution converges to argmax; as $\tau$ increases, selection becomes increasingly uniform. This option is useful because decentralized agents may otherwise collapse onto the same apparently best target, whereas a softer selection rule can reduce contention without introducing explicit communication.
+while exploration samples uniformly from $\mathcal{T}_t(a)$.
 ### 5.1 Learning from Shared Interaction Data
 
 Learning occurs after the environment reveals public information about the previous step. The technical design assumes that each agent can observe selected targets and the corresponding reward signals, even though the hidden compatibility structure remains inaccessible. Two supervision modes are supported:

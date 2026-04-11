@@ -284,14 +284,14 @@
             At each time step $t$, each agent $a \in \mathcal{A}$ receives a local observation $o_t(a) \in O$, derived from the environment state. The observation is a structured tuple:
         </p>
         
-        $$o_t(a) = \Big(\mathbf{p},\ \mathbf{b},\ \mathbf{s}_{t-1},\ \tilde{\mathbf{r}}_{t-1},\ \mathbf{w}_{t-1}\Big)$$
+        $$o_t(a) = \Big(\mathbf{p},\ \mathbf{b},\ \hat{\mathbf{s}}_{t-1},\ \tilde{\mathbf{r}}_{t-1},\ \mathbf{w}_{t-1}\Big)$$
         
         <p>where:</p>
         
         <ul>
             <li>$\mathbf{p} \in \mathbb{R}^{n \times 2}$ — spatial positions of all tasks</li>
             <li>$\mathbf{b} \in \{0,1\}^n$ — binary active/inactive status of each task</li>
-            <li>$\mathbf{s}_{t-1} \in \{0,\ldots,n\}^m$ — the joint action vector from the previous step (which task each agent selected)</li>
+            <li>$\hat{\mathbf{s}}_{t-1} \in \{0,\ldots,n\}^m$ — the (possibly noisy) joint action vector from the previous step (which task each agent selected)</li>
             <li>$\tilde{\mathbf{r}}_{t-1} \in \mathbb{R}^m$ — the (possibly noisy) reward received by each agent in the previous step</li>
             <li>$\mathbf{w}_{t-1} \in \{0,1\}^m$ — a binary mask indicating whether each agent's selected task was still active at the time of engagement</li>
         </ul>
@@ -461,7 +461,7 @@
                 <tr><td>$\mathbf{a}_t$</td><td>Joint action of all agents</td></tr>
                 <tr><td>$\mathbf{p}$</td><td>Task position matrix</td></tr>
                 <tr><td>$\mathbf{b}$</td><td>Task active/inactive status vector</td></tr>
-                <tr><td>$\mathbf{s}_{t-1}$</td><td>Previous joint action vector (public)</td></tr>
+                <tr><td>$\hat{\mathbf{s}}_{t-1}$</td><td>Previous joint action vector (public, possibly noisy)</td></tr>
                 <tr><td>$\tilde{\mathbf{r}}_{t-1}$</td><td>Previous observed reward vector (public)</td></tr>
                 <tr><td>$\mathbf{w}_{t-1}$</td><td>Target-was-active-at-engagement mask</td></tr>
                 <tr><td>$\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$</td><td>Hidden latent vector of agent $a_i$</td></tr>
@@ -493,7 +493,7 @@
             <li>$\mathcal{A} = \{a_1, \ldots, a_m\}$ is a finite set of agents, each associated with a hidden latent vector $\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$</li>
             <li>$\mathcal{T} = \{t_1, \ldots, t_n\}$ is a finite set of tasks, each associated with a hidden latent vector $\mathbf{z}_j^{(t)} \in \mathbb{R}^d_{>0}$ and resilience $\text{HP}_j > 0$</li>
             <li>$A$ is the discrete action space: $\{0\} \cup \{1, \ldots, n\}$ (no-op or task selection)</li>
-            <li>$O$ is the observation space: structured tuples $o_t(a) = (\mathbf{p}, \mathbf{b}, \mathbf{s}_{t-1}, \tilde{\mathbf{r}}_{t-1}, \mathbf{w}_{t-1})$ as defined in §3.6</li>
+            <li>$O$ is the observation space: structured tuples $o_t(a) = (\mathbf{p}, \mathbf{b}, \hat{\mathbf{s}}_{t-1}, \tilde{\mathbf{r}}_{t-1}, \mathbf{w}_{t-1})$ as defined in §3.6</li>
             <li>$E$ is the environment transition function mapping $(\text{world state}_t, \mathbf{a}_t) \to (\text{world state}_{t+1}, \tilde{\mathbf{r}}_t, \mathbf{w}_t, \text{done}_t)$, where rewards are determined by the latent compatibility structure and reward mode (§3.8)</li>
             <li>$M$ is a set of strategy-independent performance metrics as defined in §3.9</li>
         </ul>

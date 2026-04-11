@@ -239,7 +239,7 @@
         <h2>4.5 Prediction, Action Selection, and Online Learning</h2>
         
         <p>
-            At decision time, each drone uses only its own latent row $P_{a,:}^{(a)}$ to evaluate currently active targets. Action selection follows an $\varepsilon$-greedy mechanism. With probability $\varepsilon$, the agent explores by selecting a random active target. Otherwise, it exploits by selecting the target with the highest predicted utility. The implementation also supports an optional Boltzmann-style alternative in the exploitation branch: when selection noise is positive, targets are sampled according to a softmax distribution over predicted utilities rather than by pure argmax. After each action, the exploration rate decays multiplicatively until it reaches a predefined floor.
+            At decision time, each drone uses only its own latent row $P_{a,:}^{(a)}$ to evaluate currently active targets. Action selection follows an $\varepsilon$-greedy mechanism. With probability $\varepsilon$, the agent explores by selecting a random active target. Otherwise, it exploits by selecting the target with the highest predicted utility (pure greedy argmax). After each action, the exploration rate decays multiplicatively until it reaches a predefined floor.
         </p>
         
         <p>
@@ -248,13 +248,7 @@
         
         $$a_t(a) = \arg\max_{j \in \mathcal{T}_t(a)} \hat{r}_{aj}^{(a)}$$
         
-        <p>while exploration samples uniformly from $\mathcal{T}_t(a)$. When softmax selection is enabled, the policy instead samples according to:</p>
-        
-        $$\Pr(a_t(a) = j) \propto \exp\left(\frac{\hat{r}_{aj}^{(a)}}{\tau}\right)$$
-        
-        <p>
-            where $\tau > 0$ is the selection-noise temperature (corresponding to the <code>selection_noise</code> hyperparameter). As $\tau \to 0$ the distribution converges to argmax; as $\tau$ increases, selection becomes increasingly uniform. This option is useful because decentralized agents may otherwise collapse onto the same apparently best target, whereas a softer selection rule can reduce contention without introducing explicit communication.
-        </p>
+        <p>while exploration samples uniformly from $\mathcal{T}_t(a)$.</p>
         
         <h3>4.5.1 Learning from Shared Interaction Data</h3>
         
