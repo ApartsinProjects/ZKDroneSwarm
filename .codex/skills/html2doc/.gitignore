@@ -17,6 +17,9 @@ package-lock.json
 *_converted.docx
 *_academic.docx
 
+# Generated reference document (created dynamically during conversion)
+reference.docx
+
 # macOS
 .DS_Store
 
