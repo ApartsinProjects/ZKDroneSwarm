@@ -1,4 +1,4 @@
-# Methods
+# 4. Methods
 
 This section presents the decision methods evaluated in the ZK-MRTA framework. Its purpose is to describe how agents transform limited observations into task-selection actions under the zero-knowledge assumptions, while leaving simulator configuration, parameter settings, and benchmark design to the Experiments section.
 
@@ -6,9 +6,7 @@ In this study, a strategy is understood as an algorithm that processes observati
 
 A common interface is used for all policies. At each decision step, a policy receives per-agent observations and returns one action for each agent. Learning-based methods may additionally update internal state after observing the consequences of the previous step, whereas non-learning baselines leave this update stage empty. This unified interface is important because it allows different policies to be compared under identical information constraints and interaction mechanics.
 
----
-
-## 1. Methodological Framing: Estimation and Decision
+## 4.1 Methodological Framing: Estimation and Decision
 
 The methodological logic of this section is to separate each policy into an estimation component and a decision component. The estimation component determines what the agent knows, infers, or assumes about the utility of assigning itself to a target. The decision component then maps that information into a concrete action.
 
@@ -16,8 +14,7 @@ This distinction is especially useful in ZK-MRTA, because the problem is defined
 
 Within this framing, the random baseline uses no estimation at all, the oracle benchmark assumes full privileged knowledge, and the collaborative-filtering method constructs local utility estimates online from observed interaction outcomes. This progression creates a meaningful spectrum between ignorance, idealized complete knowledge, and decentralized learning under strict ZK constraints.
 
-
-## 2. Random Baseline
+## 4.2 Random Baseline
 
 The random policy serves as the weakest baseline and lower-bound reference. It is fully ZK-compliant: it does not use target hit points, hidden target types, latent compatibility values, or any history of previous interactions. Instead, it only reads the visible active/inactive flag of each target from the observation and samples uniformly from the available actions.
 
@@ -29,8 +26,7 @@ $$a_t(i) \sim \text{Uniform}(\mathcal{A}_t(i))$$
 
 This baseline is intentionally naive. Its value lies not in performance, but in providing a clean reference for behavior in the absence of estimation, memory, or coordination.
 
-
-## 3. Oracle Benchmark
+## 4.3 Oracle Benchmark
 
 The oracle policy provides an upper-bound benchmark by assuming privileged access to information unavailable under the ZK assumptions. In the implemented version, the oracle is an HP-aware marginal-allocation planner that uses true latent drone vectors, true target latent vectors, and current target hit points. It is therefore not ZK-compliant and is used only as an idealized comparison point.
 
@@ -42,8 +38,7 @@ $$S(i,j) = \min(d_{ij}, h_j) + \text{future\_value}(j) + \text{finish\_bonus}(i,
 
 then repeatedly selects the best remaining pair. In this way, the oracle approximates globally efficient short-horizon coordination while retaining a computationally simple greedy structure. Because it relies on privileged state, its purpose is not to model realistic deployment but to indicate the performance ceiling against which decentralized methods can be interpreted.
 
-
-## 4. Decentralized Collaborative-Filtering Policy
+## 4.4 Decentralized Collaborative-Filtering Policy
 
 The main method investigated in this research is a decentralized matrix-factorization policy inspired by classical collaborative filtering. The key conceptual adaptation is that collaborative filtering is not used here to estimate user preference, but to estimate operational utility: the expected effectiveness of assigning a drone to a target. Drones play the role of users, targets play the role of items, and observed engagement outcomes replace ratings. Because the problem is sequential, decentralized, and observation-limited, the recommender mechanism is repurposed as an online decision policy rather than a centralized offline prediction model.
 
@@ -65,8 +60,7 @@ In the implemented policy, each drone maintains its own local matrices $P$ and $
 
 This method is particularly well suited to ZK-MRTA because the relevant interaction matrix is not given in advance. Agents begin with no knowledge of true compatibility and must build an interaction structure gradually from sparse experience. The matrix-factorization policy addresses this by learning latent representations from observed rewards, thereby estimating hidden structure that cannot be read directly from the environment.
 
----
-## 5. Prediction, Action Selection, and Online Learning
+## 4.5 Prediction, Action Selection, and Online Learning
 
 At decision time, each drone uses only its own latent row $P_{a,:}^{(a)}$ to evaluate currently active targets. Action selection follows an $\varepsilon$-greedy mechanism. With probability $\varepsilon$, the agent explores by selecting a random active target. Otherwise, it exploits by selecting the target with the highest predicted utility (pure greedy argmax). After each action, the exploration rate decays multiplicatively until it reaches a predefined floor.
 
@@ -75,7 +69,8 @@ Formally, if $\mathcal{T}_t(a)$ is the set of active targets observed by agent $
 $$a_t(a) = \arg\max_{j \in \mathcal{T}_t(a)} \hat{r}_{aj}^{(a)}$$
 
 while exploration samples uniformly from $\mathcal{T}_t(a)$.
-### 5.1 Learning from Shared Interaction Data
+
+### 4.5.1 Learning from Shared Interaction Data
 
 Learning occurs after the environment reveals public information about the previous step. The technical design assumes that each agent can observe selected targets and the corresponding reward signals, even though the hidden compatibility structure remains inaccessible. Two supervision modes are supported:
 
@@ -96,8 +91,7 @@ where $\eta$ is the learning rate and $\lambda$ is the regularization coefficien
 
 An important property of the implemented method is that learning persists across episodes. The policy's soft reset preserves the learned embedding matrices rather than reinitializing them, so knowledge accumulated in earlier episodes continues to shape future decisions. This makes the training process cumulative, which is appropriate for a method intended to model gradual knowledge acquisition under repeated interaction.
 
----
-## 6. Summary of the Compared Methods
+## 4.6 Summary of the Compared Methods
 
 The three methods examined here occupy distinct positions on the knowledge spectrum:
 
