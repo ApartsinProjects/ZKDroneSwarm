@@ -166,7 +166,6 @@ def create_policy(
                 epsilon_decay=mf_cfg.epsilon_decay if mf_cfg and mf_cfg.epsilon_decay is not None else 1.0,
                 epsilon_min=mf_cfg.epsilon_min if mf_cfg and mf_cfg.epsilon_min is not None else 0.02,
                 anti_signal_weight=mf_cfg.anti_signal_weight if mf_cfg and mf_cfg.anti_signal_weight is not None else 0.1,
-                selection_noise=mf_cfg.selection_noise if mf_cfg and hasattr(mf_cfg, 'selection_noise') and mf_cfg.selection_noise is not None else 0.0,
                 use_integration_matrix=bool(mf_cfg.use_integration_matrix) if mf_cfg and mf_cfg.use_integration_matrix is not None else False,
                 seed=config.seed + agent_idx if config.seed else None,
             )
@@ -597,6 +596,9 @@ def main():
     else:
         reward_noise = 0.0
     
+    # Extract observation_noise from CF config
+    observation_noise = cf_config.observation_noise if cf_config else 0.0
+    
     # Create single environment (reused across all policies)
     num_targets = len(targets_config)
     
@@ -617,6 +619,7 @@ def main():
         targets_config=targets_config,
         scenario_id=config.environment.scenario_id,
         reward_noise=reward_noise,
+        observation_noise=observation_noise,
         builder=builder,
         latent_world=latent_world_dict,
         target_hp=config.targets.target_hp,

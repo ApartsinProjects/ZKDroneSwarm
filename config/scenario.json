@@ -76,7 +76,8 @@
     "allow_noop": false
   },
   "collaborative_filtering": {
-    "reward_noise": 0.0,
+    "reward_noise": 0.2,
+    "observation_noise": 0.2,
     "enable_tsne_enrichment": true,
     "matrix_factorization_cf": {
       "use_integration_matrix": true,
@@ -86,7 +87,6 @@
       "epsilon": 0.3,
       "epsilon_decay": 0.9995,
       "epsilon_min": 0.02,
-      "selection_noise": 0.0,
       "anti_signal_weight": 1.0
     }
   },

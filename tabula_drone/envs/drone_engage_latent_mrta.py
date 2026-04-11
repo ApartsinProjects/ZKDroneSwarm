@@ -59,6 +59,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
         targets_config: List[Dict[str, Any]] = None,
         scenario_id: str = "latent_mrta_benchmark",
         reward_noise: float = 0.0,
+        observation_noise: float = 0.0,
         builder: Optional[Any] = None,
         latent_world: Optional[Dict[str, Any]] = None,
         target_hp: float = 1.0,
@@ -77,6 +78,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self.targets_config = targets_config
         self.scenario_id = scenario_id
         self.reward_noise = reward_noise
+        self.observation_noise = observation_noise
         self.builder = builder
         # Convert latent_world to dict if it's a dataclass, otherwise use as-is
         if latent_world is not None:
@@ -251,12 +253,22 @@ class DroneEngageLatentMRTA(ParallelEnv):
             target_obs.extend([x, y, 1.0 if target.is_active else 0.0])
         target_array = np.array(target_obs, dtype=np.float32)
 
+        # Build selected_targets array once (shared across all agents)
+        selected_targets = np.array(
+            [self.last_actions.get(aid, 0) for aid in self.possible_agents],
+            dtype=np.int32,
+        )
+
+        # Apply observation noise (corrupt other agents' observed actions)
+        if self.observation_noise > 0:
+            for i in range(len(selected_targets)):
+                # Only corrupt non-noop actions (preserve 0 = noop)
+                if selected_targets[i] > 0 and self.rng.random() < self.observation_noise:
+                    # Replace with random valid target ID [1, num_targets]
+                    selected_targets[i] = self.rng.randint(1, self.num_targets + 1)
+
         observations = {}
         for agent_id in self.agents:
-            selected_targets = np.array(
-                [self.last_actions.get(aid, 0) for aid in self.possible_agents],
-                dtype=np.int32,
-            )
             observed_rewards = np.array(
                 [self._compute_observed_reward(aid) for aid in self.possible_agents],
                 dtype=np.float32,

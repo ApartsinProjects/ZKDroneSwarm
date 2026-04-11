@@ -50,7 +50,6 @@ class MatrixFactorizationPolicy:
         epsilon_decay: float = 1.0,
         epsilon_min: float = 0.02,
         anti_signal_weight: float = 0.1,
-        selection_noise: float = 0.0,
         use_integration_matrix: bool = False,
         seed: Optional[int] = None,
     ):
@@ -81,7 +80,6 @@ class MatrixFactorizationPolicy:
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
         self.anti_signal_weight = anti_signal_weight
-        self.selection_noise = selection_noise
         self.use_integration_matrix = use_integration_matrix
         self.seed = seed
 
@@ -185,21 +183,9 @@ class MatrixFactorizationPolicy:
             # ε-greedy: Exploit — choose target based on predicted scores
             scores = np.array([self.predict_reward(t_idx) for t_idx in active_targets])
             
-            if self.selection_noise > 0:
-                # Use Softmax-style sampling to de-conflict agents (Boltzmann exploration)
-                # Temperature = selection_noise
-                # Shift scores for numerical stability
-                shifted_scores = (scores - np.max(scores)) / self.selection_noise
-                exp_scores = np.exp(np.clip(shifted_scores, -20, 20))
-                probs = exp_scores / np.sum(exp_scores)
-                
-                # Sample target index from the distribution
-                chosen_idx = self.rng.choice(len(active_targets), p=probs)
-                action = active_targets[chosen_idx] + 1
-            else:
-                # Pure greedy max
-                best_idx = np.argmax(scores)
-                action = active_targets[best_idx] + 1
+            # Pure greedy max
+            best_idx = np.argmax(scores)
+            action = active_targets[best_idx] + 1
 
         # Apply multiplicative decay
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
