@@ -6,6 +6,7 @@
     <title>Model and Problem Definition - Zero-Knowledge Multi-Robot Task Allocation</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <link rel="stylesheet" href="paper-shared.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
         onload="renderMathInElement(document.body, {
@@ -18,101 +19,6 @@
         });"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        html, body {
-            height: 100%;
-            margin: 0;
-        }
-        
-        body {
-            font-family: 'Georgia', 'Times New Roman', serif;
-            line-height: 1.8;
-            color: #2c2416;
-            background: white;
-            padding: 2rem;
-            box-sizing: border-box;
-            overflow-y: auto;
-        }
-        
-        .model-container {
-            max-width: 800px;
-            margin: 0 auto;
-            min-height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #1a1410;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid rgba(126, 104, 62, 0.2);
-            letter-spacing: 0.02em;
-        }
-        
-        h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1a1410;
-            margin-top: 2.5rem;
-            margin-bottom: 1rem;
-            letter-spacing: 0.01em;
-        }
-        
-        h2:first-of-type {
-            margin-top: 1.5rem;
-        }
-        
-        h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #2c2416;
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-        }
-        
-        p {
-            font-size: 1rem;
-            margin-bottom: 1.25rem;
-            text-align: justify;
-            hyphens: auto;
-        }
-        
-        p:last-child {
-            margin-bottom: 0;
-        }
-        
-        ul {
-            margin-bottom: 1.25rem;
-            padding-left: 2rem;
-        }
-        
-        li {
-            margin-bottom: 0.5rem;
-            text-align: justify;
-        }
-        
-        .katex {
-            font-size: 1.05em;
-        }
-        
-        .katex-display {
-            margin: 1.5rem 0;
-        }
-        
-        abbr {
-            text-decoration: none;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-        }
-        
         table {
             width: 100%;
             border-collapse: collapse;
@@ -135,23 +41,11 @@
         td {
             vertical-align: top;
         }
-        
-        hr {
-            border: none;
-            border-top: 1px solid rgba(126, 104, 62, 0.15);
-            margin: 1.25rem 0;
-        }
-        
-        .intro-text {
-            font-style: italic;
-            color: #4a3f2f;
-            margin-bottom: 1.5rem;
-        }
     </style>
 </head>
 <body>
-    <div class="model-container">
-        <h1>Model and Problem Definition</h1>
+    <div class="paper-section-container">
+        <h1>3. Model and Problem Definition</h1>
         
         <p class="intro-text">
             This section provides a formal specification of the Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA) problem, defining the system model, informational constraints, and performance objectives that govern decentralized multi-agent task allocation under hidden compatibility structures.
@@ -164,8 +58,6 @@
         <p>
             <strong>Notation conventions</strong>: We use $\mathcal{A}$ and $\mathcal{T}$ to denote the sets of agents and tasks, while $A$ and $O$ denote the action and observation spaces. Latent vectors are denoted $\mathbf{z}_i^{(a)}$ for agent $i$ and $\mathbf{z}_j^{(t)}$ for task $j$, with dimension $d$. Time is discrete and indexed by $t = 1, 2, \ldots$
         </p>
-        
-        <hr>
         
         <h2>3.1 Problem Setting</h2>
         
@@ -180,8 +72,6 @@
         <p>
             At each time step, agents select actions that influence task states, and the environment updates accordingly. The goal is to determine how agents should allocate themselves to tasks over time in order to optimize global system performance, subject to the informational constraints of the Zero-Knowledge setting.
         </p>
-        
-        <hr>
         
         <h2>3.2 Zero-Knowledge Assumptions</h2>
         
@@ -203,8 +93,6 @@
         <p>
             These assumptions eliminate access to explicit models of task-agent compatibility and require all decision-making to rely solely on observed interaction outcomes.
         </p>
-        
-        <hr>
         
         <h2>3.3 Relation to Classical MRTA</h2>
         
@@ -229,8 +117,6 @@
             In contrast, the ZK-MRTA framework removes access to both $C$ and $G$. Agents must therefore infer task suitability indirectly, based solely on observed outcomes, without explicit knowledge of task properties or their own capabilities.
         </p>
         
-        <hr>
-        
         <h2>3.4 Sequential Interaction Model</h2>
         
         <p>ZK-MRTA is inherently a sequential decision-making problem. At each time step:</p>
@@ -249,8 +135,6 @@
         <p>
             Unlike static assignment formulations, task allocation unfolds over time, and agents must adapt their decisions based on accumulated experience and evolving system dynamics.
         </p>
-        
-        <hr>
         
         <h2>3.5 Problem Variants</h2>
         
@@ -275,8 +159,6 @@
         </ul>
         
         <p>Both variants are supported by the framework. The current implementation tracks per-agent ammunition consumption, enabling finite-capacity experiments.</p>
-        
-        <hr>
         
         <h2>3.6 Observation Model</h2>
         
@@ -310,8 +192,6 @@
         
         <p>Thus, the structure governing agent-task effectiveness is entirely hidden and must be inferred from interaction history.</p>
         
-        <hr>
-        
         <h2>3.7 Action Space</h2>
         
         <p>At each time step, each agent selects an action:</p>
@@ -328,8 +208,6 @@
         <p>
             Actions correspond to attempted task engagements, and their effects are determined by the underlying environment dynamics. No assumptions are made at this stage regarding the mechanism used to select actions.
         </p>
-        
-        <hr>
         
         <h2>3.8 Hidden Environment Structure</h2>
         
@@ -374,8 +252,6 @@
             These latent variables are not observable to agents and serve only as an internal mechanism generating interaction outcomes. As a result, agents must operate without direct access to the true compatibility structure.
         </p>
         
-        <hr>
-        
         <h2>3.9 Objective and Performance Metrics</h2>
         
         <p>
@@ -406,8 +282,6 @@
         
         <p>All metrics are computed by the environment from logged interaction data and remain independent of the specific strategy used.</p>
         
-        <hr>
-        
         <h2>3.10 Baseline Strategies</h2>
         
         <p>
@@ -422,8 +296,6 @@
         
         <p>Performance metrics defined in §3.9 are computed identically for all strategies, enabling direct comparison under identical conditions.</p>
         
-        <hr>
-        
         <h2>3.11 Input–Output Formalization</h2>
         
         <p>The ZK-MRTA problem can be summarized as follows:</p>
@@ -435,8 +307,6 @@
         </ul>
         
         <p>The objective is to design decentralized agent behaviors that maximize global performance metrics in $M$ over the full mission horizon.</p>
-        
-        <hr>
         
         <h2>3.12 Notation Summary</h2>
         
@@ -476,8 +346,6 @@
                 <tr><td>$G(a_i, t_j)$</td><td>Feasibility function (classical MRTA reference)</td></tr>
             </tbody>
         </table>
-        
-        <hr>
         
         <h2>3.13 Formal Definition of ZK-MRTA</h2>
         

@@ -6,6 +6,7 @@
     <title>Methods - Zero-Knowledge Multi-Robot Task Allocation</title>
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <link rel="stylesheet" href="paper-shared.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
         onload="renderMathInElement(document.body, {
@@ -18,109 +19,6 @@
         });"></script>
     
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        html, body {
-            height: 100%;
-            margin: 0;
-        }
-        
-        body {
-            font-family: 'Georgia', 'Times New Roman', serif;
-            line-height: 1.8;
-            color: #2c2416;
-            background: white;
-            padding: 2rem;
-            box-sizing: border-box;
-            overflow-y: auto;
-        }
-        
-        .methods-container {
-            max-width: 800px;
-            margin: 0 auto;
-            min-height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: #1a1410;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid rgba(126, 104, 62, 0.2);
-            letter-spacing: 0.02em;
-        }
-        
-        h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1a1410;
-            margin-top: 0.5rem;
-            margin-bottom: 1rem;
-            letter-spacing: 0.01em;
-        }
-        
-        h3 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #2c2416;
-            margin-top: 1.5rem;
-            margin-bottom: 0.75rem;
-        }
-        
-        p {
-            font-size: 1rem;
-            margin-bottom: 1.25rem;
-            text-align: justify;
-            hyphens: auto;
-        }
-        
-        p:last-child {
-            margin-bottom: 0;
-        }
-        
-        ul {
-            margin-bottom: 1.25rem;
-            padding-left: 2rem;
-        }
-        
-        li {
-            margin-bottom: 0.5rem;
-            text-align: justify;
-        }
-        
-        .katex {
-            font-size: 1.05em;
-        }
-        
-        .katex-display {
-            margin: 1.5rem 0;
-        }
-        
-        abbr {
-            text-decoration: none;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-        }
-        
-        hr {
-            border: none;
-            border-top: 1px solid rgba(126, 104, 62, 0.15);
-            margin: 1.25rem 0;
-        }
-        
-        .intro-text {
-            font-style: italic;
-            color: #4a3f2f;
-            margin-bottom: 1.5rem;
-        }
-        
         code {
             font-family: 'Courier New', monospace;
             background: rgba(255, 248, 233, 0.5);
@@ -131,8 +29,8 @@
     </style>
 </head>
 <body>
-    <div class="methods-container">
-        <h1>Methods</h1>
+    <div class="paper-section-container">
+        <h1>4. Methods</h1>
         
         <p class="intro-text">
             This section presents the decision methods evaluated in the ZK-MRTA framework. Its purpose is to describe how agents transform limited observations into task-selection actions under the zero-knowledge assumptions, while leaving simulator configuration, parameter settings, and benchmark design to the Experiments section.
@@ -145,8 +43,6 @@
         <p>
             A common interface is used for all policies. At each decision step, a policy receives per-agent observations and returns one action for each agent. Learning-based methods may additionally update internal state after observing the consequences of the previous step, whereas non-learning baselines leave this update stage empty. This unified interface is important because it allows different policies to be compared under identical information constraints and interaction mechanics.
         </p>
-        
-        <hr>
         
         <h2>4.1 Methodological Framing: Estimation and Decision</h2>
         
@@ -234,8 +130,6 @@
             This method is particularly well suited to ZK-MRTA because the relevant interaction matrix is not given in advance. Agents begin with no knowledge of true compatibility and must build an interaction structure gradually from sparse experience. The matrix-factorization policy addresses this by learning latent representations from observed rewards, thereby estimating hidden structure that cannot be read directly from the environment.
         </p>
         
-        <hr>
-        
         <h2>4.5 Prediction, Action Selection, and Online Learning</h2>
         
         <p>
@@ -280,8 +174,6 @@
         <p>
             An important property of the implemented method is that learning persists across episodes. The policy's soft reset preserves the learned embedding matrices rather than reinitializing them, so knowledge accumulated in earlier episodes continues to shape future decisions. This makes the training process cumulative, which is appropriate for a method intended to model gradual knowledge acquisition under repeated interaction.
         </p>
-        
-        <hr>
         
         <h2>4.6 Summary of the Compared Methods</h2>
         
