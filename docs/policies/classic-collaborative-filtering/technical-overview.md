@@ -96,18 +96,31 @@ observed_rewards = np.array(
 )
 ```
 
+### Observation noise
+
+The observed action profile $\mathbf{s}_{t-1}$ may be corrupted by **observation noise**, controlled by the `observation_noise` parameter (currently 0.2). For each non-NoOp entry in the action vector, there is a probability `observation_noise` that the observed target selection is replaced with a uniformly random valid target ID:
+
+```python
+if self.observation_noise > 0:
+    for i in range(len(selected_targets)):
+        if selected_targets[i] > 0 and self.rng.random() < self.observation_noise:
+            selected_targets[i] = self.rng.randint(1, self.num_targets + 1)
+```
+
+This models imperfect perception of other agents' actions — a natural constraint in decentralized settings where observing precisely which target another drone engaged may not be reliably possible. When observation noise is active, the learning signal derived from other agents' actions is corrupted at the source, making the MF supervision problem harder: the policy may attribute a reward to the wrong target, creating spurious entries in its local model.
+
 Thus, the observation available to agent $a$ at time $t$ can be summarized as:
 
 $$o_t^{(a)} =
 \Big(
 \text{target positions},
 \text{target active flags},
-\mathbf{s}_{t-1},
+\hat{\mathbf{s}}_{t-1},
 \tilde{\mathbf{r}}_{t-1},
 \mathbf{w}_{t-1}
 \Big)$$
 
-where $\mathbf{s}_{t-1}$ is the vector of previously selected targets by all drones, $\tilde{\mathbf{r}}_{t-1}$ is the vector of observed rewards, and $\mathbf{w}_{t-1}$ is a binary mask indicating whether each drone's target was still active at the time of engagement. This last field is used by the integration-matrix learning mode (§5) to distinguish informative interactions from wasted shots on already-neutralized targets.
+where $\hat{\mathbf{s}}_{t-1}$ is the (possibly corrupted) vector of previously selected targets by all drones, $\tilde{\mathbf{r}}_{t-1}$ is the vector of observed rewards, and $\mathbf{w}_{t-1}$ is a binary mask indicating whether each drone's target was still active at the time of engagement. This last field is used by the integration-matrix learning mode (§5) to distinguish informative interactions from wasted shots on already-neutralized targets.
 
 The setting is not merely partially observable in a generic sense; it is specifically designed so that the **entire compatibility structure is hidden**. The agents know where targets are and whether they remain active, but they do not know why a given drone matches a given target well. Learning therefore has to emerge from inference over public interaction history rather than access to privileged features. This makes the benchmark a direct analogue of collaborative filtering: the latent factors exist, but only sparse interaction outcomes are observable.
 
@@ -212,10 +225,12 @@ noise = self.rng.normal(0, self.reward_noise)
 with the current configuration using:
 
 ```json
-"reward_noise": 0.0
+"reward_noise": 0.2
 ```
 
-When `reward_noise` is set to 0.0, rewards are passed through without corruption. Nonzero values introduce stochasticity that makes the learning problem harder.
+When `reward_noise` is set to 0.0, rewards are passed through without corruption. The current value of 0.2 introduces moderate stochasticity that makes the learning problem harder and tests the robustness of the MF policy's utility estimates.
+
+Note that the environment applies two distinct noise channels: **reward noise** ($\sigma_r$) corrupts the scalar reward signal, while **observation noise** (§2) corrupts the action identity in the observed interaction stream. Both affect the quality of the supervision data available to learning policies, but through different mechanisms — reward noise distorts the *value* of an interaction, while observation noise distorts the *identity* of the interaction partner.
 
 There is also a special anti-signal for wasted actions: if a drone fires at a target that is already inactive, it receives a negative reward:
 
@@ -251,7 +266,7 @@ return float(self.P[drone_idx] @ self.U[:, target_idx])
 At decision time, agent $a$ uses only its own row $P^{(a)}_{a,:}$ to score active targets. Action selection follows an $\varepsilon$-greedy strategy:
 
 * with probability $\varepsilon$, the agent explores by choosing a random active target;
-* otherwise, it exploits by selecting the target with the highest predicted score.
+* otherwise, it exploits by selecting the target with the highest predicted score (pure greedy argmax).
 
 ```python
 if self.rng.random() < self.epsilon:
@@ -262,8 +277,6 @@ else:
     best_idx = np.argmax(scores)
     action = active_targets[best_idx] + 1
 ```
-
-The exploit branch also supports an optional **Boltzmann (softmax) selection** mode, controlled by the `selection_noise` parameter. When `selection_noise > 0`, instead of argmax the agent samples targets proportionally to $\exp(\text{score} / \tau)$ where $\tau$ is the selection noise temperature. This provides a softer form of exploitation that can help de-conflict decentralized agents. In the current configuration, `selection_noise = 0.0`, so pure greedy is used.
 
 After each action, exploration decays multiplicatively:
 
