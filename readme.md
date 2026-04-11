@@ -123,7 +123,7 @@ TabulaDrone/
 │   ├── logging/           # Episode logging
 │   ├── policies/          # Policy implementations
 │   └── scenarios/         # Scenario utilities
-├── viewer-ng/             # Angular episode visualization web app
+├── tabula_viewer/         # Angular episode visualization web app
 ├── tests/                 # Test suite
 ├── logs/                  # Episode log output (generated)
 ├── config/                # Scenario configuration files

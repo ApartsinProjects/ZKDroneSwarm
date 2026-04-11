@@ -1,5 +1,5 @@
 {
-  "name": "viewer-ng",
+  "name": "tabula_viewer",
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",

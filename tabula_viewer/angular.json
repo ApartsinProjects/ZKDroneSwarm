@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "viewer-ng": {
+    "tabula_viewer": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -61,10 +61,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "viewer-ng:build:production"
+              "buildTarget": "tabula_viewer:build:production"
             },
             "development": {
-              "buildTarget": "viewer-ng:build:development"
+              "buildTarget": "tabula_viewer:build:development"
             }
           },
           "defaultConfiguration": "development"
