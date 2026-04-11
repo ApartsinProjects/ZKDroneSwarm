@@ -2,8 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, input, output, inject, signal } from '@angular/core';
 import { extent } from 'd3-array';
 import { scaleLinear } from 'd3-scale';
-import { LearningStateEpisodeDto } from '../../services/policies.service';
-import { LatentWorldService } from '../../services/latent-world.service';
+import { LearningStateEpisodeDto } from '../../../services/policies.service';
+import { LatentWorldService } from '../../../services/latent-world.service';
 import { Embedding3DRenderer } from './embedding-3d-renderer';
 
 type PlotPoint = {

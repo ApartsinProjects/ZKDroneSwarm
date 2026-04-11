@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, input, output, signal } from '@angular/core';
 import { scaleSequential } from 'd3-scale';
 import { interpolateBlues, interpolateRdBu } from 'd3-scale-chromatic';
-import { LearningStateEpisodeDto } from '../../services/policies.service';
+import { LearningStateEpisodeDto } from '../../../services/policies.service';
 
 type MatrixView = 'observed' | 'predicted' | 'count';
 

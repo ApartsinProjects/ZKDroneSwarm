@@ -2,7 +2,7 @@ import { Component, computed, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartConfiguration, ChartOptions, ChartType, registerables, Chart } from 'chart.js';
-import { EpisodeSnapshot } from '../../services/cross-episode-browser.service';
+import { EpisodeSnapshot } from '../../../services/cross-episode-browser.service';
 
 Chart.register(...registerables);
 

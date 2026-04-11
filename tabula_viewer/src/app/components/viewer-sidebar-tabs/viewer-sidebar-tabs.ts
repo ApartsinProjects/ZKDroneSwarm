@@ -1,14 +1,14 @@
 import { Component, signal, inject, effect, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CrossEpisodeBrowserService } from '../../services/cross-episode-browser.service';
-import { EpisodeAnalysisChart } from './episode-analysis-chart';
+import { EpisodeAnalysisChart } from './hp-active-target/episode-analysis-chart';
 import { EmbeddingBrowserService } from '../../services/embedding-browser.service';
-import { EmbeddingVisualizationPanel } from './embedding-visualization-panel';
+import { EmbeddingVisualizationPanel } from './embedding-visualization/embedding-visualization-panel';
 import { IntegrationMatrixBrowserService } from '../../services/integration-matrix-browser.service';
-import { IntegrationMatrixPanel } from './integration-matrix-panel';
+import { IntegrationMatrixPanel } from './integration-matrix/integration-matrix-panel';
 import { LatentWorldService } from '../../services/latent-world.service';
-import { LatentWorldVisualizationPanel } from './latent-world-visualization-panel';
-import { PaperPanel } from './paper-panel';
+import { LatentWorldVisualizationPanel } from './latent-world/latent-world-visualization-panel';
+import { PaperPanel } from './paper/paper-panel';
 import { SidebarTabService } from '../../services/sidebar-tab.service';
 
 type SidebarTabId = 'hp-active-target' | 'embedding-visualization' | 'latent-world' | 'integration-matrix' | 'paper';

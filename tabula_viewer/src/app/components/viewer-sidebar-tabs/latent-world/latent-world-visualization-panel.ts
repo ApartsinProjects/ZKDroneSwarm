@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, input, signal } from '@angular/core';
 import { extent } from 'd3-array';
 import { scaleLinear } from 'd3-scale';
-import { LatentVectorsData } from '../../services/latent-world.service';
+import { LatentVectorsData } from '../../../services/latent-world.service';
 
 type PlotPoint = {
   x: number;
