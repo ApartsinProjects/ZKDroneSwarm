@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model and Problem Definition - Zero-Knowledge Multi-Robot Task Allocation</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ]
+        });"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            line-height: 1.8;
+            color: #2c2416;
+            background: white;
+            padding: 2rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        
+        .model-container {
+            max-width: 800px;
+            margin: 0 auto;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a1410;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid rgba(126, 104, 62, 0.2);
+            letter-spacing: 0.02em;
+        }
+        
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1a1410;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            letter-spacing: 0.01em;
+        }
+        
+        h2:first-of-type {
+            margin-top: 1.5rem;
+        }
+        
+        h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #2c2416;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        p {
+            font-size: 1rem;
+            margin-bottom: 1.25rem;
+            text-align: justify;
+            hyphens: auto;
+        }
+        
+        p:last-child {
+            margin-bottom: 0;
+        }
+        
+        ul {
+            margin-bottom: 1.25rem;
+            padding-left: 2rem;
+        }
+        
+        li {
+            margin-bottom: 0.5rem;
+            text-align: justify;
+        }
+        
+        .katex {
+            font-size: 1.05em;
+        }
+        
+        .katex-display {
+            margin: 1.5rem 0;
+        }
+        
+        abbr {
+            text-decoration: none;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+        
+        th, td {
+            border: 1px solid rgba(126, 104, 62, 0.2);
+            padding: 0.75rem;
+            text-align: left;
+        }
+        
+        th {
+            background: rgba(255, 248, 233, 0.5);
+            font-weight: 700;
+            color: #1a1410;
+        }
+        
+        td {
+            vertical-align: top;
+        }
+        
+        hr {
+            border: none;
+            border-top: 1px solid rgba(126, 104, 62, 0.15);
+            margin: 1.25rem 0;
+        }
+        
+        .intro-text {
+            font-style: italic;
+            color: #4a3f2f;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="model-container">
+        <h1>Model and Problem Definition</h1>
+        
+        <p class="intro-text">
+            This section provides a formal specification of the Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA) problem, defining the system model, informational constraints, and performance objectives that govern decentralized multi-agent task allocation under hidden compatibility structures.
+        </p>
+        
+        <p class="intro-text">
+            The ZK-MRTA framework extends classical task allocation by removing access to explicit cost and feasibility functions, requiring agents to infer task suitability through interaction outcomes alone. This creates a collaborative filtering problem in the multi-agent domain, where coordination must emerge from decentralized learning over shared observation histories.
+        </p>
+        
+        <p>
+            <strong>Notation conventions</strong>: We use $\mathcal{A}$ and $\mathcal{T}$ to denote the sets of agents and tasks, while $A$ and $O$ denote the action and observation spaces. Latent vectors are denoted $\mathbf{z}_i^{(a)}$ for agent $i$ and $\mathbf{z}_j^{(t)}$ for task $j$, with dimension $d$. Time is discrete and indexed by $t = 1, 2, \ldots$
+        </p>
+        
+        <hr>
+        
+        <h2>3.1 Problem Setting</h2>
+        
+        <p>
+            We consider a decentralized multi-agent system composed of a set of agents and tasks. Let $\mathcal{A} = \{a_1, a_2, \ldots, a_m\}$ denote a finite set of agents, and $\mathcal{T} = \{t_1, t_2, \ldots, t_n\}$ denote a finite set of tasks.
+        </p>
+        
+        <p>
+            The system evolves over discrete time steps $t = 1, 2, \ldots$, where agents interact with tasks through a shared environment. Each task $t_j \in \mathcal{T}$ is associated with an internal state (e.g., active/inactive or remaining workload), which evolves over time as a result of agent actions.
+        </p>
+        
+        <p>
+            At each time step, agents select actions that influence task states, and the environment updates accordingly. The goal is to determine how agents should allocate themselves to tasks over time in order to optimize global system performance, subject to the informational constraints of the Zero-Knowledge setting.
+        </p>
+        
+        <hr>
+        
+        <h2>3.2 Zero-Knowledge Assumptions</h2>
+        
+        <p>The ZK-MRTA framework is defined by strict informational constraints:</p>
+        
+        <ul>
+            <li><strong>No prior knowledge of tasks</strong>: Agents have no access to task attributes such as difficulty, type, or required resources</li>
+            <li><strong>No self-knowledge</strong>: Agents do not know their own capabilities or effectiveness</li>
+            <li><strong>No knowledge of other agents</strong>: Agents cannot access the capabilities or internal states of others</li>
+            <li><strong>No communication</strong>: Direct communication between agents is not permitted</li>
+            <li><strong>Outcome-based learning only</strong>: Agents can observe only:
+                <ul>
+                    <li>the outcomes of their own actions, and</li>
+                    <li>indirect evidence of other agents' actions through environmental changes</li>
+                </ul>
+            </li>
+        </ul>
+        
+        <p>
+            These assumptions eliminate access to explicit models of task-agent compatibility and require all decision-making to rely solely on observed interaction outcomes.
+        </p>
+        
+        <hr>
+        
+        <h2>3.3 Relation to Classical MRTA</h2>
+        
+        <p>
+            Classical Multi-Robot Task Allocation is typically formulated as an optimization problem defined by:
+        </p>
+        
+        <ul>
+            <li>a cost function $C(a_i, t_j)$, and</li>
+            <li>a feasibility function $G(a_i, t_j) \in \{0, 1\}$</li>
+        </ul>
+        
+        <p>with the objective of finding an assignment $\Lambda \subseteq \mathcal{A} \times \mathcal{T}$ that minimizes total cost:</p>
+        
+        $$\min_{\Lambda} \sum_{(a_i, t_j) \in \Lambda} C(a_i, t_j)
+        \quad \text{subject to} \quad
+        G(a_i, t_j) = 1$$
+        
+        <p>This formulation assumes that both cost and feasibility are known or computable in advance.</p>
+        
+        <p>
+            In contrast, the ZK-MRTA framework removes access to both $C$ and $G$. Agents must therefore infer task suitability indirectly, based solely on observed outcomes, without explicit knowledge of task properties or their own capabilities.
+        </p>
+        
+        <hr>
+        
+        <h2>3.4 Sequential Interaction Model</h2>
+        
+        <p>ZK-MRTA is inherently a sequential decision-making problem. At each time step:</p>
+        
+        <ol>
+            <li>Each agent receives a local observation</li>
+            <li>Each agent selects an action</li>
+            <li>The environment updates its internal state</li>
+            <li>Agents receive outcome signals</li>
+        </ol>
+        
+        <p>This interaction loop can be summarized as:</p>
+        
+        $$o_t(a) \to a_t(a) \to \text{environment update} \to \text{outcome}$$
+        
+        <p>
+            Unlike static assignment formulations, task allocation unfolds over time, and agents must adapt their decisions based on accumulated experience and evolving system dynamics.
+        </p>
+        
+        <hr>
+        
+        <h2>3.5 Problem Variants</h2>
+        
+        <p>
+            The ZK-MRTA framework is defined abstractly, but two structural dimensions determine the specific variant being studied:
+        </p>
+        
+        <h3>3.5.1 Target (Task) Types</h3>
+        
+        <ul>
+            <li><strong>Passive targets</strong>: Static tasks that accumulate damage from agent interactions until neutralized. They do not react to engagement and their state evolves only as a function of incoming actions.</li>
+            <li><strong>Active targets</strong>: Dynamic or retaliatory tasks that may adapt, move, or respond to engagement. These introduce additional uncertainty into the agent's planning problem.</li>
+        </ul>
+        
+        <p>The current benchmark instantiates passive targets with fixed resilience (HP), making neutralization a cumulative-damage process.</p>
+        
+        <h3>3.5.2 Agent Resource Constraints</h3>
+        
+        <ul>
+            <li><strong>Infinite-capacity</strong>: Agents can perform an unlimited number of interactions. This provides an idealized baseline for evaluating the pure learning and coordination challenge.</li>
+            <li><strong>Finite-capacity</strong>: Agents possess limited resources (e.g., ammunition, energy), restricting the total number of interactions before the agent is exhausted. This introduces an additional planning dimension: selecting not only which tasks to engage, but how to allocate limited resources across the mission horizon.</li>
+        </ul>
+        
+        <p>Both variants are supported by the framework. The current implementation tracks per-agent ammunition consumption, enabling finite-capacity experiments.</p>
+        
+        <hr>
+        
+        <h2>3.6 Observation Model</h2>
+        
+        <p>
+            At each time step $t$, each agent $a \in \mathcal{A}$ receives a local observation $o_t(a) \in O$, derived from the environment state. The observation is a structured tuple:
+        </p>
+        
+        $$o_t(a) = \Big(\mathbf{p},\ \mathbf{b},\ \mathbf{s}_{t-1},\ \tilde{\mathbf{r}}_{t-1},\ \mathbf{w}_{t-1}\Big)$$
+        
+        <p>where:</p>
+        
+        <ul>
+            <li>$\mathbf{p} \in \mathbb{R}^{n \times 2}$ — spatial positions of all tasks</li>
+            <li>$\mathbf{b} \in \{0,1\}^n$ — binary active/inactive status of each task</li>
+            <li>$\mathbf{s}_{t-1} \in \{0,\ldots,n\}^m$ — the joint action vector from the previous step (which task each agent selected)</li>
+            <li>$\tilde{\mathbf{r}}_{t-1} \in \mathbb{R}^m$ — the (possibly noisy) reward received by each agent in the previous step</li>
+            <li>$\mathbf{w}_{t-1} \in \{0,1\}^m$ — a binary mask indicating whether each agent's selected task was still active at the time of engagement</li>
+        </ul>
+        
+        <p>
+            The $\mathbf{w}_{t-1}$ field is particularly important: it allows agents to distinguish informative interactions (shots on active targets) from wasted engagements (shots on already-neutralized targets), which affects how learning algorithms weight each observation.
+        </p>
+        
+        <p>Crucially, observations do not include:</p>
+        
+        <ul>
+            <li>task attributes or types,</li>
+            <li>agent capabilities or latent vectors,</li>
+            <li>explicit compatibility information.</li>
+        </ul>
+        
+        <p>Thus, the structure governing agent-task effectiveness is entirely hidden and must be inferred from interaction history.</p>
+        
+        <hr>
+        
+        <h2>3.7 Action Space</h2>
+        
+        <p>At each time step, each agent selects an action:</p>
+        
+        $$a_t(a) \in A$$
+        
+        <p>where the action space $A$ consists of:</p>
+        
+        <ul>
+            <li>selecting a task $t_j \in \mathcal{T}$, or</li>
+            <li>performing a no-operation ($a_t(a) = 0$).</li>
+        </ul>
+        
+        <p>
+            Actions correspond to attempted task engagements, and their effects are determined by the underlying environment dynamics. No assumptions are made at this stage regarding the mechanism used to select actions.
+        </p>
+        
+        <hr>
+        
+        <h2>3.8 Hidden Environment Structure</h2>
+        
+        <p>
+            The environment is governed by an underlying latent compatibility structure that determines the effectiveness of agent-task interactions.
+        </p>
+        
+        <p>Each agent $a_i$ and task $t_j$ is associated with hidden latent representations:</p>
+        
+        $$\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}, \quad \mathbf{z}_j^{(t)} \in \mathbb{R}^d_{>0}$$
+        
+        <p>The raw compatibility between agent $a_i$ and task $t_j$ is governed by the latent dot product:</p>
+        
+        $$g_{ij} = (\mathbf{z}_i^{(a)})^\top \mathbf{z}_j^{(t)}$$
+        
+        <p>
+            Each task $t_j$ is initialized with a resilience budget $\text{HP}_j > 0$. An engagement by agent $a_i$ reduces the task's remaining HP by an amount proportional to $g_{ij}$, and the task is neutralized when its HP reaches zero.
+        </p>
+        
+        <h3>3.8.1 Reward Signal</h3>
+        
+        <p>
+            The reward received by agent $a_i$ upon engaging task $t_j$ is not equal to the damage applied. Instead, it is a function of latent compatibility, decoupling the learning signal from the task execution outcome. The framework supports two reward modes:
+        </p>
+        
+        <ul>
+            <li><strong>Cosine mode</strong> (current default): The reward is the angular alignment between the agent and task latent vectors:
+                $$r_{ij} = \frac{(\mathbf{z}_i^{(a)})^\top \mathbf{z}_j^{(t)}}{\|\mathbf{z}_i^{(a)}\| \cdot \|\mathbf{z}_j^{(t)}\|}$$
+            </li>
+            <li><strong>Damage mode</strong>: The reward equals the effective HP reduction applied to the task.</li>
+        </ul>
+        
+        <p>In both modes, the observed reward $\tilde{r}_{ij}$ may be corrupted by additive Gaussian noise with standard deviation $\eta \geq 0$:</p>
+        
+        $$\tilde{r}_{ij} = r_{ij} + \varepsilon, \quad \varepsilon \sim \mathcal{N}(0, \eta^2)$$
+        
+        <p>
+            If the targeted task is already inactive at the time of engagement, the agent receives a negative anti-signal rather than a compatibility-based reward.
+        </p>
+        
+        <p>
+            These latent variables are not observable to agents and serve only as an internal mechanism generating interaction outcomes. As a result, agents must operate without direct access to the true compatibility structure.
+        </p>
+        
+        <hr>
+        
+        <h2>3.9 Objective and Performance Metrics</h2>
+        
+        <p>
+            The goal of ZK-MRTA is to optimize global system performance over time. Performance is evaluated using metrics defined independently of any specific strategy:
+        </p>
+        
+        <p>
+            <strong>Time-based metrics</strong> measure the duration required to achieve a specified level of task completion — for example, the number of steps to neutralize all tasks, or the time at which a given fraction of tasks is completed.
+        </p>
+        
+        <p>
+            <strong>Ratio-based metrics</strong> evaluate performance relative to progress — for example, the proportion of tasks neutralized after a fixed number of steps, or the ratio of remaining task resilience to total initial resilience.
+        </p>
+        
+        <p><strong>Efficiency metrics</strong> measure resource utilization relative to outcomes:</p>
+        <ul>
+            <li><em>Damage efficiency</em>: net damage applied to targets as a fraction of total potential damage</li>
+            <li><em>Gross vs. net damage</em>: gross damage counts all shots fired (including overkill and shots on inactive targets); net damage counts only HP reduction that contributed to neutralization</li>
+            <li><em>Actions per neutralized task</em>: the average number of engagements required to complete each task</li>
+        </ul>
+        
+        <p><strong>Coordination metrics</strong> capture swarm-level behavior:</p>
+        <ul>
+            <li><em>Overkill</em>: damage accumulated on a task beyond its initial HP</li>
+            <li><em>Collisions</em>: the number of time steps on which multiple agents selected the same active task simultaneously</li>
+            <li><em>Coordination score</em>: a normalized measure of target-spread across the swarm</li>
+        </ul>
+        
+        <p>All metrics are computed by the environment from logged interaction data and remain independent of the specific strategy used.</p>
+        
+        <hr>
+        
+        <h2>3.10 Baseline Strategies</h2>
+        
+        <p>
+            The ZK-MRTA framework is evaluated by comparing strategies that represent distinct levels of knowledge and decision-making capability. Three canonical baselines bracket the performance space:
+        </p>
+        
+        <ul>
+            <li><strong>Random</strong>: Agents select tasks uniformly at random from the set of active tasks at each step. This represents a lower bound on performance — the expected outcome with no learning or inference.</li>
+            <li><strong>Greedy</strong>: Agents choose tasks based on observable features (e.g., proximity or last observed state). Although computationally simple, this heuristic produces locally optimal but globally suboptimal outcomes.</li>
+            <li><strong>Oracle</strong>: Agents possess perfect knowledge of task properties and their own latent vectors, enabling optimal allocation decisions at each step. This represents a theoretical upper bound and serves as the reference against which learning-based strategies are evaluated.</li>
+        </ul>
+        
+        <p>Performance metrics defined in §3.9 are computed identically for all strategies, enabling direct comparison under identical conditions.</p>
+        
+        <hr>
+        
+        <h2>3.11 Input–Output Formalization</h2>
+        
+        <p>The ZK-MRTA problem can be summarized as follows:</p>
+        
+        <ul>
+            <li>At each time step $t$, each agent $a \in \mathcal{A}$ receives an observation $o_t(a) \in O$</li>
+            <li>Each agent produces an action $a_t(a) \in A$</li>
+            <li>The environment maps the joint action $\mathbf{a}_t = (a_t(a_1), \ldots, a_t(a_m))$ together with the current world state to updated task states, reward signals $\tilde{r}_{ij}$, engagement validity flags $\mathbf{w}_t$, and a termination signal</li>
+        </ul>
+        
+        <p>The objective is to design decentralized agent behaviors that maximize global performance metrics in $M$ over the full mission horizon.</p>
+        
+        <hr>
+        
+        <h2>3.12 Notation Summary</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>$\mathcal{A} = \{a_1, \ldots, a_m\}$</td><td>Set of agents</td></tr>
+                <tr><td>$\mathcal{T} = \{t_1, \ldots, t_n\}$</td><td>Set of tasks</td></tr>
+                <tr><td>$m$</td><td>Number of agents</td></tr>
+                <tr><td>$n$</td><td>Number of tasks</td></tr>
+                <tr><td>$t$</td><td>Discrete time step</td></tr>
+                <tr><td>$d$</td><td>Latent vector dimension</td></tr>
+                <tr><td>$o_t(a)$</td><td>Observation of agent $a$ at time $t$</td></tr>
+                <tr><td>$a_t(a)$</td><td>Action of agent $a$ at time $t$</td></tr>
+                <tr><td>$A$</td><td>Action space</td></tr>
+                <tr><td>$O$</td><td>Observation space</td></tr>
+                <tr><td>$\mathbf{a}_t$</td><td>Joint action of all agents</td></tr>
+                <tr><td>$\mathbf{p}$</td><td>Task position matrix</td></tr>
+                <tr><td>$\mathbf{b}$</td><td>Task active/inactive status vector</td></tr>
+                <tr><td>$\mathbf{s}_{t-1}$</td><td>Previous joint action vector (public)</td></tr>
+                <tr><td>$\tilde{\mathbf{r}}_{t-1}$</td><td>Previous observed reward vector (public)</td></tr>
+                <tr><td>$\mathbf{w}_{t-1}$</td><td>Target-was-active-at-engagement mask</td></tr>
+                <tr><td>$\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$</td><td>Hidden latent vector of agent $a_i$</td></tr>
+                <tr><td>$\mathbf{z}_j^{(t)} \in \mathbb{R}^d_{>0}$</td><td>Hidden latent vector of task $t_j$</td></tr>
+                <tr><td>$g_{ij}$</td><td>Latent dot-product compatibility</td></tr>
+                <tr><td>$r_{ij}$</td><td>Reward signal for agent $i$ engaging task $j$</td></tr>
+                <tr><td>$\tilde{r}_{ij}$</td><td>Observed (noisy) reward</td></tr>
+                <tr><td>$\eta$</td><td>Reward noise standard deviation</td></tr>
+                <tr><td>$\text{HP}_j$</td><td>Task resilience (hit points)</td></tr>
+                <tr><td>$M$</td><td>Set of performance metrics</td></tr>
+                <tr><td>$C(a_i, t_j)$</td><td>Cost function (classical MRTA reference)</td></tr>
+                <tr><td>$G(a_i, t_j)$</td><td>Feasibility function (classical MRTA reference)</td></tr>
+            </tbody>
+        </table>
+        
+        <hr>
+        
+        <h2>3.13 Formal Definition of ZK-MRTA</h2>
+        
+        <p><strong>Definition 1</strong> (Zero-Knowledge Multi-Robot Task Allocation).</p>
+        
+        <p>A ZK-MRTA problem is defined by the tuple:</p>
+        
+        $$\mathcal{Z} = (\mathcal{A}, \mathcal{T}, A, O, E, M)$$
+        
+        <p>where:</p>
+        
+        <ul>
+            <li>$\mathcal{A} = \{a_1, \ldots, a_m\}$ is a finite set of agents, each associated with a hidden latent vector $\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$</li>
+            <li>$\mathcal{T} = \{t_1, \ldots, t_n\}$ is a finite set of tasks, each associated with a hidden latent vector $\mathbf{z}_j^{(t)} \in \mathbb{R}^d_{>0}$ and resilience $\text{HP}_j > 0$</li>
+            <li>$A$ is the discrete action space: $\{0\} \cup \{1, \ldots, n\}$ (no-op or task selection)</li>
+            <li>$O$ is the observation space: structured tuples $o_t(a) = (\mathbf{p}, \mathbf{b}, \mathbf{s}_{t-1}, \tilde{\mathbf{r}}_{t-1}, \mathbf{w}_{t-1})$ as defined in §3.6</li>
+            <li>$E$ is the environment transition function mapping $(\text{world state}_t, \mathbf{a}_t) \to (\text{world state}_{t+1}, \tilde{\mathbf{r}}_t, \mathbf{w}_t, \text{done}_t)$, where rewards are determined by the latent compatibility structure and reward mode (§3.8)</li>
+            <li>$M$ is a set of strategy-independent performance metrics as defined in §3.9</li>
+        </ul>
+        
+        <p>
+            The system evolves over discrete time steps. At each time step, each agent receives a local observation $o_t(a)$ and selects an action $a_t(a)$. The environment applies the joint action $\mathbf{a}_t$, updates task states (HP), produces noisy reward signals $\tilde{\mathbf{r}}_t$ and validity flags $\mathbf{w}_t$, and terminates when all tasks are neutralized or the maximum step limit is reached.
+        </p>
+        
+        <p>
+            The problem is subject to the Zero-Knowledge constraints defined in §3.2: agents have no prior knowledge of tasks or their own capabilities, cannot communicate, and must rely solely on $O$ at each step.
+        </p>
+        
+        <p>
+            The objective is to design decentralized agent behaviors — algorithms that map observations and private memory to actions — that maximize system-level performance according to the metrics in $M$.
+        </p>
+    </div>
+</body>
+</html>
