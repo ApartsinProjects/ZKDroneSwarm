@@ -10,6 +10,7 @@ __pycache__/
 
 logs/
 
+node_modules
 # Distribution / packaging
 .Python
 build/
