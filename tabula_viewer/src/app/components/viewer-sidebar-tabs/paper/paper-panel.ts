@@ -14,9 +14,9 @@ const PAPER_SECTIONS: ReadonlyArray<PaperSectionDefinition> = [
   { id: 'abstract', label: 'Abstract', htmlFile: 'abstract.html' },
   { id: 'introduction', label: 'Introduction', htmlFile: 'introduction.html' },
   { id: 'literature-review', label: 'Literature Review', htmlFile: 'literature-review.html' },
-  { id: 'model-problem-definition', label: 'Model & Problem Definition', htmlFile: 'model-problem-definition.html' },
+  { id: 'model-problem-definition', label: 'Model & Problem Def.', htmlFile: 'model-problem-definition.html' },
   { id: 'methods', label: 'Methods', htmlFile: 'methods.html' },
-  { id: 'framework-description', label: 'Framework Description', htmlFile: 'framework-description.html' }
+  { id: 'framework-description', label: 'Framework Desc.', htmlFile: 'framework-description.html' }
 ];
 
 @Component({
