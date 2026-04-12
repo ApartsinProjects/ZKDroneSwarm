@@ -25,7 +25,7 @@ METRIC_CATEGORIES: dict[str, str] = {
     "success": "task_completion",
     "mean_reward_per_agent": "reward",
     "total_latent_mismatch": "precision",
-    "latent_mismatch_ratio": "precision",
+    "avg_latent_match_quality": "precision",
 }
 
 
@@ -113,7 +113,7 @@ class RunArtifacts:
 
 
 REPORT_VERSION = "1.0"
-BUILDER_VERSION = "0.5.0"
+BUILDER_VERSION = "0.6.0"
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -520,7 +520,7 @@ def extract_episode_entry(
         "total_net_damage": metrics.get("total_net_damage"),
         "shots_per_target": metrics.get("shots_per_target"),
         "total_latent_mismatch": metrics.get("total_latent_mismatch"),
-        "latent_mismatch_ratio": metrics.get("latent_mismatch_ratio"),
+        "avg_latent_match_quality": metrics.get("avg_latent_match_quality"),
         "mean_reward_per_agent": mean_reward,
         "total_reward": total_reward,
         "end_of_episode_active_target_count": end_active_target_count,
@@ -1040,10 +1040,10 @@ def build_comparison_vs_baseline(artifacts: RunArtifacts) -> dict[str, Any]:
                 higher_is_better=False,
             ),
             compare_metric(
-                "latent_mismatch_ratio",
-                mf_entry.get("latent_mismatch_ratio"),
-                baseline_entry.get("latent_mismatch_ratio"),
-                higher_is_better=False,
+                "avg_latent_match_quality",
+                mf_entry.get("avg_latent_match_quality"),
+                baseline_entry.get("avg_latent_match_quality"),
+                higher_is_better=True,
             ),
             compare_metric(
                 "targets_neutralized",
@@ -1252,11 +1252,11 @@ def build_metric_definitions() -> dict[str, dict[str, Any]]:
             "direction": "lower_is_better",
             "category": "precision",
         },
-        "latent_mismatch_ratio": {
-            "description": "Fraction of optimal damage potential lost to suboptimal drone-target pairing. Normalizes latent mismatch as a proportion of total achievable damage. A value of 0 means every shot was fired by the best-matched drone; values approaching 1 indicate severe mismatching.",
-            "formula": "total_latent_mismatch / (total_gross_damage + total_latent_mismatch)",
-            "source": "metrics.latent_mismatch_ratio (computed in EpisodeMetrics.__post_init__)",
-            "direction": "lower_is_better",
+        "avg_latent_match_quality": {
+            "description": "Average match quality per shot: fraction of optimal damage achieved through drone-target pairing decisions. Measures how well each shot utilized the best available drone for each target. A value of 1.0 means every shot was fired by the optimally matched drone; lower values indicate suboptimal pairing.",
+            "formula": "total_gross_damage / (total_gross_damage + total_latent_mismatch) = mean(actual_damage / optimal_damage per shot)",
+            "source": "metrics.avg_latent_match_quality (computed in EpisodeMetrics.__post_init__)",
+            "direction": "higher_is_better",
             "category": "precision",
         },
     }

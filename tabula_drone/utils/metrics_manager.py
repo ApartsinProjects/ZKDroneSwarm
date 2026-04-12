@@ -31,20 +31,22 @@ class EpisodeMetrics:
     agent_rewards: Dict[str, float]
     weapon_damage_profile_mapping: Mapping[str, Mapping[str, float]]
     total_latent_mismatch: float = 0.0
+    total_optimal_potential: float = 0.0
     
     # Calculated fields (set in __post_init__)
     shots_per_target: Optional[float] = field(default=None, init=False)
-    latent_mismatch_ratio: float = field(init=False)
+    avg_latent_match_quality: float = field(init=False)
     
     def __post_init__(self):
         # Primary efficiency metric
         object.__setattr__(self, 'shots_per_target',
             self.total_ammo_used / self.targets_neutralized if self.targets_neutralized > 0 else 0.0)
 
-        # Latent mismatch ratio: fraction of potential damage lost to suboptimal pairing
-        optimal_potential = self.total_gross_damage + self.total_latent_mismatch
-        object.__setattr__(self, 'latent_mismatch_ratio',
-            self.total_latent_mismatch / optimal_potential if optimal_potential > 0 else 0.0)
+        # Average latent match quality: fraction of optimal damage achieved per shot
+        # Equivalent to: mean(actual_damage / optimal_damage) across all shots at active targets
+        # Uses the true optimal potential computed from _precompute_max_damage_per_target
+        object.__setattr__(self, 'avg_latent_match_quality',
+            self.total_gross_damage / self.total_optimal_potential if self.total_optimal_potential > 0 else 0.0)
 
     @property
     def total_reward(self) -> float:

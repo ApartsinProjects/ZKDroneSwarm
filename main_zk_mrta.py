@@ -254,6 +254,7 @@ def run_episode(
     total_gross_damage = 0.0
     total_collisions = 0
     total_latent_mismatch = 0.0
+    total_optimal_potential = 0.0
     
     # Episode loop
     while not done:
@@ -296,6 +297,7 @@ def run_episode(
         total_net_damage += shared_info["net_damage"]
         total_gross_damage += shared_info["total_gross_damage"]
         total_latent_mismatch += shared_info.get("latent_mismatch", 0.0)
+        total_optimal_potential += shared_info.get("optimal_potential", 0.0)
         
         # Track collisions
         total_collisions += shared_info.get("collisions", 0)
@@ -346,6 +348,7 @@ def run_episode(
         agent_rewards=total_rewards.copy(),
         weapon_damage_profile_mapping=env.weapon_damage_profile_mapping,
         total_latent_mismatch=total_latent_mismatch,
+        total_optimal_potential=total_optimal_potential,
     )
 
     # Print summary

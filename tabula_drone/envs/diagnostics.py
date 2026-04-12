@@ -38,6 +38,7 @@ class EnvDiagnosticsSnapshot:
     done_reason: Optional[str] = None
     total_gross_damage: Optional[float] = None
     latent_mismatch: Optional[float] = None
+    optimal_potential: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize this snapshot into a plain dict for boundary consumers."""
@@ -63,6 +64,7 @@ class EnvDiagnosticsSnapshot:
             "done_reason": self.done_reason,
             "total_gross_damage": self.total_gross_damage,
             "latent_mismatch": self.latent_mismatch,
+            "optimal_potential": self.optimal_potential,
         }
 
         for key, value in optional_fields.items():

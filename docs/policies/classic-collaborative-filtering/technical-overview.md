@@ -468,20 +468,49 @@ step_latent_mismatch += max(0.0, optimal_damage - damage)
 
 This metric isolates assignment quality from other sources of inefficiency. Unlike overkill (which measures actual waste from shooting nearly-dead targets) and collisions (which measure redundant simultaneous selection), latent mismatch captures the **opportunity cost** of suboptimal pairing. A random policy will have high latent mismatch because it ignores latent compatibility entirely; a well-trained MF policy should reduce it as it learns which drone-target pairs produce the strongest dot products.
 
-### Latent Mismatch Ratio
+### Average Latent Match Quality
 
-Latent mismatch ratio normalizes the total latent mismatch as a fraction of the total achievable damage:
+Average latent match quality measures the fraction of optimal damage achieved per shot through drone-target pairing decisions:
 
-$$\text{Latent Mismatch Ratio} = \frac{\text{Total Latent Mismatch}}{\text{Total Gross Damage} + \text{Total Latent Mismatch}}$$
+$$\text{Avg Latent Match Quality} = \frac{\text{Total Gross Damage}}{\text{Total Optimal Potential}}$$
 
-The denominator represents the optimal total damage that would have been achieved if every shot had been fired by the best-matched drone for each target. This ratio is bounded in $[0, 1)$: a value of 0 means every shot was fired by the optimally matched drone, while values approaching 1 indicate severe mismatching. It is computed in `EpisodeMetrics.__post_init__()`:
+where Total Optimal Potential is the sum of optimal damages for all shots actually fired, computed using the precomputed maximum damage per target from `_precompute_max_damage_per_target()`. This is mathematically equivalent to computing the mean of $(d_{ij} / \max_k d_{kj})$ across all shots at active targets, where $d_{ij}$ is the actual damage dealt and $\max_k d_{kj}$ is the optimal damage for that target. The metric is bounded in $(0, 1]$: a value of 1.0 means every shot was fired by the optimally matched drone, while lower values indicate suboptimal pairing. It is computed in `EpisodeMetrics.__post_init__()`:
 
 ```python
-optimal_potential = self.total_gross_damage + self.total_latent_mismatch
-self.latent_mismatch_ratio = (
-    self.total_latent_mismatch / optimal_potential if optimal_potential > 0 else 0.0
+self.avg_latent_match_quality = (
+    self.total_gross_damage / self.total_optimal_potential 
+    if self.total_optimal_potential > 0 else 0.0
 )
 ```
+
+The `total_optimal_potential` is accumulated during the episode by summing the optimal damage for each shot fired at an active target, using the values from `_max_damage_per_target`.
+
+### Episode Metrics Serialization
+
+All metrics are computed in the `EpisodeMetrics` dataclass and serialized to JSON after each episode. The episode JSON files (`logs/run_*/policy/episodes/episode_ep*.json`) contain a `metrics` field with the following structure:
+
+```json
+{
+  "metrics": {
+    "episode": 1,
+    "steps": 73,
+    "done_reason": "all_targets_neutralized",
+    "targets_neutralized": 27,
+    "total_ammo_used": 73,
+    "total_overkill": 8.5,
+    "total_net_damage": 270.0,
+    "total_gross_damage": 278.5,
+    "total_collisions": 12,
+    "total_latent_mismatch": 45.2,
+    "shots_per_target": 2.7,
+    "avg_latent_match_quality": 0.86,
+    "agent_rewards": { "drone_0": 42.1, "drone_1": 38.5, ... },
+    "weapon_damage_profile_mapping": { ... }
+  }
+}
+```
+
+The derived metrics (`shots_per_target`, `avg_latent_match_quality`) are computed automatically in `EpisodeMetrics.__post_init__()` and included in the serialized output. This ensures all episode files contain the complete metric set for downstream analysis and reporting.
 
 ---
 

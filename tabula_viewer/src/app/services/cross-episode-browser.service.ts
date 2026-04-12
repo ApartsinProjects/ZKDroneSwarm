@@ -36,9 +36,14 @@ interface EpisodeMetricDefinition {
 
 const EPISODE_METRIC_DEFINITIONS: ReadonlyArray<EpisodeMetricDefinition> = [
   {
-    label: 'Total Ammo Used',
+    label: 'Match Quality',
+    betterDirection: 'higher',
+    readValue: (metrics) => metrics['avg_latent_match_quality'],
+  },
+  {
+    label: 'Shots / Target',
     betterDirection: 'lower',
-    readValue: (metrics) => metrics['total_ammo_used'],
+    readValue: (metrics) => metrics['shots_per_target'],
   },
   {
     label: 'Total Overkill',
@@ -46,19 +51,14 @@ const EPISODE_METRIC_DEFINITIONS: ReadonlyArray<EpisodeMetricDefinition> = [
     readValue: (metrics) => metrics['total_overkill'],
   },
   {
-    label: 'Total Gross Damage',
-    betterDirection: 'lower',
-    readValue: (metrics) => metrics['total_gross_damage'],
-  },
-  {
     label: 'Total Collisions',
     betterDirection: 'lower',
     readValue: (metrics) => metrics['total_collisions'],
   },
   {
-    label: 'Shots / Target',
+    label: 'Steps',
     betterDirection: 'lower',
-    readValue: (metrics) => metrics['shots_per_target'],
+    readValue: (metrics) => metrics['steps'],
   },
   {
     label: 'Throughput',
