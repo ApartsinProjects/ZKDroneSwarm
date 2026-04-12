@@ -46,12 +46,6 @@
               {{ metrics.shotsPerTarget !== null ? (metrics.shotsPerTarget | number:'1.2-2') : '—' }}
             </span>
           </div>
-          <div class="metric-item">
-            <span class="metric-label">DMG Eff</span>
-            <span class="metric-value">
-              {{ metrics.dmgEff !== null ? (metrics.dmgEff | number:'1.2-2') : '—' }}
-            </span>
-          </div>
         </div>
       } @else {
         <div class="metric-item metric-item--placeholder metric-item--placeholder-wide">

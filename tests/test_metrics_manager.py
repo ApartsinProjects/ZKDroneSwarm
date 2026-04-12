@@ -44,8 +44,6 @@ def test_calc_episode_metrics_episodic_formulas() -> None:
     assert metrics.total_net_damage == 9.0
     assert metrics.total_overkill == 1.5
     assert metrics.shots_per_target == pytest.approx(1.5)
-    assert metrics.ammo_eff == pytest.approx(2 / 3)
-    assert metrics.dmg_eff == pytest.approx(0.9)
 
 
 def test_calc_total_episodes_metrics_episodic_summary_and_representative() -> None:

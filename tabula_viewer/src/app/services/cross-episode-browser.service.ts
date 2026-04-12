@@ -56,11 +56,6 @@ const EPISODE_METRIC_DEFINITIONS: ReadonlyArray<EpisodeMetricDefinition> = [
     readValue: (metrics) => metrics['total_collisions'],
   },
   {
-    label: 'DMG Eff',
-    betterDirection: 'higher',
-    readValue: (metrics) => metrics['dmg_eff'],
-  },
-  {
     label: 'Shots / Target',
     betterDirection: 'lower',
     readValue: (metrics) => metrics['shots_per_target'],

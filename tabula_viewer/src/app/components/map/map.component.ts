@@ -12,7 +12,6 @@ const MIN_TARGET_OPACITY = 0.25;
 
 type EpisodeMetricPayload = {
   total_ammo_used?: unknown;
-  dmg_eff?: unknown;
   shots_per_target?: unknown;
   total_collisions?: unknown;
 };
@@ -120,7 +119,6 @@ export class MapComponent {
     return {
       totalSteps: this.readMetricNumber(ep.summary?.total_steps),
       totalAmmoUsed: this.readMetricNumber(episodeMetrics.total_ammo_used),
-      dmgEff: this.readMetricNumber(episodeMetrics.dmg_eff),
       shotsPerTarget: this.readMetricNumber(episodeMetrics.shots_per_target),
       totalCollisions: this.readMetricNumber(episodeMetrics.total_collisions),
     };

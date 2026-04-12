@@ -409,14 +409,6 @@ $$\text{Total Net Damage} = \sum_{t=1}^{T} \sum_{i=1}^{N} d^{\text{eff}}_{ij}(t)
 
 For fully successful episodes where all targets are neutralized, this equals $\text{target\_hp} \times \text{targets\_count}$. Values below this theoretical maximum indicate that some targets were not fully destroyed.
 
-### Damage Efficiency
-
-Damage efficiency measures the ratio of useful damage to attempted damage:
-
-$$\text{Dmg Eff} = \frac{\text{Total Net Damage}}{\text{Total Gross Damage}}$$
-
-This metric quantifies how much inflicted damage was not wasted. A value of 1.0 indicates perfect efficiency—every point of damage contributed to neutralizing targets. Lower values indicate coordination failures where damage was wasted through overkill or poor target selection. This metric is particularly sensitive to the timing and coordination of engagements, as it penalizes scenarios where multiple drones fire at nearly-depleted targets.
-
 ### Total Collisions
 
 Total collisions measures the number of same-step events in which multiple drones select the same target. At each step, if $k$ drones select the same target, this contributes $k-1$ collisions:

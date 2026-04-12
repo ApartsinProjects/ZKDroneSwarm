@@ -456,15 +456,13 @@ def show_policy_performance_summary(
                 f"{policy_summary.avg_overkill:.1f}",
                 f"{policy_summary.avg_reward:.1f}",
                 f"{policy_summary.success_rate:.0f}%",
-                f"{policy_summary.ammo_eff:.3f}",
-                f"{policy_summary.dmg_eff:.1%}",
             ])
 
     table_data.sort(key=lambda row: row[1])
     for row in table_data:
         row[1] = f"{row[1]:.1f}"
 
-    headers = ["Policy", "Avg Steps", "Avg Targets", "Avg Ammo", "Avg Overkill", "Avg Reward", "Success %", "Ammo Eff", "Dmg Eff"]
+    headers = ["Policy", "Avg Steps", "Avg Targets", "Avg Ammo", "Avg Overkill", "Avg Reward", "Success %"]
     printer.policy_performance_summary(table_data, headers)
 
 
@@ -493,7 +491,7 @@ def show_policy_best_episode_performance_vs_random(
             return f"{fmt.format(val)} ({sign}{pct:.0f}%)"
 
         cmp_data = []
-        headers = ["Policy", "Best Steps", "Shots/Target", "Ammo Eff", "Dmg Eff"]
+        headers = ["Policy", "Best Steps", "Shots/Target", "Total Overkill"]
         for pt in config.policy.type:
                 if pt in policy_best_metrics:
                     m = policy_best_metrics[pt]
@@ -502,16 +500,14 @@ def show_policy_best_episode_performance_vs_random(
                             pt,
                             f"{m.best_steps} (base)",
                             f"{m.shots_per_target:.1f} (base)",
-                            f"{m.ammo_eff:.3f} (base)",
-                            f"{m.dmg_eff:.1%} (base)",
+                            f"{m.total_overkill:.1f} (base)",
                         ])
                     else:
                         cmp_data.append([
                             pt,
                             fmt_pct(m.best_steps, rand.best_steps, "{}", False),
                             fmt_pct(m.shots_per_target, rand.shots_per_target, "{:.1f}", False),
-                            fmt_pct(m.ammo_eff, rand.ammo_eff, "{:.3f}", True),
-                            fmt_pct(m.dmg_eff, rand.dmg_eff, "{:.1%}", True),
+                            fmt_pct(m.total_overkill, rand.total_overkill, "{:.1f}", False),
                         ])
 
         printer.policy_performance_comparison(

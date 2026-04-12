@@ -33,19 +33,11 @@ class EpisodeMetrics:
     total_latent_mismatch: float = 0.0
     
     # Calculated fields (set in __post_init__)
-    ammo_eff: float = field(init=False)
-    dmg_eff: float = field(init=False)
     shots_per_target: Optional[float] = field(default=None, init=False)
     latent_mismatch_ratio: float = field(init=False)
     
     def __post_init__(self):
-        # Calculate efficiency metrics
-        object.__setattr__(self, 'ammo_eff', 
-            self.targets_neutralized / self.total_ammo_used if self.total_ammo_used > 0 else 0.0)
-        object.__setattr__(self, 'dmg_eff',
-            self.total_net_damage / self.total_gross_damage if self.total_gross_damage > 0 else 0.0)
-        
-        # Calculate shots per target
+        # Primary efficiency metric
         object.__setattr__(self, 'shots_per_target',
             self.total_ammo_used / self.targets_neutralized if self.targets_neutralized > 0 else 0.0)
 
@@ -78,8 +70,6 @@ class PolicyRunSummary:
     avg_gross_damage: float
     success_count: int
     success_rate: float
-    ammo_eff: float
-    dmg_eff: float
     representative_episode: Optional[EpisodeMetrics]
 
 
@@ -117,8 +107,6 @@ class MetricsManager:
                 avg_gross_damage=0.0,
                 success_count=0,
                 success_rate=0.0,
-                ammo_eff=0.0,
-                dmg_eff=0.0,
                 representative_episode=None,
             )
 
@@ -134,12 +122,6 @@ class MetricsManager:
             1 for item in normalized if item.done_reason == "all_targets_neutralized"
         )
         success_rate = (success_count / episode_count) * 100 if episode_count > 0 else 0.0
-        ammo_eff = avg_targets / avg_ammo if avg_ammo > 0 else 0.0
-        dmg_eff = (
-            avg_net_damage / avg_gross_damage
-            if avg_gross_damage > 0
-            else 0.0
-        )
         representative_episode = min(normalized, key=lambda item: item.steps)
 
         return PolicyRunSummary(
@@ -153,8 +135,6 @@ class MetricsManager:
             avg_gross_damage=avg_gross_damage,
             success_count=success_count,
             success_rate=success_rate,
-            ammo_eff=ammo_eff,
-            dmg_eff=dmg_eff,
             representative_episode=representative_episode,
         )
 

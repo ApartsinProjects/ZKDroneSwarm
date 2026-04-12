@@ -16,9 +16,7 @@ PRIMARY_POLICY = "matrix_factorization_cf"
 METRIC_CATEGORIES: dict[str, str] = {
     "steps": "efficiency",
     "total_ammo_used": "efficiency",
-    "ammo_eff": "efficiency",
     "shots_per_target": "efficiency",
-    "dmg_eff": "precision",
     "total_overkill": "precision",
     "total_net_damage": "precision",
     "total_gross_damage": "precision",
@@ -115,7 +113,7 @@ class RunArtifacts:
 
 
 REPORT_VERSION = "1.0"
-BUILDER_VERSION = "0.4.0"
+BUILDER_VERSION = "0.5.0"
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -520,8 +518,6 @@ def extract_episode_entry(
         "total_overkill": metrics.get("total_overkill"),
         "total_gross_damage": metrics.get("total_gross_damage"),
         "total_net_damage": metrics.get("total_net_damage"),
-        "ammo_eff": metrics.get("ammo_eff"),
-        "dmg_eff": metrics.get("dmg_eff"),
         "shots_per_target": metrics.get("shots_per_target"),
         "total_latent_mismatch": metrics.get("total_latent_mismatch"),
         "latent_mismatch_ratio": metrics.get("latent_mismatch_ratio"),
@@ -1013,8 +1009,6 @@ def build_comparison_vs_baseline(artifacts: RunArtifacts) -> dict[str, Any]:
                 baseline_entry.get("shots_per_target"),
                 higher_is_better=False,
             ),
-            compare_metric("ammo_eff", mf_entry.get("ammo_eff"), baseline_entry.get("ammo_eff"), higher_is_better=True),
-            compare_metric("dmg_eff", mf_entry.get("dmg_eff"), baseline_entry.get("dmg_eff"), higher_is_better=True),
             compare_metric(
                 "total_collisions",
                 mf_entry.get("total_collisions"),
@@ -1221,20 +1215,6 @@ def build_metric_definitions() -> dict[str, dict[str, Any]]:
             "formula": "total_net_damage + total_overkill",
             "source": "metrics.total_gross_damage",
             "direction": "context_dependent",
-            "category": "precision",
-        },
-        "ammo_eff": {
-            "description": "Ammunition efficiency: targets neutralized per shot fired",
-            "formula": "targets_neutralized / total_ammo_used",
-            "source": "metrics.ammo_eff (computed in EpisodeMetrics.__post_init__)",
-            "direction": "higher_is_better",
-            "category": "efficiency",
-        },
-        "dmg_eff": {
-            "description": "Damage efficiency: ratio of effective damage to total damage dealt",
-            "formula": "total_net_damage / total_gross_damage",
-            "source": "metrics.dmg_eff (computed in EpisodeMetrics.__post_init__)",
-            "direction": "higher_is_better",
             "category": "precision",
         },
         "shots_per_target": {
