@@ -43,6 +43,39 @@ Generate a canonical `policy_report.json` from existing run artifacts without re
 
 - `logs/run_<id>/policy_report.json`
 
+### Report Structure (v0.2.0)
+
+The generated report includes:
+
+- **`metric_definitions`**: Canonical definitions for all metrics with formulas, sources, direction, and category
+  - Covers all raw metrics: `steps`, `targets_neutralized`, `total_ammo_used`, `total_collisions`, `total_overkill`, `total_net_damage`, `total_gross_damage`
+  - Covers derived metrics: `ammo_eff`, `dmg_eff`, `shots_per_target`, `total_reward`, `mean_reward_per_agent`, `success`
+  - Each definition includes: `description`, `formula`, `source`, `direction` (higher/lower_is_better), `category`
+
+- **`episode_curves`**: Per-episode performance with trend analysis
+  - All episode metrics from `episode_*.json` files
+  - `trend_summary`: Direction, monotonicity, plateau detection for key metrics
+
+- **`policy_summary`**: Best episode + aggregate training metrics
+  - Includes: `avg_total_collisions`, `avg_total_overkill`, `avg_total_reward`, `avg_mean_reward_per_agent`
+
+- **`learning_summary`**: Learning progression and convergence
+  - `convergence_assessment`: `best_is_final`, `best_episode`, `convergence_status` (potentially_undertrained / early_peak / converged)
+  - Epsilon progression and checkpoints
+
+- **`comparison_vs_baseline`**: MF best episode vs baselines
+  - Each metric tagged with `category` (efficiency / precision / coordination / task_completion / reward)
+  - `category_directions`: Per-category performance breakdown (e.g., efficiency: improved, precision: worsened)
+  - `overall_label`: Mixed / improved / worsened
+
+- **`key_findings`**: Auto-surfaced actionable insights
+  - Cross-baseline regressions (metrics worsened vs all baselines)
+  - Active degradation (non-plateaued negative trends)
+  - Convergence warnings
+  - Target crowding (>40% agents targeting same best target)
+
+- **`report_focus`**: Baseline roles explicitly labeled (`control` / `ceiling`)
+
 ## Workflow
 
 1. Resolve the target run directory.
@@ -51,7 +84,8 @@ Generate a canonical `policy_report.json` from existing run artifacts without re
 4. Use `best_episode_path` as the main MF comparison anchor.
 5. Load MF learning-state checkpoints when available.
 6. Load same-run baselines when available.
-7. Emit a stable `policy_report.json`.
+7. Build metric definitions, trend summaries, convergence assessments, and key findings.
+8. Emit a stable `policy_report.json`.
 
 ## Implementation Note
 

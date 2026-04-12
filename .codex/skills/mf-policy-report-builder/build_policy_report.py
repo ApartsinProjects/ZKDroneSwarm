@@ -13,6 +13,21 @@ from typing import Any, Sequence
 
 PRIMARY_POLICY = "matrix_factorization_cf"
 
+METRIC_CATEGORIES: dict[str, str] = {
+    "steps": "efficiency",
+    "total_ammo_used": "efficiency",
+    "ammo_eff": "efficiency",
+    "shots_per_target": "efficiency",
+    "dmg_eff": "precision",
+    "total_overkill": "precision",
+    "total_net_damage": "precision",
+    "total_gross_damage": "precision",
+    "total_collisions": "coordination",
+    "targets_neutralized": "task_completion",
+    "success": "task_completion",
+    "mean_reward_per_agent": "reward",
+}
+
 
 class ReportBuilderError(RuntimeError):
     """Raised when report generation cannot proceed safely."""
@@ -98,7 +113,7 @@ class RunArtifacts:
 
 
 REPORT_VERSION = "1.0"
-BUILDER_VERSION = "0.1.0"
+BUILDER_VERSION = "0.3.0"
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -591,12 +606,70 @@ def build_artifacts_section(artifacts: RunArtifacts) -> dict[str, Any]:
     }
 
 
+TREND_METRICS = [
+    "steps", "ammo_eff", "dmg_eff", "total_collisions", "total_overkill",
+    "mean_reward_per_agent",
+]
+
+
+def compute_metric_trend(
+    episodes: list[dict[str, Any]],
+    metric_name: str,
+) -> dict[str, Any] | None:
+    """Compute a lightweight trend descriptor for a single metric across episodes."""
+    values = [
+        float(ep[metric_name])
+        for ep in episodes
+        if isinstance(ep.get(metric_name), (int, float))
+    ]
+    if len(values) < 3:
+        return None
+
+    first_value = values[0]
+    last_value = values[-1]
+    value_range = max(values) - min(values)
+
+    if value_range == 0:
+        direction = "flat"
+    elif last_value < first_value:
+        direction = "decreasing"
+    else:
+        direction = "increasing"
+
+    monotonic_up = all(b >= a for a, b in zip(values, values[1:]))
+    monotonic_down = all(b <= a for a, b in zip(values, values[1:]))
+    is_monotonic = monotonic_up or monotonic_down
+
+    tail_start = max(1, len(values) * 2 // 3)
+    tail = values[tail_start:]
+    if len(tail) >= 2 and value_range > 0:
+        tail_mean = sum(tail) / len(tail)
+        tail_std = (sum((v - tail_mean) ** 2 for v in tail) / len(tail)) ** 0.5
+        is_plateau = tail_std / value_range < 0.10
+    else:
+        is_plateau = False
+
+    return {
+        "first_value": first_value,
+        "last_value": last_value,
+        "direction": direction,
+        "is_monotonic": is_monotonic,
+        "is_plateau": is_plateau,
+    }
+
+
 def build_episode_curves(artifacts: RunArtifacts) -> dict[str, Any]:
     """Build the MF per-episode performance curve section."""
     episodes = [
         extract_episode_entry(item, artifacts.validation)
         for item in artifacts.primary_episodes
     ]
+    trend_summary = {}
+    for metric_name in TREND_METRICS:
+        trend = compute_metric_trend(episodes, metric_name)
+        if trend is not None:
+            trend_summary[metric_name] = trend
+
     return {
         "best_episode_path": relative_to_run(artifacts.paths, artifacts.best_episode.path),
         "metric_provenance": {
@@ -605,6 +678,7 @@ def build_episode_curves(artifacts: RunArtifacts) -> dict[str, Any]:
             "mean_reward_per_agent": "derived_from_summary.total_reward",
             "end_of_episode_active_target_count": "derived_from_trace.final_step.info.target_active",
         },
+        "trend_summary": trend_summary,
         "episodes": episodes,
     }
 
@@ -636,6 +710,34 @@ def build_policy_summary(artifacts: RunArtifacts, episode_curves: dict[str, Any]
                     float(item["total_ammo_used"])
                     for item in episodes
                     if isinstance(item.get("total_ammo_used"), (int, float))
+                ]
+            ),
+            "avg_total_collisions": mean_or_none(
+                [
+                    float(item["total_collisions"])
+                    for item in episodes
+                    if isinstance(item.get("total_collisions"), (int, float))
+                ]
+            ),
+            "avg_total_overkill": mean_or_none(
+                [
+                    float(item["total_overkill"])
+                    for item in episodes
+                    if isinstance(item.get("total_overkill"), (int, float))
+                ]
+            ),
+            "avg_total_reward": mean_or_none(
+                [
+                    float(item["total_reward"])
+                    for item in episodes
+                    if isinstance(item.get("total_reward"), (int, float))
+                ]
+            ),
+            "avg_mean_reward_per_agent": mean_or_none(
+                [
+                    float(item["mean_reward_per_agent"])
+                    for item in episodes
+                    if isinstance(item.get("mean_reward_per_agent"), (int, float))
                 ]
             ),
             "success_rate_pct": mean_or_none(
@@ -820,6 +922,17 @@ def build_learning_summary(artifacts: RunArtifacts) -> dict[str, Any] | None:
         ]
     )
 
+    best_is_final = (
+        isinstance(best_episode_num, int)
+        and best_episode_num == final_episode
+    )
+    if best_is_final:
+        convergence_status = "potentially_undertrained"
+    elif isinstance(best_episode_num, int) and best_episode_num <= final_episode * 0.5:
+        convergence_status = "early_peak"
+    else:
+        convergence_status = "converged"
+
     return {
         "available": True,
         "total_training_episodes": len(episode_numbers),
@@ -827,6 +940,11 @@ def build_learning_summary(artifacts: RunArtifacts) -> dict[str, Any] | None:
         "final_epsilon": final_epsilon,
         "epsilon_progression": epsilon_progression,
         "final_step_count": final_step_count,
+        "convergence_assessment": {
+            "best_is_final": best_is_final,
+            "best_episode": best_episode_num,
+            "convergence_status": convergence_status,
+        },
         "checkpoint_strategy": ["first", "middle", "final", "best_if_distinct"],
         "checkpoints": [
             build_checkpoint_summary(by_episode[episode_num])
@@ -841,6 +959,7 @@ def compare_metric(
     baseline_value: Any,
     *,
     higher_is_better: bool,
+    category: str | None = None,
 ) -> dict[str, Any]:
     """Build a deterministic metric comparison entry."""
     relative_change_pct = compute_relative_change(mf_value, baseline_value)
@@ -854,6 +973,7 @@ def compare_metric(
             interpretation = "improved" if mf_value < baseline_value else "worsened"
     return {
         "metric": metric_name,
+        "category": category or METRIC_CATEGORIES.get(metric_name, "other"),
         "mf_value": mf_value,
         "baseline_value": baseline_value,
         "relative_change_pct": relative_change_pct,
@@ -904,6 +1024,18 @@ def build_comparison_vs_baseline(artifacts: RunArtifacts) -> dict[str, Any]:
                 higher_is_better=False,
             ),
             compare_metric(
+                "total_net_damage",
+                mf_entry.get("total_net_damage"),
+                baseline_entry.get("total_net_damage"),
+                higher_is_better=True,
+            ),
+            compare_metric(
+                "total_gross_damage",
+                mf_entry.get("total_gross_damage"),
+                baseline_entry.get("total_gross_damage"),
+                higher_is_better=False,
+            ),
+            compare_metric(
                 "targets_neutralized",
                 mf_entry.get("targets_neutralized"),
                 baseline_entry.get("targets_neutralized"),
@@ -920,18 +1052,203 @@ def build_comparison_vs_baseline(artifacts: RunArtifacts) -> dict[str, Any]:
         elif worsened > 0 and improved == 0:
             overall_label = "worsened"
 
+        category_directions: dict[str, str] = {}
+        for cat in dict.fromkeys(METRIC_CATEGORIES.values()):
+            cat_metrics = [m for m in metric_entries if m.get("category") == cat]
+            cat_improved = sum(1 for m in cat_metrics if m["directionality"] == "improved")
+            cat_worsened = sum(1 for m in cat_metrics if m["directionality"] == "worsened")
+            if cat_improved > 0 and cat_worsened == 0:
+                category_directions[cat] = "improved"
+            elif cat_worsened > 0 and cat_improved == 0:
+                category_directions[cat] = "worsened"
+            elif cat_improved > 0 and cat_worsened > 0:
+                category_directions[cat] = "mixed"
+            else:
+                category_directions[cat] = "no_change"
+
         target = baseline_comparisons if name == "random" else reference_comparisons
         target[name] = {
             "baseline_policy": baseline.policy_type,
             "mf_episode": mf_entry["episode"],
             "baseline_episode": baseline_entry["episode"],
             "overall_label": overall_label,
+            "category_directions": category_directions,
             "metrics": metric_entries,
         }
 
     return {
         "baselines": baseline_comparisons,
         "reference_policies": reference_comparisons,
+    }
+
+
+def build_key_findings(
+    comparison: dict[str, Any],
+    episode_curves: dict[str, Any],
+    learning_summary: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Surface the most actionable findings from the assembled report sections."""
+    findings: list[dict[str, Any]] = []
+
+    all_comparisons: dict[str, dict[str, Any]] = {}
+    for section_key in ("baselines", "reference_policies"):
+        for name, comp in comparison.get(section_key, {}).items():
+            all_comparisons[name] = comp
+
+    if len(all_comparisons) >= 2:
+        metric_names: set[str] = set()
+        for comp in all_comparisons.values():
+            for m in comp.get("metrics", []):
+                metric_names.add(m["metric"])
+        for metric_name in sorted(metric_names):
+            worsened_vs = []
+            for name, comp in all_comparisons.items():
+                for m in comp.get("metrics", []):
+                    if m["metric"] == metric_name and m["directionality"] == "worsened":
+                        worsened_vs.append(name)
+            if len(worsened_vs) == len(all_comparisons):
+                findings.append({
+                    "type": "cross_baseline_regression",
+                    "metric": metric_name,
+                    "category": METRIC_CATEGORIES.get(metric_name, "other"),
+                    "worsened_vs": worsened_vs,
+                })
+
+    trend_summary = episode_curves.get("trend_summary", {})
+    for metric_name, trend in trend_summary.items():
+        higher_is_better = metric_name in ("ammo_eff", "dmg_eff", "mean_reward_per_agent")
+        degrading = (
+            (trend["direction"] == "decreasing" and higher_is_better)
+            or (trend["direction"] == "increasing" and not higher_is_better)
+        )
+        if degrading and not trend.get("is_plateau", False):
+            findings.append({
+                "type": "active_degradation",
+                "metric": metric_name,
+                "category": METRIC_CATEGORIES.get(metric_name, "other"),
+                "direction": trend["direction"],
+                "first_value": trend["first_value"],
+                "last_value": trend["last_value"],
+            })
+
+    if isinstance(learning_summary, dict) and learning_summary.get("available"):
+        convergence = learning_summary.get("convergence_assessment", {})
+        if convergence.get("convergence_status") == "potentially_undertrained":
+            findings.append({
+                "type": "convergence_warning",
+                "status": "potentially_undertrained",
+                "best_episode": convergence.get("best_episode"),
+            })
+
+        checkpoints = learning_summary.get("checkpoints", [])
+        for cp in checkpoints:
+            agent_count = cp.get("agent_count", 0)
+            unique_targets = cp.get("unique_best_target_count", agent_count)
+            if agent_count > 0 and unique_targets < agent_count * 0.6:
+                findings.append({
+                    "type": "target_crowding",
+                    "episode": cp.get("episode"),
+                    "agent_count": agent_count,
+                    "unique_best_target_count": unique_targets,
+                })
+
+    return findings
+
+
+def build_metric_definitions() -> dict[str, dict[str, Any]]:
+    """Return canonical metric definitions with formulas and interpretations."""
+    return {
+        "steps": {
+            "description": "Number of timesteps from episode start to termination",
+            "formula": "count(timesteps)",
+            "source": "summary.total_steps",
+            "direction": "lower_is_better",
+            "category": "efficiency",
+        },
+        "targets_neutralized": {
+            "description": "Number of targets reduced to zero HP",
+            "formula": "count(targets where hp <= 0)",
+            "source": "metrics.targets_neutralized",
+            "direction": "higher_is_better",
+            "category": "task_completion",
+        },
+        "total_ammo_used": {
+            "description": "Total shots fired by all agents across the episode",
+            "formula": "sum(ammo_used per agent)",
+            "source": "metrics.total_ammo_used",
+            "direction": "lower_is_better",
+            "category": "efficiency",
+        },
+        "total_collisions": {
+            "description": "Number of times multiple agents targeted the same target simultaneously",
+            "formula": "sum(collision events)",
+            "source": "metrics.total_collisions",
+            "direction": "lower_is_better",
+            "category": "coordination",
+        },
+        "total_overkill": {
+            "description": "Cumulative wasted damage dealt to targets already at zero HP",
+            "formula": "sum(max(0, damage - remaining_hp) per shot)",
+            "source": "metrics.total_overkill",
+            "direction": "lower_is_better",
+            "category": "precision",
+        },
+        "total_net_damage": {
+            "description": "Total effective damage that reduced target HP (excludes overkill)",
+            "formula": "sum(min(damage, remaining_hp) per shot)",
+            "source": "metrics.total_net_damage",
+            "direction": "higher_is_better",
+            "category": "precision",
+        },
+        "total_gross_damage": {
+            "description": "Total raw damage dealt including overkill",
+            "formula": "total_net_damage + total_overkill",
+            "source": "metrics.total_gross_damage",
+            "direction": "context_dependent",
+            "category": "precision",
+        },
+        "ammo_eff": {
+            "description": "Ammunition efficiency: targets neutralized per shot fired",
+            "formula": "targets_neutralized / total_ammo_used",
+            "source": "metrics.ammo_eff (computed in EpisodeMetrics.__post_init__)",
+            "direction": "higher_is_better",
+            "category": "efficiency",
+        },
+        "dmg_eff": {
+            "description": "Damage efficiency: ratio of effective damage to total damage dealt",
+            "formula": "total_net_damage / total_gross_damage",
+            "source": "metrics.dmg_eff (computed in EpisodeMetrics.__post_init__)",
+            "direction": "higher_is_better",
+            "category": "precision",
+        },
+        "shots_per_target": {
+            "description": "Average number of shots required per neutralized target",
+            "formula": "total_ammo_used / targets_neutralized",
+            "source": "metrics.shots_per_target (computed in EpisodeMetrics.__post_init__)",
+            "direction": "lower_is_better",
+            "category": "efficiency",
+        },
+        "total_reward": {
+            "description": "Sum of all agent rewards across the episode",
+            "formula": "sum(agent_rewards.values())",
+            "source": "derived from metrics.agent_rewards or summary.total_reward",
+            "direction": "higher_is_better",
+            "category": "reward",
+        },
+        "mean_reward_per_agent": {
+            "description": "Average reward earned per agent",
+            "formula": "total_reward / num_agents",
+            "source": "derived from total_reward",
+            "direction": "higher_is_better",
+            "category": "reward",
+        },
+        "success": {
+            "description": "Boolean indicating whether all targets were neutralized",
+            "formula": "termination_reason == 'all_targets_neutralized'",
+            "source": "summary.success",
+            "direction": "higher_is_better",
+            "category": "task_completion",
+        },
     }
 
 
@@ -946,12 +1263,17 @@ def build_report(artifacts: RunArtifacts) -> dict[str, Any]:
         "primary_policy": PRIMARY_POLICY,
         "report_focus": {
             "primary_anchor": "best_episode_path",
-            "baseline_priority": ["random"],
-            "reference_policies": sorted(
-                name for name in artifacts.baselines if name != "random"
-            ),
+            "baselines": {
+                name: "control"
+                for name in sorted(artifacts.baselines)
+                if name == "random"
+            },
+            "reference_policies": {
+                name: "ceiling"
+                for name in sorted(artifacts.baselines)
+                if name != "random"
+            },
         },
-        "baselines": sorted(name for name in artifacts.baselines if name == "random"),
         "config_snapshot": build_config_snapshot(artifacts),
         "artifacts": build_artifacts_section(artifacts),
         "validation": {
@@ -965,6 +1287,12 @@ def build_report(artifacts: RunArtifacts) -> dict[str, Any]:
         "learning_summary": build_learning_summary(artifacts),
         "comparison_vs_baseline": build_comparison_vs_baseline(artifacts),
     }
+    report["metric_definitions"] = build_metric_definitions()
+    report["key_findings"] = build_key_findings(
+        report["comparison_vs_baseline"],
+        report["episode_curves"],
+        report.get("learning_summary"),
+    )
     return report
 
 
