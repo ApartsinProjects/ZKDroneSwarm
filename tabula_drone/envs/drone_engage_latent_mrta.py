@@ -241,10 +241,25 @@ class DroneEngageLatentMRTA(ParallelEnv):
         }
         self.cumulative_neutralizations = 0
 
+        self._max_damage_per_target = self._precompute_max_damage_per_target()
+
         observations = self._compute_observations()
         shared_info = self._build_info_dict(actions={})
         infos = self._wrap_shared_info(shared_info)
         return observations, infos
+
+    def _precompute_max_damage_per_target(self) -> List[float]:
+        """For each target, compute the maximum dot-product damage any drone can deal."""
+        max_damages: List[float] = []
+        for target in self.targets:
+            target_vec = np.array(target.latent_vector, dtype=np.float64)
+            best = 0.0
+            for drone in self.drones:
+                drone_vec = np.array(drone.latent_vector, dtype=np.float64)
+                dot = float(np.dot(drone_vec, target_vec))
+                best = max(best, max(0.0, dot))
+            max_damages.append(best)
+        return max_damages
 
     def _compute_observations(self) -> Dict[str, Any]:
         target_obs: List[float] = []
@@ -318,6 +333,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
         overkill: Optional[Dict[int, float]] = None,
         done_reason: Optional[str] = None,
         total_gross_damage: Optional[float] = None,
+        latent_mismatch: Optional[float] = None,
     ) -> Dict[str, Any]:
         snapshot = EnvDiagnosticsSnapshot(
             step_index=self.world.time_step if self.world is not None else 0,
@@ -337,6 +353,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
             overkill=overkill,
             done_reason=done_reason,
             total_gross_damage=total_gross_damage,
+            latent_mismatch=latent_mismatch,
         )
         self._latest_diagnostics = snapshot
         return snapshot.to_dict()
@@ -399,6 +416,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
         collisions = 0
         neutralizations_this_step = 0
         step_gross_damage = 0.0
+        step_latent_mismatch = 0.0
 
         reward_mode = "cosine" # "cosine" or "damage"
         for agent_id in processing_order:
@@ -465,6 +483,10 @@ class DroneEngageLatentMRTA(ParallelEnv):
             effective_damage = min(damage, hp_before)
             step_net_damage += effective_damage
 
+            # Track latent mismatch: difference between best possible and actual damage
+            optimal_damage = self._max_damage_per_target[target_idx]
+            step_latent_mismatch += max(0.0, optimal_damage - damage)
+
             if(reward_mode == "damage"):
                 rewards[agent_id] = effective_damage
                 self.last_rewards[agent_id] = effective_damage
@@ -493,6 +515,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
             overkill=step_overkill,
             done_reason=done_reason,
             total_gross_damage=step_gross_damage,
+            latent_mismatch=step_latent_mismatch,
         )
         infos = self._wrap_shared_info(shared_info)
 

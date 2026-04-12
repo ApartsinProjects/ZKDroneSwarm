@@ -441,6 +441,56 @@ $$\text{Total Overkill} = \sum_{t=1}^{T} \sum_{i=1}^{N} \text{Overkill}_{ij}(t)$
 
 This metric captures wasted fire caused by redundant or poorly timed engagements. Overkill occurs when multiple drones engage the same target in quick succession, or when a single drone applies more damage than needed to neutralize a target. Unlike collisions, which only count simultaneous selections, overkill quantifies the actual damage waste resulting from poor coordination across both simultaneous and sequential engagements.
 
+### Total Latent Mismatch
+
+Total latent mismatch measures the cumulative damage shortfall due to suboptimal drone-target pairing. For each shot at an **active** target, the environment computes the maximum damage any drone could deal to that target (based on the precomputed optimal dot products) and tracks the shortfall:
+
+$$\text{Latent Mismatch}_{ij} = \max\!\Big(0,\;\max_{k} d_{kj} - d_{ij}\Big)$$
+
+where $d_{ij} = \max(0,\, (\mathbf{z}^{(d)}_i)^\top \mathbf{z}^{(t)}_j)$ is the actual damage dealt by drone $i$ to target $j$, and $\max_k d_{kj}$ is the best damage any drone could deal to target $j$. Total latent mismatch sums this across all shots at active targets:
+
+$$\text{Total Latent Mismatch} = \sum_{t=1}^{T}\sum_{i:\,\text{target active}} \text{Latent Mismatch}_{ij}(t)$$
+
+The optimal damage per target is precomputed at episode reset:
+
+```python
+def _precompute_max_damage_per_target(self) -> List[float]:
+    max_damages = []
+    for target in self.targets:
+        target_vec = np.array(target.latent_vector, dtype=np.float64)
+        best = 0.0
+        for drone in self.drones:
+            drone_vec = np.array(drone.latent_vector, dtype=np.float64)
+            dot = float(np.dot(drone_vec, target_vec))
+            best = max(best, max(0.0, dot))
+        max_damages.append(best)
+    return max_damages
+```
+
+During step execution, latent mismatch is accumulated for each engagement with an active target:
+
+```python
+optimal_damage = self._max_damage_per_target[target_idx]
+step_latent_mismatch += max(0.0, optimal_damage - damage)
+```
+
+This metric isolates assignment quality from other sources of inefficiency. Unlike overkill (which measures actual waste from shooting nearly-dead targets) and collisions (which measure redundant simultaneous selection), latent mismatch captures the **opportunity cost** of suboptimal pairing. A random policy will have high latent mismatch because it ignores latent compatibility entirely; a well-trained MF policy should reduce it as it learns which drone-target pairs produce the strongest dot products.
+
+### Latent Mismatch Ratio
+
+Latent mismatch ratio normalizes the total latent mismatch as a fraction of the total achievable damage:
+
+$$\text{Latent Mismatch Ratio} = \frac{\text{Total Latent Mismatch}}{\text{Total Gross Damage} + \text{Total Latent Mismatch}}$$
+
+The denominator represents the optimal total damage that would have been achieved if every shot had been fired by the best-matched drone for each target. This ratio is bounded in $[0, 1)$: a value of 0 means every shot was fired by the optimally matched drone, while values approaching 1 indicate severe mismatching. It is computed in `EpisodeMetrics.__post_init__()`:
+
+```python
+optimal_potential = self.total_gross_damage + self.total_latent_mismatch
+self.latent_mismatch_ratio = (
+    self.total_latent_mismatch / optimal_potential if optimal_potential > 0 else 0.0
+)
+```
+
 ---
 
 ## 7. Environment Implementation
@@ -672,6 +722,7 @@ class EnvDiagnosticsSnapshot:
     overkill: Optional[Dict[int, float]] = None
     done_reason: Optional[str] = None
     total_gross_damage: Optional[float] = None
+    latent_mismatch: Optional[float] = None
 ```
 
 The snapshot is serialized via `to_dict()` which deep-copies all mutable fields and includes optional fields only when non-`None`. The snapshot is stored on the environment as `self._latest_diagnostics` and is accessible via a `diagnostics` property.

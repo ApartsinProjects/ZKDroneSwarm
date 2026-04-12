@@ -37,6 +37,7 @@ class EnvDiagnosticsSnapshot:
     overkill: Optional[Dict[int, float]] = None
     done_reason: Optional[str] = None
     total_gross_damage: Optional[float] = None
+    latent_mismatch: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize this snapshot into a plain dict for boundary consumers."""
@@ -61,6 +62,7 @@ class EnvDiagnosticsSnapshot:
             "overkill": self.overkill,
             "done_reason": self.done_reason,
             "total_gross_damage": self.total_gross_damage,
+            "latent_mismatch": self.latent_mismatch,
         }
 
         for key, value in optional_fields.items():

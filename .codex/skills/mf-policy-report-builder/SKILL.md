@@ -48,8 +48,8 @@ Generate a canonical `policy_report.json` from existing run artifacts without re
 The generated report includes:
 
 - **`metric_definitions`**: Canonical definitions for all metrics with formulas, sources, direction, and category
-  - Covers all raw metrics: `steps`, `targets_neutralized`, `total_ammo_used`, `total_collisions`, `total_overkill`, `total_net_damage`, `total_gross_damage`
-  - Covers derived metrics: `ammo_eff`, `dmg_eff`, `shots_per_target`, `total_reward`, `mean_reward_per_agent`, `success`
+  - Covers all raw metrics: `steps`, `targets_neutralized`, `total_ammo_used`, `total_collisions`, `total_overkill`, `total_net_damage`, `total_gross_damage`, `total_latent_mismatch`
+  - Covers derived metrics: `ammo_eff`, `dmg_eff`, `shots_per_target`, `latent_mismatch_ratio`, `total_reward`, `mean_reward_per_agent`, `success`
   - Each definition includes: `description`, `formula`, `source`, `direction` (higher/lower_is_better), `category`
 
 - **`episode_curves`**: Per-episode performance with trend analysis

@@ -26,6 +26,8 @@ METRIC_CATEGORIES: dict[str, str] = {
     "targets_neutralized": "task_completion",
     "success": "task_completion",
     "mean_reward_per_agent": "reward",
+    "total_latent_mismatch": "precision",
+    "latent_mismatch_ratio": "precision",
 }
 
 
@@ -113,7 +115,7 @@ class RunArtifacts:
 
 
 REPORT_VERSION = "1.0"
-BUILDER_VERSION = "0.3.0"
+BUILDER_VERSION = "0.4.0"
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -521,6 +523,8 @@ def extract_episode_entry(
         "ammo_eff": metrics.get("ammo_eff"),
         "dmg_eff": metrics.get("dmg_eff"),
         "shots_per_target": metrics.get("shots_per_target"),
+        "total_latent_mismatch": metrics.get("total_latent_mismatch"),
+        "latent_mismatch_ratio": metrics.get("latent_mismatch_ratio"),
         "mean_reward_per_agent": mean_reward,
         "total_reward": total_reward,
         "end_of_episode_active_target_count": end_active_target_count,
@@ -1036,6 +1040,18 @@ def build_comparison_vs_baseline(artifacts: RunArtifacts) -> dict[str, Any]:
                 higher_is_better=False,
             ),
             compare_metric(
+                "total_latent_mismatch",
+                mf_entry.get("total_latent_mismatch"),
+                baseline_entry.get("total_latent_mismatch"),
+                higher_is_better=False,
+            ),
+            compare_metric(
+                "latent_mismatch_ratio",
+                mf_entry.get("latent_mismatch_ratio"),
+                baseline_entry.get("latent_mismatch_ratio"),
+                higher_is_better=False,
+            ),
+            compare_metric(
                 "targets_neutralized",
                 mf_entry.get("targets_neutralized"),
                 baseline_entry.get("targets_neutralized"),
@@ -1248,6 +1264,20 @@ def build_metric_definitions() -> dict[str, dict[str, Any]]:
             "source": "summary.success",
             "direction": "higher_is_better",
             "category": "task_completion",
+        },
+        "total_latent_mismatch": {
+            "description": "Cumulative damage shortfall due to suboptimal drone-target pairing. For each shot at an active target, this is the difference between the best possible damage (from the optimally matched drone based on latent compatibility) and the actual damage dealt. Measures unrealized damage potential from assignment decisions.",
+            "formula": "sum(max(0, max_damage_any_drone_for_target - actual_damage) per shot at active targets)",
+            "source": "metrics.total_latent_mismatch (accumulated from env step latent_mismatch)",
+            "direction": "lower_is_better",
+            "category": "precision",
+        },
+        "latent_mismatch_ratio": {
+            "description": "Fraction of optimal damage potential lost to suboptimal drone-target pairing. Normalizes latent mismatch as a proportion of total achievable damage. A value of 0 means every shot was fired by the best-matched drone; values approaching 1 indicate severe mismatching.",
+            "formula": "total_latent_mismatch / (total_gross_damage + total_latent_mismatch)",
+            "source": "metrics.latent_mismatch_ratio (computed in EpisodeMetrics.__post_init__)",
+            "direction": "lower_is_better",
+            "category": "precision",
         },
     }
 
