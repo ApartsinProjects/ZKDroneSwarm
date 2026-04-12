@@ -41,9 +41,15 @@
       @if (episodeMetrics(); as metrics) {
         <div class="metrics-column">
           <div class="metric-item">
+            <span class="metric-label">Total Ammo Used</span>
+            <span class="metric-value">
+              {{ metrics.totalAmmoUsed !== null ? (metrics.totalAmmoUsed | number:'1.0-0') : '—' }}
+            </span>
+          </div>
+          <div class="metric-item">
             <span class="metric-label">Shots / Target</span>
             <span class="metric-value">
-              {{ metrics.shotsPerTarget !== null ? (metrics.shotsPerTarget | number:'1.2-2') : '—' }}
+              {{ metrics.shotsPerTarget !== null ? (metrics.shotsPerTarget | number:'1.1-1') : '—' }}
             </span>
           </div>
         </div>

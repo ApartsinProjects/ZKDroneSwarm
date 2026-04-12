@@ -14,6 +14,7 @@ type EpisodeMetricPayload = {
   total_ammo_used?: unknown;
   shots_per_target?: unknown;
   total_collisions?: unknown;
+  avg_latent_match_quality?: unknown;
 };
 
 @Component({
@@ -121,6 +122,7 @@ export class MapComponent {
       totalAmmoUsed: this.readMetricNumber(episodeMetrics.total_ammo_used),
       shotsPerTarget: this.readMetricNumber(episodeMetrics.shots_per_target),
       totalCollisions: this.readMetricNumber(episodeMetrics.total_collisions),
+      avgLatentMatchQuality: this.readMetricNumber(episodeMetrics.avg_latent_match_quality),
     };
   });
 
