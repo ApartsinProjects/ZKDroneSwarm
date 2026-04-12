@@ -440,3 +440,269 @@ where $\text{HP}_j^{\text{after}}$ is the target's HP after drone $i$'s shot. To
 $$\text{Total Overkill} = \sum_{t=1}^{T} \sum_{i=1}^{N} \text{Overkill}_{ij}(t)$$
 
 This metric captures wasted fire caused by redundant or poorly timed engagements. Overkill occurs when multiple drones engage the same target in quick succession, or when a single drone applies more damage than needed to neutralize a target. Unlike collisions, which only count simultaneous selections, overkill quantifies the actual damage waste resulting from poor coordination across both simultaneous and sequential engagements.
+
+---
+
+## 7. Environment Implementation
+
+This section specifies the implementation details required to reconstruct the environment as a functioning PettingZoo `ParallelEnv`. All previous sections describe the conceptual and mathematical structure; this section provides the engineering blueprint.
+
+### 7.1 PettingZoo ParallelEnv Interface
+
+The environment is implemented as a subclass of `pettingzoo.utils.env.ParallelEnv`, with action and observation spaces defined using `gymnasium.spaces`. The required interface methods are:
+
+| Method / Property | Signature | Purpose |
+|---|---|---|
+| `reset(seed, options)` | `→ (observations, infos)` | Initialize episode, return initial observations |
+| `step(actions)` | `→ (observations, rewards, terminations, truncations, infos)` | Process one simultaneous action step |
+| `agents` | `→ List[str]` | Currently active agent IDs |
+| `possible_agents` | `→ List[str]` | All agent IDs (fixed at construction) |
+| `action_space(agent)` | `→ spaces.Space` | Per-agent action space |
+| `observation_space(agent)` | `→ spaces.Space` | Per-agent observation space |
+| `state()` | `→ Dict` | Full environment state (for logging/serialization) |
+
+Agent IDs follow the naming convention `drone_0`, `drone_1`, ..., `drone_{N-1}`.
+
+The environment metadata is:
+
+```python
+metadata = {"name": "drone_engage_latent_mrta"}
+```
+
+### 7.2 State Dataclasses
+
+The environment uses two internal dataclasses for entity state and one shared dataclass for world-level bookkeeping.
+
+**LatentDroneState**:
+
+```python
+@dataclass
+class LatentDroneState:
+    id: str                          # "drone_0", "drone_1", ...
+    position: Tuple[float, float]    # (x, y) in world coordinates
+    mode_id: int                     # latent mode assignment
+    latent_vector: Tuple[float, ...]  # hidden latent vector z^(d)
+    ammo_used: int = 0               # cumulative shots fired
+```
+
+**LatentTargetState**:
+
+```python
+@dataclass
+class LatentTargetState:
+    id: str                          # "target_0", "target_1", ...
+    position: Tuple[float, float]    # (x, y) in world coordinates
+    mode_id: int                     # latent mode assignment
+    latent_vector: Tuple[float, ...]  # hidden latent vector z^(t)
+    hp: float = 1.0                  # current hit points
+    hp_initial: float = 1.0          # initial hit points (immutable reference)
+    is_active: bool = True           # False once HP reaches 0
+```
+
+**WorldState** (shared across environment variants):
+
+```python
+@dataclass
+class WorldState:
+    world_size: Tuple[float, float]  # (width, height) bounds
+    time_step: int                   # current step index
+    max_steps: int                   # maximum allowed steps per episode
+    scenario_id: str                 # scenario configuration identifier
+    seed: Optional[int] = None       # random seed for reproducibility
+```
+
+### 7.3 Constructor and Configuration
+
+The environment constructor accepts the following parameters:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `world_size` | `Tuple[float, float]` | `(1000.0, 1000.0)` | 2D world bounds |
+| `max_steps` | `int` | `100` | Maximum steps per episode |
+| `drones_config` | `List[Dict]` | required | Drone specs from scenario builder |
+| `targets_config` | `List[Dict]` | required | Target specs from scenario builder |
+| `scenario_id` | `str` | `"latent_mrta_benchmark"` | Identifier for this scenario |
+| `reward_noise` | `float` | `0.0` | Std dev of additive Gaussian reward noise |
+| `observation_noise` | `float` | `0.0` | Probability of corrupting each observed action |
+| `builder` | `Optional[Any]` | `None` | Reference to the scenario builder (for re-generation) |
+| `latent_world` | `Optional[Dict]` | `None` | Latent world configuration metadata |
+| `target_hp` | `float` | `1.0` | Initial HP for all targets |
+
+Each entry in `drones_config` and `targets_config` is a dict with the structure shown in §1:
+
+```python
+{"position": [x, y], "mode_id": int, "latent_vector": [float, ...]}
+```
+
+The constructor also derives two compatibility metadata structures used by the visualization frontend:
+
+- **`class_attribute_mapping`**: Maps each `mode_{id}` to `{"latent_reward": target_hp}`, providing a uniform schema for frontend display.
+- **`weapon_damage_profile_mapping`**: Maps each drone mode to an estimated max-damage-per-shot, computed as the mean drone-vector norm for that mode multiplied by the global mean target-vector norm. This serves as a Cauchy–Schwarz upper-bound estimate for the mode's achievable dot-product damage.
+
+### 7.4 Action and Observation Spaces
+
+**Action space** — `spaces.Discrete(num_targets + 1)`:
+
+- Action `0` = NoOp (do nothing)
+- Action `k` for $k \in \{1, \dots, M\}$ = fire at target $k-1$ (0-indexed internally)
+
+**Observation space** — `spaces.Dict` with four keys:
+
+| Key | Space | Shape | Dtype | Description |
+|---|---|---|---|---|
+| `targets` | `Box(0, +∞)` | `(3 × M,)` | `float32` | Flattened `[x, y, is_active]` per target |
+| `selected_targets` | `Box(0, M)` | `(N,)` | `int32` | Last action per drone (possibly noised) |
+| `observed_rewards` | `Box(-∞, +∞)` | `(N,)` | `float32` | Last reward per drone (possibly noised) |
+| `target_was_active_at_engagement` | `Box(0, 1)` | `(N,)` | `int8` | Whether target was active when drone fired |
+
+The `targets` array is built by iterating over all targets in order:
+
+```python
+for target in self.targets:
+    target_obs.extend([x, y, 1.0 if target.is_active else 0.0])
+```
+
+### 7.5 Reset
+
+On `reset(seed, options)`:
+
+1. Initialize `self.rng = np.random.RandomState(seed)`
+2. Create a fresh `WorldState` with `time_step=0`
+3. Build `LatentDroneState` list from `drones_config`, each with `ammo_used=0`
+4. Build `LatentTargetState` list from `targets_config`, each with `hp=target_hp`, `hp_initial=target_hp`, `is_active=True`
+5. Reset `last_actions` to all `0`, `last_rewards` to all `0.0`, `last_target_was_active_at_engagement` to all `0`
+6. Reset `cumulative_neutralizations` to `0`
+7. Compute and return initial observations (no noise applied since all last-actions are NoOp) and per-agent info dicts
+
+### 7.6 Step Execution Flow
+
+The `step(actions)` method processes one simultaneous action step. The execution flow is:
+
+**Phase 1 — Validation**:
+
+```python
+missing_agents = set(self.agents) - set(actions.keys())
+if missing_agents:
+    raise ValueError(...)
+for agent_id, action in actions.items():
+    if not self.action_spaces[agent_id].contains(action):
+        raise ValueError(...)
+```
+
+**Phase 2 — Randomize processing order**:
+
+```python
+processing_order = list(self.agents)
+self.rng.shuffle(processing_order)
+```
+
+**Phase 3 — Process engagements** (in shuffled order):
+
+For each `agent_id` in `processing_order`:
+
+1. Record `last_actions[agent_id] = action`
+2. If action is `0` (NoOp): set reward to `0.0`, `target_was_active = 0`, continue
+3. Extract `drone_idx` from agent ID, get drone and target references
+4. Increment `drone.ammo_used`
+5. Record target selection for collision tracking
+6. **If target is inactive**: compute gross damage (dot product, clamped ≥ 0) for metrics, assign reward `−1.0`, set `target_was_active = 0`, continue
+7. **If target is active**:
+   - Compute raw dot product $g_{ij}$, damage $d_{ij} = \max(0, g_{ij})$
+   - Accumulate gross damage
+   - Deduct damage from `target.hp`
+   - If `target.hp ≤ 0`: record overkill as $|\text{hp}|$, set `hp = 0`, `is_active = False`, increment neutralizations
+   - Compute reward using the active reward mode (§4)
+   - Record effective damage as $\min(d_{ij}, \text{hp\_before})$
+
+**Phase 4 — Update world state**:
+
+```python
+self.cumulative_neutralizations += neutralizations_this_step
+self.world.time_step += 1
+```
+
+**Phase 5 — Determine termination**:
+
+- `all_targets_done`: all targets have `is_active = False`
+- `max_steps_reached`: `world.time_step >= max_steps`
+- `done_reason`: `"all_targets_neutralized"` or `"max_steps_reached"` or `None`
+
+Termination and truncation dicts follow PettingZoo conventions:
+
+```python
+terminations = {agent_id: all_targets_done for agent_id in self.agents}
+truncations = {agent_id: max_steps_reached and not all_targets_done for agent_id in self.agents}
+```
+
+**Phase 6 — Compute observations and diagnostics**, then return the 5-tuple.
+
+### 7.7 Observation Construction
+
+`_compute_observations()` is called at the end of both `reset()` and `step()`. It:
+
+1. Builds the `targets` array (positions + active flags)
+2. Builds the `selected_targets` array from `last_actions`
+3. Applies **observation noise** to `selected_targets` (§2): for each non-NoOp entry, with probability `observation_noise`, replace the target ID with a uniform random sample from $\{1, \dots, M\}$
+4. For each agent, computes `observed_rewards` by calling `_compute_observed_reward()` per drone, which adds Gaussian noise $\mathcal{N}(0, \sigma_r^2)$ to each `last_rewards` entry when `reward_noise > 0`
+5. Copies the `target_was_active_at_engagement` mask from the step's records
+
+Note that `selected_targets` is built once and shared across all agents (all agents see the same noised action profile), while `observed_rewards` is computed per-observing-agent (each agent gets an independent noise draw on the reward values).
+
+### 7.8 Diagnostics Snapshot
+
+After each step (and at reset), the environment builds an `EnvDiagnosticsSnapshot` dataclass capturing per-step telemetry:
+
+```python
+@dataclass
+class EnvDiagnosticsSnapshot:
+    step_index: int
+    scenario_id: str
+    actions: Dict[str, int]
+    ammo_used: Dict[str, int]
+    weapon_types: List[str]          # ["mode_0", "mode_1", ...] per drone
+    target_hps: List[float]          # current HP per target
+    target_classes: List[str]        # ["mode_0", "mode_1", ...] per target
+    target_active: List[bool]        # active flag per target
+    processing_order: Optional[List[str]] = None
+    net_damage: Optional[float] = None
+    neutralizations_this_step: Optional[int] = None
+    cumulative_neutralizations: Optional[int] = None
+    collisions: Optional[int] = None
+    target_selections: Optional[Dict[int, List[str]]] = None
+    overkill: Optional[Dict[int, float]] = None
+    done_reason: Optional[str] = None
+    total_gross_damage: Optional[float] = None
+```
+
+The snapshot is serialized via `to_dict()` which deep-copies all mutable fields and includes optional fields only when non-`None`. The snapshot is stored on the environment as `self._latest_diagnostics` and is accessible via a `diagnostics` property.
+
+The PettingZoo `infos` dict returned to agents is intentionally empty per agent (`{agent_id: {} for agent_id in self.agents}`). The diagnostics snapshot is an internal telemetry channel, not part of the agent observation contract.
+
+### 7.9 State Serialization
+
+The `state()` method returns a full environment snapshot as a plain dict, structured as:
+
+```python
+{
+    "world": {
+        "world_size": [width, height],
+        "time_step": int,
+        "max_steps": int,
+        "scenario_id": str,
+        "seed": Optional[int],
+    },
+    "drones": [
+        {"id": str, "position": [x, y], "ammo_used": int,
+         "mode_id": int, "latent_vector": [float, ...]},
+        ...
+    ],
+    "targets": [
+        {"id": str, "position": [x, y], "mode_id": int,
+         "latent_vector": [float, ...], "hp": float,
+         "hp_initial": float, "is_active": bool},
+        ...
+    ],
+}
+```
+
+This includes the hidden latent vectors and is intended for logging and offline analysis, not for agent consumption.
