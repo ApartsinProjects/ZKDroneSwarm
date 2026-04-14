@@ -43,14 +43,9 @@ Generate a canonical `policy_report.json` from existing run artifacts without re
 
 - `logs/run_<id>/policy_report.json`
 
-### Report Structure (v0.2.0)
+### Report Structure (v1.0)
 
 The generated report includes:
-
-- **`metric_definitions`**: Canonical definitions for all metrics with formulas, sources, direction, and category
-  - Covers all raw metrics: `steps`, `targets_neutralized`, `total_ammo_used`, `total_collisions`, `total_overkill`, `total_net_damage`, `total_gross_damage`, `total_latent_mismatch`
-  - Covers derived metrics: `shots_per_target`, `avg_latent_match_quality`, `total_reward`, `mean_reward_per_agent`, `success`
-  - Each definition includes: `description`, `formula`, `source`, `direction` (higher/lower_is_better), `category`
 
 - **`episode_curves`**: Per-episode performance with trend analysis
   - All episode metrics from `episode_*.json` files
@@ -63,10 +58,16 @@ The generated report includes:
   - `convergence_assessment`: `best_is_final`, `best_episode`, `convergence_status` (potentially_undertrained / early_peak / converged)
   - Epsilon progression and checkpoints
 
-- **`comparison_vs_baseline`**: MF best episode vs baselines
-  - Each metric tagged with `category` (efficiency / precision / coordination / task_completion / reward)
-  - `category_directions`: Per-category performance breakdown (e.g., efficiency: improved, precision: worsened)
-  - `overall_label`: Mixed / improved / worsened
+- **`comparison_vs_baseline`**: Metric-first comparison structure
+  - Organized by metric name (e.g., `steps`, `total_collisions`, `avg_latent_match_quality`)
+  - Each metric includes:
+    - `description`: Human-readable metric explanation
+    - `formula`: Mathematical definition
+    - `category`: efficiency / precision / coordination / task_completion / reward
+    - `direction`: higher_is_better / lower_is_better / context_dependent
+    - `mf_value`: MF best episode value
+    - `<baseline_name>`: Value for each baseline (e.g., `random`, `max_damage_oracle`)
+    - `mf_vs_<baseline>_pct`: Relative change percentage vs each baseline
 
 - **`key_findings`**: Auto-surfaced actionable insights
   - Cross-baseline regressions (metrics worsened vs all baselines)

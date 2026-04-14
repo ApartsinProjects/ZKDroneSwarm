@@ -399,14 +399,12 @@ class ConsolePrinter:
         steps: int,
         throughput: float,
         coordination: str,
-        ammo_eff: float,
         collisions: int,
     ) -> None:
         self._emit(
             f"  Continuous Run Progress: Steps={steps}, "
             f"Throughput={throughput:.1f} N/100, "
             f"Coordination={coordination}, "
-            f"Ammo Eff={ammo_eff:.3f}, "
             f"Collisions={collisions}"
         )
 

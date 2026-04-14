@@ -508,16 +508,21 @@ def extract_episode_entry(
     if isinstance(target_active, list):
         end_active_target_count = sum(1 for value in target_active if bool(value))
 
+    targets_neutralized = metrics.get("targets_neutralized")
+    total_ammo_used = metrics.get("total_ammo_used")
+    total_net_damage = metrics.get("total_net_damage")
+    total_gross_damage = metrics.get("total_gross_damage")
+
     entry = {
         "episode": metrics.get("episode", data.get("episode_num")),
         "steps": metrics.get("steps", summary.get("total_steps", len(data.get("steps", [])))),
         "success": summary.get("success"),
-        "targets_neutralized": metrics.get("targets_neutralized"),
-        "total_ammo_used": metrics.get("total_ammo_used"),
+        "targets_neutralized": targets_neutralized,
+        "total_ammo_used": total_ammo_used,
         "total_collisions": metrics.get("total_collisions"),
         "total_overkill": metrics.get("total_overkill"),
-        "total_gross_damage": metrics.get("total_gross_damage"),
-        "total_net_damage": metrics.get("total_net_damage"),
+        "total_gross_damage": total_gross_damage,
+        "total_net_damage": total_net_damage,
         "shots_per_target": metrics.get("shots_per_target"),
         "total_latent_mismatch": metrics.get("total_latent_mismatch"),
         "avg_latent_match_quality": metrics.get("avg_latent_match_quality"),
@@ -607,8 +612,7 @@ def build_artifacts_section(artifacts: RunArtifacts) -> dict[str, Any]:
 
 
 TREND_METRICS = [
-    "steps", "ammo_eff", "dmg_eff", "total_collisions", "total_overkill",
-    "mean_reward_per_agent",
+    "steps", "total_collisions", "total_overkill", "mean_reward_per_agent",
 ]
 
 
@@ -698,12 +702,6 @@ def build_policy_summary(artifacts: RunArtifacts, episode_curves: dict[str, Any]
         "aggregate_training": {
             "avg_steps": mean_or_none(
                 [float(item["steps"]) for item in episodes if isinstance(item.get("steps"), (int, float))]
-            ),
-            "avg_ammo_eff": mean_or_none(
-                [float(item["ammo_eff"]) for item in episodes if isinstance(item.get("ammo_eff"), (int, float))]
-            ),
-            "avg_dmg_eff": mean_or_none(
-                [float(item["dmg_eff"]) for item in episodes if isinstance(item.get("dmg_eff"), (int, float))]
             ),
             "avg_total_ammo_used": mean_or_none(
                 [
@@ -953,6 +951,65 @@ def build_learning_summary(artifacts: RunArtifacts) -> dict[str, Any] | None:
     }
 
 
+METRIC_DEFINITIONS = {
+    "steps": {
+        "description": "Number of timesteps from episode start to termination",
+        "formula": "count(timesteps)",
+        "direction": "lower_is_better",
+    },
+    "targets_neutralized": {
+        "description": "Number of targets reduced to zero HP",
+        "formula": "count(targets where hp <= 0)",
+        "direction": "higher_is_better",
+    },
+    "total_ammo_used": {
+        "description": "Total shots fired by all agents across the episode",
+        "formula": "sum(ammo_used per agent)",
+        "direction": "lower_is_better",
+    },
+    "total_collisions": {
+        "description": "Number of times multiple agents targeted the same target simultaneously",
+        "formula": "sum(collision events)",
+        "direction": "lower_is_better",
+    },
+    "total_overkill": {
+        "description": "Cumulative wasted damage dealt to targets already at zero HP",
+        "formula": "sum(max(0, damage - remaining_hp) per shot)",
+        "direction": "lower_is_better",
+    },
+    "total_net_damage": {
+        "description": "Total effective damage that reduced target HP (excludes overkill)",
+        "formula": "sum(min(damage, remaining_hp) per shot)",
+        "direction": "higher_is_better",
+    },
+    "total_gross_damage": {
+        "description": "Total raw damage dealt including overkill",
+        "formula": "total_net_damage + total_overkill",
+        "direction": "context_dependent",
+    },
+    "shots_per_target": {
+        "description": "Average number of shots required per neutralized target",
+        "formula": "total_ammo_used / targets_neutralized",
+        "direction": "lower_is_better",
+    },
+    "total_latent_mismatch": {
+        "description": "Cumulative damage shortfall due to suboptimal drone-target pairing. For each shot at an active target, this is the difference between the best possible damage (from the optimally matched drone based on latent compatibility) and the actual damage dealt. Measures unrealized damage potential from assignment decisions.",
+        "formula": "sum(max(0, max_damage_any_drone_for_target - actual_damage) per shot at active targets)",
+        "direction": "lower_is_better",
+    },
+    "avg_latent_match_quality": {
+        "description": "Average match quality per shot: fraction of optimal damage achieved through drone-target pairing decisions. Measures how well each shot utilized the best available drone for each target. A value of 1.0 means every shot was fired by the optimally matched drone; lower values indicate suboptimal pairing.",
+        "formula": "total_gross_damage / total_optimal_potential, where total_optimal_potential = sum of optimal damages for all shots fired",
+        "direction": "higher_is_better",
+    },
+    "success": {
+        "description": "Boolean indicating whether all targets were neutralized",
+        "formula": "termination_reason == 'all_targets_neutralized'",
+        "direction": "higher_is_better",
+    },
+}
+
+
 def compare_metric(
     metric_name: str,
     mf_value: Any,
@@ -983,113 +1040,57 @@ def compare_metric(
 
 
 def build_comparison_vs_baseline(artifacts: RunArtifacts) -> dict[str, Any]:
-    """Compare the MF best episode against same-run baselines and references."""
+    """Compare the MF best episode against same-run baselines, organized by metric."""
     if not artifacts.baselines:
-        return {"baselines": {}, "reference_policies": {}}
+        return {}
 
     mf_entry = extract_episode_entry(artifacts.best_episode, artifacts.validation)
-    baseline_comparisons: dict[str, Any] = {}
-    reference_comparisons: dict[str, Any] = {}
+    
+    baseline_entries: dict[str, dict[str, Any]] = {}
     for name, baseline in artifacts.baselines.items():
-        baseline_entry = extract_episode_entry(
+        baseline_entries[name] = extract_episode_entry(
             baseline.episode,
             artifacts.validation,
         )
-        metric_entries = [
-            compare_metric("steps", mf_entry.get("steps"), baseline_entry.get("steps"), higher_is_better=False),
-            compare_metric(
-                "total_ammo_used",
-                mf_entry.get("total_ammo_used"),
-                baseline_entry.get("total_ammo_used"),
-                higher_is_better=False,
-            ),
-            compare_metric(
-                "shots_per_target",
-                mf_entry.get("shots_per_target"),
-                baseline_entry.get("shots_per_target"),
-                higher_is_better=False,
-            ),
-            compare_metric(
-                "total_collisions",
-                mf_entry.get("total_collisions"),
-                baseline_entry.get("total_collisions"),
-                higher_is_better=False,
-            ),
-            compare_metric(
-                "total_overkill",
-                mf_entry.get("total_overkill"),
-                baseline_entry.get("total_overkill"),
-                higher_is_better=False,
-            ),
-            compare_metric(
-                "total_net_damage",
-                mf_entry.get("total_net_damage"),
-                baseline_entry.get("total_net_damage"),
-                higher_is_better=True,
-            ),
-            compare_metric(
-                "total_gross_damage",
-                mf_entry.get("total_gross_damage"),
-                baseline_entry.get("total_gross_damage"),
-                higher_is_better=False,
-            ),
-            compare_metric(
-                "total_latent_mismatch",
-                mf_entry.get("total_latent_mismatch"),
-                baseline_entry.get("total_latent_mismatch"),
-                higher_is_better=False,
-            ),
-            compare_metric(
-                "avg_latent_match_quality",
-                mf_entry.get("avg_latent_match_quality"),
-                baseline_entry.get("avg_latent_match_quality"),
-                higher_is_better=True,
-            ),
-            compare_metric(
-                "targets_neutralized",
-                mf_entry.get("targets_neutralized"),
-                baseline_entry.get("targets_neutralized"),
-                higher_is_better=True,
-            ),
-            compare_metric("success", mf_entry.get("success"), baseline_entry.get("success"), higher_is_better=True),
-        ]
 
-        improved = sum(1 for item in metric_entries if item["directionality"] == "improved")
-        worsened = sum(1 for item in metric_entries if item["directionality"] == "worsened")
-        overall_label = "mixed"
-        if improved > 0 and worsened == 0:
-            overall_label = "improved"
-        elif worsened > 0 and improved == 0:
-            overall_label = "worsened"
+    metrics_to_compare = [
+        ("steps", False),
+        ("total_ammo_used", False),
+        ("shots_per_target", False),
+        ("total_collisions", False),
+        ("total_overkill", False),
+        ("total_net_damage", True),
+        ("total_gross_damage", False),
+        ("total_latent_mismatch", False),
+        ("avg_latent_match_quality", True),
+        ("targets_neutralized", True),
+        ("success", True),
+    ]
 
-        category_directions: dict[str, str] = {}
-        for cat in dict.fromkeys(METRIC_CATEGORIES.values()):
-            cat_metrics = [m for m in metric_entries if m.get("category") == cat]
-            cat_improved = sum(1 for m in cat_metrics if m["directionality"] == "improved")
-            cat_worsened = sum(1 for m in cat_metrics if m["directionality"] == "worsened")
-            if cat_improved > 0 and cat_worsened == 0:
-                category_directions[cat] = "improved"
-            elif cat_worsened > 0 and cat_improved == 0:
-                category_directions[cat] = "worsened"
-            elif cat_improved > 0 and cat_worsened > 0:
-                category_directions[cat] = "mixed"
-            else:
-                category_directions[cat] = "no_change"
-
-        target = baseline_comparisons if name == "random" else reference_comparisons
-        target[name] = {
-            "baseline_policy": baseline.policy_type,
-            "mf_episode": mf_entry["episode"],
-            "baseline_episode": baseline_entry["episode"],
-            "overall_label": overall_label,
-            "category_directions": category_directions,
-            "metrics": metric_entries,
+    comparison: dict[str, Any] = {}
+    for metric_name, higher_is_better in metrics_to_compare:
+        mf_value = mf_entry.get(metric_name)
+        metric_def = METRIC_DEFINITIONS.get(metric_name, {})
+        
+        metric_obj: dict[str, Any] = {
+            "description": metric_def.get("description", ""),
+            "formula": metric_def.get("formula", ""),
+            "category": METRIC_CATEGORIES.get(metric_name, "other"),
+            "direction": metric_def.get("direction", "higher_is_better" if higher_is_better else "lower_is_better"),
+            "mf_value": mf_value,
         }
+        
+        for baseline_name, baseline_entry in baseline_entries.items():
+            baseline_value = baseline_entry.get(metric_name)
+            metric_obj[baseline_name] = baseline_value
+            
+            relative_change = compute_relative_change(mf_value, baseline_value)
+            if relative_change is not None:
+                metric_obj[f"mf_vs_{baseline_name}_pct"] = relative_change
+        
+        comparison[metric_name] = metric_obj
 
-    return {
-        "baselines": baseline_comparisons,
-        "reference_policies": reference_comparisons,
-    }
+    return comparison
 
 
 def build_key_findings(
@@ -1100,33 +1101,45 @@ def build_key_findings(
     """Surface the most actionable findings from the assembled report sections."""
     findings: list[dict[str, Any]] = []
 
-    all_comparisons: dict[str, dict[str, Any]] = {}
-    for section_key in ("baselines", "reference_policies"):
-        for name, comp in comparison.get(section_key, {}).items():
-            all_comparisons[name] = comp
+    baseline_names = []
+    for metric_name, metric_data in comparison.items():
+        if isinstance(metric_data, dict):
+            for key in metric_data.keys():
+                if key not in ("description", "formula", "category", "direction", "mf_value") and not key.startswith("mf_vs_"):
+                    if key not in baseline_names:
+                        baseline_names.append(key)
 
-    if len(all_comparisons) >= 2:
-        metric_names: set[str] = set()
-        for comp in all_comparisons.values():
-            for m in comp.get("metrics", []):
-                metric_names.add(m["metric"])
-        for metric_name in sorted(metric_names):
+    if len(baseline_names) >= 2:
+        for metric_name, metric_data in comparison.items():
+            if not isinstance(metric_data, dict):
+                continue
+            
+            mf_value = metric_data.get("mf_value")
+            direction = metric_data.get("direction", "")
+            if direction == "context_dependent":
+                continue
+            higher_is_better = "higher" in direction
+
             worsened_vs = []
-            for name, comp in all_comparisons.items():
-                for m in comp.get("metrics", []):
-                    if m["metric"] == metric_name and m["directionality"] == "worsened":
-                        worsened_vs.append(name)
-            if len(worsened_vs) == len(all_comparisons):
+            for baseline_name in baseline_names:
+                baseline_value = metric_data.get(baseline_name)
+                if isinstance(mf_value, (int, float)) and isinstance(baseline_value, (int, float)):
+                    if mf_value != baseline_value:
+                        is_worse = (mf_value < baseline_value) if higher_is_better else (mf_value > baseline_value)
+                        if is_worse:
+                            worsened_vs.append(baseline_name)
+            
+            if len(worsened_vs) == len(baseline_names):
                 findings.append({
                     "type": "cross_baseline_regression",
                     "metric": metric_name,
-                    "category": METRIC_CATEGORIES.get(metric_name, "other"),
+                    "category": metric_data.get("category", "other"),
                     "worsened_vs": worsened_vs,
                 })
 
     trend_summary = episode_curves.get("trend_summary", {})
     for metric_name, trend in trend_summary.items():
-        higher_is_better = metric_name in ("ammo_eff", "dmg_eff", "mean_reward_per_agent")
+        higher_is_better = metric_name in ("mean_reward_per_agent",)
         degrading = (
             (trend["direction"] == "decreasing" and higher_is_better)
             or (trend["direction"] == "increasing" and not higher_is_better)
@@ -1165,101 +1178,6 @@ def build_key_findings(
     return findings
 
 
-def build_metric_definitions() -> dict[str, dict[str, Any]]:
-    """Return canonical metric definitions with formulas and interpretations."""
-    return {
-        "steps": {
-            "description": "Number of timesteps from episode start to termination",
-            "formula": "count(timesteps)",
-            "source": "summary.total_steps",
-            "direction": "lower_is_better",
-            "category": "efficiency",
-        },
-        "targets_neutralized": {
-            "description": "Number of targets reduced to zero HP",
-            "formula": "count(targets where hp <= 0)",
-            "source": "metrics.targets_neutralized",
-            "direction": "higher_is_better",
-            "category": "task_completion",
-        },
-        "total_ammo_used": {
-            "description": "Total shots fired by all agents across the episode",
-            "formula": "sum(ammo_used per agent)",
-            "source": "metrics.total_ammo_used",
-            "direction": "lower_is_better",
-            "category": "efficiency",
-        },
-        "total_collisions": {
-            "description": "Number of times multiple agents targeted the same target simultaneously",
-            "formula": "sum(collision events)",
-            "source": "metrics.total_collisions",
-            "direction": "lower_is_better",
-            "category": "coordination",
-        },
-        "total_overkill": {
-            "description": "Cumulative wasted damage dealt to targets already at zero HP",
-            "formula": "sum(max(0, damage - remaining_hp) per shot)",
-            "source": "metrics.total_overkill",
-            "direction": "lower_is_better",
-            "category": "precision",
-        },
-        "total_net_damage": {
-            "description": "Total effective damage that reduced target HP (excludes overkill)",
-            "formula": "sum(min(damage, remaining_hp) per shot)",
-            "source": "metrics.total_net_damage",
-            "direction": "higher_is_better",
-            "category": "precision",
-        },
-        "total_gross_damage": {
-            "description": "Total raw damage dealt including overkill",
-            "formula": "total_net_damage + total_overkill",
-            "source": "metrics.total_gross_damage",
-            "direction": "context_dependent",
-            "category": "precision",
-        },
-        "shots_per_target": {
-            "description": "Average number of shots required per neutralized target",
-            "formula": "total_ammo_used / targets_neutralized",
-            "source": "metrics.shots_per_target (computed in EpisodeMetrics.__post_init__)",
-            "direction": "lower_is_better",
-            "category": "efficiency",
-        },
-        "total_reward": {
-            "description": "Sum of all agent rewards across the episode",
-            "formula": "sum(agent_rewards.values())",
-            "source": "derived from metrics.agent_rewards or summary.total_reward",
-            "direction": "higher_is_better",
-            "category": "reward",
-        },
-        "mean_reward_per_agent": {
-            "description": "Average reward earned per agent",
-            "formula": "total_reward / num_agents",
-            "source": "derived from total_reward",
-            "direction": "higher_is_better",
-            "category": "reward",
-        },
-        "success": {
-            "description": "Boolean indicating whether all targets were neutralized",
-            "formula": "termination_reason == 'all_targets_neutralized'",
-            "source": "summary.success",
-            "direction": "higher_is_better",
-            "category": "task_completion",
-        },
-        "total_latent_mismatch": {
-            "description": "Cumulative damage shortfall due to suboptimal drone-target pairing. For each shot at an active target, this is the difference between the best possible damage (from the optimally matched drone based on latent compatibility) and the actual damage dealt. Measures unrealized damage potential from assignment decisions.",
-            "formula": "sum(max(0, max_damage_any_drone_for_target - actual_damage) per shot at active targets)",
-            "source": "metrics.total_latent_mismatch (accumulated from env step latent_mismatch)",
-            "direction": "lower_is_better",
-            "category": "precision",
-        },
-        "avg_latent_match_quality": {
-            "description": "Average match quality per shot: fraction of optimal damage achieved through drone-target pairing decisions. Measures how well each shot utilized the best available drone for each target. A value of 1.0 means every shot was fired by the optimally matched drone; lower values indicate suboptimal pairing.",
-            "formula": "total_gross_damage / (total_gross_damage + total_latent_mismatch) = mean(actual_damage / optimal_damage per shot)",
-            "source": "metrics.avg_latent_match_quality (computed in EpisodeMetrics.__post_init__)",
-            "direction": "higher_is_better",
-            "category": "precision",
-        },
-    }
 
 
 def build_report(artifacts: RunArtifacts) -> dict[str, Any]:
@@ -1297,7 +1215,6 @@ def build_report(artifacts: RunArtifacts) -> dict[str, Any]:
         "learning_summary": build_learning_summary(artifacts),
         "comparison_vs_baseline": build_comparison_vs_baseline(artifacts),
     }
-    report["metric_definitions"] = build_metric_definitions()
     report["key_findings"] = build_key_findings(
         report["comparison_vs_baseline"],
         report["episode_curves"],

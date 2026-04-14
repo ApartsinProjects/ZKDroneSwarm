@@ -268,8 +268,13 @@ class MatrixFactorizationPolicy:
             else:
                 error = predicted - float(reward)
 
-            # Weight the anti-signal (contention/wasted shots)
-            if reward < 0:
+            # Weight negative reward events in direct mode only.
+            # In integration-matrix mode, dead-target shots are already excluded
+            # by the target_was_active_at_engagement guard above, so this path
+            # is only reached for active-target interactions whose raw reward
+            # happened to go negative due to reward noise. anti_signal_weight=1.0
+            # (the configured default) disables this weighting intentionally.
+            if not self.use_integration_matrix and reward < 0:
                 error *= self.anti_signal_weight
 
             # Snapshot vectors before update (for simultaneous update)

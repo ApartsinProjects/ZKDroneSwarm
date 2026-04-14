@@ -605,9 +605,13 @@ class MultiAgentPolicy:
             agent_policy.soft_reset()
     
     def get_learning_state(self) -> Dict:
-        # Return first agent's state (all agents have same structure)
-        first_agent = next(iter(self.policies.values()))
-        return first_agent.get_learning_state()
+        # Return all agents' states as {"agents": [...]} list
+        return {
+            "agents": [
+                agent_policy.get_learning_state()
+                for agent_policy in self.policies.values()
+            ]
+        }
 ```
 
 **Design rationale:**
@@ -633,14 +637,9 @@ class MetricsManager:
         avg_ammo = mean([m.total_ammo_used for m in episode_metrics])
         avg_overkill = mean([m.total_overkill for m in episode_metrics])
         avg_reward = mean([m.total_reward for m in episode_metrics])
-        avg_dmg_eff = mean([m.dmg_eff for m in episode_metrics])
-        
         # Compute success rate
         successful_episodes = [m for m in episode_metrics if m.done_reason == "all_targets_neutralized"]
         success_rate = len(successful_episodes) / len(episode_metrics) * 100
-        
-        # Select representative episode (best damage efficiency)
-        representative_episode = max(episode_metrics, key=lambda m: m.dmg_eff)
         
         return PolicyRunSummary(
             avg_steps=avg_steps,
@@ -648,26 +647,11 @@ class MetricsManager:
             avg_ammo=avg_ammo,
             avg_overkill=avg_overkill,
             avg_reward=avg_reward,
-            avg_dmg_eff=avg_dmg_eff,
             success_rate=success_rate,
-            representative_episode=representative_episode,
-            ammo_eff=representative_episode.ammo_eff,
-            dmg_eff=representative_episode.dmg_eff
         )
 ```
 
 ### Representative Episode Selection
-
-**Criterion:** Highest damage efficiency
-
-```python
-representative_episode = max(episode_metrics, key=lambda m: m.dmg_eff)
-```
-
-**Rationale:**
-- Damage efficiency = `net_damage / gross_damage`
-- High efficiency indicates good coordination (low overkill, efficient target selection)
-- Best episode for detailed analysis (engagement patterns, learned structure)
 
 **Usage:**
 - Analysis file generated only for representative episode
@@ -684,19 +668,7 @@ class EpisodeMetrics:
     # ... fields
     
     def __post_init__(self):
-        # Ammo efficiency: targets per shot
-        self.ammo_eff = (
-            self.targets_neutralized / self.total_ammo_used
-            if self.total_ammo_used > 0 else 0.0
-        )
-        
-        # Damage efficiency: useful damage / total damage
-        self.dmg_eff = (
-            self.total_net_damage / self.total_gross_damage
-            if self.total_gross_damage > 0 else 0.0
-        )
-        
-        # Shots per target: inverse of ammo efficiency
+        # Shots per target
         self.shots_per_target = (
             self.total_ammo_used / self.targets_neutralized
             if self.targets_neutralized > 0 else float('inf')
@@ -961,17 +933,6 @@ builder = CustomScenarioBuilder(
 
 ---
 
-### Why Best Episode Selected by Damage Efficiency?
-
-**Decision:** Representative episode = highest `dmg_eff` (net damage / gross damage).
-
-**Rationale:**
-- Damage efficiency indicates coordination quality (low overkill, efficient target selection)
-- More meaningful than steps (can be fast but wasteful) or ammo (can be efficient but slow)
-- Best episode for detailed analysis (reveals coordination patterns)
-
-**Alternative considered:** Select by steps (fastest) or ammo (most efficient)
-- **Rejected:** Steps can be fast but wasteful; ammo doesn't capture overkill
 
 ---
 

@@ -319,16 +319,6 @@ Metrics are computed per episode and aggregated across runs.
 
 ### Efficiency Calculations
 
-**Ammo Efficiency:**
-```
-ammo_eff = targets_neutralized / total_ammo_used
-```
-
-**Damage Efficiency:**
-```
-dmg_eff = total_net_damage / total_gross_damage
-```
-
 **Shots per Target:**
 ```
 shots_per_target = total_ammo_used / targets_neutralized

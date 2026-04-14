@@ -20,13 +20,16 @@ Load the minimum repo-specific context needed to work the way this repository ex
 2. Inventory the available files in:
    - `workflows/`
    - `rules/`
-   - `skills/`
+   - `skills/` (from governance root)
    - `memories/`
-3. Tell the user which governance root was selected.
-4. Load only the files needed for the current task:
+3. Additionally inventory repo-specific skills:
+   - Check `.codex/skills/` for domain-specific skills
+   - These are separate from governance skills and specific to this repository
+4. Tell the user which governance root was selected and which skill directories are available.
+5. Load only the files needed for the current task:
    - Read the matching workflow when the user names one or the task clearly maps to one
    - Read relevant rules before code edits
-   - Read skill files only when a workflow or task needs them
+   - Read skill files (from either governance or .codex) only when a workflow or task needs them
    - Read memories when they affect gates, approvals, or output behavior
 
 ## Workflow Mapping
@@ -64,6 +67,15 @@ Treat `.windsurf` as an alias for the resolved governance root in the current re
 - Do not load every skill body up front
 - Do not summarize the entire governance system unless the user asks
 - Keep startup output short: active root, relevant workflow, relevant rules, and any important gate behavior
+
+## Repo-Specific Skill Triggers
+
+When the user's request matches these patterns, load the corresponding skill from `.codex/skills/`:
+
+- **"build report"** / **"generate report"** / **"mf report"** / **"latest run"** → `mf-policy-report-builder`
+- **"format paper"** / **"academic paper"** → `academic-paper-formatting`
+- **"convert to html"** / **"md to html"** → `md2html`
+- **"convert to doc"** / **"html to doc"** → `html2doc`
 
 ## Current Repo Note
 
