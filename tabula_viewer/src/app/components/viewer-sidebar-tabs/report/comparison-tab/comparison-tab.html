@@ -48,30 +48,8 @@
                   <span class="steps-value">{{ row.oracleSteps }}</span>
                 }
               </td>
-              <td class="comparison-table__pct">
-                @if (row.vsRandomPct) {
-                  <span
-                    class="comparison-table__delta"
-                    [class.comparison-table__delta--better]="row.vsRandomTone === 'better'"
-                    [class.comparison-table__delta--worse]="row.vsRandomTone === 'worse'"
-                    [class.comparison-table__delta--neutral]="row.vsRandomTone === 'neutral'"
-                  >{{ row.vsRandomPct }}</span>
-                } @else {
-                  <span class="comparison-table__delta--na">--</span>
-                }
-              </td>
-              <td class="comparison-table__pct">
-                @if (row.vsOraclePct) {
-                  <span
-                    class="comparison-table__delta"
-                    [class.comparison-table__delta--better]="row.vsOracleTone === 'better'"
-                    [class.comparison-table__delta--worse]="row.vsOracleTone === 'worse'"
-                    [class.comparison-table__delta--neutral]="row.vsOracleTone === 'neutral'"
-                  >{{ row.vsOraclePct }}</span>
-                } @else {
-                  <span class="comparison-table__delta--na">--</span>
-                }
-              </td>
+              <td class="comparison-table__pct comparison-table__delta" [class.comparison-table__delta--better]="row.vsRandomTone === 'better'" [class.comparison-table__delta--worse]="row.vsRandomTone === 'worse'" [class.comparison-table__delta--neutral]="row.vsRandomTone === 'neutral'" [class.comparison-table__delta--na]="!row.vsRandomPct">{{ row.vsRandomPct || '--' }}</td>
+              <td class="comparison-table__pct comparison-table__delta" [class.comparison-table__delta--better]="row.vsOracleTone === 'better'" [class.comparison-table__delta--worse]="row.vsOracleTone === 'worse'" [class.comparison-table__delta--neutral]="row.vsOracleTone === 'neutral'" [class.comparison-table__delta--na]="!row.vsOraclePct">{{ row.vsOraclePct || '--' }}</td>
             </tr>
           }
         </tbody>

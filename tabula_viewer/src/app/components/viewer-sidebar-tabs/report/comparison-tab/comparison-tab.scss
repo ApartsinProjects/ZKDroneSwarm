@@ -79,6 +79,7 @@
     border-bottom: 1px solid rgba(126, 104, 62, 0.06);
     vertical-align: middle;
     font-variant-numeric: tabular-nums;
+    height: 46.69px;
   }
 
   tr:last-child td {
@@ -109,6 +110,8 @@
   color: #5c4d39;
   font-size: 0.78rem;
   font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.5;
 }
 
 .comparison-table__value--mf {
@@ -124,11 +127,16 @@
 
 .comparison-table__pct {
   text-align: right;
+  white-space: nowrap;
+  line-height: 1.5;
 }
 
 .comparison-table__delta {
-  font-size: 0.76rem;
-  font-weight: 700;
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 0;
+  line-height: inherit;
 }
 
 .comparison-table__delta--better {
@@ -145,5 +153,8 @@
 
 .comparison-table__delta--na {
   color: #a09080;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
+  margin: 0;
+  padding: 0;
+  line-height: inherit;
 }
