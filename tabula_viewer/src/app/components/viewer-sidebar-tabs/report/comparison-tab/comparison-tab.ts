@@ -59,6 +59,7 @@ function getTone(pct: number, direction: string): 'better' | 'worse' | 'neutral'
 })
 export class ComparisonTab {
   readonly data = input.required<Record<string, ComparisonMetric>>();
+  readonly episodeNumber = input<number | null>(null);
 
   protected readonly groups = computed<CategoryGroup[]>(() => {
     const metrics = this.data();

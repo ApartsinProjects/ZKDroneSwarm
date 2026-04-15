@@ -35,6 +35,16 @@ export interface ComparisonResponse {
   key_findings: KeyFinding[];
 }
 
+export interface ReportManifest {
+  artifacts: {
+    best_episode_path: string;
+    run_dir: string;
+    primary_episode_count: number;
+  };
+  primary_policy: string;
+  scenario_id: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ReportService {
   private readonly http = inject(HttpClient);
@@ -42,5 +52,9 @@ export class ReportService {
 
   getComparison(): Observable<ComparisonResponse> {
     return this.http.get<ComparisonResponse>(`${this.apiUrl}/comparison`);
+  }
+
+  getManifest(): Observable<ReportManifest> {
+    return this.http.get<ReportManifest>(`${this.apiUrl}/manifest`);
   }
 }

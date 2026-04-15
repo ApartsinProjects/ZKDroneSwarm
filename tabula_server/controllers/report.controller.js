@@ -23,6 +23,28 @@ const reportController = {
         message: error instanceof Error ? error.message : 'Unknown comparison loading error.'
       });
     }
+  },
+
+  getManifest: (req, res) => {
+    try {
+      const latestRun = logDiscovery.getLatestRunFolder();
+      if (!latestRun) {
+        return res.status(404).json({ error: 'NO_RUN_FOUND', message: 'No run folder found.' });
+      }
+
+      const manifestPath = path.join(logDiscovery.LOGS_DIR, latestRun, 'report', 'report_manifest.json');
+      if (!fs.existsSync(manifestPath)) {
+        return res.status(404).json({ error: 'NO_MANIFEST_FOUND', message: 'No report_manifest.json found in the latest run report.' });
+      }
+
+      const manifestData = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      res.json(manifestData);
+    } catch (error) {
+      res.status(500).json({
+        error: 'MANIFEST_LOAD_FAILED',
+        message: error instanceof Error ? error.message : 'Unknown manifest loading error.'
+      });
+    }
   }
 };
 

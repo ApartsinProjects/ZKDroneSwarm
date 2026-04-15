@@ -22,7 +22,10 @@
       <div class="report-panel__status">{{ error() }}</div>
     } @else {
       @if (activeSubTab() === 'comparison' && comparisonData()) {
-        <app-comparison-tab [data]="comparisonData()!.comparison_vs_baseline" />
+        <app-comparison-tab 
+          [data]="comparisonData()!.comparison_vs_baseline" 
+          [episodeNumber]="bestEpisodeNumber()"
+        />
       }
     }
   </div>

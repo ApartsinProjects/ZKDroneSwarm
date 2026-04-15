@@ -1,4 +1,9 @@
 <div class="comparison-tab">
+  @if (episodeNumber()) {
+    <div class="comparison-tab__header">
+      MF Best Episode: <span class="comparison-tab__episode-number">{{ episodeNumber() }}</span>
+    </div>
+  }
   @for (group of groups(); track group.category) {
     <div class="comparison-group">
       <div class="comparison-group__header">{{ group.label }}</div>
