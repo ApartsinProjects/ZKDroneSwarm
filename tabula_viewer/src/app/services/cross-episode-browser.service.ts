@@ -56,6 +56,11 @@ const EPISODE_METRIC_DEFINITIONS: ReadonlyArray<EpisodeMetricDefinition> = [
     readValue: (metrics) => metrics['total_collisions'],
   },
   {
+    label: 'Total Ammo',
+    betterDirection: 'lower',
+    readValue: (metrics) => metrics['total_ammo_used'],
+  },
+  {
     label: 'Steps',
     betterDirection: 'lower',
     readValue: (metrics) => metrics['steps'],

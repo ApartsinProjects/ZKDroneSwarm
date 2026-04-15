@@ -192,12 +192,26 @@ def resolve_builder_paths(script_path: Path, run_arg: str | None) -> BuilderPath
     repo_root = repo_root_from_script(script_path)
     run_dir = resolve_run_dir(repo_root, run_arg)
     environment_path = run_dir / "environment.json"
-    primary_policy_dir = run_dir / PRIMARY_POLICY
+    
+    # Support new policies/ structure (preferred) and old flat structure (fallback)
+    new_structure_dir = run_dir / "policies" / PRIMARY_POLICY
+    old_structure_dir = run_dir / PRIMARY_POLICY
+    
+    if new_structure_dir.exists():
+        primary_policy_dir = new_structure_dir
+    elif old_structure_dir.exists():
+        primary_policy_dir = old_structure_dir
+    else:
+        raise ReportBuilderError(
+            f"Required matrix_factorization_cf artifacts are missing: "
+            f"checked {new_structure_dir} and {old_structure_dir}"
+        )
+    
     primary_summary_path = primary_policy_dir / "episodes_summary.json"
 
     missing_paths = [
         path
-        for path in (environment_path, primary_policy_dir, primary_summary_path)
+        for path in (environment_path, primary_summary_path)
         if not path.exists()
     ]
     if missing_paths:
@@ -378,7 +392,12 @@ def discover_baseline_artifacts(
 ) -> dict[str, BaselineArtifacts]:
     """Load representative baseline episodes from same-run policy folders."""
     baselines: dict[str, BaselineArtifacts] = {}
-    for child in sorted(paths.run_dir.iterdir(), key=lambda path: path.name):
+    
+    # Determine policy search directory (new policies/ structure or old flat structure)
+    policies_dir = paths.run_dir / "policies"
+    search_dir = policies_dir if policies_dir.exists() else paths.run_dir
+    
+    for child in sorted(search_dir.iterdir(), key=lambda path: path.name):
         if not child.is_dir() or child.name.startswith(".") or child.name == PRIMARY_POLICY:
             continue
 

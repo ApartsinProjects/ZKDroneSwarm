@@ -13,13 +13,12 @@ def test_environment_logger_start_policy_creates_active_episode_logger(tmp_path:
 
     env_logger.start_policy("random_policy", is_deterministic=False)
 
-    expected_policy_dir = tmp_path / "scenario_alpha" / "random_policy"
+    expected_policy_dir = tmp_path / "scenario_alpha" / "policies" / "random_policy"
     episode_logger = env_logger.active_episode_logger
 
     assert isinstance(episode_logger, EpisodeLogger)
     assert episode_logger is env_logger.active_episode_logger
     assert (expected_policy_dir / "episodes").is_dir()
-    assert (expected_policy_dir / "analysis").is_dir()
     assert (expected_policy_dir / "learning_state").is_dir()
 
 
@@ -34,7 +33,7 @@ def test_environment_logger_save_policy_episodes_persists_selected_episode(tmp_p
 
     result = env_logger.save_policy_episodes()
 
-    episode_path = tmp_path / "scenario_beta" / "oracle_policy" / "episodes" / "episode_ep01.json"
+    episode_path = tmp_path / "scenario_beta" / "policies" / "oracle_policy" / "episodes" / "episode_ep01.json"
 
     assert result["steps"] == {"first": 4}
     assert result["files"] == [".../episode_ep01.json"]
@@ -64,8 +63,8 @@ def test_environment_logger_persist_episode_outputs_skips_analysis_by_default(tm
     env_logger.persist_episode_outputs(episode_num=1, steps=7)
     result = env_logger.save_policy_episodes()
 
-    analysis_path = tmp_path / "scenario_gamma" / "policy_x" / "analysis" / "analysis_ep01.json"
-    episode_path = tmp_path / "scenario_gamma" / "policy_x" / "episodes" / "episode_ep01.json"
+    analysis_path = tmp_path / "scenario_gamma" / "policies" / "policy_x" / "analysis" / "analysis_ep01.json"
+    episode_path = tmp_path / "scenario_gamma" / "policies" / "policy_x" / "episodes" / "episode_ep01.json"
 
     assert not analysis_path.exists()
     assert episode_path.is_file()
@@ -94,7 +93,7 @@ def test_environment_logger_persist_episode_outputs_can_force_analysis_persisten
     env_logger.persist_episode_outputs(episode_num=1, steps=7, persist_analysis=True)
     env_logger.save_policy_episodes()
 
-    analysis_path = tmp_path / "scenario_gamma" / "policy_x" / "analysis" / "analysis_ep01.json"
+    analysis_path = tmp_path / "scenario_gamma" / "policies" / "policy_x" / "analysis" / "analysis_ep01.json"
 
     assert analysis_path.is_file()
     assert analysis_path.read_text() == '{\n  "summary": {\n    "count": 1\n  }\n}'
@@ -115,7 +114,7 @@ def test_environment_logger_save_policy_episodes_saves_all_matrix_factorization_
 
     result = env_logger.save_policy_episodes()
 
-    policy_dir = tmp_path / "scenario_mf" / "matrix_factorization_cf"
+    policy_dir = tmp_path / "scenario_mf" / "policies" / "matrix_factorization_cf"
     episodes_dir = policy_dir / "episodes"
     summary_path = policy_dir / "episodes_summary.json"
 
@@ -292,7 +291,7 @@ def test_environment_logger_episode_lifecycle_methods_delegate_to_active_logger(
                 "seed": 7,
                 "episode_num": 2,
                 "total_episodes": 9,
-                "environment_path": "../../environment.json",
+                "environment_path": "../../../environment.json",
             },
         ),
         (

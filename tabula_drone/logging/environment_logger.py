@@ -68,7 +68,7 @@ class EnvironmentLogger:
         """
         self._current_policy = policy_type
         self._is_deterministic = is_deterministic
-        self._current_policy_path = os.path.join(self._scenario_path, policy_type)
+        self._current_policy_path = os.path.join(self._scenario_path, "policies", policy_type)
 
         os.makedirs(self.get_episodes_dir(), exist_ok=True)
         if not is_deterministic:

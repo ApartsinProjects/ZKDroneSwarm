@@ -57,7 +57,7 @@ function loadPolicySummary(policyId) {
     return null;
   }
 
-  const summaryPath = path.join(logDiscovery.LOGS_DIR, latestRun, policyId, 'episodes_summary.json');
+  const summaryPath = path.join(logDiscovery.LOGS_DIR, latestRun, 'policies', policyId, 'episodes_summary.json');
   if (!fs.existsSync(summaryPath)) {
     return null;
   }
@@ -73,6 +73,7 @@ function resolveBestEpisodePath(policyId, candidates) {
       const bestEpisodePath = path.join(
         logDiscovery.LOGS_DIR,
         latestRun,
+        'policies',
         policyId,
         summary.best_episode_path
       );

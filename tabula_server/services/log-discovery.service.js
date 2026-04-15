@@ -36,9 +36,10 @@ function getAvailablePolicies() {
   const latestRun = getLatestRunFolder();
   if (!latestRun) return [];
 
-  const runPath = path.join(LOGS_DIR, latestRun);
-  
-  return fs.readdirSync(runPath, { withFileTypes: true })
+  const policiesPath = path.join(LOGS_DIR, latestRun, 'policies');
+  if (!fs.existsSync(policiesPath)) return [];
+
+  return fs.readdirSync(policiesPath, { withFileTypes: true })
     .filter(entry => entry.isDirectory())
     .map(entry => entry.name);
 }
@@ -47,7 +48,7 @@ function getFilesByContext(policyId, contextFolder, fileNamePrefix = '') {
   const latestRun = getLatestRunFolder();
   if (!latestRun) return [];
 
-  const targetDir = path.join(LOGS_DIR, latestRun, policyId, contextFolder);
+  const targetDir = path.join(LOGS_DIR, latestRun, 'policies', policyId, contextFolder);
   
   if (!fs.existsSync(targetDir)) {
     return [];
