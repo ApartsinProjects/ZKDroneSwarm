@@ -25,6 +25,12 @@
   font-size: 0.85rem;
 }
 
+.comparison-bottom-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.25rem;
+}
+
 .comparison-group {
   border-radius: 12px;
   background: rgba(255, 248, 233, 0.82);

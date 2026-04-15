@@ -25,6 +25,7 @@ interface CategoryGroup {
   category: string;
   label: string;
   rows: MetricRow[];
+  isSimple?: boolean;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -34,7 +35,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   environment: 'Environment',
 };
 
-const CATEGORY_ORDER = ['task_completion', 'efficiency', 'coordination', 'environment'];
+const CATEGORY_ORDER = ['efficiency', 'coordination'];
+const BOTTOM_CATEGORIES = ['task_completion', 'environment'];
 
 const EXCLUDED_METRICS = ['total_ammo_used', 'steps'];
 
@@ -68,7 +70,7 @@ export class ComparisonTab {
   readonly data = input.required<Record<string, ComparisonMetric>>();
   readonly episodeNumber = input<number | null>(null);
 
-  protected readonly groups = computed<CategoryGroup[]>(() => {
+  protected readonly topGroups = computed<CategoryGroup[]>(() => {
     const metrics = this.data();
     const grouped = new Map<string, MetricRow[]>();
 
@@ -76,6 +78,7 @@ export class ComparisonTab {
       if (EXCLUDED_METRICS.includes(key)) continue;
       
       const cat = metric.category;
+      if (!CATEGORY_ORDER.includes(cat)) continue;
       if (!grouped.has(cat)) grouped.set(cat, []);
 
       // Special handling: merge shots_per_target and steps
@@ -122,6 +125,65 @@ export class ComparisonTab {
         category: cat,
         label: CATEGORY_LABELS[cat] ?? cat,
         rows: grouped.get(cat)!,
+      }));
+  });
+
+  protected readonly bottomGroups = computed<CategoryGroup[]>(() => {
+    const metrics = this.data();
+    const grouped = new Map<string, MetricRow[]>();
+
+    for (const [key, metric] of Object.entries(metrics)) {
+      if (EXCLUDED_METRICS.includes(key)) continue;
+      
+      const cat = metric.category;
+      if (!BOTTOM_CATEGORIES.includes(cat)) continue;
+      if (!grouped.has(cat)) grouped.set(cat, []);
+
+      // Special handling: merge shots_per_target and steps
+      if (key === 'shots_per_target' && metrics['steps']) {
+        const stepsMetric = metrics['steps'];
+        const row: MetricRow = {
+          key,
+          metric: {
+            ...metric,
+            display_name: 'Shots per Target',
+            displayNameSuffix: '(Steps)',
+          },
+          mfDisplay: formatValue(metric.mf_value, metric.unit),
+          randomDisplay: formatValue(metric.random, metric.unit),
+          oracleDisplay: formatValue(metric.max_damage_oracle, metric.unit),
+          mfSteps: `(${formatValue(stepsMetric.mf_value, stepsMetric.unit)})`,
+          randomSteps: `(${formatValue(stepsMetric.random, stepsMetric.unit)})`,
+          oracleSteps: `(${formatValue(stepsMetric.max_damage_oracle, stepsMetric.unit)})`,
+          vsRandomPct: metric.mf_vs_random_pct != null ? formatPct(metric.mf_vs_random_pct) : null,
+          vsOraclePct: metric.mf_vs_max_damage_oracle_pct != null ? formatPct(metric.mf_vs_max_damage_oracle_pct) : null,
+          vsRandomTone: metric.mf_vs_random_pct != null ? getTone(metric.mf_vs_random_pct, metric.direction) : null,
+          vsOracleTone: metric.mf_vs_max_damage_oracle_pct != null ? getTone(metric.mf_vs_max_damage_oracle_pct, metric.direction) : null,
+        };
+        grouped.get(cat)!.push(row);
+      } else {
+        const row: MetricRow = {
+          key,
+          metric,
+          mfDisplay: formatValue(metric.mf_value, metric.unit),
+          randomDisplay: formatValue(metric.random, metric.unit),
+          oracleDisplay: formatValue(metric.max_damage_oracle, metric.unit),
+          vsRandomPct: metric.mf_vs_random_pct != null ? formatPct(metric.mf_vs_random_pct) : null,
+          vsOraclePct: metric.mf_vs_max_damage_oracle_pct != null ? formatPct(metric.mf_vs_max_damage_oracle_pct) : null,
+          vsRandomTone: metric.mf_vs_random_pct != null ? getTone(metric.mf_vs_random_pct, metric.direction) : null,
+          vsOracleTone: metric.mf_vs_max_damage_oracle_pct != null ? getTone(metric.mf_vs_max_damage_oracle_pct, metric.direction) : null,
+        };
+        grouped.get(cat)!.push(row);
+      }
+    }
+
+    return BOTTOM_CATEGORIES
+      .filter(cat => grouped.has(cat))
+      .map(cat => ({
+        category: cat,
+        label: CATEGORY_LABELS[cat] ?? cat,
+        rows: grouped.get(cat)!,
+        isSimple: cat === 'environment',
       }));
   });
 }
