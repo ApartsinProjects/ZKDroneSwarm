@@ -1,0 +1,56 @@
+<div class="comparison-tab">
+  @for (group of groups(); track group.category) {
+    <div class="comparison-group">
+      <div class="comparison-group__header">{{ group.label }}</div>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th class="comparison-table__th--metric">Metric</th>
+            <th class="comparison-table__th--value">MF Policy</th>
+            <th class="comparison-table__th--value">Random</th>
+            <th class="comparison-table__th--value">Oracle</th>
+            <th class="comparison-table__th--pct">vs Random</th>
+            <th class="comparison-table__th--pct">vs Oracle</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of group.rows; track row.key) {
+            <tr>
+              <td class="comparison-table__metric">
+                <span class="comparison-table__metric-name">{{ row.metric.display_name }}</span>
+                <span class="comparison-table__metric-unit">{{ row.metric.unit }}</span>
+              </td>
+              <td class="comparison-table__value comparison-table__value--mf">{{ row.mfDisplay }}</td>
+              <td class="comparison-table__value">{{ row.randomDisplay }}</td>
+              <td class="comparison-table__value">{{ row.oracleDisplay }}</td>
+              <td class="comparison-table__pct">
+                @if (row.vsRandomPct) {
+                  <span
+                    class="comparison-table__delta"
+                    [class.comparison-table__delta--better]="row.vsRandomTone === 'better'"
+                    [class.comparison-table__delta--worse]="row.vsRandomTone === 'worse'"
+                    [class.comparison-table__delta--neutral]="row.vsRandomTone === 'neutral'"
+                  >{{ row.vsRandomPct }}</span>
+                } @else {
+                  <span class="comparison-table__delta--na">--</span>
+                }
+              </td>
+              <td class="comparison-table__pct">
+                @if (row.vsOraclePct) {
+                  <span
+                    class="comparison-table__delta"
+                    [class.comparison-table__delta--better]="row.vsOracleTone === 'better'"
+                    [class.comparison-table__delta--worse]="row.vsOracleTone === 'worse'"
+                    [class.comparison-table__delta--neutral]="row.vsOracleTone === 'neutral'"
+                  >{{ row.vsOraclePct }}</span>
+                } @else {
+                  <span class="comparison-table__delta--na">--</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

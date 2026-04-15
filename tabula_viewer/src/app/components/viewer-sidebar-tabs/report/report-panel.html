@@ -1,0 +1,31 @@
+<div class="report-panel">
+  @if (subTabs.length > 1) {
+    <div class="report-panel__tabs" role="tablist" aria-label="Report sections">
+      @for (tab of subTabs; track tab.id) {
+        <button
+          type="button"
+          class="report-panel__tab"
+          role="tab"
+          [class.report-panel__tab--active]="activeSubTab() === tab.id"
+          [attr.aria-selected]="activeSubTab() === tab.id"
+          [attr.aria-controls]="'report-panel-' + tab.id"
+          (click)="selectSubTab(tab.id)"
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="report-panel__content">
+    @if (isLoading()) {
+      <div class="report-panel__status">Loading report data...</div>
+    } @else if (error()) {
+      <div class="report-panel__status">{{ error() }}</div>
+    } @else {
+      @if (activeSubTab() === 'comparison' && comparisonData()) {
+        <app-comparison-tab [data]="comparisonData()!.comparison_vs_baseline" />
+      }
+    }
+  </div>
+</div>

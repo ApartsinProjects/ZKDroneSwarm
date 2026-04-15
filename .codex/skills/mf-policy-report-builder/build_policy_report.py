@@ -17,15 +17,15 @@ METRIC_CATEGORIES: dict[str, str] = {
     "steps": "efficiency",
     "total_ammo_used": "efficiency",
     "shots_per_target": "efficiency",
-    "total_overkill": "precision",
-    "total_net_damage": "precision",
-    "total_gross_damage": "precision",
+    "total_overkill": "coordination",
+    "total_net_damage": "environment",
+    "total_gross_damage": "coordination",
     "total_collisions": "coordination",
     "targets_neutralized": "task_completion",
     "success": "task_completion",
     "mean_reward_per_agent": "reward",
-    "total_latent_mismatch": "precision",
-    "avg_latent_match_quality": "precision",
+    "total_latent_mismatch": "coordination",
+    "avg_latent_match_quality": "coordination",
 }
 
 
