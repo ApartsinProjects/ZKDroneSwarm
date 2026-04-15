@@ -112,8 +112,8 @@ class RunArtifacts:
     validation: ValidationState
 
 
-REPORT_VERSION = "1.0"
-BUILDER_VERSION = "0.6.0"
+REPORT_VERSION = "2.0"
+BUILDER_VERSION = "0.7.0"
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -134,9 +134,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--output",
         help=(
-            "Optional output path. Defaults to <run_dir>/policy_report.json once report "
-            "generation is fully implemented."
+            "Optional output path. In single-file mode, path to the JSON file. "
+            "In split mode (default), path to the report/ directory."
         ),
+    )
+    parser.add_argument(
+        "--single-file",
+        action="store_true",
+        dest="single_file",
+        help="Write a single monolithic policy_report.json instead of split files.",
     )
     return parser.parse_args(argv)
 
@@ -438,6 +444,14 @@ def mean_or_none(values: list[float]) -> float | None:
     return sum(values) / len(values)
 
 
+def std_or_none(values: list[float]) -> float | None:
+    """Return the population standard deviation for non-empty numeric lists."""
+    if len(values) < 2:
+        return None
+    mu = sum(values) / len(values)
+    return (sum((x - mu) ** 2 for x in values) / len(values)) ** 0.5
+
+
 def relative_to_run(paths: BuilderPaths, path: Path) -> str:
     """Return a run-relative path for portability."""
     return str(path.relative_to(paths.run_dir))
@@ -676,6 +690,7 @@ def build_episode_curves(artifacts: RunArtifacts) -> dict[str, Any]:
 
     return {
         "best_episode_path": relative_to_run(artifacts.paths, artifacts.best_episode.path),
+        "metric_schema": EPISODE_METRIC_SCHEMA,
         "metric_provenance": {
             "performance_metrics": "summary.metrics",
             "total_reward": "summary.total_reward",
@@ -687,6 +702,11 @@ def build_episode_curves(artifacts: RunArtifacts) -> dict[str, Any]:
     }
 
 
+def _extract_float_series(episodes: list[dict[str, Any]], key: str) -> list[float]:
+    """Extract a numeric series from episode entries."""
+    return [float(item[key]) for item in episodes if isinstance(item.get(key), (int, float))]
+
+
 def build_policy_summary(artifacts: RunArtifacts, episode_curves: dict[str, Any]) -> dict[str, Any]:
     """Build the canonical MF policy summary anchored on the best episode."""
     episodes = episode_curves["episodes"]
@@ -694,53 +714,34 @@ def build_policy_summary(artifacts: RunArtifacts, episode_curves: dict[str, Any]
         artifacts.best_episode,
         artifacts.validation,
     )
+
+    steps_vals = _extract_float_series(episodes, "steps")
+    ammo_vals = _extract_float_series(episodes, "total_ammo_used")
+    collisions_vals = _extract_float_series(episodes, "total_collisions")
+    overkill_vals = _extract_float_series(episodes, "total_overkill")
+    reward_vals = _extract_float_series(episodes, "total_reward")
+    mean_reward_vals = _extract_float_series(episodes, "mean_reward_per_agent")
+    success_vals = [100.0 if item.get("success") else 0.0 for item in episodes if item.get("success") is not None]
+
     return {
         "best_episode": best_episode_entry,
         "training_episode_count": len(episodes),
         "total_training_steps": artifacts.primary_summary.get("total_steps"),
         "total_steps_to_best": artifacts.primary_summary.get("total_steps_to_best"),
         "aggregate_training": {
-            "avg_steps": mean_or_none(
-                [float(item["steps"]) for item in episodes if isinstance(item.get("steps"), (int, float))]
-            ),
-            "avg_total_ammo_used": mean_or_none(
-                [
-                    float(item["total_ammo_used"])
-                    for item in episodes
-                    if isinstance(item.get("total_ammo_used"), (int, float))
-                ]
-            ),
-            "avg_total_collisions": mean_or_none(
-                [
-                    float(item["total_collisions"])
-                    for item in episodes
-                    if isinstance(item.get("total_collisions"), (int, float))
-                ]
-            ),
-            "avg_total_overkill": mean_or_none(
-                [
-                    float(item["total_overkill"])
-                    for item in episodes
-                    if isinstance(item.get("total_overkill"), (int, float))
-                ]
-            ),
-            "avg_total_reward": mean_or_none(
-                [
-                    float(item["total_reward"])
-                    for item in episodes
-                    if isinstance(item.get("total_reward"), (int, float))
-                ]
-            ),
-            "avg_mean_reward_per_agent": mean_or_none(
-                [
-                    float(item["mean_reward_per_agent"])
-                    for item in episodes
-                    if isinstance(item.get("mean_reward_per_agent"), (int, float))
-                ]
-            ),
-            "success_rate_pct": mean_or_none(
-                [100.0 if item.get("success") else 0.0 for item in episodes if item.get("success") is not None]
-            ),
+            "avg_steps": mean_or_none(steps_vals),
+            "std_steps": std_or_none(steps_vals),
+            "avg_total_ammo_used": mean_or_none(ammo_vals),
+            "std_total_ammo_used": std_or_none(ammo_vals),
+            "avg_total_collisions": mean_or_none(collisions_vals),
+            "std_total_collisions": std_or_none(collisions_vals),
+            "avg_total_overkill": mean_or_none(overkill_vals),
+            "std_total_overkill": std_or_none(overkill_vals),
+            "avg_total_reward": mean_or_none(reward_vals),
+            "std_total_reward": std_or_none(reward_vals),
+            "avg_mean_reward_per_agent": mean_or_none(mean_reward_vals),
+            "std_mean_reward_per_agent": std_or_none(mean_reward_vals),
+            "success_rate_pct": mean_or_none(success_vals),
         },
     }
 
@@ -953,58 +954,101 @@ def build_learning_summary(artifacts: RunArtifacts) -> dict[str, Any] | None:
 
 METRIC_DEFINITIONS = {
     "steps": {
+        "display_name": "Steps",
         "description": "Number of timesteps from episode start to termination",
         "formula": "count(timesteps)",
         "direction": "lower_is_better",
+        "unit": "steps",
     },
     "targets_neutralized": {
+        "display_name": "Targets Neutralized",
         "description": "Number of targets reduced to zero HP",
         "formula": "count(targets where hp <= 0)",
         "direction": "higher_is_better",
+        "unit": "targets",
     },
     "total_ammo_used": {
+        "display_name": "Total Ammo Used",
         "description": "Total shots fired by all agents across the episode",
         "formula": "sum(ammo_used per agent)",
         "direction": "lower_is_better",
+        "unit": "shots",
     },
     "total_collisions": {
+        "display_name": "Total Collisions",
         "description": "Number of times multiple agents targeted the same target simultaneously",
         "formula": "sum(collision events)",
         "direction": "lower_is_better",
+        "unit": "events",
     },
     "total_overkill": {
+        "display_name": "Total Overkill",
         "description": "Cumulative wasted damage dealt to targets already at zero HP",
         "formula": "sum(max(0, damage - remaining_hp) per shot)",
         "direction": "lower_is_better",
+        "unit": "HP",
     },
     "total_net_damage": {
+        "display_name": "Total Net Damage",
         "description": "Total effective damage that reduced target HP (excludes overkill)",
         "formula": "sum(min(damage, remaining_hp) per shot)",
         "direction": "higher_is_better",
+        "unit": "HP",
     },
     "total_gross_damage": {
+        "display_name": "Total Gross Damage",
         "description": "Total raw damage dealt including overkill",
         "formula": "total_net_damage + total_overkill",
         "direction": "context_dependent",
+        "unit": "HP",
     },
     "shots_per_target": {
+        "display_name": "Shots per Target",
         "description": "Average number of shots required per neutralized target",
         "formula": "total_ammo_used / targets_neutralized",
         "direction": "lower_is_better",
+        "unit": "shots/target",
     },
     "total_latent_mismatch": {
+        "display_name": "Total Latent Mismatch",
         "description": "Cumulative damage shortfall due to suboptimal drone-target pairing. For each shot at an active target, this is the difference between the best possible damage (from the optimally matched drone based on latent compatibility) and the actual damage dealt. Measures unrealized damage potential from assignment decisions.",
         "formula": "sum(max(0, max_damage_any_drone_for_target - actual_damage) per shot at active targets)",
         "direction": "lower_is_better",
+        "unit": "HP",
     },
     "avg_latent_match_quality": {
+        "display_name": "Avg. Match Quality",
         "description": "Average match quality per shot: fraction of optimal damage achieved through drone-target pairing decisions. Measures how well each shot utilized the best available drone for each target. A value of 1.0 means every shot was fired by the optimally matched drone; lower values indicate suboptimal pairing.",
         "formula": "total_gross_damage / total_optimal_potential, where total_optimal_potential = sum of optimal damages for all shots fired",
         "direction": "higher_is_better",
+        "unit": "ratio",
     },
     "success": {
+        "display_name": "Success",
         "description": "Boolean indicating whether all targets were neutralized",
         "formula": "termination_reason == 'all_targets_neutralized'",
+        "direction": "higher_is_better",
+        "unit": "bool",
+    },
+}
+
+EPISODE_METRIC_SCHEMA: dict[str, dict[str, str]] = {
+    **{
+        name: {
+            "display_name": defn["display_name"],
+            "unit": defn["unit"],
+            "direction": defn["direction"],
+        }
+        for name, defn in METRIC_DEFINITIONS.items()
+    },
+    "total_reward": {
+        "display_name": "Total Reward",
+        "unit": "reward",
+        "direction": "higher_is_better",
+    },
+    "mean_reward_per_agent": {
+        "display_name": "Mean Reward per Agent",
+        "unit": "reward",
         "direction": "higher_is_better",
     },
 }
@@ -1073,10 +1117,12 @@ def build_comparison_vs_baseline(artifacts: RunArtifacts) -> dict[str, Any]:
         metric_def = METRIC_DEFINITIONS.get(metric_name, {})
         
         metric_obj: dict[str, Any] = {
+            "display_name": metric_def.get("display_name", metric_name),
             "description": metric_def.get("description", ""),
             "formula": metric_def.get("formula", ""),
             "category": METRIC_CATEGORIES.get(metric_name, "other"),
             "direction": metric_def.get("direction", "higher_is_better" if higher_is_better else "lower_is_better"),
+            "unit": metric_def.get("unit", ""),
             "mf_value": mf_value,
         }
         
@@ -1180,8 +1226,87 @@ def build_key_findings(
 
 
 
-def build_report(artifacts: RunArtifacts) -> dict[str, Any]:
-    """Assemble the canonical policy report JSON structure."""
+REPORT_FILES = {
+    "config": {
+        "filename": "config.json",
+        "description": "Experiment configuration (paper: Methods section)",
+    },
+    "comparison": {
+        "filename": "comparison.json",
+        "description": "MF vs baseline results and key findings (paper: Results table)",
+    },
+    "episode_curves": {
+        "filename": "episode_curves.json",
+        "description": "Per-episode time-series metrics (viz: learning curve plots)",
+    },
+    "learning_progression": {
+        "filename": "learning_progression.json",
+        "description": "Epsilon decay, checkpoints, convergence (viz: learning state plots)",
+    },
+    "policy_summary": {
+        "filename": "policy_summary.json",
+        "description": "Aggregate stats and best episode (paper: Results summary)",
+    },
+}
+
+
+def build_report_files(artifacts: RunArtifacts) -> dict[str, dict[str, Any]]:
+    """Assemble the split report as a dict of filename -> content."""
+    episode_curves = build_episode_curves(artifacts)
+    policy_summary = build_policy_summary(artifacts, episode_curves)
+    learning_summary = build_learning_summary(artifacts)
+    comparison = build_comparison_vs_baseline(artifacts)
+    key_findings = build_key_findings(comparison, episode_curves, learning_summary)
+
+    validation = {
+        "status": artifacts.validation.status(),
+        "warnings": artifacts.validation.warnings,
+        "errors": artifacts.validation.errors,
+        "unavailable_optional_fields": artifacts.validation.unavailable_optional_fields,
+    }
+
+    manifest = {
+        "report_version": REPORT_VERSION,
+        "builder_version": BUILDER_VERSION,
+        "scenario_id": artifacts.environment.get("scenario_id", artifacts.paths.run_dir.name),
+        "report_type": "policy_evaluation",
+        "primary_policy": PRIMARY_POLICY,
+        "report_focus": {
+            "primary_anchor": "best_episode_path",
+            "baselines": {
+                name: "control"
+                for name in sorted(artifacts.baselines)
+                if name == "random"
+            },
+            "reference_policies": {
+                name: "ceiling"
+                for name in sorted(artifacts.baselines)
+                if name != "random"
+            },
+        },
+        "validation": validation,
+        "artifacts": build_artifacts_section(artifacts),
+        "files": {
+            key: {"path": info["filename"], "description": info["description"]}
+            for key, info in REPORT_FILES.items()
+        },
+    }
+
+    return {
+        "report_manifest.json": manifest,
+        "config.json": build_config_snapshot(artifacts),
+        "comparison.json": {
+            "comparison_vs_baseline": comparison,
+            "key_findings": key_findings,
+        },
+        "episode_curves.json": episode_curves,
+        "learning_progression.json": learning_summary if learning_summary else {"available": False},
+        "policy_summary.json": policy_summary,
+    }
+
+
+def build_report_single(artifacts: RunArtifacts) -> dict[str, Any]:
+    """Assemble the monolithic policy report JSON (legacy single-file mode)."""
     episode_curves = build_episode_curves(artifacts)
     report = {
         "report_version": REPORT_VERSION,
@@ -1223,14 +1348,24 @@ def build_report(artifacts: RunArtifacts) -> dict[str, Any]:
     return report
 
 
-def write_report(report: dict[str, Any], output_path: Path) -> None:
-    """Write the report JSON with stable formatting."""
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
+def _write_json(data: dict[str, Any], path: Path) -> None:
+    """Write a single JSON file with stable formatting."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n")
+
+
+def write_report_files(files: dict[str, dict[str, Any]], report_dir: Path) -> list[str]:
+    """Write split report files into report_dir. Returns list of written paths."""
+    written = []
+    for filename, content in files.items():
+        path = report_dir / filename
+        _write_json(content, path)
+        written.append(str(path))
+    return written
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Resolve artifacts, build the report, and write policy_report.json."""
+    """Resolve artifacts, build the report, and write output."""
     args = parse_args(argv)
 
     try:
@@ -1240,12 +1375,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"ERROR: {exc}")
         return 1
 
-    output_path = Path(args.output).resolve() if args.output else artifacts.paths.run_dir / "policy_report.json"
-    report = build_report(artifacts)
-    write_report(report, output_path)
+    if args.single_file:
+        output_path = Path(args.output).resolve() if args.output else artifacts.paths.run_dir / "policy_report.json"
+        report = build_report_single(artifacts)
+        _write_json(report, output_path)
+        validation = report["validation"]
+        written_paths = [str(output_path)]
+    else:
+        report_dir = Path(args.output).resolve() if args.output else artifacts.paths.run_dir / "report"
+        files = build_report_files(artifacts)
+        written_paths = write_report_files(files, report_dir)
+        validation = files["report_manifest.json"]["validation"]
 
     payload = {
         "status": "written",
+        "mode": "single_file" if args.single_file else "split",
         "run_dir": str(artifacts.paths.run_dir),
         "environment_path": str(artifacts.paths.environment_path),
         "primary_policy_dir": str(artifacts.paths.primary_policy_dir),
@@ -1257,8 +1401,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             name: str(artifact.episode.path)
             for name, artifact in artifacts.baselines.items()
         },
-        "output_path": str(output_path),
-        "validation": report["validation"],
+        "output_paths": written_paths,
+        "validation": validation,
     }
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
