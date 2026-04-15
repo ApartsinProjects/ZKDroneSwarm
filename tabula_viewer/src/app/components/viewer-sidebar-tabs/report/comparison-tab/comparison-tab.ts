@@ -2,12 +2,19 @@ import { Component, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ComparisonMetric } from '../../../../services/report.service';
 
+interface ExtendedComparisonMetric extends ComparisonMetric {
+  displayNameSuffix?: string;
+}
+
 interface MetricRow {
   key: string;
-  metric: ComparisonMetric;
+  metric: ExtendedComparisonMetric;
   mfDisplay: string;
   randomDisplay: string;
   oracleDisplay: string;
+  mfSteps?: string;
+  randomSteps?: string;
+  oracleSteps?: string;
   vsRandomPct: string | null;
   vsOraclePct: string | null;
   vsRandomTone: 'better' | 'worse' | 'neutral' | null;
@@ -29,7 +36,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_ORDER = ['task_completion', 'efficiency', 'coordination', 'environment'];
 
-const EXCLUDED_METRICS = ['total_ammo_used'];
+const EXCLUDED_METRICS = ['total_ammo_used', 'steps'];
 
 function formatValue(value: number | boolean, unit: string): string {
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
@@ -71,19 +78,42 @@ export class ComparisonTab {
       const cat = metric.category;
       if (!grouped.has(cat)) grouped.set(cat, []);
 
-      const row: MetricRow = {
-        key,
-        metric,
-        mfDisplay: formatValue(metric.mf_value, metric.unit),
-        randomDisplay: formatValue(metric.random, metric.unit),
-        oracleDisplay: formatValue(metric.max_damage_oracle, metric.unit),
-        vsRandomPct: metric.mf_vs_random_pct != null ? formatPct(metric.mf_vs_random_pct) : null,
-        vsOraclePct: metric.mf_vs_max_damage_oracle_pct != null ? formatPct(metric.mf_vs_max_damage_oracle_pct) : null,
-        vsRandomTone: metric.mf_vs_random_pct != null ? getTone(metric.mf_vs_random_pct, metric.direction) : null,
-        vsOracleTone: metric.mf_vs_max_damage_oracle_pct != null ? getTone(metric.mf_vs_max_damage_oracle_pct, metric.direction) : null,
-      };
-
-      grouped.get(cat)!.push(row);
+      // Special handling: merge shots_per_target and steps
+      if (key === 'shots_per_target' && metrics['steps']) {
+        const stepsMetric = metrics['steps'];
+        const row: MetricRow = {
+          key,
+          metric: {
+            ...metric,
+            display_name: 'Shots per Target',
+            displayNameSuffix: '(Steps)',
+          },
+          mfDisplay: formatValue(metric.mf_value, metric.unit),
+          randomDisplay: formatValue(metric.random, metric.unit),
+          oracleDisplay: formatValue(metric.max_damage_oracle, metric.unit),
+          mfSteps: `(${formatValue(stepsMetric.mf_value, stepsMetric.unit)})`,
+          randomSteps: `(${formatValue(stepsMetric.random, stepsMetric.unit)})`,
+          oracleSteps: `(${formatValue(stepsMetric.max_damage_oracle, stepsMetric.unit)})`,
+          vsRandomPct: metric.mf_vs_random_pct != null ? formatPct(metric.mf_vs_random_pct) : null,
+          vsOraclePct: metric.mf_vs_max_damage_oracle_pct != null ? formatPct(metric.mf_vs_max_damage_oracle_pct) : null,
+          vsRandomTone: metric.mf_vs_random_pct != null ? getTone(metric.mf_vs_random_pct, metric.direction) : null,
+          vsOracleTone: metric.mf_vs_max_damage_oracle_pct != null ? getTone(metric.mf_vs_max_damage_oracle_pct, metric.direction) : null,
+        };
+        grouped.get(cat)!.push(row);
+      } else {
+        const row: MetricRow = {
+          key,
+          metric,
+          mfDisplay: formatValue(metric.mf_value, metric.unit),
+          randomDisplay: formatValue(metric.random, metric.unit),
+          oracleDisplay: formatValue(metric.max_damage_oracle, metric.unit),
+          vsRandomPct: metric.mf_vs_random_pct != null ? formatPct(metric.mf_vs_random_pct) : null,
+          vsOraclePct: metric.mf_vs_max_damage_oracle_pct != null ? formatPct(metric.mf_vs_max_damage_oracle_pct) : null,
+          vsRandomTone: metric.mf_vs_random_pct != null ? getTone(metric.mf_vs_random_pct, metric.direction) : null,
+          vsOracleTone: metric.mf_vs_max_damage_oracle_pct != null ? getTone(metric.mf_vs_max_damage_oracle_pct, metric.direction) : null,
+        };
+        grouped.get(cat)!.push(row);
+      }
     }
 
     return CATEGORY_ORDER

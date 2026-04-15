@@ -22,12 +22,32 @@
           @for (row of group.rows; track row.key) {
             <tr>
               <td class="comparison-table__metric">
-                <span class="comparison-table__metric-name">{{ row.metric.display_name }}</span>
+                <span class="comparison-table__metric-name">
+                  {{ row.metric.display_name }}
+                  @if (row.metric.displayNameSuffix) {
+                    <span class="steps-value"> {{ row.metric.displayNameSuffix }}</span>
+                  }
+                </span>
                 <span class="comparison-table__metric-unit">{{ row.metric.unit }}</span>
               </td>
-              <td class="comparison-table__value comparison-table__value--mf">{{ row.mfDisplay }}</td>
-              <td class="comparison-table__value">{{ row.randomDisplay }}</td>
-              <td class="comparison-table__value">{{ row.oracleDisplay }}</td>
+              <td class="comparison-table__value comparison-table__value--mf">
+                {{ row.mfDisplay }}
+                @if (row.mfSteps) {
+                  <span class="steps-value">{{ row.mfSteps }}</span>
+                }
+              </td>
+              <td class="comparison-table__value">
+                {{ row.randomDisplay }}
+                @if (row.randomSteps) {
+                  <span class="steps-value">{{ row.randomSteps }}</span>
+                }
+              </td>
+              <td class="comparison-table__value">
+                {{ row.oracleDisplay }}
+                @if (row.oracleSteps) {
+                  <span class="steps-value">{{ row.oracleSteps }}</span>
+                }
+              </td>
               <td class="comparison-table__pct">
                 @if (row.vsRandomPct) {
                   <span
