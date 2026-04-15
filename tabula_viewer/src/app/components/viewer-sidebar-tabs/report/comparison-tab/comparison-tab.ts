@@ -29,6 +29,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_ORDER = ['task_completion', 'efficiency', 'coordination', 'environment'];
 
+const EXCLUDED_METRICS = ['total_ammo_used'];
+
 function formatValue(value: number | boolean, unit: string): string {
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (unit === 'ratio') return value.toFixed(4);
@@ -63,6 +65,8 @@ export class ComparisonTab {
     const grouped = new Map<string, MetricRow[]>();
 
     for (const [key, metric] of Object.entries(metrics)) {
+      if (EXCLUDED_METRICS.includes(key)) continue;
+      
       const cat = metric.category;
       if (!grouped.has(cat)) grouped.set(cat, []);
 

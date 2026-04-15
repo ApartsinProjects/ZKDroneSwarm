@@ -55,8 +55,9 @@
 }
 
 .report-panel__content {
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 0;
+  position: relative;
+  padding: 0.5rem;
   overflow-y: auto;
 }
 
