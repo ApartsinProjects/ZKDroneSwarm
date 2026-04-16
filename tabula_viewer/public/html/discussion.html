@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discussion - Zero-Knowledge Multi-Robot Task Allocation</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <link rel="stylesheet" href="paper-shared.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ]
+        });"></script>
+</head>
+<body>
+    <div class="paper-section-container">
+        <h1>8. Discussion</h1>
+        
+        <p>
+            This section interprets the results reported in Section 7 in relation to the research question and the broader claims of the paper. It is organized around four themes: the extent to which the results address each dimension of the research question, the structural interpretation of the coordination phenomena observed, the limitations of the current evaluation, and the implications for future work.
+        </p>
+        
+        <h2>8.1 Addressing the Research Question</h2>
+        
+        <p>
+            The research question asks to what extent a decentralized, collaborative-filtering-inspired approach can optimize swarm performance under strict zero-knowledge constraints, and how four structural parameters — latent compatibility structure, exploration strategy, supervision mode, and swarm composition — affect the convergence and coordination efficiency of the learned policy. The results provide a clear but partial answer.
+        </p>
+        
+        <p>
+            <strong>Latent compatibility structure.</strong> The results offer the strongest evidence on this dimension. The matrix-factorization policy recovers 60% of the structural gap between random assignment and oracle allocation in match quality, reduces total latent mismatch by 62% relative to random, and — as shown in the t-SNE visualization — produces embedding representations that geometrically reflect the three-mode hidden structure of the environment. This recovery occurs without any access to mode labels, latent vectors, or explicit structural signals. The policy's ability to organize its internal embedding space to mirror the ground-truth compatibility structure is the central empirical finding of this paper. It confirms that collaborative-filtering-inspired matrix factorization can operationalize the latent structure of a ZK-MRTA instance from interaction outcomes alone, validating the core methodological proposition.
+        </p>
+        
+        <p>
+            <strong>Exploration strategy.</strong> The three-phase learning trajectory documented in Section 7.4 reflects the direct influence of the ε-greedy exploration schedule on learning dynamics. The rapid convergence phase (episodes 1–9) coincides with high exploration rates (ε ≈ 0.27 at episode 1), during which broad coverage of the drone-target interaction space enables fast accumulation of compatibility evidence. The plateau and crowding phase (episodes 9–21) coincides with the mid-range decay of ε, during which exploitation begins to dominate but the policy has not yet fully differentiated individual agent preferences. The slow refinement phase (episodes 21–35) coincides with the final decay toward ε ≈ 0.052, during which gradually reducing exploration pressure enables fine-grained preference differentiation and the partial resolution of the crowding phenomenon. The exploration schedule therefore shapes not only the rate of learning but its qualitative character: each phase of the learning curve has a corresponding phase in the ε trajectory. This suggests that the choice of decay rate is a significant design parameter, and that a more carefully tuned schedule — for instance, one that maintains higher exploration during the crowding phase — might accelerate convergence and reduce the duration of the mid-training plateau.
+        </p>
+        
+        <p>
+            <strong>Supervision mode.</strong> The integration-matrix supervision mode is evaluated in a single configuration. The results confirm that it produces coherent and progressive structure recovery under the chosen parameters, but no direct comparison to the direct supervision mode is available in this evaluation. The key design property of integration-matrix mode — gating updates on the engagement-validity mask to exclude dead-target interactions — is expected to be most beneficial under high noise conditions, since it prevents corrupted reward signals from distorting the learned compatibility estimates. Given that both reward noise and observation noise are set to 0.2 in this experiment, the clean supervision signal provided by the integration matrix likely contributes to the quality of structure recovery observed. Quantifying this contribution through a direct comparison of supervision modes remains an open empirical question.
+        </p>
+        
+        <p>
+            <strong>Swarm composition.</strong> The evaluation uses a fixed 3:1 target-to-drone ratio with $m = 9$ and $n = 27$. No variation in swarm composition was evaluated in this experiment. The results therefore characterize the policy's behavior under a single composition condition, and it is not known how performance scales with drone count, target count, or their ratio. The crowding phenomenon observed in phase 2 — where 9 drones converged on 4 preferred targets — is likely to be sensitive to swarm composition: a smaller swarm relative to the number of targets would reduce contention and might accelerate convergence, while a larger swarm would intensify crowding. Systematic variation of swarm composition is the dimension of the research question that remains most underexplored by the current evaluation.
+        </p>
+        
+        <h2>8.2 The Overkill Paradox</h2>
+        
+        <p>
+            One of the more counterintuitive findings in Section 7 is that total overkill increases over the course of training, rising from 4.6 HP in episode 1 to approximately 10.7 HP by episode 35, and that the trained MF policy produces substantially more overkill (10.7 HP) than the random baseline (7.0 HP). Taken in isolation, rising overkill might appear to signal degrading coordination quality. The results show this interpretation is incorrect.
+        </p>
+        
+        <p>
+            Overkill under ZK constraints is a structural consequence of focus-fire convergence, not a measure of waste in the conventional sense. As the policy learns to route drones toward high-compatibility targets, multiple agents independently select the same targets in the same timestep — because no communication mechanism exists to divide responsibility. When several drones fire on a target that is close to elimination, the shots that exceed remaining HP produce overkill. The policy cannot avoid this because it has no access to remaining HP values; the ZK constraint prevents any agent from knowing whether the combined damage of simultaneously acting agents will be sufficient to eliminate the target this step.
+        </p>
+        
+        <p>
+            The oracle's low overkill (3.65 HP) is made possible precisely by its privileged HP access: the oracle's marginal-allocation scorer explicitly penalizes assignments that produce excess damage, routing drones away from nearly-eliminated targets. This information is structurally unavailable to any ZK-compliant policy.
+        </p>
+        
+        <p>
+            The implication is that overkill, in the ZK-MRTA setting, is better interpreted as a coordination tax imposed by the information constraint rather than as an avoidable inefficiency. The rise in overkill over training is therefore a secondary signal of improving match quality: it tracks the same convergence process that produces reduced latent mismatch, faster episode completion, and higher average match quality. A policy that produces no overkill under ZK constraints is likely either uncoordinated (random, distributing fire widely) or operating in a regime where targets are sufficiently robust that simultaneous engagements rarely exceed remaining HP.
+        </p>
+        
+        <h2>8.3 The Crowding Phenomenon and Decentralized Coordination</h2>
+        
+        <p>
+            The mid-training crowding phenomenon — in which the number of unique preferred targets across 9 agents collapsed from 9 to 4 by episode 18 before recovering to 8 by episode 35 — reveals a fundamental tension in decentralized ZK-MRTA learning that deserves explicit attention.
+        </p>
+        
+        <p>
+            As the policy's integration matrix fills and predicted utilities stabilize, all agents independently converge on similar estimates of which drone-target pairings are most valuable. Because the latent structure has a block-diagonal character (three modes, roughly three drones per mode), agents within the same latent mode will tend to converge on the same preferred targets. In a centralized system, this could be resolved by explicit assignment negotiation or role differentiation. Under ZK constraints, no such coordination is available: agents can only observe what targets others have selected, not what utilities they have estimated. The result is emergent contention that temporarily limits efficiency gains even as individual utility estimates improve.
+        </p>
+        
+        <p>
+            The partial resolution of crowding in phase 3 suggests that continued ε decay — by reducing the variance of individual agent behavior — gradually drives agents toward their most differentiated preferences, producing a degree of implicit specialization without explicit negotiation. This emergent specialization is fragile and incomplete: at episode 35, one agent's preferred target remains unresolved, and the process would likely continue with more training. It nonetheless demonstrates that the decentralized matrix-factorization policy can self-organize toward partial role differentiation purely through the statistical dynamics of exploration decay, without any designed mechanism for conflict resolution.
+        </p>
+        
+        <h2>8.4 Limitations</h2>
+        
+        <p>
+            <strong>Single training run.</strong> All results are drawn from a single training run of 35 episodes on one fixed benchmark instance. No statistical replication across random seeds or scenario instantiations was performed. Variability due to random initialization of embeddings, stochastic action selection, and the latent structure of the specific benchmark instance is therefore unquantified. The reported results should be interpreted as a proof-of-concept evaluation rather than a statistically robust characterization of policy performance.
+        </p>
+        
+        <p>
+            <strong>Undertrained policy.</strong> As assessed in Section 7.7, the policy shows no sign of convergence at the end of the 35-episode training horizon. The best episode is the final episode, the exploration rate has not reached its floor, and structural indicators (agreement gap, preference diversity) remain in active improvement. The cross-policy comparison reflects the ceiling of a 35-episode training budget, not the steady-state behavior of the method. Performance under extended training is unknown.
+        </p>
+        
+        <p>
+            <strong>Single supervision mode.</strong> Only the integration-matrix supervision mode is evaluated. The contribution of this design choice to the observed structure recovery cannot be quantified without a direct comparison to the direct supervision mode under identical conditions.
+        </p>
+        
+        <p>
+            <strong>Single swarm composition.</strong> The 3:1 target-to-drone ratio and the specific values of $m = 9$ and $n = 27$ are fixed throughout. How the policy's learning dynamics, crowding behavior, and structure recovery scale with swarm composition is not addressed by the current evaluation.
+        </p>
+        
+        <p>
+            <strong>Factorization dimension match.</strong> The policy's factorization dimension $d_f = 3$ matches the environment's true latent dimension $d = 3$. In a realistic deployment, the true latent dimension would be unknown, and the policy would need to be configured with a possibly mismatched $d_f$. The sensitivity of structure recovery to this mismatch is not evaluated here.
+        </p>
+        
+        <h2>8.5 Implications and Future Directions</h2>
+        
+        <p>
+            The results establish that collaborative-filtering-inspired matrix factorization is a viable learning mechanism for the ZK-MRTA problem class. The core finding — that a decentralized policy operating under strict observability constraints can recover meaningful latent compatibility structure from interaction outcomes alone — opens several directions for further investigation.
+        </p>
+        
+        <p>
+            The most immediate priority is extending the training horizon. Given the undertrained status of the current evaluation, a longer run would clarify whether the observed trends continue, plateau, or exhibit new dynamics. Of particular interest is whether the crowding phenomenon fully resolves, what the ceiling of match quality recovery is under the current architecture, and at what episode count the policy approaches steady-state behavior.
+        </p>
+        
+        <p>
+            A direct comparison of supervision modes — integration-matrix versus direct — would isolate the contribution of the clean-signal gating mechanism and is straightforward to conduct within the existing framework. Systematic variation of swarm composition, exploring how the 3:1 ratio, drone count, and target count independently affect learning speed and coordination quality, would address the least-explored dimension of the research question. Sensitivity analysis of the factorization dimension $d_f$ relative to the true latent dimension $d$ would characterize the robustness of the method under realistic conditions where $d$ is unknown.
+        </p>
+        
+        <p>
+            Finally, the crowding phenomenon identified here points toward a potential design intervention: mechanisms that promote implicit role differentiation among agents without violating ZK constraints. Approaches such as diversity-regularized exploration, agent-indexed embeddings, or structured initialization that breaks symmetry across agents are natural candidates, and their evaluation within the ZK-MRTA framework would directly address the coordination efficiency gap that crowding currently imposes.
+        </p>
+    </div>
+</body>
+</html>
