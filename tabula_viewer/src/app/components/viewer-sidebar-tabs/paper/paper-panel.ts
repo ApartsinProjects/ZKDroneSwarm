@@ -2,7 +2,7 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 
-type PaperSection = 'abstract' | 'introduction' | 'literature-review' | 'model-problem-definition' | 'methods' | 'framework-description' | 'experiments';
+type PaperSection = 'abstract' | 'introduction' | 'literature-review' | 'model-problem-definition' | 'methods' | 'framework-description' | 'experiments' | 'results';
 
 interface PaperSectionDefinition {
   id: PaperSection;
@@ -17,7 +17,8 @@ const PAPER_SECTIONS: ReadonlyArray<PaperSectionDefinition> = [
   { id: 'model-problem-definition', label: 'Model & Problem Def.', htmlFile: 'model-problem-definition.html' },
   { id: 'methods', label: 'Methods', htmlFile: 'methods.html' },
   { id: 'framework-description', label: 'Framework Desc.', htmlFile: 'framework-description.html' },
-  { id: 'experiments', label: 'Experiments', htmlFile: 'experiments.html' }
+  { id: 'experiments', label: 'Experiments', htmlFile: 'experiments.html' },
+  { id: 'results', label: 'Results', htmlFile: 'results.html' }
 ];
 
 @Component({
