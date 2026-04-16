@@ -1,10 +1,6 @@
 # 3. Model and Problem Definition
 
-This section provides a formal specification of the Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA) problem, defining the system model, informational constraints, and performance objectives that govern decentralized multi-agent task allocation under hidden compatibility structures.
-
-The ZK-MRTA framework extends classical task allocation by removing access to explicit cost and feasibility functions, requiring agents to infer task suitability through interaction outcomes alone. This creates a collaborative filtering problem in the multi-agent domain, where coordination must emerge from decentralized learning over shared observation histories.
-
-**Notation conventions**: We use $\mathcal{A}$ and $\mathcal{T}$ to denote the sets of agents and tasks, while $A$ and $O$ denote the action and observation spaces. Latent vectors are denoted $\mathbf{z}_i^{(a)}$ for agent $i$ and $\mathbf{z}_j^{(t)}$ for task $j$, with dimension $d$. Time is discrete and indexed by $t = 1, 2, \ldots$
+We formalize ZK-MRTA as a sequential multi-agent decision problem subject to strict informational constraints. Notation is summarized in §3.12.
 
 ## 3.1 Problem Setting
 

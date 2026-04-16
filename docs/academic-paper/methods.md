@@ -1,11 +1,5 @@
 # 4. Methods
 
-This section presents the decision methods evaluated in the ZK-MRTA framework. Its purpose is to describe how agents transform limited observations into task-selection actions under the zero-knowledge assumptions, while leaving simulator configuration, parameter settings, and benchmark design to the Experiments section.
-
-In this study, a strategy is understood as an algorithm that processes observations, maintains internal state when needed, and outputs task-allocation decisions. The methods considered here therefore differ primarily in two dimensions: the information used to estimate task utility, and the rule used to convert that estimate into an action.
-
-A common interface is used for all policies. At each decision step, a policy receives per-agent observations and returns one action for each agent. Learning-based methods may additionally update internal state after observing the consequences of the previous step, whereas non-learning baselines leave this update stage empty. This unified interface is important because it allows different policies to be compared under identical information constraints and interaction mechanics.
-
 ## 4.1 Methodological Framing: Estimation and Decision
 
 The methodological logic of this section is to separate each policy into an estimation component and a decision component. The estimation component determines what the agent knows, infers, or assumes about the utility of assigning itself to a target. The decision component then maps that information into a concrete action.

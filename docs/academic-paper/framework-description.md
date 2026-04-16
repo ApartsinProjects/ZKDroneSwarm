@@ -2,10 +2,6 @@
 
 This section describes the architectural design of the ZK-MRTA benchmark framework. The framework implements the formal problem definition presented in Section 3 as a reusable multi-agent environment, providing controlled latent compatibility structure while enforcing the zero-knowledge observability constraints that define the problem.
 
-The framework is designed as a configurable benchmark generator rather than a single fixed scenario. Its architecture is defined by a set of design choices governing latent-world construction, observation channels, task dynamics, reward signals, and logging support. This configurability allows the framework to represent a spectrum of hidden coordination problems, from relatively clean separable structures to more ambiguous and difficult compatibility patterns.
-
-A central design principle is the strict separation between the hidden environment structure and the observable signals available to policies. The environment internally maintains latent drone and target representations that govern true compatibility, but these variables are never exposed through the observation interface. Instead, agents receive only indirect evidence through interaction outcomes and public swarm behavior, forcing all inference to occur through decentralized learning from limited feedback. This section describes how that separation is maintained across the framework's components, while Section 6 will specify the particular parameter configuration used in the experiments reported in this paper.
-
 ## 5.1 Overview of the Framework
 
 The proposed framework is a latent Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA) benchmark implemented as a PettingZoo `ParallelEnv`, with action and observation spaces defined through Gymnasium `spaces`. It is designed as a reusable multi-agent evaluation environment in which all agents act simultaneously at each discrete time step. Its main purpose is to provide a controlled benchmark for studying decentralized task-allocation strategies under strict information constraints, while keeping the hidden compatibility structure of the environment inaccessible to the agents. 
