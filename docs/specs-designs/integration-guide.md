@@ -496,9 +496,9 @@ best_episode_num = result["best_episode_num"]
 analysis_path = f"analysis/analysis_ep{best_episode_num:02d}.json"
 ```
 
-**Selection criterion:** Highest damage efficiency (net damage / gross damage)
+**Selection criterion:** Fewest steps (episode that completed in the minimum number of steps)
 
-**Rationale:** Damage efficiency indicates coordination quality (low overkill, efficient target selection)
+**Rationale:** Fewer steps to neutralize all targets indicates faster, more efficient coordination
 
 ---
 
@@ -671,7 +671,7 @@ class EpisodeMetrics:
         # Shots per target
         self.shots_per_target = (
             self.total_ammo_used / self.targets_neutralized
-            if self.targets_neutralized > 0 else float('inf')
+            if self.targets_neutralized > 0 else 0.0
         )
         
         # Total reward across all agents
