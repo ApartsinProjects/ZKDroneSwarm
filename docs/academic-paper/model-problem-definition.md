@@ -76,7 +76,7 @@ The current benchmark instantiates passive targets with fixed resilience (HP), m
 - **Infinite-capacity**: Agents can perform an unlimited number of interactions. This provides an idealized baseline for evaluating the pure learning and coordination challenge.
 - **Finite-capacity**: Agents possess limited resources (e.g., ammunition, energy), restricting the total number of interactions before the agent is exhausted. This introduces an additional planning dimension: selecting not only which tasks to engage, but how to allocate limited resources across the mission horizon.
 
-Both variants are supported by the framework. The current implementation tracks per-agent ammunition consumption, enabling finite-capacity experiments.
+Both variants are supported by the framework. The experiments reported in this paper use the **infinite-capacity** variant: no per-agent ammunition limit is enforced, and episodes terminate either when all targets are neutralized or the step budget is exhausted. Per-agent ammunition consumption is nonetheless tracked as a diagnostic metric throughout execution.
 
 ## 3.6 Observation Model
 
@@ -217,6 +217,8 @@ The objective is to design decentralized agent behaviors that maximize global pe
 | $M$ | Set of performance metrics |
 | $C(a_i, t_j)$ | Cost function (classical MRTA reference) |
 | $G(a_i, t_j)$ | Feasibility function (classical MRTA reference) |
+
+**Implementation note.** The benchmark implementation uses $N$ for the number of agents and $M$ for the number of tasks (matching PettingZoo conventions), and denotes the environment latent dimension as $d_z$ to distinguish it explicitly from the policy factorization dimension $d_f$. Throughout this paper the symbols $m$, $n$, and $d$ are used in place of $N$, $M$, and $d_z$ respectively to keep notation concise and consistent with the MRTA literature.
 
 ## 3.13 Formal Definition of ZK-MRTA
 

@@ -1,5 +1,7 @@
 # Bibliography
 
+[1] P. R. Wurman, R. D'Andrea, and M. Mountz, "Coordinating hundreds of cooperative, autonomous vehicles in warehouses," AI Magazine, vol. 29, no. 1, pp. 9–19, 2008.
+
 [2] M. Dorigo, G. Theraulaz, and V. Trianni, "Reflections on the future of swarm robotics," Science Robotics, vol. 5, no. 49, eabe4385, 2020.
 
 [3] M. Brambilla, E. Ferrante, M. Birattari, and M. Dorigo, "Swarm robotics: A review from the swarm engineering perspective," Swarm Intelligence, vol. 7, no. 1, pp. 1–41, 2013.
@@ -7,6 +9,8 @@
 [4] A. Khamis, A. Hussein, and A. Elmogy, "Multi-robot task allocation: A review of the state-of-the-art," in Cooperative Robots and Sensor Networks 2015, Cham: Springer, 2015, pp. 31–51.
 
 [5] A. R. Cheraghi, S. Shahzad, and K. Graffi, "Past, present, and future of swarm robotics," in Intelligent Systems and Applications: Proceedings of the 2021 Intelligent Systems Conference (IntelliSys), Volume 3, Cham: Springer, 2022, pp. 190–233.
+
+[6] L. E. Parker, "Multiple mobile robot systems," in Springer Handbook of Robotics, B. Siciliano and O. Khatib, Eds. Berlin, Heidelberg: Springer, 2008, pp. 921–941.
 
 [7] B. P. Gerkey and M. J. Matarić, "A formal analysis and taxonomy of task allocation in multi-robot systems," The International Journal of Robotics Research, vol. 23, no. 9, pp. 939–954, 2004.
 
@@ -18,17 +22,27 @@
 
 [11] A. Prorok, M. A. Hsieh, and V. Kumar, "The impact of diversity on optimal control policies for heterogeneous robot swarms," IEEE Transactions on Robotics, vol. 33, no. 2, pp. 346–358, 2017.
 
+[12] L. Busoniu, R. Babuska, and B. De Schutter, "A comprehensive survey of multi-agent reinforcement learning," IEEE Transactions on Systems, Man, and Cybernetics—Part C: Applications and Reviews, vol. 38, no. 2, pp. 156–172, 2008.
+
 [13] H. Wu, Q. Peng, M. Shi, and L. Xing, "A survey of UAV swarm task allocation based on the perspective of coalition formation," International Journal of Swarm Intelligence Research (IJSIR), vol. 13, no. 1, pp. 1–22, 2022.
 
 [14] J. Tang, H. Duan, and S. Lao, "Swarm intelligence algorithms for multiple unmanned aerial vehicles collaboration: A comprehensive review," Artificial Intelligence Review, vol. 56, no. 5, pp. 4295–4327, 2023.
 
+[15] T. Shima and S. J. Rasmussen, Eds., UAV Cooperative Decision and Control: Challenges and Practical Approaches. Philadelphia, PA: SIAM, 2009.
+
 [16] G. M. Skaltsis, H. S. Shin, and A. Tsourdos, "A review of task allocation methods for UAVs," Journal of Intelligent & Robotic Systems, vol. 109, no. 4, Art. no. 76, 2023.
+
+[17] P. Auer, N. Cesa-Bianchi, and P. Fischer, "Finite-time analysis of the multiarmed bandit problem," Machine Learning, vol. 47, no. 2–3, pp. 235–256, 2002.
+
+[18] T. Lattimore and C. Szepesvári, Bandit Algorithms. Cambridge, UK: Cambridge University Press, 2020.
 
 [19] N. Prisadnikov, "Exploration-exploitation trade-offs via probabilistic matrix factorization," M.S. thesis, Dept. Computer Science, ETH Zürich, 2014.
 
 [20] J. B. Schafer, D. Frankowski, J. Herlocker, and S. Sen, "Collaborative filtering recommender systems," in The Adaptive Web, Berlin, Heidelberg: Springer, 2007, pp. 291–324.
 
 [21] B. Sarwar, G. Karypis, J. Konstan, and J. Riedl, "Item-based collaborative filtering recommendation algorithms," in Proceedings of the 10th International Conference on World Wide Web, 2001, pp. 285–295.
+
+[22] Y. Koren, R. Bell, and C. Volinsky, "Matrix factorization techniques for recommender systems," Computer, vol. 42, no. 8, pp. 30–37, 2009.
 
 [23] B. Sarwar, G. Karypis, J. Konstan, and J. Riedl, "Application of dimensionality reduction in recommender system—a case study," Minnesota Univ. Minneapolis, Dept. of Computer Science, 2000.
 
