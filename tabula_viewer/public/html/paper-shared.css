@@ -98,3 +98,44 @@ abbr {
     color: #4a3f2f;
     margin-bottom: 1.5rem;
 }
+
+figure {
+    text-align: center;
+}
+
+figure img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid rgba(126, 104, 62, 0.2);
+    border-radius: 4px;
+}
+
+figure table {
+    margin: 1rem auto;
+    width: auto;
+    border: none;
+}
+
+figure table td {
+    border: none;
+    padding: 0.5rem;
+    text-align: center;
+}
+
+figure table img {
+    max-width: 300px;
+    width: 100%;
+}
+
+figcaption {
+    margin-top: 0.75rem;
+    font-style: italic;
+    color: #4a3f2f;
+    font-size: 0.95rem;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid rgba(126, 104, 62, 0.2);
+    margin: 2rem 0;
+}
