@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Steps - Zero-Knowledge Multi-Robot Task Allocation</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <link rel="stylesheet" href="paper-shared.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ]
+        });"></script>
+</head>
+<body>
+    <div class="paper-section-container">
+        <h1>Next Steps — Toward Real Academic Experiments</h1>
+        
+        <p class="intro-text">
+            This document outlines the prioritized roadmap for upgrading the current single-configuration experiment into a credible, publishable experimental evaluation.
+        </p>
+        
+        <hr>
+        
+        <h2>The Core Problem</h2>
+        
+        <p>
+            The current paper reports one scenario (seed=42), one policy configuration, 35 episodes. A reviewer will ask two questions that cannot be answered yet:
+        </p>
+        
+        <ol>
+            <li><strong>Is this result statistically reproducible?</strong> (No — one run, no variance estimate)</li>
+            <li><strong>Does the method generalize beyond one lucky configuration?</strong> (Unknown — one scenario)</li>
+        </ol>
+        
+        <p>
+            Both must be addressed before the Experiments and Results sections can be considered complete.
+        </p>
+        
+        <hr>
+        
+        <h2>Priority 1 — Multi-Seed Evaluation (Statistical Validity)</h2>
+        
+        <p>
+            <strong>What:</strong> Run the current configuration across N independent scenario seeds (e.g., seed ∈ {42, 43, ..., 61}, N=20). Each seed generates a different latent structure (different drone/target latent vectors), so this tests generalization across problem instances.
+        </p>
+        
+        <p>
+            <strong>Why this first:</strong> It is infrastructure. Every other ablation also needs multi-seed runs. Build this once, reuse everywhere.
+        </p>
+        
+        <p><strong>What to report:</strong></p>
+        <ul>
+            <li>Mean ± std of each metric (steps, targets neutralized, latent match quality, collisions, overkill) across seeds, at episode 35</li>
+            <li>Learning curve: mean ± std band across episodes 1–35</li>
+            <li>Fraction of seeds where MF outperforms random (robustness claim)</li>
+        </ul>
+        
+        <p>
+            <strong>Implementation note:</strong> <code>config/scenario.json</code> already has <code>"seed": 42</code>. The runner at <code>main_zk_mrta.py</code> passes it through the full stack. A simple outer loop over seed values — writing per-seed result CSVs and aggregating — is sufficient.
+        </p>
+        
+        <p>
+            <strong>Expected result:</strong> MF should consistently outperform random across seeds, though the margin will vary. High variance across seeds would be an interesting finding in itself.
+        </p>
+        
+        <hr>
+        
+        <h2>Priority 2 — Supervision Mode Comparison (Core Ablation)</h2>
+        
+        <p>
+            <strong>What:</strong> Compare <code>integration_matrix</code> mode (current) against <code>direct</code> supervision mode. Both are already implemented (§4.5.1). This is currently noted as "future work" in §6.4 — but it is actually the most important ablation because integration-matrix is one of the paper's design choices.
+        </p>
+        
+        <p>
+            <strong>Why second:</strong> It directly validates a specific architectural decision in the methods section. Without this comparison, the choice of integration-matrix mode is unjustified.
+        </p>
+        
+        <p><strong>What to report:</strong></p>
+        <ul>
+            <li>Learning curves for both modes (mean ± std over N seeds)</li>
+            <li>Final-episode metric comparison (table or bar chart)</li>
+            <li>Whether integration-matrix converges faster or to a higher ceiling</li>
+        </ul>
+        
+        <p>
+            <strong>Config change required:</strong> Toggle <code>use_integration_matrix</code> in policy config.
+        </p>
+        
+        <h3>Backlog Table</h3>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Detail</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Parameter</strong></td>
+                    <td>Supervision mode: <code>integration_matrix</code> vs. <code>direct</code> vs. <code>hybrid</code></td>
+                </tr>
+                <tr>
+                    <td><strong>Motivation / Story</strong></td>
+                    <td>The integration-matrix mode accumulates a running-mean interaction history before computing gradients, smoothing out reward noise. The direct mode regresses against raw immediate rewards. The hybrid takes a running mean of the new and current embeddings. The story is: <em>does smoothing the supervision signal matter under noisy conditions, and if so, how much?</em></td>
+                </tr>
+                <tr>
+                    <td><strong>Values to try</strong></td>
+                    <td><code>direct</code>, <code>integration_matrix</code> (current), <code>hybrid</code> (if implemented)</td>
+                </tr>
+                <tr>
+                    <td><strong>How to present</strong></td>
+                    <td>Side-by-side learning curves (episodes 1–35) for each mode, mean ± std band over N seeds. Bar chart of final-episode metrics.</td>
+                </tr>
+                <tr>
+                    <td><strong>Expected results</strong></td>
+                    <td>Integration-matrix should outperform direct, especially on latent match quality and overkill, because reward noise is averaged out before gradient updates. Hybrid may converge faster but reach a similar ceiling. Direct may plateau earlier or oscillate.</td>
+                </tr>
+                <tr>
+                    <td><strong>Implementation notes</strong></td>
+                    <td><code>use_integration_matrix</code> flag in policy config controls the switch. <code>direct</code> mode is already coded. Hybrid requires a running mean over embedding matrices — not yet implemented. Run integration-matrix and direct first; add hybrid only if the gap is interesting.</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <hr>
+        
+        <h2>Priority 3 — Latent Dimension Mismatch ($d_f$ vs. $d$)</h2>
+        
+        <p>
+            <strong>What:</strong> Fix environment dimension $d = 3$ and vary policy factorization dimension $d_f \in \{1, 2, 3, 5, 8\}$.
+        </p>
+        
+        <p>
+            <strong>Why:</strong> The current setup sets $d_f = d = 3$, giving the policy "just enough" capacity. This is a favorable condition. A real evaluation should test what happens when the policy under-specifies ($d_f < d$) or over-specifies ($d_f > d$) the latent structure.
+        </p>
+        
+        <p><strong>What to report:</strong></p>
+        <ul>
+            <li>Final-episode performance vs. $d_f$ (line plot)</li>
+            <li>Whether $d_f = d$ is actually the optimal choice, or whether more capacity helps/hurts</li>
+        </ul>
+        
+        <p>
+            <strong>Story this tells:</strong> Robustness of the method to hyperparameter mismatch.
+        </p>
+        
+        <hr>
+        
+        <h2>Priority 4 — Observation Noise Sweep (Collaborativeness Regime)</h2>
+        
+        <p>
+            <strong>What:</strong> Vary observation noise $\sigma_{\text{noise}} \in \{0.0, 0.1, 0.2, 0.4\}$ while holding all else fixed.
+        </p>
+        
+        <p>
+            <strong>Why:</strong> Observation noise controls how accurately agents observe each other's actions — i.e., the degree of implicit coordination possible. At $\sigma = 0$, agents have perfect knowledge of swarm history. At $\sigma = 0.4$, the history channel is nearly uninformative. This sweeps across the "collaborativeness" spectrum.
+        </p>
+        
+        <p><strong>What to report:</strong></p>
+        <ul>
+            <li>Performance degradation curve as noise increases</li>
+            <li>Whether the MF policy degrades gracefully or collapses at high noise</li>
+        </ul>
+        
+        <p>
+            <strong>Story this tells:</strong> Characterizes the operating regime of the method and its sensitivity to the quality of the shared observation channel.
+        </p>
+        
+        <h3>Backlog Table</h3>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Field</th>
+                    <th>Detail</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Parameter</strong></td>
+                    <td><code>observation_noise</code> (and optionally <code>reward_noise</code> as a separate axis)</td>
+                </tr>
+                <tr>
+                    <td><strong>Motivation / Story</strong></td>
+                    <td>Observation noise corrupts the swarm-history channel — the signal agents use to infer what their teammates are doing. Sweeping this parameter simulates a spectrum from <em>fully collaborative</em> (noise=0, agents see accurate peer actions) to <em>effectively isolated</em> (noise=0.4, history channel is nearly random). The story is: <em>at what noise level does the benefit of collaboration break down, and does MF degrade gracefully or catastrophically?</em></td>
+                </tr>
+                <tr>
+                    <td><strong>Values to try</strong></td>
+                    <td><code>observation_noise</code> ∈ {0.0, 0.05, 0.1, 0.2, 0.4}; <code>reward_noise</code> can be swept independently at ∈ {0.0, 0.1, 0.2, 0.4}</td>
+                </tr>
+                <tr>
+                    <td><strong>How to present</strong></td>
+                    <td>Line plot: x-axis = noise level, y-axis = metric (latent match quality, targets neutralized, collisions). One line per policy (MF, random, oracle). Oracle and random serve as invariant reference lines since they do not use the history channel.</td>
+                </tr>
+                <tr>
+                    <td><strong>Expected results</strong></td>
+                    <td>Oracle performance is unaffected (uses privileged model, not observations). Random is unaffected (uniform sampling). MF degrades as noise increases — the integration matrix accumulates corrupted observations, weakening the learned compatibility signal. At noise=0, MF should approach oracle closely. At noise=0.4, MF may approach random. The crossover point is the key result.</td>
+                </tr>
+                <tr>
+                    <td><strong>Implementation notes</strong></td>
+                    <td><code>observation_noise</code> and <code>reward_noise</code> are top-level fields in <code>config/scenario.json</code>. No code changes needed — pure config sweep. Run each noise level over N seeds (same seed set as Priority 1). Report both metrics separately to distinguish the effect of observation corruption from reward corruption.</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <hr>
+        
+        <h2>Priority 5 — Swarm Composition Scaling</h2>
+        
+        <p>
+            <strong>What:</strong> Vary $(m, n)$ while holding the 3:1 ratio fixed: $(3, 9)$, $(6, 18)$, $(9, 27)$, $(15, 45)$.
+        </p>
+        
+        <p>
+            <strong>Why:</strong> The current 9-drone, 27-target setup is one point on the scaling curve. A paper claiming practical relevance should show the method scales (or identify where it breaks down).
+        </p>
+        
+        <p><strong>What to report:</strong></p>
+        <ul>
+            <li>Steps-to-completion and latent match quality vs. swarm size</li>
+            <li>Whether coordination efficiency (collisions, overkill) degrades with scale</li>
+        </ul>
+        
+        <p>
+            <strong>Note:</strong> This is more expensive to run (larger environments, more policy parameters). Do this after Priorities 1–3 are complete.
+        </p>
+        
+        <hr>
+        
+        <h2>Figures to Produce</h2>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Figure</th>
+                    <th>What it shows</th>
+                    <th>Needed for</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Learning curve (mean ± std band)</td>
+                    <td>MF improvement over 35 episodes, with confidence interval</td>
+                    <td>Priority 1</td>
+                </tr>
+                <tr>
+                    <td>Cross-policy bar chart (episode 35)</td>
+                    <td>MF vs. random vs. oracle on all metrics, with error bars</td>
+                    <td>Priority 1</td>
+                </tr>
+                <tr>
+                    <td>Supervision mode comparison</td>
+                    <td>Integration-matrix vs. direct learning curves</td>
+                    <td>Priority 2</td>
+                </tr>
+                <tr>
+                    <td>$d_f$ sensitivity line plot</td>
+                    <td>Performance vs. policy factorization dimension</td>
+                    <td>Priority 3</td>
+                </tr>
+                <tr>
+                    <td>Noise sweep plot</td>
+                    <td>Performance vs. observation noise level</td>
+                    <td>Priority 4</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <hr>
+        
+        <h2>Revised Paper Structure (Experiments + Results)</h2>
+        
+        <p>Once the above experiments are run, Sections 6 and 7 should be restructured:</p>
+        
+        <p><strong>Section 6 (Experiments):</strong></p>
+        <ul>
+            <li>6.1 Benchmark Scenario (keep as-is)</li>
+            <li>6.2 Multi-Seed Evaluation Protocol <em>(new)</em></li>
+            <li>6.3 Ablation Conditions <em>(new — supervision mode, $d_f$, noise, composition)</em></li>
+            <li>6.4 Evaluation Metrics (keep as-is)</li>
+        </ul>
+        
+        <p><strong>Section 7 (Results):</strong></p>
+        <ul>
+            <li>7.1 Baseline Comparison (multi-seed, with error bars)</li>
+            <li>7.2 Learning Dynamics (curve with confidence band)</li>
+            <li>7.3 Supervision Mode Ablation <em>(new)</em></li>
+            <li>7.4 Latent Dimension Sensitivity <em>(new)</em></li>
+            <li>7.5 Noise Sensitivity <em>(new)</em></li>
+            <li>7.6 Summary</li>
+        </ul>
+        
+        <hr>
+        
+        <h2>Recommended Sequence</h2>
+        
+        <pre><code>Step 1: Build multi-seed runner → rerun current config (N=20 seeds)
+Step 2: Run supervision mode ablation (same N seeds)
+Step 3: Run d_f sweep (same N seeds)
+Step 4: Run noise sweep (same N seeds)
+Step 5: Run swarm composition scaling (if time permits)
+Step 6: Revise Sections 6 and 7 with new results
+Step 7: Update figures</code></pre>
+        
+        <p>
+            Steps 1–4 are independent once the multi-seed infrastructure exists. Steps 2–4 can run in parallel if compute allows.
+        </p>
+    </div>
+</body>
+</html>
