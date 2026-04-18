@@ -1,6 +1,6 @@
 # 7. Results
 
-This section reports the results of the evaluation described in Section 6. It is organized as follows. Section 7.1 establishes task completion and frames efficiency as the primary differentiating axis. Section 7.2 presents the cross-policy comparison at the final training episode. Section 7.3 provides a qualitative analysis of per-episode engagement profiles. Section 7.4 describes the learning dynamics across all 35 training episodes. Section 7.5 examines latent structure recovery as reflected in match quality and internal learning state. Section 7.6 analyzes emergent coordination phenomena. Section 7.7 assesses convergence status and training horizon adequacy.
+This section reports the results of the evaluation described in Section 6. It presents task-completion outcomes, cross-policy comparisons, learning dynamics, latent-structure recovery, coordination effects, and the convergence assessment for the decentralized matrix-factorization policy.
 
 ## 7.1 Task Completion
 
@@ -10,25 +10,27 @@ This result is consistent with the scenario design. With 9 drones engaging 27 ta
 
 ## 7.2 Cross-Policy Comparison
 
-The table below reports each metric for the random baseline, the oracle benchmark, and the matrix-factorization policy at its best episode (episode 35). The baseline and oracle are each evaluated on a single episode; the matrix-factorization result reflects accumulated learning over 35 training episodes.
+The table below reports each metric for the random baseline, the oracle benchmark, and the matrix-factorization policy at its final episode (episode 35), which is also the best episode in this run. The baseline and oracle are each evaluated on a single episode; the matrix-factorization result reflects accumulated learning over 35 training episodes.
 
 | Metric | Random | MF (ep. 35) | Oracle | MF vs. Random | MF vs. Oracle |
 |---|---|---|---|---|---|
-| Steps | 126 | **69** | 62 | −45.2% | +11.3% |
-| Total ammo | 1,134 | **621** | 558 | −45.2% | +11.3% |
-| Shots per target | 42.0 | **23.0** | 20.7 | −45.2% | +11.3% |
-| Avg. match quality | 0.313 | **0.568** | 0.657 | +81.7% | −13.6% |
-| Total latent mismatch (HP) | 619.8 | **235.8** | 143.6 | −62.0% | +64.3% |
-| Total overkill (HP) | 7.0 | 10.7 | **3.65** | +53.5% | +194.1% |
+| Steps ↓ | 126 | **69** | 62 | −45.2% | +11.3% |
+| Total ammo ↓ | 1,134 | **621** | 558 | −45.2% | +11.3% |
+| Shots per target ↓ | 42.0 | **23.0** | 20.7 | −45.2% | +11.3% |
+| Avg. match quality ↑ | 0.313 | **0.568** | 0.657 | +81.7% | −13.6% |
+| Total latent mismatch (HP) ↓ | 619.8 | **235.8** | 143.6 | −62.0% | +64.3% |
+| Total overkill (HP) ↓ | 7.0 | 10.7 | **3.65** | +53.5% | +194.1% |
 | Total collisions | 225 | 295 | 382 | +31.1% | −22.8% |
 | Total net damage (HP) | 270.0 | 270.0 | 270.0 | 0% | 0% |
-| Targets neutralized | 27 | 27 | 27 | 0% | 0% |
+| Targets neutralized ↑ | 27 | 27 | 27 | 0% | 0% |
+
+*Arrows indicate preferred direction (↑ higher is better, ↓ lower is better). In the comparison columns, positive values indicate that MF is numerically higher than the reference policy on that metric.*
 
 The matrix-factorization policy closes approximately 45% of the step and ammo gap between random and oracle. Starting from a policy that required 126 steps and 1,134 shots to complete the scenario, learning reduces these figures to 69 steps and 621 shots — within 11% of the oracle on both efficiency metrics. Average match quality improves from 0.313 (random) to 0.568 (MF), closing 60% of the gap to the oracle value of 0.657. Total latent mismatch is reduced by 62% relative to random, from 619.8 HP to 235.8 HP, though a substantial residual gap to the oracle (143.6 HP) remains.
 
 Net damage is identical across all three policies, as all episodes result in full target neutralization. This confirms that the relevant variation is not in whether damage is applied, but in how efficiently it is allocated.
 
-Two metrics move against the direction of improvement. Total overkill increases from 4.6 HP in episode 1 to 10.7 HP in episode 35, and is substantially higher under MF (10.7 HP) than under random (7.0 HP) or oracle (3.65 HP). Total collisions under MF (295) exceed the random baseline (225). Both findings are analyzed in Section 7.5.
+Two metrics move against the direction of improvement. Total overkill increases from 4.6 HP in episode 1 to 10.7 HP in episode 35, and is substantially higher under MF (10.7 HP) than under random (7.0 HP) or oracle (3.65 HP). Total collisions under MF (295) exceed the random baseline (225). Both findings are analyzed in Section 7.6.
 
 ## 7.3 Episode Engagement Profiles
 
@@ -42,11 +44,11 @@ A complementary view of policy behavior is provided by per-episode engagement pr
 
 ---
 
-**Random baseline (126 steps).** The random profile exhibits the widest and most persistent gap between the two curves. HP declines smoothly and approximately linearly from the first step, reflecting continuous damage distributed uniformly across all 27 targets. By contrast, the Active Targets curve remains near 100% until approximately step 40, when the first eliminations begin. The two curves converge only in the final 20–30 steps, as targets that have been gradually depleted finally reach zero HP in rapid succession. This pattern — HP draining continuously while target count remains nearly flat for the first third of the episode — is the structural signature of **distributed spray damage**: shots are spread across all available targets, progressively reducing each target's HP without concentrating enough fire to eliminate any single target promptly. The large enclosed area between the two curves corresponds directly to the high total latent mismatch (619.8 HP) reported in Section 7.2.
+**Random baseline (126 steps).** The random profile exhibits the widest and most persistent gap between the two curves. HP declines approximately linearly while the Active Targets curve remains near 100% until approximately step 40, when the first eliminations begin. The two curves converge only in the final 20–30 steps. This pattern is the structural signature of **distributed spray damage**: shots are spread across all targets without concentrating enough fire to eliminate any single target promptly. The large enclosed area between the two curves corresponds directly to the high total latent mismatch (619.8 HP) reported in Section 7.2.
 
 **Matrix-factorization policy (69 steps).** The MF profile shows a substantially reduced HP-Active Targets gap. Target eliminations begin noticeably earlier — within approximately the first seven to eight steps — and the Active Targets curve descends in a more regular staircase pattern throughout the episode rather than clustering at the end. The two curves track each other more closely than in the random case, and the episode concludes in 69 steps. The gap is not eliminated, however: the HP curve consistently leads the Active Targets curve, indicating that damage is still partially distributed across multiple targets before each elimination occurs. This reflects the learned but imperfect focus-fire behavior of the policy: having inferred the dominant latent compatibility structure, it concentrates fire on high-affinity targets, but without access to remaining HP values it cannot schedule shots to eliminate targets sequentially in the way an HP-aware planner would.
 
-**Oracle benchmark (62 steps).** The oracle profile exhibits the tightest coupling between the two curves. Target eliminations begin from the very first steps of the episode, and the Active Targets curve descends in a consistent staircase that closely parallels the HP decline throughout. The two curves converge progressively and terminate together at step 62. The minimal enclosed area between them reflects the oracle's HP-aware marginal scheduling: it explicitly tracks remaining HP and assigns drones to targets that are close to elimination, minimizing the amount of damage dealt to targets that will not be eliminated this step. This produces a nearly sequential target-elimination pattern and the lowest total latent mismatch (143.6 HP) and overkill (3.65 HP) of the three policies.
+**Oracle benchmark (62 steps).** The oracle profile exhibits the tightest coupling between the two curves. Target eliminations begin from the very first steps, and the Active Targets curve descends in a consistent staircase that closely parallels the HP decline throughout, terminating together at step 62. The minimal enclosed area reflects the oracle's HP-aware marginal scheduling: it assigns drones to targets near elimination, producing a nearly sequential target-elimination pattern and the lowest total latent mismatch (143.6 HP) and overkill (3.65 HP) of the three policies.
 
 **Structural interpretation.** The progression from random to MF to oracle in these profiles illustrates the fundamental trade-off at the core of the ZK-MRTA problem. Under random assignment, all damage potential is wasted on spread: HP drains uniformly but no target is eliminated until very late. Under oracle assignment, damage potential is maximally converted into eliminations through privileged HP awareness. The MF policy occupies an intermediate position determined by what can be inferred from latent compatibility structure alone, without access to HP state. The shrinking of the HP-Active Targets gap across the three policies is a direct qualitative expression of the same progression captured quantitatively by the latent mismatch and match quality metrics in Section 7.2.
 
@@ -62,8 +64,6 @@ This crowding pattern is a structural consequence of the learning mechanism. As 
 
 **Phase 3 — Slow Late Refinement (episodes 21–35).** After episode 21, efficiency metrics resume a slow but sustained improvement. Steps decline from 75 to 69 over the final 14 episodes; shots per target fall from 25 to 23. Match quality reaches its training peak of 0.590 at episode 31 before settling at 0.568 in the final episode. Crucially, the number of unique preferred targets recovers to 8 by episode 35, indicating that as epsilon continues to decay and the policy's internal model becomes more accurate, agents begin to differentiate their preferences more clearly — consistent with the latent structure being gradually resolved from a previously crowded shared representation.
 
-Throughout all three phases, mean reward per agent exhibits no clear upward trend (ranging between approximately 40.8 and 50.0, with no systematic increase). This decoupling between reward and efficiency reflects the reward structure: total reward scales with targets neutralized and not strongly with efficiency. Steps and match quality are therefore the more informative indicators of learning progress in this setting.
-
 ## 7.5 Latent Structure Recovery
 
 The core question motivating this evaluation is whether decentralized matrix factorization can recover the hidden compatibility structure of the environment from interaction outcomes alone. Two direct indicators are available: average match quality and the internal agreement gap.
@@ -78,7 +78,7 @@ The core question motivating this evaluation is whether decentralized matrix fac
 
 *Figure 2. t-SNE projection of drone 1's learned P and U embedding matrices at episode 35. Each point represents either a drone (P-row) or a target (U-column) in the 3-dimensional factorization space. Colors correspond to ground-truth latent mode assignments (red, green, blue), which are unknown to the policy and applied here post-hoc for interpretability.*
 
-Three spatially separated clusters have formed, each aligned with one of the three ground-truth latent modes. Red-mode entities are grouped in one region, green-mode entities in another, and the blue-mode entity occupies a distinct third position. This separation arises entirely from learned interaction outcomes: the policy was never given mode labels, latent vectors, or any explicit structural signal. The embedding geometry reflects what was inferrable from the public reward signal and swarm interaction history alone.
+Three spatially separated clusters have formed, each aligned with one of the three ground-truth latent modes. Red-mode entities are grouped in one region, green-mode entities in another, and blue-mode entities occupy a distinct third region. This separation arises entirely from learned interaction outcomes: the policy was never given mode labels, latent vectors, or any explicit structural signal. The embedding geometry reflects what was inferrable from the public reward signal and swarm interaction history alone.
 
 This is a direct and interpretable manifestation of the structure recovery quantified above. The agreement gap measures how close the model's predictions are to empirical interaction estimates; this visualization shows that the underlying embedding geometry has organized itself to be consistent with the hidden latent structure of the environment. The two measures are complementary: the agreement gap is a scalar summary, and the t-SNE projection is a geometric witness to the same underlying recovery process.
 
@@ -96,8 +96,8 @@ The oracle's overkill is exceptionally low (3.65 HP) precisely because it incorp
 
 ## 7.7 Convergence Assessment
 
-The training run is assessed as **potentially undertrained**. The best episode across all 35 training episodes is episode 35, the final episode of the run. Neither efficiency nor match quality shows signs of stabilization at the end of training: match quality was still improving in the final phase (31: 0.590 → 35: 0.568, with noise), and episode duration continued to decline across the last several episodes. The exploration rate at the end of training ($\varepsilon = 0.052$) remains substantially above the specified minimum of $\varepsilon_{\min} = 0.02$, indicating that the policy had not yet entered its fully exploitative regime.
+The training run is assessed as **potentially undertrained**. The best episode across all 35 training episodes is episode 35, the final episode of the run. Neither efficiency nor match quality shows signs of stabilization at the end of training: episode duration continued to decline across the final phase, while match quality remained near its peak but did not settle to a stable plateau (0.590 at episode 31 and 0.568 at episode 35). The exploration rate at the end of training ($\varepsilon = 0.052$) remains substantially above the specified minimum of $\varepsilon_{\min} = 0.02$, indicating that the policy had not yet entered its fully exploitative regime.
 
-The average performance over the full 35-episode training run ($\bar{T} = 99.6 \pm 39.4$ steps, $\bar{A} = 896.7 \pm 354.8$ shots) is considerably below the best-episode results (69 steps, 621 shots), reflecting the large variance during the early rapid-convergence phase. Cross-policy comparisons using the best episode therefore represent the ceiling of what the policy achieved under the given training budget, not its steady-state behavior.
+The average performance over the full 35-episode training run ($\bar{T} = 99.6$ steps with standard deviation 39.4 across episodes, $\bar{A} = 896.7$ shots with standard deviation 354.8) is considerably below the best-episode results (69 steps, 621 shots), reflecting the large variance during the early rapid-convergence phase. Cross-policy comparisons using the best episode therefore represent the ceiling of what the policy achieved under the given training budget, not its steady-state behavior.
 
 These observations suggest that extending the training horizon would likely yield further efficiency gains, particularly in match quality and latent mismatch. The policy has not saturated, and the structural dynamics — declining agreement gap, recovering preference diversity — indicate that learning is ongoing. Convergence behavior under extended training is identified as a primary question for future investigation.

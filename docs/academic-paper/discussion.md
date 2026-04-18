@@ -1,6 +1,6 @@
 # 8. Discussion
 
-This section interprets the results reported in Section 7 in relation to the research question and the broader claims of the paper. It is organized around four themes: the extent to which the results address each dimension of the research question, the structural interpretation of the coordination phenomena observed, the limitations of the current evaluation, and the implications for future work.
+This section interprets the results reported in Section 7 in relation to the research question and the broader claims of the paper. It discusses what the results show, how the observed coordination phenomena should be understood, the main limitations of the current evaluation, and the implications for future work.
 
 ## 8.1 Addressing the Research Question
 

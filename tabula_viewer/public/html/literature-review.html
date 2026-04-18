@@ -22,14 +22,18 @@
     <div class="paper-section-container">
         <h1>2. Literature Review</h1>
         
+        <p class="intro-text">
+            This section situates ZK-MRTA at the intersection of three relevant literatures: swarm robotics and MRTA, decentralized online learning under uncertainty, and collaborative filtering with latent-factor models. The goal is not only to survey prior work, but to clarify which assumptions dominate existing approaches, where those assumptions become limiting under strict zero-knowledge constraints, and why matrix-factorization-based latent-utility learning provides a suitable theoretical foundation for the method studied in this paper.
+        </p>
+        
         <h2>2.1 Swarm Robotics and the Emergence of MRTA</h2>
         
         <p>
-            Swarm robotics studies how large groups of relatively simple agents can achieve coordinated behavior through decentralized interaction. Its key advantages are robustness, scalability, and flexibility, which make swarm-based systems attractive in domains such as disaster response, hazardous exploration, and military operations [2], [3], [5]. As robotic swarms become more heterogeneous, however, coordination becomes substantially more difficult, since agents may differ in sensing, mobility, endurance, or attack capability. This challenge motivates the study of Multi-Robot Task Allocation (MRTA), which concerns how tasks should be assigned to multiple agents in order to optimize overall system performance.
+            Swarm robotics studies how large groups of relatively simple agents can achieve coordinated behavior through decentralized interaction. Its key advantages are robustness, scalability, and flexibility, which make swarm-based systems attractive in domains such as disaster response, hazardous exploration, and military operations [2]. As robotic swarms become more heterogeneous, however, coordination becomes substantially more difficult, since agents may differ in sensing, mobility, endurance, or attack capability. This challenge motivates the study of Multi-Robot Task Allocation (MRTA), which concerns how tasks should be assigned to multiple agents in order to optimize overall system performance.
         </p>
         
         <p>
-            Early work in MRTA focused largely on task-specific heuristics and bio-inspired coordination schemes. Over time, the field evolved toward more formal frameworks that support systematic classification and comparison of allocation problems and solution methods [2], [3], [5]. This shift was significant because it transformed MRTA from a collection of application-driven algorithms into a more unified research area with clearer assumptions, modeling choices, and evaluation criteria.
+            Early work in MRTA focused largely on task-specific heuristics and bio-inspired coordination schemes. Over time, the field evolved toward more formal frameworks that support systematic classification and comparison of allocation problems and solution methods [3], [5], [6]. This shift was significant because it transformed MRTA from a collection of application-driven algorithms into a more unified research area with clearer assumptions, modeling choices, and evaluation criteria.
         </p>
         
         <h2>2.2 Taxonomies and Classical Solution Families</h2>
