@@ -84,7 +84,7 @@
         </p>
         
         <p>
-            The random and oracle policies do not use an exploration mechanism. The random baseline samples uniformly from available targets at every step, and the oracle selects greedily from its privileged model. Neither policy undergoes learning or epsilon decay.
+            The random and oracle policies do not use an exploration mechanism. The random baseline samples uniformly from available targets at every step, and the oracle selects greedily from its privileged model.
         </p>
         
         <h2>6.3 Supervision Mode</h2>
@@ -151,7 +151,7 @@
                 <tr><td>Number of latent modes</td><td>3</td></tr>
                 <tr><td>Center mode</td><td>One-hot (axis-aligned)</td></tr>
                 <tr><td>Mode sampling</td><td>Independent (drone / target)</td></tr>
-                <tr><td>Drone / target variance</td><td>0.2</td></tr>
+                <tr><td>Drone / target std dev ($\sigma$)</td><td>0.2</td></tr>
                 <tr><td>Target HP ($h$)</td><td>10.0</td></tr>
                 <tr><td>Maximum steps ($T$)</td><td>250</td></tr>
                 <tr><td>NoOp allowed</td><td>No</td></tr>

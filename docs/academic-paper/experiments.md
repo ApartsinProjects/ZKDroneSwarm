@@ -49,6 +49,7 @@ The following metrics are computed for each episode and used to compare policies
 - **Total collisions**: Number of timesteps in which multiple agents selected the same active target simultaneously.
 - **Average latent match quality**: The fraction of optimal damage achieved per shot, defined as total gross damage divided by the sum of optimal damage over all shots fired. A value of 1.0 means every shot was fired by the optimally matched drone for that target; lower values indicate suboptimal pairing. Higher is better.
 - **Total latent mismatch**: Cumulative shortfall in damage due to suboptimal drone-target pairing. For each shot at an active target, this is the difference between the best possible damage any drone could have inflicted on that target and the actual damage dealt. Lower is better.
+
 The oracle benchmark defines an upper bound, and the random baseline defines a lower bound. The matrix-factorization policy is evaluated against both: performance relative to the random baseline measures the gain from learning, while performance relative to the oracle measures the residual gap to the idealized ceiling. For learning-curve analysis, performance is tracked across all 35 training episodes of the matrix-factorization policy; for direct cross-policy comparison, the final episode of the matrix-factorization policy (episode 35), which is also the best episode in this run, is compared to the single baseline episodes.
 
 ## 6.5 Summary of Experimental Conditions

@@ -32,22 +32,10 @@
     <div class="paper-section-container">
         <h1>4. Methods</h1>
         
-        <p class="intro-text">
-            This section presents the decision methods evaluated in the ZK-MRTA framework. Its purpose is to describe how agents transform limited observations into task-selection actions under the zero-knowledge assumptions, while leaving simulator configuration, parameter settings, and benchmark design to the Experiments section.
-        </p>
-        
-        <p>
-            In this study, a strategy is understood as an algorithm that processes observations, maintains internal state when needed, and outputs task-allocation decisions. The methods considered here therefore differ primarily in two dimensions: the information used to estimate task utility, and the rule used to convert that estimate into an action.
-        </p>
-        
-        <p>
-            A common interface is used for all policies. At each decision step, a policy receives per-agent observations and returns one action for each agent. Learning-based methods may additionally update internal state after observing the consequences of the previous step, whereas non-learning baselines leave this update stage empty. This unified interface is important because it allows different policies to be compared under identical information constraints and interaction mechanics.
-        </p>
-        
         <h2>4.1 Methodological Framing: Estimation and Decision</h2>
         
         <p>
-            The methodological logic of this section is to separate each policy into an estimation component and a decision component. The estimation component determines what the agent knows, infers, or assumes about the utility of assigning itself to a target. The decision component then maps that information into a concrete action.
+            The methods in this paper can be understood through two components: estimation and decision. The estimation component determines what an agent knows, infers, or assumes about the utility of assigning itself to a target. The decision component then maps that information into a concrete action.
         </p>
         
         <p>
@@ -61,7 +49,7 @@
         <h2>4.2 Random Baseline</h2>
         
         <p>
-            The random policy serves as the weakest baseline and lower-bound reference. It is fully ZK-compliant: it does not use target hit points, hidden target types, latent compatibility values, or any history of previous interactions. Instead, it only reads the visible active/inactive flag of each target from the observation and samples uniformly from the available actions.
+            The random policy serves as the weakest baseline and lower-bound reference. It is fully ZK-compliant: it does not use target hit points, hidden target types, latent compatibility values, or any history of previous interactions. Instead, it reads only the visible active/inactive status of each target and samples uniformly from the valid actions.
         </p>
         
         <p>
@@ -69,10 +57,10 @@
         </p>
         
         <p>
-            Formally, let $\mathcal{A}_t(i)$ denote the set of valid actions available to drone $i$ at time $t$, consisting of the indices of active targets and, optionally, a NoOp action. The random policy samples:
+            Formally, let $\mathcal{U}_t(a_i)$ denote the set of valid actions available to agent $a_i$ at time $t$, consisting of the indices of active targets and, optionally, a NoOp action. The random policy samples:
         </p>
         
-        $$a_t(i) \sim \text{Uniform}(\mathcal{A}_t(i))$$
+        $$a_t(a_i) \sim \text{Uniform}(\mathcal{U}_t(a_i))$$
         
         <p>
             This baseline is intentionally naive. Its value lies not in performance, but in providing a clean reference for behavior in the absence of estimation, memory, or coordination.
@@ -89,65 +77,59 @@
         </p>
         
         <p>
-            Let $d_{ij}$ denote the damage drone $i$ could inflict on target $j$, and let $h_j$ denote the current remaining HP of target $j$. The oracle evaluates candidate assignments using a marginal score of the general form:
-        </p>
-        
-        $$S(i,j) = \min(d_{ij}, h_j) + \text{future\_value}(j) + \text{finish\_bonus}(i,j) - \text{overkill\_penalty}(i,j) - \text{waste\_term}(i,j)$$
-        
-        <p>
-            then repeatedly selects the best remaining pair. In this way, the oracle approximates globally efficient short-horizon coordination while retaining a computationally simple greedy structure. Because it relies on privileged state, its purpose is not to model realistic deployment but to indicate the performance ceiling against which decentralized methods can be interpreted.
+            The oracle approximates globally efficient short-horizon coordination while retaining a computationally simple greedy structure: it evaluates all candidate drone-target pairs using a composite marginal score that combines these factors, then repeatedly selects the best remaining pair. Because it relies on privileged state, its purpose is not to model realistic deployment but to indicate the performance ceiling against which decentralized methods can be interpreted.
         </p>
         
         <h2>4.4 Decentralized Collaborative-Filtering Policy</h2>
         
         <p>
-            The main method investigated in this research is a decentralized matrix-factorization policy inspired by classical collaborative filtering. The key conceptual adaptation is that collaborative filtering is not used here to estimate user preference, but to estimate operational utility: the expected effectiveness of assigning a drone to a target. Drones play the role of users, targets play the role of items, and observed engagement outcomes replace ratings. Because the problem is sequential, decentralized, and observation-limited, the recommender mechanism is repurposed as an online decision policy rather than a centralized offline prediction model.
+            The main method investigated in this paper is a decentralized matrix-factorization policy inspired by classical collaborative filtering. The key conceptual adaptation is that collaborative filtering is not used here to estimate user preference, but to estimate operational utility: the expected effectiveness of assigning a drone to a target. Drones play the role of users, targets play the role of items, and observed engagement outcomes replace ratings. Because the problem is sequential, decentralized, and observation-limited, the recommender mechanism is repurposed as an online decision policy rather than a centralized offline prediction model.
         </p>
         
         <p>
-            Classical matrix factorization represents users and items through latent vectors and predicts missing interactions via their dot product. In the present setting, this idea is adapted so that each drone independently maintains a private local model of the interaction space. There is no centralized shared factorization and no direct exchange of learned parameters across drones. Collaboration arises only through publicly observable interaction events. This distinction is essential: the method is collaborative in inspiration, but decentralized in implementation.
+            Classical matrix factorization represents users and items through latent vectors and predicts missing interactions via their dot product. In the present setting, this idea is adapted so that each drone independently maintains a private local model of the interaction space. There is no centralized shared factorization and no direct exchange of learned parameters across drones. Collaboration arises only through shared observations of interaction outcomes. This distinction is essential: the method is collaborative in inspiration, but decentralized in implementation.
         </p>
         
-        <p>For agent $a$, the learned model consists of a drone embedding matrix:</p>
+        <p>For an agent $a_i$, the learned model consists of a drone embedding matrix:</p>
         
-        $$P^{(a)} \in \mathbb{R}^{m \times d_f}$$
+        $$P^{(a_i)} \in \mathbb{R}^{m \times d_f}$$
         
         <p>and a target embedding matrix:</p>
         
-        $$U^{(a)} \in \mathbb{R}^{d_f \times n}$$
+        $$U^{(a_i)} \in \mathbb{R}^{d_f \times n}$$
         
         <p>
-            where $m$ is the number of drones, $n$ is the number of targets, and $d_f$ is the factorization dimension (a hyperparameter distinct from the environment's latent dimension $d$). The predicted utility assigned by agent $a$ to drone $i$ engaging target $j$ is:
+            where $m$ is the number of drones, $n$ is the number of targets, and $d_f$ is the factorization dimension (a hyperparameter distinct from the environment's latent dimension $d$). Agent $a_i$'s predicted utility for the interaction between drone $a_k$ and target $t_j$ is:
         </p>
         
-        $$\hat{r}_{ij}^{(a)} = (P_{i,:}^{(a)})^\top U_{:,j}^{(a)}$$
+        $$\hat{r}_{kj}^{(a_i)} = (P_{k,:}^{(a_i)})^\top U_{:,j}^{(a_i)}$$
         
         <p>
-            In the implemented policy, each drone maintains its own local matrices $P$ and $U$, initialized with entries drawn independently from $\mathcal{N}(0,\, 0.01^2)$ and updated online from observed swarm interaction events.
+            where $a_k$ denotes the acting drone whose interaction with target $t_j$ is being evaluated. In the implemented policy, each drone maintains its own local matrices $P^{(a_i)}$ and $U^{(a_i)}$, initialized with entries drawn independently from $\mathcal{N}(0,\, 0.01^2)$ and updated online from observed swarm interaction events.
         </p>
         
         <p>
             This method is particularly well suited to ZK-MRTA because the relevant interaction matrix is not given in advance. Agents begin with no knowledge of true compatibility and must build an interaction structure gradually from sparse experience. The matrix-factorization policy addresses this by learning latent representations from observed rewards, thereby estimating hidden structure that cannot be read directly from the environment.
         </p>
         
-        <h2>4.5 Prediction, Action Selection, and Online Learning</h2>
+        <h2>4.5 Action Selection and Online Update Rules</h2>
         
         <p>
-            At decision time, each drone uses only its own latent row $P_{a,:}^{(a)}$ to evaluate currently active targets. Action selection follows an $\varepsilon$-greedy mechanism. With probability $\varepsilon$, the agent explores by selecting a random active target. Otherwise, it exploits by selecting the target with the highest predicted utility (pure greedy argmax). After each action, the exploration rate decays multiplicatively until it reaches a predefined floor.
+            At decision time, each agent $a_i$ uses only its own latent row $P_{i,:}^{(a_i)}$ to evaluate currently active targets. Action selection follows an $\varepsilon$-greedy mechanism. With probability $\varepsilon$, the agent explores by selecting a random active target. Otherwise, it exploits by selecting the target with the highest predicted utility. After each action, the exploration rate decays multiplicatively until it reaches a predefined floor.
         </p>
         
         <p>
-            Formally, if $\mathcal{T}_t(a)$ is the set of active targets observed by agent $a$ at time $t$, then exploitation selects:
+            Formally, if $\mathcal{T}_t(a_i)$ is the set of active targets observed by agent $a_i$ at time $t$, then exploitation selects:
         </p>
         
-        $$a_t(a) = \arg\max_{j \in \mathcal{T}_t(a)} \hat{r}_{aj}^{(a)}$$
+        $$a_t(a_i) = \arg\max_{j \in \mathcal{T}_t(a_i)} \hat{r}_{ij}^{(a_i)}$$
         
-        <p>while exploration samples uniformly from $\mathcal{T}_t(a)$.</p>
+        <p>while exploration samples uniformly from $\mathcal{T}_t(a_i)$.</p>
         
         <h3>4.5.1 Learning from Shared Interaction Data</h3>
         
         <p>
-            Learning occurs after the environment reveals public information about the previous step. The technical design assumes that each agent can observe selected targets and the corresponding reward signals, even though the hidden compatibility structure remains inaccessible. Two supervision modes are supported:
+            Learning occurs after the environment reveals public information about the previous step. Each agent observes the selected targets and corresponding reward signals, even though the hidden compatibility structure remains inaccessible. Two supervision modes are supported:
         </p>
         
         <ul>
@@ -155,24 +137,26 @@
             <li><strong>Integration-matrix mode</strong>: The policy first updates a running-mean interaction matrix and then uses that accumulated estimate as the supervision target. Crucially, in this mode the validity mask $\mathbf{w}_{t-1}$ acts as an eligibility gate: if the targeted task was already inactive at the time of engagement, the entire event is <strong>skipped</strong> (no accumulation, no SGD update), rather than being downweighted. Only interactions with active targets contribute to the running mean, producing a cleaner supervision signal. This is especially useful when rewards are noisy or when dead-target penalties would otherwise distort the learned compatibility estimates.</li>
         </ul>
         
-        <p>Let the prediction error for an observed event $(i,j)$ be denoted by:</p>
+        <p>
+            Because all interaction outcomes are publicly observable, each agent $a_k$ updates its local model for every observed drone-target event $(a_i, t_j)$, not only its own engagements. Let the prediction error for an observed event $(a_i, t_j)$, as computed by agent $a_k$, be denoted by:
+        </p>
         
-        $$e_{ij}^{(a)} = \hat{r}_{ij}^{(a)} - y_{ij}$$
+        $$e_{ij}^{(a_k)} = \hat{r}_{ij}^{(a_k)} - y_{ij}$$
         
         <p>
             where $y_{ij}$ is either the immediate observed reward or the current running-mean entry of the integration matrix. The local embeddings are then updated by stochastic gradient descent with $L_2$ regularization:
         </p>
         
-        $$P_{i,:}^{(a)} \leftarrow P_{i,:}^{(a)} - \eta \left( 2 e_{ij}^{(a)} U_{:,j}^{(a)} + \lambda P_{i,:}^{(a)} \right)$$
+        $$P_{i,:}^{(a_k)} \leftarrow P_{i,:}^{(a_k)} - \eta \left( 2 e_{ij}^{(a_k)} U_{:,j}^{(a_k)} + \lambda P_{i,:}^{(a_k)} \right)$$
         
-        $$U_{:,j}^{(a)} \leftarrow U_{:,j}^{(a)} - \eta \left( 2 e_{ij}^{(a)} P_{i,:}^{(a)} + \lambda U_{:,j}^{(a)} \right)$$
+        $$U_{:,j}^{(a_k)} \leftarrow U_{:,j}^{(a_k)} - \eta \left( 2 e_{ij}^{(a_k)} P_{i,:}^{(a_k)} + \lambda U_{:,j}^{(a_k)} \right)$$
         
         <p>
-            where $\eta$ is the learning rate and $\lambda$ is the regularization coefficient. Negative rewards may additionally be down-weighted through an anti-signal parameter, allowing the method to reduce the influence of wasted shots while still preserving their corrective effect.
+            where $\eta$ is the learning rate and $\lambda$ is the regularization coefficient. In direct mode, negative rewards from wasted shots (engagements with inactive targets) are down-weighted by a fixed scalar factor before entering the gradient update, reducing their influence while still preserving their corrective effect.
         </p>
         
         <p>
-            An important property of the implemented method is that learning persists across episodes. The policy's soft reset preserves the learned embedding matrices rather than reinitializing them, so knowledge accumulated in earlier episodes continues to shape future decisions. This makes the training process cumulative, which is appropriate for a method intended to model gradual knowledge acquisition under repeated interaction.
+            An important property of the implemented method is that learning persists across episodes. Episode boundaries do not reinitialize the learned embedding matrices, so knowledge accumulated in earlier episodes continues to shape future decisions. The resulting training process is therefore cumulative, which is appropriate for a method intended to model gradual knowledge acquisition under repeated interaction.
         </p>
         
         <h2>4.6 Summary of the Compared Methods</h2>
@@ -182,7 +166,7 @@
         <ul>
             <li><strong>Random baseline</strong>: Performs no estimation and represents behavior under complete strategic ignorance</li>
             <li><strong>Oracle benchmark</strong>: Assumes privileged access to hidden structure and approximates an idealized upper bound on achievable coordination</li>
-            <li><strong>Decentralized matrix-factorization policy</strong>: Lies between these two extremes—it begins without prior knowledge, learns latent utility estimates from sparse public outcomes, and uses those estimates to guide future action selection</li>
+            <li><strong>Decentralized matrix-factorization policy</strong>: Lies between these two extremes; it begins without prior knowledge, learns latent utility estimates from sparse public outcomes, and uses those estimates to guide future action selection</li>
         </ul>
         
         <p>
