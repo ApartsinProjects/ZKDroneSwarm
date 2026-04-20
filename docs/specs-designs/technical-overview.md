@@ -302,7 +302,7 @@ e^{(a)}_{ij} = \hat{r}^{(a)}_{ij} - \bar{M}^{(a)}_{ij}$$
 
 This filters out dead-target penalties from the supervision signal and provides a more stable learning target as observations accumulate.
 
-In both modes, the embeddings are updated using SGD with $L_2$ regularization:
+In both modes, the embeddings are updated using stochastic gradient descent:
 
 $$P^{(a)}_{i,:}
 \leftarrow
@@ -314,12 +314,25 @@ $$U^{(a)}_{:,j}
 U^{(a)}_{:,j}
 - \eta \left( 2 e^{(a)}_{ij} P^{(a)}_{i,:} + \lambda U^{(a)}_{:,j} \right)$$
 
-implemented as:
+where $\eta$ is the learning rate and $\lambda$ is the regularization coefficient. These gradient updates are derived from minimizing the regularized squared-error loss:
+
+$$\mathcal{L}^{(a)}_{ij} = \left( e^{(a)}_{ij} \right)^2 + \tfrac{\lambda}{2} \left( \| P^{(a)}_{i,:} \|^2 + \| U^{(a)}_{:,j} \|^2 \right)$$
+
+Note that the loss value itself is never computed in the implementation—only the gradient is applied directly.
+
+The gradient update implementation:
 
 ```python
+# Compute prediction error
 predicted = self._predict_for_drone(drone_idx, target_idx)
 error = predicted - float(reward)  # or predicted - m_avg in integration-matrix mode
 
+# Snapshot vectors before update (for simultaneous update)
+p_i = self.P[drone_idx].copy()
+u_t = self.U[:, target_idx].copy()
+
+# SGD update with L2 regularization
+# Gradient of L = error² + (λ/2)(||P||² + ||U||²)
 self.P[drone_idx] -= self.learning_rate * (
     2.0 * error * u_t + self.lambda_reg * p_i
 )

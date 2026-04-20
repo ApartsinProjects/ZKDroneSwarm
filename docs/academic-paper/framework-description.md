@@ -1,47 +1,68 @@
 # 5. Framework Description
 
-This section describes the architectural design of the ZK-MRTA benchmark framework as a reusable multi-agent environment. It explains how the framework instantiates the formal problem definition from Section 3 while preserving hidden compatibility structure and enforcing the zero-knowledge observability constraints that define the problem.
+This section describes the architectural design of the ZK-MRTA benchmark framework as a reusable multi-agent environment. It focuses on the implementation choices that instantiate the formal problem setting introduced in §3 while preserving the hidden compatibility structure and the zero-knowledge observability constraints that define the problem. Formal quantities referenced below (observation tuple, damage rule, reward modes) are defined in §3 and are not restated here.
 
 ## 5.1 Overview of the Framework
 
-The proposed framework is a latent Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA) benchmark implemented as a PettingZoo `ParallelEnv`, with action and observation spaces defined through Gymnasium `spaces`. It serves as a reusable multi-agent evaluation environment in which all agents act simultaneously at each discrete time step. Its main purpose is to provide a controlled benchmark for studying decentralized task-allocation strategies under strict information constraints while keeping the hidden compatibility structure of the environment inaccessible to the agents.
+The framework is a ZK-MRTA benchmark with latent compatibility structure, implemented as a PettingZoo `ParallelEnv` with action and observation spaces exposed through Gymnasium `spaces`. All agents act simultaneously at each discrete time step, and the environment is designed to serve as a *configurable benchmark family* rather than a single fixed scenario: a small number of declarative parameters control the hidden world, the observation channel, the reward channel, and the task dynamics.
 
-A central design principle is the separation between the **true hidden environment structure** and the **internal representations learned by policies**. The environment contains latent drone and target factors that govern actual compatibility and task outcomes, but these hidden variables are never directly observable. Instead, policies must infer useful structure indirectly from the limited public interaction history generated during execution.
+A central design principle is the separation between the **true hidden environment structure** and the **internal representations learned by policies**. The environment maintains latent drone and target factors that govern actual compatibility and task outcomes, but these hidden variables are never exposed through the observation space. Policies must infer useful structure indirectly from the restricted public interaction history defined in §3.6.
 
-## 5.2 Latent Benchmark Construction
+## 5.2 Framework Surface and Configuration
 
-Benchmark instances are generated in a hidden latent space whose structure is controlled by a set of configurable parameters. These include the latent dimension, the number and arrangement of latent mode centers, the structural relation between drone modes and target modes, and the sampling variance used to generate latent vectors around those centers. This design allows the environment to produce controlled low-rank compatibility structure while preserving the zero-knowledge assumption at the observation level.
+A benchmark instance is specified by a single JSON configuration file loaded through a typed configuration layer. Table 1 summarizes the top-level configuration groups and the axes of variation they control; this enumerates the surface over which the framework is reusable.
 
-The benchmark supports different structural modes of latent-world generation. In one mode, drones and targets may be generated from a shared family of latent centers; in another, they may be generated from separate mode families, allowing asymmetric hidden structure between agents and tasks. In addition, the center-generation mechanism itself is configurable, enabling more axis-aligned, orthogonal, or less structured latent geometries. As a result, the environment can represent a spectrum of hidden worlds, from relatively clean and separable compatibility patterns to more difficult and ambiguous ones.
+**Table 1 — Framework configuration surface.**
 
-Importantly, the framework does not expose symbolic labels such as latent mode identities to the agents. The benchmark therefore contains meaningful hidden structure, but that structure can only be approached indirectly through interaction outcomes rather than read off from explicit features.
+| Group | Key parameters | Controls |
+|---|---|---|
+| `latent_world` | `mode`, `center_mode`, `latent_dim`, `num_modes`, `drone_variance`, `target_variance`, `epsilon` | Hidden compatibility geometry (see §5.3) |
+| `world` | `size` | Spatial extent of the scenario |
+| `environment` | `max_steps`, `num_episodes` | Episode horizon and sampling |
+| `drones` / `targets` | `count`, `region`, spacing constraints, `target_hp` | Swarm size, task set, placement, resilience |
+| `collaborative_filtering` | `reward_noise`, `observation_noise` | Channel noise (see §5.4–§5.6) |
+| `policy` | `type`, `allow_noop` | Which policies are evaluated and whether the no-op action is exposed (§3.7) |
+| `seed` | integer | Master seed for scenario construction and tie-breaking |
+| `logging` | `output_dir` | Destination for post-hoc traces (§5.7) |
 
-## 5.3 Zero-Knowledge Observation Model
+Scenario construction follows a fluent builder pattern (`LatentScenarioBuilder`) that takes the `latent_world` configuration and the drone/target groups and returns fully specified per-entity configurations, including hidden latent vectors. The environment itself is then instantiated from these configurations together with the noise parameters and horizon. This separation means new benchmark variants — different latent geometries, swarm sizes, task loads, or noise regimes — can be produced without modifying the environment class, which keeps the ZK-MRTA interaction contract fixed across studies.
 
-The observation model enforces the zero-knowledge constraint by construction: the environment internally maintains latent vectors for drones and targets, but these are excluded from the observation space. Each agent receives only the restricted tuple defined in §3.6, ensuring access to indirect evidence about hidden compatibility but not to the compatibility structure itself.
+## 5.3 Latent Benchmark Construction
 
-In addition to this structural constraint, the observation channel can be perturbed through configurable **observation noise**. Under this mechanism, the observed action identity of other agents may be corrupted before reaching a learner. This makes the inferred public history less reliable and enables controlled evaluation of how sensitive decentralized strategies are to imperfect perception of swarm behavior.
+Hidden compatibility is generated by a configurable mixture of log-normals over the positive orthant, consistent with the $\mathbf{z} \in \mathbb{R}^d_{>0}$ constraint of §3.8. Each drone and each target is assigned to a mixture component and then sampled in log-space around that component's center before being exponentiated; the component centers and the per-component (log-space) variances are controlled by the `latent_world` configuration group. Two axes of variation determine how difficult the resulting hidden world is:
 
-## 5.4 Engagement Dynamics and Task State Evolution
+- **Relation between drone and target modes (`mode`).**
+  - `common`: drones and targets share a single family of mode centers, so agents and tasks live in the same latent coordinate system.
+  - `independent`: drones and targets are sampled from separate mode families of the same latent dimension, yielding asymmetric hidden structure.
+- **Geometry of mode centers (`center_mode`).**
+  - `one_hot`: centers are softmax-style indicator vectors parameterized by an off-diagonal leak `epsilon`; this produces clean, axis-aligned compatibility patterns and requires `num_modes ≤ latent_dim`.
+  - `orthogonal`: centers are orthogonal unit vectors obtained by QR decomposition of a random matrix; clean but not axis-aligned.
+  - `random`: centers are drawn from a log-normal prior; compatibility patterns are less separable and more ambiguous.
 
-The framework models task execution as a persistent sequential process rather than as a one-shot assignment problem. Each target is associated with a configurable health budget, and agent actions reduce target health over time according to the hidden compatibility between drone and target latent vectors. Specifically, damage is strictly nonnegative and corresponds to the maximum of zero and the latent dot product ($d_{ij} = \max(0, g_{ij})$). A target remains active until its health reaches zero, after which it becomes inactive.
+Sampling variance (`drone_variance`, `target_variance`) controls how tightly entities cluster around their assigned mode center; together with the four `{mode} × {center_mode}` combinations, these knobs span a range of hidden worlds from clean, separable compatibility to overlapping, difficult regimes. Mode assignment is stored internally per entity and is used only for evaluation (e.g., latent-match metrics in §3.9) and for the post-hoc analyses of §5.7; it is never exposed to policies.
 
-Because all agents act in parallel, simultaneous engagements must also be resolved. To do so, the environment processes joint actions in randomized order within each step. This mechanism naturally generates coordination phenomena such as **contention**, when multiple drones select the same target, and **overkill**, when total inflicted damage exceeds the remaining target health. These effects are not externally imposed penalties but emergent consequences of decentralized action selection under shared task dynamics.
+## 5.4 Zero-Knowledge Observation Model
 
-This design is important because it turns the benchmark into a genuine coordination problem. A policy is not evaluated merely on whether it produces damage, but on whether it can allocate effort efficiently over time under hidden compatibility and partial information.
+The observation space is the structured tuple defined in §3.6, with the latent vectors $\mathbf{z}_i^{(a)}, \mathbf{z}_j^{(t)}$ excluded by construction. The framework contribution in this layer is the **observation-noise channel**: the previous-step joint-action vector broadcast to every agent can be corrupted entry-wise with probability $\pi_s$ (configured as `observation_noise`), replacing the reported action identity with a uniformly sampled task index. This is the sole mechanism by which the identity of other agents' actions can be degraded, and it enables controlled evaluation of how sensitive decentralized strategies are to imperfect perception of swarm behavior.
 
-## 5.5 Reward Model
+## 5.5 Engagement Dynamics and Task State Evolution
 
-The reward model is designed to expose local learning signals without directly revealing the full global objective. The reward is derived from the hidden drone-target interaction but is not required to be identical to effective damage, allowing the framework to distinguish between the signal used for local learning and the actual physical progress of the swarm in neutralizing targets. The supported reward modes and noise mechanism are defined in §3.8.1.
+The framework models task execution as a persistent sequential process rather than a one-shot assignment. Each target carries a configurable health budget (`target_hp`); agent actions reduce health according to the hidden latent compatibility (damage rule in §3.8), and a target becomes inactive once its health reaches zero.
 
-Together with observation noise, reward noise gives the framework two separate mechanisms for controlling uncertainty: one affects the identity of observed public events, and the other affects the value attached to those events. In addition, the environment includes an explicit anti-signal for wasted actions, such as firing at already inactive targets. This makes locally uninformative or wasteful behavior visible to learning policies without converting the environment into a centrally shaped coordination objective.
+Because all agents act in parallel, simultaneous engagements must be resolved. Within each step the environment processes the joint action in a uniformly random order drawn from the master seed, so the resolution order is reproducible given the same seed and deterministic across policies evaluated on the same scenario instance. This mechanism naturally generates coordination phenomena such as **contention**, when multiple drones select the same target, and **overkill**, when total inflicted damage in a step exceeds the remaining target health. These effects are not externally imposed penalties but emergent consequences of decentralized action selection under shared task dynamics, and they turn the benchmark into a genuine coordination problem rather than a pure compatibility-learning problem.
 
-## 5.6 Logging and Evaluation Support
+## 5.6 Reward Model
 
-The framework records rich execution traces that enable detailed post-hoc analysis without changing what agents observe during interaction. Logged data include environment state transitions, target status evolution, action histories, reward histories, and other diagnostic signals derived from the execution process. These records provide a policy-agnostic basis for computing performance and coordination metrics.
+The reward channel is deliberately decoupled from the physical execution channel: the value returned to an agent is derived from the hidden latent interaction but need not equal the damage applied to the target. The framework implements the two reward modes defined in §3.8.1 (`cosine`, `damage`), a Gaussian reward-noise channel with standard deviation $\sigma_r$ (`reward_noise`), and a fixed negative anti-signal for engagements against already-inactive targets. Cosine mode is the default used in all experiments in this paper; damage mode is defined for completeness as an alternative regime in which the learning signal coincides with physical progress, and is not exercised here.
 
-This logging capability is essential because many important properties of decentralized coordination, such as redundant targeting, wasted damage, or delayed task completion, cannot be understood from local rewards alone. By preserving full episode traces, the framework supports both quantitative evaluation and offline enrichment, including t-SNE latent-space visualizations that track policy embeddings over time and provide qualitative interpretation of emergent swarm behavior.
+Together with §5.4, this gives the framework two independent uncertainty knobs: observation noise affects the **identity** of publicly observed events, while reward noise affects the **value** attached to those events. The anti-signal is the only place where the framework injects a hand-designed penalty; it exists to make locally wasteful behavior visible to learning policies without converting the environment into a centrally shaped coordination objective.
 
-## 5.7 Summary
+## 5.7 Logging and Evaluation Support
 
-The framework should be understood as a **configurable latent benchmark environment** for decentralized ZK-MRTA rather than as one fixed scenario. Its architecture is defined by choices over latent-world generation, observability, task dynamics, reward design, and post-hoc analysis support. The next section specifies the particular parameter values and policy configurations used in the experiments reported in this paper.
+The framework records rich execution traces that enable detailed post-hoc analysis without changing what agents observe during interaction. Logging is handled by a three-layer pipeline in which `EnvironmentLogger` owns per-policy `EpisodeLogger` instances, each of which owns an `EngagementLogger`. Together they capture, per step and per episode, the joint action, per-agent reward, target-was-active mask, target-state transitions, and scenario-level metadata including the hidden mode identities used for scoring. Run-level artifacts are written as JSON under the configured `output_dir` and include representative-episode selection across policies evaluated on the same scenario.
+
+This logging layer is what allows the policy-agnostic metrics of §3.9 (time-to-completion, collisions, overkill, latent-match quality, and others) to be computed offline from identical traces, and it supports optional enrichments such as t-SNE projections of policy internal state — used in §7 to interpret emergent swarm behavior, and discussed in detail there.
+
+## 5.8 Summary
+
+The framework should be understood as a **configurable latent benchmark environment** for decentralized ZK-MRTA rather than as one fixed scenario. Its surface is defined by a small set of declarative choices — latent-world geometry, channel noise, task dynamics, reward mode, and logging — and its contract with policies is fixed by the observation tuple of §3.6 and the action space of §3.7. The next section specifies the particular parameter values and policy configurations used in the experiments reported in this paper.

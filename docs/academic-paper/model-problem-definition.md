@@ -20,7 +20,7 @@ The ZK-MRTA framework is defined by strict informational constraints:
 - **No communication**: Direct communication between agents is not permitted
 - **Outcome-based learning only**: Agents can observe only:
   - the outcomes of their own actions, and
-  - indirect evidence of other agents' actions through environmental changes
+  - a shared *public summary* of the previous step — the joint action vector, the per-agent reward vector, and the per-agent active-at-engagement mask — which carries the actions and outcomes of other agents but contains no capability or identity information (see §3.6 for the exact structure).
 
 These assumptions eliminate access to explicit models of task-agent compatibility and require all decision-making to rely solely on observed interaction outcomes.
 
@@ -45,7 +45,7 @@ In contrast, the ZK-MRTA framework removes access to both $C$ and $G$. Agents mu
 
 ZK-MRTA is inherently a sequential decision-making problem. At each time step:
 
-1. Each agent receives a local observation
+1. Each agent receives a per-agent observation
 2. Each agent selects an action
 3. The environment updates its internal state
 4. Agents receive outcome signals
@@ -55,6 +55,8 @@ This interaction loop can be summarized as:
 $$o_t(a_i) \to a_t(a_i) \to \text{environment update} \to \text{outcome}$$
 
 Unlike static assignment formulations, task allocation unfolds over time, and agents must adapt their decisions based on accumulated experience and evolving system dynamics.
+
+Within a single time step, individual agents' actions are resolved in a uniformly random order. This ordering governs the sequential resolution of contending engagements — for example, when multiple agents target the same task, an earlier-processed agent may neutralize it before a later-processed agent's shot lands.
 
 ## 3.5 Problem Variants
 
@@ -76,7 +78,7 @@ The experiments reported in this paper use the **infinite-capacity** variant: no
 
 ## 3.6 Observation Model
 
-At each time step $t$, each agent $a_i \in \mathcal{A}$ receives a local observation $o_t(a_i) \in O$, derived from the environment state. The observation is a structured tuple:
+At each time step $t$, each agent $a_i \in \mathcal{A}$ receives an observation $o_t(a_i) \in O$, derived from the environment state. The term "local" is avoided here because the observation is not purely private: it combines environment state (task positions and activity) with a *shared public summary* of the previous step's joint actions and outcomes. No agent receives privileged information beyond what this public summary provides. The observation is a structured tuple:
 
 $$o_t(a_i) = \Big(\mathbf{p},\ \mathbf{b},\ \hat{\mathbf{s}}_{t-1},\ \tilde{\mathbf{r}}_{t-1},\ \mathbf{w}_{t-1}\Big)$$
 
@@ -88,7 +90,13 @@ where:
 - $\tilde{\mathbf{r}}_{t-1} \in \mathbb{R}^m$ — the (possibly noisy) reward received by each agent in the previous step
 - $\mathbf{w}_{t-1} \in \{0,1\}^m$ — a binary mask indicating whether each agent's selected task was still active at the time of engagement
 
+A central feature of this observation model is that the three per-agent fields $\hat{\mathbf{s}}_{t-1}$, $\tilde{\mathbf{r}}_{t-1}$, and $\mathbf{w}_{t-1}$ are **public**: each agent observes the *full joint vector* across all $m$ agents, not only its own entry. This public broadcast is the sole channel through which an agent can indirectly observe other agents' behavior, and it replaces the direct communication that classical MRTA approaches assume.
+
+The noise on $\hat{\mathbf{s}}_{t-1}$ corrupts each entry independently with probability $\pi_s \in [0,1]$, replacing it with a uniformly sampled task index; the noise on $\tilde{\mathbf{r}}_{t-1}$ is additive Gaussian with standard deviation $\sigma_r \geq 0$ (see §3.8.1). Setting $\pi_s = 0$ and $\sigma_r = 0$ recovers the fully-observed public-history regime.
+
 The $\mathbf{w}_{t-1}$ field is particularly important: it allows agents to distinguish informative interactions (shots on active targets) from wasted engagements (shots on already-neutralized targets), which affects how learning algorithms weight each observation.
+
+In the implementation, $\mathbf{p}$ and $\mathbf{b}$ are transmitted together as a single packed vector of length $3n$ (one $(x, y, \text{active})$ triple per task); the decomposition above is conceptual.
 
 Crucially, observations do not include:
 
@@ -123,11 +131,15 @@ The raw compatibility between agent $a_i$ and task $t_j$ is governed by the late
 
 $$g_{ij} = (\mathbf{z}_i^{(a)})^\top \mathbf{z}_j^{(t)}$$
 
-Each task $t_j$ is initialized with a resilience budget $\text{HP}_j > 0$. An engagement by agent $a_i$ reduces the task's remaining HP by an amount proportional to $g_{ij}$, and the task is neutralized when its HP reaches zero.
+Each task $t_j$ is initialized with a resilience budget $\text{HP}_j > 0$. An engagement by agent $a_i$ applies damage
+
+$$d_{ij} = \max(0,\ g_{ij})$$
+
+to the task, reducing its remaining HP by $d_{ij}$. Negative dot products contribute zero damage rather than healing, and the task is neutralized when its HP reaches zero.
 
 ### 3.8.1 Reward Signal
 
-The reward received by agent $a_i$ upon engaging task $t_j$ is not equal to the damage applied. Instead, it is a function of latent compatibility, decoupling the learning signal from the task execution outcome. The framework supports two reward modes:
+The reward received by agent $a_i$ upon engaging task $t_j$ is not equal to the damage applied. Instead, it is a function of latent compatibility, decoupling the learning signal from the task execution outcome. The framework defines two reward modes; all experiments in this paper use the cosine mode:
 
 - **Cosine mode** (used in all experiments reported here): The reward is the angular alignment between the agent and task latent vectors:
 $$r_{ij} = \frac{(\mathbf{z}_i^{(a)})^\top \mathbf{z}_j^{(t)}}{\|\mathbf{z}_i^{(a)}\| \cdot \|\mathbf{z}_j^{(t)}\|}$$
@@ -137,13 +149,19 @@ $$r_{ij} = \frac{(\mathbf{z}_i^{(a)})^\top \mathbf{z}_j^{(t)}}{\|\mathbf{z}_i^{(
 In both modes, the observed reward $\tilde{r}_{ij}$ may be corrupted by additive Gaussian noise with configurable standard deviation $\sigma_r \geq 0$:
 $$\tilde{r}_{ij} = r_{ij} + \varepsilon, \quad \varepsilon \sim \mathcal{N}(0, \sigma_r^2)$$
 
-If the targeted task is already inactive at the time of engagement, the agent receives a negative anti-signal rather than a compatibility-based reward.
+If the targeted task is already inactive at the time of engagement, the agent receives a fixed negative anti-signal (value $-1$ in the benchmark implementation) rather than a compatibility-based reward.
 
 These latent variables are not observable to agents and serve only as an internal mechanism generating interaction outcomes. As a result, agents must operate without direct access to the true compatibility structure.
+
+### 3.8.2 Collision Events
+
+Because multiple agents may independently select the same task within a single time step, the environment tracks *collisions* as a coordination signal. A collision is registered whenever two or more agents target the same task in the same step: for each such task, every agent beyond the first (in the random processing order of §3.4) contributes one collision to the step count. Collisions are a diagnostic of coordination failure only; they do not alter task dynamics or affect rewards directly, but engagements against a task that has already been neutralized earlier in the step yield the inactive-target anti-signal defined in §3.8.1.
 
 ## 3.9 Objective and Performance Metrics
 
 The goal of ZK-MRTA is to optimize global system performance over time under the informational constraints defined above. To preserve comparability across decision methods, performance is evaluated using strategy-independent metrics computed from logged interaction traces.
+
+Formally, a decentralized policy is a tuple $\pi = (\pi_1, \ldots, \pi_m)$ in which each $\pi_i$ maps the observation-action history of agent $a_i$ to a next action in $A$. For a given metric $k \in M$, let $\mu_k(\pi)$ denote its expected value under $\pi$, where the expectation is taken over random scenario instantiations (hidden latent configuration, task resilience, initial positions) and observation noise. The ZK-MRTA objective is to design $\pi$ so as to improve $\{\mu_k(\pi)\}_{k \in M}$ relative to reference baselines. Because the elements of $M$ span distinct operational axes (time, efficiency, coordination, and learning quality), this paper evaluates policies along all elements of $M$ rather than collapsing them into a single scalar; policies are compared empirically across sampled scenarios.
 
 At an abstract level, these metrics fall into four categories:
 
@@ -187,16 +205,19 @@ These metrics constitute the set $M$ in the formal definition below. Their opera
 | $r_{ij}$ | Reward signal for agent $a_i$ engaging task $t_j$ |
 | $\tilde{r}_{ij}$ | Observed (noisy) reward |
 | $\sigma_r$ | Reward noise standard deviation |
+| $\pi_s$ | Action-observation corruption probability |
 | $\text{HP}_j$ | Task resilience (hit points) |
 | $M$ | Set of performance metrics |
+| $\pi = (\pi_1, \ldots, \pi_m)$ | Joint decentralized policy |
+| $\mu_k(\pi)$ | Expected value of metric $k \in M$ under policy $\pi$ |
 | $C(a_i, t_j)$ | Cost function (classical MRTA reference) |
 | $G(a_i, t_j)$ | Feasibility function (classical MRTA reference) |
 
-**Implementation note.** The benchmark implementation uses $N$ for the number of agents and $M$ for the number of tasks (matching PettingZoo conventions), and denotes the environment latent dimension as $d_z$ to distinguish it explicitly from the policy factorization dimension $d_f$. Throughout this paper the symbols $m$, $n$, and $d$ are used in place of $N$, $M$, and $d_z$ respectively to keep notation concise and consistent with the MRTA literature.
+**Implementation note.** In the accompanying benchmark implementation, the symbols $m$, $n$, and $d$ used throughout this paper correspond to the code variables `num_drones`, `num_targets`, and `latent_dim` respectively. The policy-side factorization dimension (used in §4) is tracked separately in code under a distinct variable to avoid conflating the environment's generative latent dimension with the learner's chosen approximation rank. The shorter symbols $m$, $n$, $d$ are preferred in the paper for consistency with the MRTA literature.
 
 ## 3.11 Formal Definition of ZK-MRTA
 
-**Definition 1** (Zero-Knowledge Multi-Robot Task Allocation).
+**Definition 1** (Zero-Knowledge Multi-Robot Task Allocation — general problem class).
 
 A ZK-MRTA problem is defined by the tuple:
 
@@ -204,15 +225,25 @@ $$\mathcal{Z} = (\mathcal{A}, \mathcal{T}, A, O, E, M)$$
 
 where:
 
-- $\mathcal{A} = \{a_1, \ldots, a_m\}$ is a finite set of agents, each associated with a hidden latent vector $\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$
-- $\mathcal{T} = \{t_1, \ldots, t_n\}$ is a finite set of tasks, each associated with a hidden latent vector $\mathbf{z}_j^{(t)} \in \mathbb{R}^d_{>0}$ and resilience $\text{HP}_j > 0$
+- $\mathcal{A} = \{a_1, \ldots, a_m\}$ is a finite set of agents
+- $\mathcal{T} = \{t_1, \ldots, t_n\}$ is a finite set of tasks
 - $A$ is the discrete action space: $\{0\} \cup \{1, \ldots, n\}$ (no-op or task selection)
-- $O$ is the observation space: structured tuples $o_t(a_i) = (\mathbf{p}, \mathbf{b}, \hat{\mathbf{s}}_{t-1}, \tilde{\mathbf{r}}_{t-1}, \mathbf{w}_{t-1})$ as defined in §3.6
-- $E$ is the environment transition function mapping $(\text{world state}_t, \mathbf{a}_t) \to (\text{world state}_{t+1}, \tilde{\mathbf{r}}_t, \mathbf{w}_t, \text{done}_t)$, where rewards are determined by the latent compatibility structure and reward mode (§3.8)
+- $O$ is the observation space of structured tuples $o_t(a_i) = (\mathbf{p}, \mathbf{b}, \hat{\mathbf{s}}_{t-1}, \tilde{\mathbf{r}}_{t-1}, \mathbf{w}_{t-1})$ as defined in §3.6
+- $E$ is the environment transition function mapping $(\text{world state}_t, \mathbf{a}_t) \to (\text{world state}_{t+1}, \tilde{\mathbf{r}}_t, \mathbf{w}_t, \text{done}_t)$, parameterized by a hidden effectiveness structure that governs task outcomes. The hidden structure is sampled per episode, held fixed for the duration of that episode, and is never observable to the agents.
 - $M$ is a set of strategy-independent performance metrics as defined in §3.9
 
-The system evolves over discrete time steps. At each time step, each agent receives a local observation $o_t(a_i)$ and selects an action $a_t(a_i)$. The environment applies the joint action $\mathbf{a}_t$, updates task states (HP), produces noisy reward signals $\tilde{\mathbf{r}}_t$ and validity flags $\mathbf{w}_t$, and terminates when all tasks are neutralized or the maximum step limit is reached.
+The system evolves over discrete time steps. At each time step, each agent receives a per-agent observation $o_t(a_i)$ and selects an action $a_t(a_i)$. The environment applies the joint action $\mathbf{a}_t$, updates task states, produces noisy reward signals $\tilde{\mathbf{r}}_t$ and validity flags $\mathbf{w}_t$, and terminates when all tasks are neutralized or the maximum step limit is reached.
 
-The problem is subject to the Zero-Knowledge constraints defined in §3.2: agents have no prior knowledge of tasks or their own capabilities, cannot communicate, and must rely solely on $O$ at each step.
+The problem is subject to the Zero-Knowledge constraints defined in §3.2: agents have no prior knowledge of tasks or their own capabilities, cannot communicate, and must rely solely on $O$ at each step. The objective is to design decentralized agent behaviors — algorithms that map observations and private memory to actions — that improve the performance metrics $M$ (§3.9).
 
-The objective is to design decentralized agent behaviors — algorithms that map observations and private memory to actions — that maximize system-level performance according to the metrics in $M$.
+Definition 1 intentionally leaves the hidden effectiveness structure abstract, so that ZK-MRTA names a *class* of problems rather than a single instantiation. Concrete instantiations differ in how the hidden structure generates damage and reward.
+
+**Definition 2** (Latent-compatibility benchmark instantiation).
+
+The benchmark studied in this paper instantiates Definition 1 with the following hidden structure (§3.8):
+
+- each agent $a_i$ has a hidden latent vector $\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$, and each task $t_j$ has a hidden latent vector $\mathbf{z}_j^{(t)} \in \mathbb{R}^d_{>0}$ and a resilience budget $\text{HP}_j > 0$;
+- raw compatibility is the dot product $g_{ij} = (\mathbf{z}_i^{(a)})^\top \mathbf{z}_j^{(t)}$;
+- damage applied per engagement is $d_{ij} = \max(0, g_{ij})$, and the reward signal is determined by the cosine or damage mode of §3.8.1.
+
+Together with the passive-target, infinite-capacity choices of §3.5, this specifies the concrete environment used in all experiments. Other instantiations of Definition 1 (e.g., categorical compatibility structures, or active-target dynamics) are consistent with the general framework but are outside the scope of this paper.
