@@ -20,7 +20,11 @@ The ZK-MRTA framework is defined by strict informational constraints:
 - **No communication**: Direct communication between agents is not permitted
 - **Outcome-based learning only**: Agents can observe only:
   - the outcomes of their own actions, and
-  - a shared *public summary* of the previous step — the joint action vector and the per-agent reward vector — which carries the actions and outcomes of other agents but contains no capability or identity information (see §3.6 for the exact structure).
+  - a shared *public summary* of the previous step:
+    - the joint action vector
+    - the per-agent reward vector
+  
+  which carries the actions and outcomes of other agents but contains no capability or identity information (see §3.6 for the exact structure).
 
 These assumptions eliminate access to explicit models of task-agent compatibility and require all decision-making to rely solely on observed interaction outcomes.
 
