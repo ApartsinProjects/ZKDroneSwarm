@@ -144,12 +144,6 @@ class DroneEngageLatentMRTA(ParallelEnv):
                         shape=(self.num_drones,),
                         dtype=np.float32,
                     ),
-                    "target_was_active_at_engagement": spaces.Box(
-                        low=0,
-                        high=1,
-                        shape=(self.num_drones,),
-                        dtype=np.int8,
-                    ),
                 }
             )
             for agent_id in self.possible_agents
@@ -161,7 +155,6 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self.rng: Optional[np.random.RandomState] = None
         self.last_actions: Dict[str, int] = {}
         self.last_rewards: Dict[str, float] = {}
-        self.last_target_was_active_at_engagement: Dict[str, int] = {}
         self._latest_diagnostics: Optional[EnvDiagnosticsSnapshot] = None
         self.cumulative_neutralizations = 0
 
@@ -236,9 +229,6 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self._agents = self.possible_agents[:]
         self.last_actions = {agent_id: 0 for agent_id in self.possible_agents}
         self.last_rewards = {agent_id: 0.0 for agent_id in self.possible_agents}
-        self.last_target_was_active_at_engagement = {
-            agent_id: 0 for agent_id in self.possible_agents
-        }
         self.cumulative_neutralizations = 0
 
         self._max_damage_per_target = self._precompute_max_damage_per_target()
@@ -288,18 +278,10 @@ class DroneEngageLatentMRTA(ParallelEnv):
                 [self._compute_observed_reward(aid) for aid in self.possible_agents],
                 dtype=np.float32,
             )
-            target_was_active_at_engagement = np.array(
-                [
-                    self.last_target_was_active_at_engagement.get(aid, 0)
-                    for aid in self.possible_agents
-                ],
-                dtype=np.int8,
-            )
             observations[agent_id] = {
                 "targets": target_array.copy(),
                 "selected_targets": selected_targets,
                 "observed_rewards": observed_rewards,
-                "target_was_active_at_engagement": target_was_active_at_engagement,
             }
         return observations
 
@@ -427,7 +409,6 @@ class DroneEngageLatentMRTA(ParallelEnv):
             self.last_actions[agent_id] = action
             if action == 0:
                 self.last_rewards[agent_id] = 0.0
-                self.last_target_was_active_at_engagement[agent_id] = 0
                 continue
 
             drone_idx = int(agent_id.split("_")[1])
@@ -440,31 +421,22 @@ class DroneEngageLatentMRTA(ParallelEnv):
                 collisions += 1
 
             target = self.targets[target_idx]
-            if not target.is_active:
-                # Target already dead — wasted shot
-                raw_dot_wasted = self._dot_product_reward(drone, target)
-                step_gross_damage += max(0.0, raw_dot_wasted)
-                rewards[agent_id] = -1.0
-                self.last_rewards[agent_id] = -1.0
-                self.last_target_was_active_at_engagement[agent_id] = 0
-                continue
-
             raw_dot = self._dot_product_reward(drone, target)
-            # Damage is the non-negative part of the dot product
             damage = max(0.0, raw_dot)
+            target_was_active = target.is_active
+            hp_before = target.hp if target_was_active else 0.0
             step_gross_damage += damage
+            if target_was_active:
+                target.hp -= damage
 
-            hp_before = target.hp
-            target.hp -= damage
-
-            if target.hp <= 0:
-                # Target neutralized — track overkill
-                overkill_amount = abs(target.hp)  # hp went below 0
-                target.hp = 0.0
-                target.is_active = False
-                neutralizations_this_step += 1
-                if overkill_amount > 0:
-                    step_overkill[target_idx] = step_overkill.get(target_idx, 0.0) + overkill_amount
+                if target.hp <= 0:
+                    # Target neutralized — track overkill
+                    overkill_amount = abs(target.hp)  # hp went below 0
+                    target.hp = 0.0
+                    target.is_active = False
+                    neutralizations_this_step += 1
+                    if overkill_amount > 0:
+                        step_overkill[target_idx] = step_overkill.get(target_idx, 0.0) + overkill_amount
 
             # Reward = cosine similarity (direction-only alignment, independent of damage)
             drone_vec = np.array(drone.latent_vector, dtype=np.float64)
@@ -480,10 +452,9 @@ class DroneEngageLatentMRTA(ParallelEnv):
             
             rewards[agent_id] = reward
             self.last_rewards[agent_id] = reward
-            self.last_target_was_active_at_engagement[agent_id] = 1
             
             # Track effective damage for metrics (independent of reward)
-            effective_damage = min(damage, hp_before)
+            effective_damage = min(damage, hp_before) if target_was_active else 0.0
             step_net_damage += effective_damage
 
             # Track latent mismatch and optimal potential for this shot

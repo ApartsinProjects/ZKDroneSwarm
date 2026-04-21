@@ -197,20 +197,10 @@ class MatrixFactorizationPolicy:
         self, drone_idx: int, target_idx: int, reward: float
     ) -> float:
         """
-        Accumulate an eligible reward into the supervised interaction matrix.
+        Accumulate an observed reward into the running-mean interaction matrix.
 
-        The integration matrix serves as the MF supervision target. The environment
-        decides which public events are eligible for accumulation, allowing the
-        policy to learn a running mean over active-target rewards while excluding
-        dead-target penalties.
-
-        Args:
-            drone_idx: Drone index (0-based)
-            target_idx: Target index (0-based)
-            reward: Eligible observed reward
-
-        Returns:
-            M_avg for this (drone, target) pair after accumulation
+        Every observed reward contributes, including wasted shots on inactive
+        targets whose compatibility reward is still well-defined.
         """
         self.M_sum[drone_idx, target_idx] += reward
         self.M_count[drone_idx, target_idx] += 1.0
@@ -223,21 +213,15 @@ class MatrixFactorizationPolicy:
         Processes all public interaction events from the swarm.
         For each event (drone i, target t, reward r):
             - Compute prediction error: e = P[i].T @ U[:, t] - r
-            - If r < 0, error is weighted by anti_signal_weight
+            - In direct mode, if r < 0, error is weighted by anti_signal_weight
             - Update: P[i] -= η * (2*e*U[:, t] + λ*P[i])
             - Update: U[:, t] -= η * (2*e*P[i] + λ*U[:, t])
 
         Args:
             observation: Dict with 'selected_targets' and 'observed_rewards' arrays.
-                When integration-matrix mode is enabled, the environment may also
-                provide a 'target_was_active_at_engagement' mask aligned with
-                those arrays.
         """
         selected_targets = observation["selected_targets"]
         observed_rewards = observation["observed_rewards"]
-        target_was_active_at_engagement = observation.get(
-            "target_was_active_at_engagement"
-        )
 
         for drone_idx in range(self.num_agents):
             target_action = selected_targets[drone_idx]
@@ -252,15 +236,6 @@ class MatrixFactorizationPolicy:
             # Compute prediction and error
             predicted = self._predict_for_drone(drone_idx, target_idx)
             if self.use_integration_matrix:
-                use_for_supervision = True
-                if target_was_active_at_engagement is not None:
-                    use_for_supervision = bool(
-                        target_was_active_at_engagement[drone_idx]
-                    )
-
-                if not use_for_supervision:
-                    continue
-
                 m_avg = self._update_integration_matrix(
                     drone_idx, target_idx, float(reward)
                 )
@@ -268,12 +243,10 @@ class MatrixFactorizationPolicy:
             else:
                 error = predicted - float(reward)
 
-            # Weight negative reward events in direct mode only.
-            # In integration-matrix mode, dead-target shots are already excluded
-            # by the target_was_active_at_engagement guard above, so this path
-            # is only reached for active-target interactions whose raw reward
-            # happened to go negative due to reward noise. anti_signal_weight=1.0
-            # (the configured default) disables this weighting intentionally.
+            # Weight negative reward events in direct mode only. In
+            # integration-matrix mode, every observed reward contributes to the
+            # running mean, including wasted shots whose compatibility reward is
+            # still intentionally observed.
             if not self.use_integration_matrix and reward < 0:
                 error *= self.anti_signal_weight
 

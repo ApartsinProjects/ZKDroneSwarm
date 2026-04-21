@@ -119,7 +119,7 @@
         <h3>4.4.1 Learning from Shared Interaction Data</h3>
         
         <p>
-            Learning relies on the public-observation assumption introduced in §3: after each step, every agent sees which drone engaged which target and the resulting reward signal, even though the underlying compatibility structure that generated those rewards remains hidden. Concretely, the public step summary exposes three arrays that drive the learner: the joint action vector identifies the engaged drone-target pairs $(a_i, t_j)$; the per-agent reward vector provides the supervision target $y_{ij}$ in direct mode, or a single sample feeding the running mean in integration-matrix mode; and the per-agent active-at-engagement mask $\mathbf{w}_{t-1}$ acts as an eligibility gate in integration-matrix mode. No privileged state is consumed — the learner sees only what the environment makes public.
+            Learning relies on the public-observation assumption introduced in §3: after each step, every agent sees which drone engaged which target and the resulting reward signal, even though the underlying compatibility structure that generated those rewards remains hidden. Concretely, the public step summary exposes two arrays that drive the learner: the joint action vector identifies the engaged drone-target pairs $(a_i, t_j)$; and the per-agent reward vector provides the supervision target $y_{ij}$ in direct mode, or a single sample feeding the running mean in integration-matrix mode. No privileged state is consumed — the learner sees only what the environment makes public.
         </p>
         
         <p>
@@ -127,12 +127,12 @@
         </p>
         
         <ul>
-            <li><strong>Direct mode</strong>: The policy compares its predicted utility for each observed drone-target event directly to the corresponding observed reward. All events — including those producing negative anti-signals from shots on inactive targets — are used for gradient updates, with negative rewards downweighted by the anti-signal coefficient.</li>
-            <li><strong>Integration-matrix mode</strong>: The policy first updates a running-mean interaction matrix and then uses that accumulated estimate as the supervision target. Crucially, in this mode the validity mask $\mathbf{w}_{t-1}$ acts as an eligibility gate: if the targeted task was already inactive at the time of engagement, the entire event is <strong>skipped</strong> (no accumulation, no SGD update), rather than being downweighted. Only interactions with active targets contribute to the running mean, producing a cleaner supervision signal. This is especially useful when rewards are noisy or when dead-target penalties would otherwise distort the learned compatibility estimates.</li>
+            <li><strong>Direct mode</strong>: The policy compares its predicted utility for each observed drone-target event directly to the corresponding observed reward. All events — including wasted shots on inactive targets — are used for gradient updates, because the reward stream always reflects compatibility rather than a separate invalid-action marker.</li>
+            <li><strong>Integration-matrix mode</strong>: The policy first updates a running-mean interaction matrix and then uses that accumulated estimate as the supervision target. Every observed reward contributes to that running mean, including rewards from shots that were task-ineffective because the target had already been neutralized earlier in the step. This preserves the interpretation that the learner models compatibility from the public reward stream alone, while coordination costs remain visible through episode-level efficiency metrics rather than reward gating.</li>
         </ul>
         
         <p>
-            The experiments reported in this paper use <strong>integration-matrix mode</strong> with the validity-mask eligibility gate active; the direct-mode anti-signal coefficient is therefore not invoked in the reported runs.
+            The experiments reported in this paper use <strong>integration-matrix mode</strong>, so the running-mean interaction matrix is the primary supervision target in the reported runs.
         </p>
         
         <p>

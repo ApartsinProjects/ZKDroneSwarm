@@ -290,7 +290,7 @@ policy.update(obs)
 ```
 - Called **after** environment step, **before** next action selection
 - MF policy processes public interaction stream here (updates P and U matrices)
-- Observation contains: `selected_targets`, `observed_rewards`, `target_was_active_at_engagement`
+- Observation contains: `selected_targets`, `observed_rewards`
 
 **Termination check:**
 ```python

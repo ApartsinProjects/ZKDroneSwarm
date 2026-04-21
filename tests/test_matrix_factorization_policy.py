@@ -19,32 +19,24 @@ def build_integration_env() -> DroneEngageLatentMRTA:
     )
 
 
-def test_env_observation_exposes_target_activity_at_engagement_mask() -> None:
+def test_env_observation_omits_activity_mask_and_keeps_compatibility_rewards() -> None:
     env = build_integration_env()
 
     observations, _ = env.reset(seed=42)
     first_observation = observations["drone_0"]
 
-    assert "target_was_active_at_engagement" in first_observation
-    assert np.array_equal(
-        first_observation["target_was_active_at_engagement"],
-        np.array([0, 0], dtype=np.int8),
-    )
+    assert "target_was_active_at_engagement" not in first_observation
 
     step_observations, rewards, _, _, _ = env.step({"drone_0": 1, "drone_1": 1})
     shared_observation = step_observations["drone_0"]
-    target_was_active_at_engagement = shared_observation[
-        "target_was_active_at_engagement"
-    ]
 
-    assert target_was_active_at_engagement.dtype == np.int8
-    assert target_was_active_at_engagement.shape == (2,)
-    assert int(np.sum(target_was_active_at_engagement)) == 1
+    expected_reward = 1.0 / np.sqrt(2.0)
+    assert "target_was_active_at_engagement" not in shared_observation
     assert int(np.count_nonzero(shared_observation["selected_targets"] == 1)) == 2
-    assert any(reward == -1.0 for reward in rewards.values())
+    assert all(np.isclose(reward, expected_reward) for reward in rewards.values())
 
 
-def test_integration_matrix_accumulates_only_eligible_rewards() -> None:
+def test_integration_matrix_accumulates_all_observed_rewards() -> None:
     policy = MatrixFactorizationPolicy(
         num_targets=2,
         agent_idx=0,
@@ -58,14 +50,13 @@ def test_integration_matrix_accumulates_only_eligible_rewards() -> None:
     observation = {
         "targets": np.array([0.0, 0.0, 1.0, 0.0, 0.0, 1.0], dtype=np.float32),
         "selected_targets": np.array([1, 2], dtype=np.int32),
-        "observed_rewards": np.array([-1.0, 0.25], dtype=np.float32),
-        "target_was_active_at_engagement": np.array([0, 1], dtype=np.int8),
+        "observed_rewards": np.array([0.5, 0.25], dtype=np.float32),
     }
 
     policy.update_from_observation(observation)
 
-    assert policy.M_count[0, 0] == 0.0
-    assert policy.M_sum[0, 0] == 0.0
+    assert policy.M_count[0, 0] == 1.0
+    assert policy.M_sum[0, 0] == 0.5
     assert policy.M_count[1, 1] == 1.0
     assert policy.M_sum[1, 1] == 0.25
 
@@ -89,7 +80,6 @@ def test_non_integration_mode_still_uses_observed_reward_directly() -> None:
         "targets": np.array([0.0, 0.0, 1.0], dtype=np.float32),
         "selected_targets": np.array([1], dtype=np.int32),
         "observed_rewards": np.array([0.1], dtype=np.float32),
-        "target_was_active_at_engagement": np.array([0], dtype=np.int8),
     }
 
     policy.update_from_observation(observation)

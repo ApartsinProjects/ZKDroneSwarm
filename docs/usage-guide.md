@@ -378,7 +378,7 @@ shots_per_target = total_ammo_used / targets_neutralized
 | `epsilon_decay` | 1.0 | 0.9–1.0 | Multiplicative decay per step; <1.0 = gradual shift to exploitation |
 | `epsilon_min` | 0.02 | 0.0–0.2 | Floor for exploration; prevents pure exploitation |
 | `use_integration_matrix` | false | true/false | If true, learn from running mean instead of raw rewards |
-| `anti_signal_weight` | 0.1 | 0.0–1.0 | Weight for negative reward updates (dead target penalty) |
+| `anti_signal_weight` | 0.1 | 0.0–1.0 | Weight for negative-cosine reward updates (direct mode only) |
 
 ### Environment Noise Parameters
 

@@ -24,7 +24,7 @@ The random and oracle policies do not use an exploration mechanism. The random b
 
 ## 6.3 Supervision Mode
 
-The matrix-factorization policy is trained using the integration-matrix supervision mode described in §4.5.1. Under this mode, the policy maintains a running-mean interaction matrix accumulated from observed engagement events. The integration matrix serves as the supervision target for online gradient updates: predicted utilities are regressed against accumulated interaction estimates rather than raw immediate rewards. As described in §4.5.1, the validity mask gates out events targeting inactive targets, preventing dead-target signals from distorting the learned compatibility estimates under noisy conditions.
+The matrix-factorization policy is trained using the integration-matrix supervision mode described in §4.5.1. Under this mode, the policy maintains a running-mean interaction matrix accumulated from observed engagement events. The integration matrix serves as the supervision target for online gradient updates: predicted utilities are regressed against accumulated interaction estimates rather than raw immediate rewards. Every observed reward contributes to the running mean, including rewards from engagements against already-inactive targets, so the learner's supervision target reflects the full public reward stream.
 
 The factorization dimension of the policy's internal model is $d_f = 3$, matching the environment's latent dimension $d = 3$. This alignment means the policy has, in principle, sufficient representational capacity to recover the true compatibility structure, though it has no access to the true latent vectors and must infer the structure from scratch through observed interaction outcomes.
 

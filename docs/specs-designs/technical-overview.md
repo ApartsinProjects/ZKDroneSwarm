@@ -116,11 +116,10 @@ $$o_t^{(a)} =
 \text{target positions},
 \text{target active flags},
 \hat{\mathbf{s}}_{t-1},
-\tilde{\mathbf{r}}_{t-1},
-\mathbf{w}_{t-1}
+\tilde{\mathbf{r}}_{t-1}
 \Big)$$
 
-where $\hat{\mathbf{s}}_{t-1}$ is the (possibly corrupted) vector of previously selected targets by all drones, $\tilde{\mathbf{r}}_{t-1}$ is the vector of observed rewards, and $\mathbf{w}_{t-1}$ is a binary mask indicating whether each drone's target was still active at the time of engagement. This last field is used by the integration-matrix learning mode (§5) to distinguish informative interactions from wasted shots on already-neutralized targets.
+where $\hat{\mathbf{s}}_{t-1}$ is the (possibly corrupted) vector of previously selected targets by all drones, and $\tilde{\mathbf{r}}_{t-1}$ is the vector of observed rewards. The public interaction history therefore exposes only who shot what and what compatibility reward was observed; there is no separate validity marker for inactive-target engagements.
 
 The setting is not merely partially observable in a generic sense; it is specifically designed so that the **entire compatibility structure is hidden**. The agents know where targets are and whether they remain active, but they do not know why a given drone matches a given target well. Learning therefore has to emerge from inference over public interaction history rather than access to privileged features. This makes the benchmark a direct analogue of collaborative filtering: the latent factors exist, but only sparse interaction outcomes are observable.
 
@@ -232,11 +231,7 @@ When `reward_noise` is set to 0.0, rewards are passed through without corruption
 
 Note that the environment applies two distinct noise channels: **reward noise** ($\sigma_r$) corrupts the scalar reward signal, while **observation noise** (§2) corrupts the action identity in the observed interaction stream. Both affect the quality of the supervision data available to learning policies, but through different mechanisms — reward noise distorts the *value* of an interaction, while observation noise distorts the *identity* of the interaction partner.
 
-There is also a special anti-signal for wasted actions: if a drone fires at a target that is already inactive, it receives a negative reward:
-
-```python
-rewards[agent_id] = -1.0
-```
+If a drone fires at a target that is already inactive, the reward remains compatibility-based rather than switching to a special penalty. In the current cosine-reward setup, the environment still returns the cosine similarity implied by the drone-target latent vectors, even though the shot has no effect on HP. This keeps the reward signal semantically aligned with compatibility, while letting wasted shots hurt performance only through resource use and slower episode completion.
 
 Importantly, **collisions themselves are not directly penalized by a dedicated collision reward term**. Instead, poor coordination becomes costly indirectly: agents may waste shots on already neutralized targets, create overkill, or fail to distribute effort efficiently. Thus, the reward signal is informative but incomplete. It carries local compatibility information, while broader notions of team efficiency remain embedded in the environment dynamics and evaluation metrics rather than in the scalar reward alone.
 
@@ -294,13 +289,13 @@ Although the policy is decentralized, each drone observes the public swarm inter
 
 $$e^{(a)}_{ij} = \hat{r}^{(a)}_{ij} - \tilde r_{ij}$$
 
-**Integration-matrix mode** (when `use_integration_matrix` is true, which is the current default): Instead of learning from raw observed rewards, the policy accumulates a running mean $\bar{M}_{ij}$ for each (drone, target) pair, updating only on events where the target was still active at the time of engagement (using the $\mathbf{w}$ mask from the observation). The prediction error is then computed against this running mean:
+**Integration-matrix mode** (when `use_integration_matrix` is true, which is the current default): Instead of learning from raw observed rewards, the policy accumulates a running mean $\bar{M}_{ij}$ for each (drone, target) pair and computes the prediction error against this running mean:
 
 $$\bar{M}^{(a)}_{ij} = \frac{\sum_k \tilde r^{(k)}_{ij}}{n_{ij}},
 \qquad
 e^{(a)}_{ij} = \hat{r}^{(a)}_{ij} - \bar{M}^{(a)}_{ij}$$
 
-This filters out dead-target penalties from the supervision signal and provides a more stable learning target as observations accumulate.
+This smooths the supervision target as observations accumulate. Because the environment exposes only the public action-reward history, every observed reward sample contributes to the running mean, including rewards from shots that turned out to be task-ineffective because the target was already inactive.
 
 In both modes, the embeddings are updated using stochastic gradient descent:
 
@@ -341,7 +336,7 @@ self.U[:, target_idx] -= self.learning_rate * (
 )
 ```
 
-Negative rewards are optionally reweighted in **direct mode only** (in integration-matrix mode, dead-target shots are already excluded by the `target_was_active_at_engagement` guard, so this path is never reached for negative-reward events):
+Negative rewards are optionally reweighted in **direct mode only**:
 
 ```python
 if not self.use_integration_matrix and reward < 0:
@@ -637,7 +632,6 @@ The constructor also derives two compatibility metadata structures used by the v
 | `targets` | `Box(0, +∞)` | `(3 × M,)` | `float32` | Flattened `[x, y, is_active]` per target |
 | `selected_targets` | `Box(0, M)` | `(N,)` | `int32` | Last action per drone (possibly noised) |
 | `observed_rewards` | `Box(-∞, +∞)` | `(N,)` | `float32` | Last reward per drone (possibly noised) |
-| `target_was_active_at_engagement` | `Box(0, 1)` | `(N,)` | `int8` | Whether target was active when drone fired |
 
 The `targets` array is built by iterating over all targets in order:
 
@@ -654,7 +648,7 @@ On `reset(seed, options)`:
 2. Create a fresh `WorldState` with `time_step=0`
 3. Build `LatentDroneState` list from `drones_config`, each with `ammo_used=0`
 4. Build `LatentTargetState` list from `targets_config`, each with `hp=target_hp`, `hp_initial=target_hp`, `is_active=True`
-5. Reset `last_actions` to all `0`, `last_rewards` to all `0.0`, `last_target_was_active_at_engagement` to all `0`
+5. Reset `last_actions` to all `0` and `last_rewards` to all `0.0`
 6. Reset `cumulative_neutralizations` to `0`
 7. Compute and return initial observations (no noise applied since all last-actions are NoOp) and per-agent info dicts
 
@@ -673,6 +667,11 @@ for agent_id, action in actions.items():
         raise ValueError(...)
 ```
 
+Validation checks only that each action is a legal integer (`0` for NoOp, `1..M` for target IDs). It does **not** reject selecting a target whose `is_active` flag is already `False`. Because of that, an inactive-target event can arise in two ways:
+
+1. A policy explicitly selects a target that was already inactive in the current observation.
+2. Multiple drones select the same target in the same step, and an earlier-processed drone neutralizes it before a later-processed drone is resolved.
+
 **Phase 2 — Randomize processing order**:
 
 ```python
@@ -685,11 +684,11 @@ self.rng.shuffle(processing_order)
 For each `agent_id` in `processing_order`:
 
 1. Record `last_actions[agent_id] = action`
-2. If action is `0` (NoOp): set reward to `0.0`, `target_was_active = 0`, continue
+2. If action is `0` (NoOp): set reward to `0.0`, continue
 3. Extract `drone_idx` from agent ID, get drone and target references
 4. Increment `drone.ammo_used`
 5. Record target selection for collision tracking
-6. **If target is inactive**: compute gross damage (dot product, clamped ≥ 0) for metrics, assign reward `−1.0`, set `target_was_active = 0`, continue
+6. **If target is inactive**: compute the compatibility-based reward and gross-damage diagnostic, but do not remove HP; the shot is wasted at the task level even though it still yields a reward sample
 7. **If target is active**:
    - Compute raw dot product $g_{ij}$, damage $d_{ij} = \max(0, g_{ij})$
    - Accumulate gross damage
@@ -728,8 +727,6 @@ truncations = {agent_id: max_steps_reached and not all_targets_done for agent_id
 2. Builds the `selected_targets` array from `last_actions`
 3. Applies **observation noise** to `selected_targets` (§2): for each non-NoOp entry, with probability `observation_noise`, replace the target ID with a uniform random sample from $\{1, \dots, M\}$
 4. For each agent, computes `observed_rewards` by calling `_compute_observed_reward()` per drone, which adds Gaussian noise $\mathcal{N}(0, \sigma_r^2)$ to each `last_rewards` entry when `reward_noise > 0`
-5. Copies the `target_was_active_at_engagement` mask from the step's records
-
 Note that `selected_targets` is built once and shared across all agents (all agents see the same noised action profile), while `observed_rewards` is computed per-observing-agent (each agent gets an independent noise draw on the reward values).
 
 ### 7.8 Diagnostics Snapshot
