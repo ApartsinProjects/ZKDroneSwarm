@@ -79,19 +79,19 @@
                 </tr>
             </thead>
             <tbody>
-                <tr><td>Steps ↓</td><td>126</td><td><strong>67</strong></td><td>62</td><td>−46.8%</td><td>+8.1%</td></tr>
-                <tr><td>Total ammo ↓</td><td>1,134</td><td><strong>603</strong></td><td>558</td><td>−46.8%</td><td>+8.1%</td></tr>
-                <tr><td>Shots per target ↓</td><td>42.0</td><td><strong>22.3</strong></td><td>20.7</td><td>−46.9%</td><td>+8.1%</td></tr>
-                <tr><td>Avg. match quality ↑</td><td>0.308</td><td><strong>0.550</strong></td><td>0.654</td><td>+78.2%</td><td>−15.9%</td></tr>
-                <tr><td>Total latent mismatch (HP) ↓</td><td>628.7</td><td><strong>235.9</strong></td><td>145.2</td><td>−62.5%</td><td>+62.4%</td></tr>
-                <tr><td>Total overkill (HP) ↓</td><td>7.0</td><td>7.84</td><td><strong>3.65</strong></td><td>+12.1%</td><td>+114.8%</td></tr>
-                <tr><td>Total collisions</td><td>225</td><td>296</td><td>382</td><td>+31.6%</td><td>−22.5%</td></tr>
-                <tr><td>Total net damage (HP)</td><td>270.0</td><td>270.0</td><td>270.0</td><td>0%</td><td>0%</td></tr>
-                <tr><td>Targets neutralized ↑</td><td>27</td><td>27</td><td>27</td><td>0%</td><td>0%</td></tr>
+                <tr><td>Steps</td><td>126</td><td><strong>67</strong></td><td>62</td><td>−46.8%</td><td>+8.1%</td></tr>
+                <tr><td>Total ammo</td><td>1,134</td><td><strong>603</strong></td><td>558</td><td>−46.8%</td><td>+8.1%</td></tr>
+                <tr><td>Shots per target</td><td>42.0</td><td><strong>22.3</strong></td><td>20.7</td><td>−46.9%</td><td>+8.1%</td></tr>
+                <tr><td>Avg. match quality</td><td>0.308</td><td><strong>0.550</strong></td><td>0.654</td><td>+78.2%</td><td>−15.9%</td></tr>
+                <tr><td>Total latent mismatch (HP)</td><td>628.7</td><td><strong>235.9</strong></td><td>145.2</td><td>−62.5%</td><td>+62.4%</td></tr>
+                <tr><td>Total overkill (HP)</td><td>7.0</td><td><strong>7.84</strong></td><td>3.65</td><td>+12.1%</td><td>+114.8%</td></tr>
+                <tr><td>Total collisions</td><td>225</td><td><strong>296</strong></td><td>382</td><td>+31.6%</td><td>−22.5%</td></tr>
+                <tr><td>Total net damage (HP)</td><td>270.0</td><td><strong>270.0</strong></td><td>270.0</td><td>0%</td><td>0%</td></tr>
+                <tr><td>Targets neutralized</td><td>27</td><td><strong>27</strong></td><td>27</td><td>0%</td><td>0%</td></tr>
             </tbody>
         </table>
         
-        <p><em>Arrows indicate preferred direction (↑ higher is better, ↓ lower is better). In the comparison columns, positive values indicate that MF is numerically higher than the reference policy on that metric.</em></p>
+        <p><em>Table 1. Efficiency metrics (Steps, Total ammo, Shots per target, Latent mismatch, Overkill) should ideally be low; Quality metrics (Match quality, Targets neutralized) should be high. Collisions and Net damage are diagnostic indicators. Percentage columns show MF performance relative to each baseline — for efficiency metrics, negative values indicate improvement (lower is better); for quality metrics, positive values indicate improvement (higher is better).</em></p>
         
         <p>
             In this configuration, the MF policy recovers most of the efficiency gap between random and oracle, reducing the step and ammo counts from 126 / 1,134 (random) to 67 / 603 (MF), compared with the oracle's 62 / 558. This places the learned policy within 8% of the oracle on both efficiency metrics. Average match quality improves from 0.308 (random) to 0.550 (MF), closing 70% of the gap to the oracle value of 0.654. Total latent mismatch is reduced by 62.5% relative to random, from 628.7 HP to 235.9 HP, though a substantial residual gap to the oracle (145.2 HP) remains.
@@ -154,23 +154,47 @@
         <h2>7.4 Learning Dynamics Across 35 Episodes</h2>
         
         <p>
-            The matrix-factorization policy's performance trajectory across 35 episodes is characterized by three broadly distinguishable phases: rapid early convergence, a mid-training plateau with crowding, and a slow late refinement.
+            The matrix-factorization policy's performance trajectory across 35 episodes is characterized by three broadly distinguishable phases: rapid early convergence, a mid-training plateau with crowding, and a slow late refinement. Table 2 reports per-episode metrics across the full training run.
+        </p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Episode</th>
+                    <th>Steps</th>
+                    <th>Total Ammo</th>
+                    <th>Shots / Target</th>
+                    <th>Avg Match Quality</th>
+                    <th>Collisions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>184</td><td>1,656</td><td>61.3</td><td>0.205</td><td>318</td></tr>
+                <tr><td>5</td><td>174</td><td>1,566</td><td>58.0</td><td>0.234</td><td>319</td></tr>
+                <tr><td>9</td><td>111</td><td>999</td><td>37.0</td><td>0.372</td><td>574</td></tr>
+                <tr><td>12</td><td>103</td><td>927</td><td>34.3</td><td>0.397</td><td>579</td></tr>
+                <tr><td>15</td><td>77</td><td>693</td><td>25.7</td><td>0.505</td><td>344</td></tr>
+                <tr><td>18</td><td>73</td><td>657</td><td>24.3</td><td>0.523</td><td>359</td></tr>
+                <tr><td>21</td><td>75</td><td>675</td><td>25.0</td><td>0.512</td><td>355</td></tr>
+                <tr><td>25</td><td>70</td><td>630</td><td>23.3</td><td>0.539</td><td>339</td></tr>
+                <tr><td>30</td><td>70</td><td>630</td><td>23.3</td><td>0.531</td><td>292</td></tr>
+                <tr><td>32</td><td><strong>67</strong></td><td><strong>603</strong></td><td><strong>22.3</strong></td><td><strong>0.550</strong></td><td>296</td></tr>
+                <tr><td>35</td><td>68</td><td>612</td><td>22.7</td><td><strong>0.587</strong></td><td>294</td></tr>
+            </tbody>
+        </table>
+        
+        <p><em>Table 2. Selected episodes illustrating the three learning phases of the matrix-factorization policy. Bold values mark the best step count (episode 32) and best match quality (episode 35). All episodes achieved full target neutralization (27/27).</em></p>
+        
+        <p>
+            <strong>Phase 1 — Rapid Convergence (episodes 1–9).</strong> Steps drop 40% (184 → 111) and match quality nearly doubles (0.205 → 0.372) as the integration matrix rapidly fills — by episode 3, all drone-target pairs have been explored at least once.
         </p>
         
         <p>
-            <strong>Phase 1 — Rapid Convergence (episodes 1–9).</strong> The largest performance gains occur in the first nine episodes. Episode duration drops from 184 steps (episode 1) to 111 steps (episode 9), a reduction of 40%. Average match quality increases by 81% from 0.205 to 0.372 over the same window. Total latent mismatch falls from 1,073.9 HP to 495.1 HP, a 54% reduction. These gains reflect the rapid accumulation of coverage in the integration matrix and the early recovery of gross compatibility structure. At episode 1, agents have explored 94.7% of drone-target pairs; by episode 3, coverage reaches 100%, meaning the running-mean estimates are fully populated.
+            <strong>Phase 2 — Mid-Training Plateau with Crowding (episodes 9–21).</strong> Improvement slows as steps stabilize near 75 and match quality oscillates around 0.50–0.53. Collisions peak at 629 (episode 10): as predictions improve, agents converge on the same few high-affinity targets. Because the policy is decentralized, agents cannot divide targets — they independently arrive at similar greedy choices, producing emergent contention that temporarily limits further gains.
         </p>
         
         <p>
-            <strong>Phase 2 — Mid-Training Plateau with Crowding (episodes 9–21).</strong> Beginning around episode 9, the rate of improvement in step count and match quality slows substantially. Steps stabilize near 75 per episode between episodes 17 and 21; match quality oscillates in the range 0.50–0.53. Analysis of the per-episode learning state logs reveals that this period coincides with a target-crowding phenomenon: the number of unique most-preferred targets across the 9 agents collapses from 9 (at episode 1) to as few as 2–3 between episodes 10 and 12, with the minimum of 2 occurring at episode 12. Multiple agents have converged on the same small set of best-predicted targets. This concentration leads to high contention — total collisions peak at 629 in episode 10 — and temporarily limits further efficiency gains, since many agents are competing for the same targets rather than distributing across the task set.
-        </p>
-        
-        <p>
-            This crowding pattern is a structural consequence of the learning mechanism. As the integration matrix fills and predictions improve, agents converge on a shared estimate of which targets yield the highest utility for each drone type. Because the policy is decentralized and agents cannot communicate to divide targets, they independently arrive at similar greedy choices, producing emergent contention.
-        </p>
-        
-        <p>
-            <strong>Phase 3 — Slow Late Refinement (episodes 21–35).</strong> After episode 21, efficiency metrics resume a slow but sustained improvement. Steps decline from 75 to 67 over the final 14 episodes; shots per target fall from 25.0 to 22.3. Match quality continues to rise throughout this phase, reaching its training peak of 0.587 in the final episode (episode 35). Crucially, the number of unique preferred targets recovers from its mid-training minimum, stabilizing at 7 from episode 22 onward and reaching 8 at episode 29, indicating that as epsilon continues to decay and the policy's internal model becomes more accurate, agents begin to differentiate their preferences more clearly — consistent with the latent structure being gradually resolved from a previously crowded shared representation.
+            <strong>Phase 3 — Slow Late Refinement (episodes 21–35).</strong> Efficiency resumes a gradual improvement — steps fall to 67 and match quality reaches its training peak of 0.587 at episode 35. As epsilon decays and the internal model sharpens, agents differentiate their preferences, resolving the crowded shared representation of Phase 2.
         </p>
         
         <h2>7.5 Latent Structure Recovery</h2>
