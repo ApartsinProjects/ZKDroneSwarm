@@ -289,7 +289,7 @@ Although the policy is decentralized, each drone observes the public swarm inter
 
 $$e^{(a)}_{ij} = \hat{r}^{(a)}_{ij} - \tilde r_{ij}$$
 
-**Integration-matrix mode** (when `use_integration_matrix` is true, which is the current default): Instead of learning from raw observed rewards, the policy accumulates a running mean $\bar{M}_{ij}$ for each (drone, target) pair and computes the prediction error against this running mean:
+**Integration-matrix mode** (when `use_integration_matrix` is true, set via configuration): Instead of learning from raw observed rewards, the policy accumulates a running mean $\bar{M}_{ij}$ for each (drone, target) pair and computes the prediction error against this running mean:
 
 $$\bar{M}^{(a)}_{ij} = \frac{\sum_k \tilde r^{(k)}_{ij}}{n_{ij}},
 \qquad
@@ -443,13 +443,13 @@ This metric captures wasted fire caused by redundant or poorly timed engagements
 
 ### Total Latent Mismatch
 
-Total latent mismatch measures the cumulative damage shortfall due to suboptimal drone-target pairing. For each shot at an **active** target, the environment computes the maximum damage any drone could deal to that target (based on the precomputed optimal dot products) and tracks the shortfall:
+Total latent mismatch measures the cumulative damage shortfall due to suboptimal drone-target pairing. For each shot fired (regardless of whether the target is still active), the environment computes the maximum damage any drone could deal to that target (based on the precomputed optimal dot products) and tracks the shortfall:
 
 $$\text{Latent Mismatch}_{ij} = \max\!\Big(0,\;\max_{k} d_{kj} - d_{ij}\Big)$$
 
-where $d_{ij} = \max(0,\, (\mathbf{z}^{(d)}_i)^\top \mathbf{z}^{(t)}_j)$ is the actual damage dealt by drone $i$ to target $j$, and $\max_k d_{kj}$ is the best damage any drone could deal to target $j$. Total latent mismatch sums this across all shots at active targets:
+where $d_{ij} = \max(0,\, (\mathbf{z}^{(d)}_i)^\top \mathbf{z}^{(t)}_j)$ is the actual damage dealt by drone $i$ to target $j$, and $\max_k d_{kj}$ is the best damage any drone could deal to target $j$. Total latent mismatch sums this across all shots fired:
 
-$$\text{Total Latent Mismatch} = \sum_{t=1}^{T}\sum_{i:\,\text{target active}} \text{Latent Mismatch}_{ij}(t)$$
+$$\text{Total Latent Mismatch} = \sum_{t=1}^{T}\sum_{i} \text{Latent Mismatch}_{ij}(t)$$
 
 The optimal damage per target is precomputed at episode reset:
 
@@ -467,7 +467,7 @@ def _precompute_max_damage_per_target(self) -> List[float]:
     return max_damages
 ```
 
-During step execution, latent mismatch is accumulated for each engagement with an active target:
+During step execution, latent mismatch is accumulated for every engagement (including shots at inactive targets), because the metric measures assignment quality — how well-suited the drone is to the target — not whether the shot contributed to task progress:
 
 ```python
 optimal_damage = self._max_damage_per_target[target_idx]
@@ -625,7 +625,7 @@ The constructor also derives two compatibility metadata structures used by the v
 - Action `0` = NoOp (do nothing)
 - Action `k` for $k \in \{1, \dots, M\}$ = fire at target $k-1$ (0-indexed internally)
 
-**Observation space** — `spaces.Dict` with four keys:
+**Observation space** — `spaces.Dict` with three keys:
 
 | Key | Space | Shape | Dtype | Description |
 |---|---|---|---|---|
