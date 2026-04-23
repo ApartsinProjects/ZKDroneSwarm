@@ -10,7 +10,7 @@ This result is consistent with the scenario design. With 9 drones engaging 27 ta
 
 ## 7.2 Cross-Policy Comparison
 
-The table below reports each metric for the random baseline, the oracle benchmark, and the matrix-factorization policy at its best episode by step count (episode 32). The baseline and oracle are each evaluated on a single episode; the matrix-factorization result reflects accumulated learning over 35 training episodes.
+The table below reports each metric for the random baseline, the oracle benchmark, and the matrix-factorization policy at its best episode by step count (episode 32). The baseline and oracle are each evaluated on a single episode; the matrix-factorization result reflects accumulated learning over 35 training episodes. For interpretation, average match quality measures the fraction of best-matched-drone damage realized by the actual drone-target pairings, while total latent mismatch measures the cumulative damage shortfall relative to that same best-matched-drone reference.
 
 | Metric | Random | MF (ep. 32) | Oracle | MF vs. Random | MF vs. Oracle |
 |---|---|---|---|---|---|
@@ -36,27 +36,26 @@ Two metrics move against the direction of improvement. Total overkill increases 
 
 ## 7.3 Episode Engagement Profiles
 
-A complementary view of policy behavior is provided by per-episode engagement profiles, which plot the fraction of total HP remaining (blue) and the fraction of active targets remaining (orange) over each timestep of a representative episode for each policy. Note that Table 7.2 uses the best step-count episode (episode 32, 67 steps) for quantitative cross-policy comparison, whereas Figure 1 uses the final training episode (episode 35, 68 steps) for the MF profile because it best illustrates the learned engagement geometry at the end of training; the two episodes are qualitatively similar, differing by a single step. These curves encode the engagement *strategy* of each policy as a geometric relationship: the gap between the HP curve and the Active Targets curve at any point in the episode measures how much cumulative damage has been distributed across still-active targets without yet eliminating them.
+A complementary view is provided by per-episode engagement profiles, which plot the fraction of total HP remaining (blue) and active targets remaining (orange) over time for each policy. Table 1 uses the best MF episode by step count (episode 32, 67 steps) for the quantitative comparison, whereas Figure 1 uses the final training episode (episode 35, 68 steps) because it better illustrates the learned engagement geometry at the end of training; the two episodes are qualitatively similar. The gap between the curves indicates how much damage has been spread across still-active targets without yet producing eliminations.
 
-**Figure 1. Engagement profiles by policy — Total HP (blue) and Active Targets (orange) as a percentage of initial values, plotted over episode timesteps.**
 
 | MF Policy (ep. 35, 68 steps) | Random Baseline (126 steps) | Oracle Benchmark (62 steps) |
 |:---:|:---:|:---:|
 | ![MF engagement profile](figures/fig-engagement-profile-mf.png) | ![Random engagement profile](figures/fig-engagement-profile-random.png) | ![Oracle engagement profile](figures/fig-engagement-profile-oracle.png) |
+ 
+ *Figure 1. Engagement profiles by policy — Total HP (blue) and Active Targets (orange) as a percentage of initial values, plotted over episode timesteps.*
 
----
+**Random baseline (126 steps).** The random profile shows the widest and most persistent gap between the two curves. HP declines approximately linearly while the Active Targets curve remains near 100% until roughly the mid-30s, and the curves converge only near the end of the episode. This is consistent with **distributed spray damage**: fire is spread broadly, delaying eliminations and matching the high latent mismatch reported in §7.2.
 
-**Random baseline (126 steps).** The random profile exhibits the widest and most persistent gap between the two curves. HP declines approximately linearly while the Active Targets curve remains near 100% until approximately step 40, when the first eliminations begin. The two curves converge only in the final 20–30 steps. This pattern is consistent with **distributed spray damage**: shots are spread across all targets without concentrating enough fire to eliminate any single target promptly. The large enclosed area between the two curves is consistent with the high total latent mismatch (628.7 HP) reported in Section 7.2.
+**Matrix-factorization policy (68 steps).** The MF profile narrows the HP-Active Targets gap substantially. Eliminations begin around step 12, and the Active Targets curve then descends in a relatively steady staircase pattern throughout the episode. The remaining gap indicates imperfect focus fire: the policy concentrates on high-affinity targets, but some damage is still spread across targets before eliminations occur.
 
-**Matrix-factorization policy (68 steps).** The MF profile shows a substantially reduced HP-Active Targets gap. Target eliminations begin noticeably earlier — within approximately the first seven to eight steps — and the Active Targets curve descends in a more regular staircase pattern throughout the episode rather than clustering at the end. The two curves track each other more closely than in the random case, and the episode concludes in 68 steps. The gap is not eliminated, however: the HP curve consistently leads the Active Targets curve, indicating that damage is still partially distributed across multiple targets before each elimination occurs. This reflects the learned but imperfect focus-fire behavior of the policy: having inferred the dominant latent compatibility structure, it concentrates fire on high-affinity targets, but without access to remaining HP values it cannot schedule shots to eliminate targets sequentially in the way an HP-aware planner would.
+**Oracle benchmark (62 steps).** The oracle profile finishes in the fewest steps and begins eliminating targets within the first few steps. Visually, however, the two curves do not remain as tightly coupled as in the MF profile: the Active Targets curve moves in larger drops separated by plateaus, indicating burst-like eliminations rather than a strictly sequential pattern.
 
-**Oracle benchmark (62 steps).** The oracle profile exhibits the tightest coupling between the two curves. Target eliminations begin from the very first steps, and the Active Targets curve descends in a consistent staircase that closely parallels the HP decline throughout, terminating together at step 62. The minimal enclosed area reflects the oracle's HP-aware marginal scheduling: it assigns drones to targets near elimination, producing a nearly sequential target-elimination pattern and the lowest total latent mismatch (145.2 HP) and overkill (3.65 HP) of the three policies.
-
-**Structural interpretation.** The progression from random to MF to oracle in these profiles illustrates the fundamental trade-off at the core of the ZK-MRTA problem. Under random assignment, all damage potential is wasted on spread: HP drains uniformly but no target is eliminated until very late. Under oracle assignment, damage potential is maximally converted into eliminations through privileged HP awareness. The MF policy occupies an intermediate position determined by what can be inferred from latent compatibility structure alone, without access to HP state. The shrinking of the HP-Active Targets gap across the three policies is consistent with the same progression captured quantitatively by the latent mismatch and match quality metrics in Section 7.2.
+**Structural interpretation.** In these representative episodes, random shows the broadest damage spread, MF shows the closest visual coupling between HP loss and eliminations, and oracle achieves the shortest completion time with more burst-like elimination phases. The figure therefore complements the numeric results in §7.2 rather than duplicating them directly.
 
 ## 7.4 Learning Dynamics Across 35 Episodes
 
-The matrix-factorization policy's performance trajectory across 35 episodes is characterized by three broadly distinguishable phases: rapid early convergence, a mid-training plateau with crowding, and a slow late refinement. Table 2 reports per-episode metrics across the full training run.
+The matrix-factorization policy's 35-episode trajectory suggests three broad phases: rapid early convergence, a mid-training plateau with crowding, and a slow late refinement. Table 2 shows selected episodes from the run.
 
 | Episode | Steps | Total Ammo | Shots / Target | Avg Match Quality | Collisions |
 |---:|---:|---:|---:|---:|---:|
@@ -74,17 +73,15 @@ The matrix-factorization policy's performance trajectory across 35 episodes is c
 
 *Table 2. Selected episodes illustrating the three learning phases of the matrix-factorization policy. Bold values mark the best step count (episode 32) and best match quality (episode 35). All episodes achieved full target neutralization (27/27).*
 
-**Phase 1 — Rapid Convergence (episodes 1–9).** Steps drop 40% (184 → 111) and match quality nearly doubles (0.205 → 0.372) as the integration matrix rapidly fills — by episode 3, all drone-target pairs have been explored at least once.
+**Phase 1 — Rapid Convergence (episodes 1–9).** Steps drop 40% (184 → 111) and match quality rises from 0.205 to 0.372 as the interaction matrix fills rapidly; by episode 3, all drone-target pairs have been explored at least once.
 
-**Phase 2 — Mid-Training Plateau with Crowding (episodes 9–21).** Improvement slows as steps stabilize near 75 and match quality oscillates around 0.50–0.53. Collisions peak at 629 (episode 10): as predictions improve, agents converge on the same few high-affinity targets. Because the policy is decentralized, agents cannot divide targets — they independently arrive at similar greedy choices, producing emergent contention that temporarily limits further gains.
+**Phase 2 — Mid-Training Plateau with Crowding (episodes 9–21).** Improvement slows as steps settle near the mid-70s and match quality oscillates around 0.50–0.53. Collisions peak at 629 (episode 10), consistent with multiple agents converging on the same high-affinity targets and creating temporary contention.
 
-**Phase 3 — Slow Late Refinement (episodes 21–35).** Efficiency resumes a gradual improvement — steps fall to 67 and match quality reaches its training peak of 0.587 at episode 35. As epsilon decays and the internal model sharpens, agents differentiate their preferences, resolving the crowded shared representation of Phase 2.
+**Phase 3 — Slow Late Refinement (episodes 21–35).** Efficiency improves gradually again: steps fall to 67 and match quality reaches its training peak of 0.587 at episode 35. The late-stage gains are modest but consistent with continued refinement rather than full saturation.
 
 ## 7.5 Latent Structure Recovery
 
-Two indicators track whether the policy recovers the hidden compatibility structure from interaction outcomes alone.
-
-**Match quality** rises from 0.205 (episode 1) to 0.587 (episode 35) — a 186% increase that closes 81% of the gap to the oracle's 0.654. **The agreement gap** — mean absolute discrepancy between predicted and empirical utilities — declines monotonically: 0.348 (episode 1), 0.227 (episode 18), 0.105 (episode 35). The parallel rise in mean top-1 predicted reward (0.0006 → 0.737 → 0.927) confirms that embedding representations have stabilized around the dominant compatibility signals.
+Several indicators suggest that the policy is recovering the hidden compatibility structure from interaction outcomes alone. Over training, actual pairings move closer to best-match behavior, predicted utilities move closer to observed interaction outcomes, and the model becomes more confident in its top-ranked target choices. Taken together, these trends indicate that the embeddings are no longer behaving like a sparse memory of past rewards; they are beginning to encode a usable compatibility geometry.
 
 **Geometric structure in the learned embeddings.** Figure 2 shows a t-SNE projection of drone 1's learned P (drone) and U (target) embedding vectors at episode 35, colored post-hoc by ground-truth latent mode.
 
@@ -92,9 +89,9 @@ Two indicators track whether the policy recovers the hidden compatibility struct
 
 *Figure 2. t-SNE projection of drone 1's learned P and U embedding matrices at episode 35. Each point represents either a drone (P-row) or a target (U-column) in the 3-dimensional factorization space. Colors correspond to ground-truth latent mode assignments (red, green, blue), which are unknown to the policy and applied here post-hoc for interpretability.*
 
-Three spatially separated clusters have formed, each aligned with one of the three ground-truth latent modes — despite the policy never receiving mode labels or latent vectors. The clustering is consistent with the quantitative recovery above, though t-SNE is sensitive to hyperparameters and should be interpreted as illustrative.
+By episode 35, the learned embeddings are no longer scattered randomly: they organize into a small number of separated regions that broadly align with the three ground-truth latent modes, even though the policy never receives mode labels or latent vectors. This is important behaviorally. It suggests that the policy is not merely memorizing individual drone-target outcomes, but is recovering a coarser structure that groups similar drones and targets together and supports better generalization across interactions. The separation is not perfect, and t-SNE is only an illustrative projection, so the figure should be read as qualitative support rather than proof on its own.
 
-Overall, latent-structure recovery is progressive and consistent across independent indicators, though incomplete by the end of the 35-episode run. Whether these findings generalize across scenario seeds, noise levels, and swarm compositions is addressed in Section 8.
+Overall, the learning dynamics in this section are consistent with partial latent-structure recovery: the policy learns enough of the hidden compatibility geometry to improve pairing decisions substantially, but not enough to eliminate the remaining gap to the oracle. Whether this behavior persists across other seeds, noise levels, and swarm compositions is addressed in Section 8.
 
 ## 7.6 Coordination Dynamics
 

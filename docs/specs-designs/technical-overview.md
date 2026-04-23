@@ -443,15 +443,15 @@ This metric captures wasted fire caused by redundant or poorly timed engagements
 
 ### Total Latent Mismatch
 
-Total latent mismatch measures the cumulative damage shortfall due to suboptimal drone-target pairing. For each shot fired (regardless of whether the target is still active), the environment computes the maximum damage any drone could deal to that target (based on the precomputed optimal dot products) and tracks the shortfall:
+Total latent mismatch measures the cumulative damage shortfall due to suboptimal drone-target pairing. For each shot fired (regardless of whether the target is still active), the environment computes the maximum damage any drone could deal to that target, i.e. the damage of the best-matched drone for that target, and tracks the shortfall:
 
 $$\text{Latent Mismatch}_{ij} = \max\!\Big(0,\;\max_{k} d_{kj} - d_{ij}\Big)$$
 
-where $d_{ij} = \max(0,\, (\mathbf{z}^{(d)}_i)^\top \mathbf{z}^{(t)}_j)$ is the actual damage dealt by drone $i$ to target $j$, and $\max_k d_{kj}$ is the best damage any drone could deal to target $j$. Total latent mismatch sums this across all shots fired:
+where $d_{ij} = \max(0,\, (\mathbf{z}^{(d)}_i)^\top \mathbf{z}^{(t)}_j)$ is the actual damage dealt by drone $i$ to target $j$, and $\max_k d_{kj}$ is the damage that the best-matched drone could deal to target $j$. Total latent mismatch sums this across all shots fired:
 
 $$\text{Total Latent Mismatch} = \sum_{t=1}^{T}\sum_{i} \text{Latent Mismatch}_{ij}(t)$$
 
-The optimal damage per target is precomputed at episode reset:
+This best-matched-drone damage per target is precomputed at episode reset:
 
 ```python
 def _precompute_max_damage_per_target(self) -> List[float]:
@@ -478,11 +478,11 @@ This metric isolates assignment quality from other sources of inefficiency. Unli
 
 ### Average Latent Match Quality
 
-Average latent match quality measures the fraction of optimal damage achieved per shot through drone-target pairing decisions:
+Average latent match quality measures the fraction of best-matched-drone damage achieved per shot through drone-target pairing decisions:
 
 $$\text{Avg Latent Match Quality} = \frac{\text{Total Gross Damage}}{\text{Total Optimal Potential}}$$
 
-where Total Optimal Potential is the sum of optimal damages for all shots actually fired, computed using the precomputed maximum damage per target from `_precompute_max_damage_per_target()`. This is mathematically equivalent to computing the mean of $(d_{ij} / \max_k d_{kj})$ across all shots at active targets, where $d_{ij}$ is the actual damage dealt and $\max_k d_{kj}$ is the optimal damage for that target. The metric is bounded in $(0, 1]$: a value of 1.0 means every shot was fired by the optimally matched drone, while lower values indicate suboptimal pairing. It is computed in `EpisodeMetrics.__post_init__()`:
+where Total Optimal Potential is the sum of best-matched-drone damages for all shots actually fired, computed using the precomputed maximum damage per target from `_precompute_max_damage_per_target()`. This is mathematically equivalent to computing the mean of $(d_{ij} / \max_k d_{kj})$ across all shots fired, where $d_{ij}$ is the actual damage dealt and $\max_k d_{kj}$ is the damage of the best-matched drone for that target. The metric is bounded in $(0, 1]$: a value of 1.0 means every shot was fired by the best-matched drone, while lower values indicate suboptimal pairing. It is computed in `EpisodeMetrics.__post_init__()`:
 
 ```python
 self.avg_latent_match_quality = (
@@ -491,7 +491,7 @@ self.avg_latent_match_quality = (
 )
 ```
 
-The `total_optimal_potential` is accumulated during the episode by summing the optimal damage for each shot fired at an active target, using the values from `_max_damage_per_target`.
+The `total_optimal_potential` is accumulated during the episode by summing the best-matched-drone damage for each shot fired, using the values from `_max_damage_per_target`.
 
 ### Episode Metrics Serialization
 
