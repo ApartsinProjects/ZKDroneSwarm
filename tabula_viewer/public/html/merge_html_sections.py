@@ -11,7 +11,10 @@ sections = [
     'literature-review.html',
     'model-problem-definition.html',
     'methods.html',
-    'framework-description.html'
+    'framework-description.html',
+    'experiments.html',
+    'results.html',
+    'next-steps.html'
 ]
 
 html_dir = Path(__file__).parent
@@ -26,7 +29,14 @@ for section_file in sections:
         # Extract content between <div class="paper-section-container"> tags
         match = re.search(r'<div class="paper-section-container">(.*?)</div>\s*</body>', html, re.DOTALL)
         if match:
-            contents.append(match.group(1).strip())
+            content = match.group(1).strip()
+            # Convert relative figure paths to absolute file:// URLs for Pandoc compatibility
+            content = re.sub(
+                r'src="figures/',
+                f'src="file://{html_dir}/figures/',
+                content
+            )
+            contents.append(content)
 
 # Create merged HTML with proper title and author header
 merged = '''<!DOCTYPE html>
