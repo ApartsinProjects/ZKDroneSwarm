@@ -57,6 +57,11 @@ python3 /path/to/html2doc/html2doc.py --input paper.html --output paper.docx
 2. Convert the MathML HTML to DOCX through Pandoc so equations become native OMML.
 3. Apply Word styling for front matter, captions, tables, references, and pagination.
 
+## Image Handling
+
+- Pandoc resolves image paths from a temporary file, so **relative `src` paths will fail**. Convert them to absolute `file://` URLs before feeding the HTML to this skill (e.g. `src="file:///absolute/path/to/figures/img.png"`).
+- Images inside table cells are automatically resized to fit their column width. When a single cell contains multiple images they are scaled to share the available width evenly.
+
 ## Constraints
 
 - Math detection is optimized for `$...$` and `$$...$$`; unusual delimiter schemes may need preprocessing.

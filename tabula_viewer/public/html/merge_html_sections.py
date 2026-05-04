@@ -14,7 +14,8 @@ sections = [
     'framework-description.html',
     'experiments.html',
     'results.html',
-    'next-steps.html'
+    'next-steps.html',
+    'references.html'
 ]
 
 html_dir = Path(__file__).parent

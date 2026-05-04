@@ -311,6 +311,43 @@ def has_drawing(element):
     return False
 
 
+def resize_images_in_cell(cell, max_width_emu):
+    """Shrink images in *cell* so they fit within *max_width_emu*.
+
+    When a cell contains multiple images the available width is split
+    evenly among them so they can sit side-by-side.
+    """
+    WP = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
+    A  = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+
+    inlines = []
+    for drawing in cell._tc.iter(qn('w:drawing')):
+        for inline in drawing.iter('{%s}inline' % WP):
+            inlines.append(inline)
+
+    if not inlines:
+        return
+
+    per_image_width = max_width_emu // len(inlines) if len(inlines) > 1 else max_width_emu
+
+    for inline in inlines:
+        extent = inline.find('{%s}extent' % WP)
+        if extent is None:
+            continue
+        cx = int(extent.get('cx', 0))
+        cy = int(extent.get('cy', 0))
+        if cx <= per_image_width or cx == 0:
+            continue
+        ratio = per_image_width / cx
+        new_cx = int(cx * ratio)
+        new_cy = int(cy * ratio)
+        extent.set('cx', str(new_cx))
+        extent.set('cy', str(new_cy))
+        for a_ext in inline.iter('{%s}ext' % A):
+            a_ext.set('cx', str(new_cx))
+            a_ext.set('cy', str(new_cy))
+
+
 def has_display_math(paragraph):
     xml = paragraph._element.xml
     return "<m:oMathPara" in xml or ("<m:oMath" in xml and not paragraph.text.strip())
@@ -486,6 +523,21 @@ def apply_academic_formatting(doc, profile="camera-ready-generic", table_width=1
     config = PROFILES[profile]
 
     print("Applying academic formatting...")
+    
+    # Normalize typography: replace em-dashes with regular hyphens
+    for para in doc.paragraphs:
+        for run in para.runs:
+            if run.text:
+                run.text = run.text.replace('—', '-').replace('–', '-')
+    
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for para in cell.paragraphs:
+                    for run in para.runs:
+                        if run.text:
+                            run.text = run.text.replace('—', '-').replace('–', '-')
+    
     configure_base_styles(doc, config)
 
     for section in doc.sections:
@@ -641,6 +693,9 @@ def apply_academic_formatting(doc, profile="camera-ready-generic", table_width=1
     print(f"  Formatted {text_count} text paragraphs")
 
     print("  Formatting tables...")
+    page_width_emu = int(6.5 * 914400)  # 8.5" page - 2×1" margins
+    cell_padding_emu = int(0.15 * 914400)
+
     for idx, table in enumerate(doc.tables):
         print(f"    Table {idx + 1}: {len(table.rows)} rows x {len(table.columns)} cols")
         set_table_width(table, table_width)
@@ -648,6 +703,10 @@ def apply_academic_formatting(doc, profile="camera-ready-generic", table_width=1
         set_table_border(table, config)
 
         last_row_idx = len(table.rows) - 1
+
+        # Calculate max image width per cell
+        num_cols = len(table.columns) if table.columns else 1
+        max_img_width = (page_width_emu // num_cols) - cell_padding_emu
 
         if table.rows:
             for col_idx, cell in enumerate(table.rows[0].cells):
@@ -659,6 +718,8 @@ def apply_academic_formatting(doc, profile="camera-ready-generic", table_width=1
                     bottom_color=config["table_rule_mid"],
                     bottom_size=8,
                 )
+                if has_drawing(cell._tc):
+                    resize_images_in_cell(cell, max_img_width)
 
             for row_idx, row in enumerate(table.rows[1:], start=1):
                 for col_idx, cell in enumerate(row.cells):
@@ -671,6 +732,48 @@ def apply_academic_formatting(doc, profile="camera-ready-generic", table_width=1
                         bottom_color=bottom_color,
                         bottom_size=4,
                     )
+                    if has_drawing(cell._tc):
+                        resize_images_in_cell(cell, max_img_width)
+
+    # Post-process nested tables (Pandoc wraps some structures in an outer 1×1 table)
+    nested_count = 0
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for nested_tbl in cell._tc.findall(qn("w:tbl")):
+                    nested_count += 1
+                    # Set nested table to full width
+                    n_pr = nested_tbl.find(qn("w:tblPr"))
+                    if n_pr is None:
+                        n_pr = OxmlElement("w:tblPr")
+                        nested_tbl.insert(0, n_pr)
+                    n_w = n_pr.find(qn("w:tblW"))
+                    if n_w is None:
+                        n_w = OxmlElement("w:tblW")
+                        n_pr.append(n_w)
+                    n_w.set(qn("w:type"), "pct")
+                    n_w.set(qn("w:w"), "5000")
+
+                    # Expand grid columns to fill page width
+                    tbl_grid = nested_tbl.find(qn("w:tblGrid"))
+                    grid_cols = tbl_grid.findall(qn("w:gridCol")) if tbl_grid is not None else []
+                    n_cols = len(grid_cols) if grid_cols else 1
+                    page_width_twips = int(6.5 * 1440)  # 1 inch = 1440 twips
+                    col_width_twips = page_width_twips // n_cols
+                    for gc in grid_cols:
+                        gc.set(qn("w:w"), str(col_width_twips))
+
+                    # Resize images to fit the new column width
+                    per_col_emu = (page_width_emu // n_cols) - cell_padding_emu
+                    for n_row in nested_tbl.findall(qn("w:tr")):
+                        for n_cell in n_row.findall(qn("w:tc")):
+                            class _CellProxy:
+                                def __init__(self, tc): self._tc = tc
+                            proxy = _CellProxy(n_cell)
+                            if has_drawing(n_cell):
+                                resize_images_in_cell(proxy, per_col_emu)
+    if nested_count:
+        print(f"  Fixed {nested_count} nested table(s)")
 
     print("  Formatting complete")
 
