@@ -179,6 +179,14 @@ Sections: Abstract · Introduction · Literature Review · Model and Problem Def
 
 ---
 
+## Team
+
+**Yigal Meshulam** — researcher, Department of Computer Science
+
+**Alexander Apartsin** — MSc Adviser
+
+---
+
 ## License
 
 MIT
