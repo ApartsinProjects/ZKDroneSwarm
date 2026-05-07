@@ -173,7 +173,11 @@ The current results are preliminary (single seed). The planned evaluation extend
 
 ## Paper
 
-The full paper is readable section by section in the viewer, or as Markdown under [`docs/academic-paper/`](docs/academic-paper/).
+Full rendered paper: [`tabula_viewer/public/html/tabula-drone-full-paper.html`](tabula_viewer/public/html/tabula-drone-full-paper.html)
+
+Online: [apartsinprojects.github.io/ZKDroneSwarm](https://apartsinprojects.github.io/ZKDroneSwarm)
+
+Source sections (Markdown): [`docs/academic-paper/`](docs/academic-paper/)
 
 Sections: Abstract · Introduction · Literature Review · Model and Problem Definition · Methods · Framework Description · Experiments · Results · Next Steps
 
@@ -183,7 +187,7 @@ Sections: Abstract · Introduction · Literature Review · Model and Problem Def
 
 **Yigal Meshulam** — researcher, Department of Computer Science
 
-**Alexander Apartsin** — MSc Adviser
+**Alexander Apartsin** — MSc Adviser, Department of Computer Science
 
 ---
 
