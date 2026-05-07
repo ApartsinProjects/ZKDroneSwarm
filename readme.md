@@ -1,140 +1,184 @@
-# TabulaDrone
+# Zero-Knowledge Swarm Coordination
 
-Reinforcement Learning environments for drone target engagement scenarios, built with PettingZoo.
+**Decentralized drone task allocation with no communication, no priors, and no shared state**
 
-## Overview
+![Hero: ZK drone swarm engaging distributed targets](docs/hero.png)
 
-TabulaDrone provides a multi-agent RL environment for Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA) research. Multiple drones engage multiple targets without prior knowledge of task attributes, agent capabilities, or inter-agent communication.
+---
 
-## Environment
+## What is this?
 
-### DroneEngageZKMRTA-v0
+Most multi-robot coordination research assumes agents can talk to each other, know their own capabilities, or at least know something about the tasks they are solving. This project removes all three.
 
-A multi-agent PettingZoo environment where:
-- Multiple static drones with unlimited ammunition
-- Multiple static targets with configurable classes (A/B/C with different HP values)
-- Zero-knowledge constraints: agents don't know target HP, classes, or their own damage capabilities
-- Action space per agent: Noop or Fire at specific target
-- Reward: +1.0 for killing blow on target
+**Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA)** is a problem setting where a swarm of drones must allocate themselves to targets under the strictest possible informational constraints:
 
-**Observation Modes:**
+- No agent knows the properties of any target
+- No agent knows its own capabilities or effectiveness
+- No agent knows anything about the other agents
+- No direct communication is permitted
 
-The environment supports two observation modes controlled by `observation_mode` parameter:
+All an agent ever sees is a public broadcast of what the swarm did last step and what reward each drone received. From that alone, the swarm must learn to coordinate.
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| `minimal` (default) | Target positions + active status only | Pure ZK-MRTA, no inter-agent visibility |
-| `collaborative` | Adds other agents' actions and rewards | Collaborative filtering, multi-agent learning |
+The question this research asks: *can meaningful, emergent coordination arise from nothing but interaction outcomes?*
 
-*Minimal mode observations:*
-- Target positions (x, y) and binary active status
+---
 
-*Collaborative mode adds:*
-- `selected_targets`: Which target each agent fired at last step
-- `observed_rewards`: What reward each agent received last step
+## The Core Idea
 
-**Noise Parameters (collaborative mode):**
+Each drone independently runs a **matrix factorization model** — the same idea behind collaborative filtering in recommendation systems, but repurposed for online latent-utility estimation.
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `reward_noise` | float | 0.0 | Gaussian noise σ added to actual rewards |
+Drones play the role of users. Targets play the role of items. Engagement outcomes replace ratings.
 
-Observed rewards are derived from the canonical reward with `reward_noise` applied.
+Because the public broadcast exposes what every drone did and what reward it got, each drone can update its local model not just from its own shots, but from every observed swarm interaction. No parameters are shared. No messages are passed. Collaboration emerges only through a shared observation stream.
 
-**Note:** Both modes maintain zero-knowledge about *capabilities* — agents never see HP values, damage profiles, weapon types, or class types. Collaborative mode only reveals *actions and outcomes*, not *why* those outcomes occurred.
+Over episodes, each drone's private model learns a compressed representation of the hidden compatibility geometry — which drones are effective against which targets — and begins routing itself accordingly.
 
-**Key Features:**
-- Configurable drones with weapon types (light/medium/heavy)
-- Configurable targets with position and class
-- ZK-MRTA compliant observations (no HP, no classes, no damage capabilities)
-- Configurable observation mode (minimal or collaborative)
-- Parallel execution (all agents act simultaneously)
-- Deterministic with seed support
-- Fully PettingZoo-compliant
+```
+Hidden environment:         drone i has latent vector z_i
+                            target j has latent vector z_j
+                            compatibility g_ij = z_i · z_j  (never observed)
 
-**Status:** ✅ Production
+Reward to drone i           r_ij = cosine(z_i, z_j)         (noisy, observed)
+for engaging target j:
 
-## Installation
-
-```bash
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install dependencies
-pip3 install -r requirements.txt
+Each drone k learns:        P[k] (drone embeddings)  +  U (target embeddings)
+                            predicted utility = P[k][i] · U[j]
+                            updated online via SGD from public interaction trace
 ```
 
-## Usage
+---
 
-### ZK-MRTA Multi-Agent Environment
+## Key Contributions
 
-```python
-from tabula_drone.envs import parallel_env
+**1. Problem formalization.** ZK-MRTA is defined as a distinct class of multi-robot task allocation problems, with formal constraints on observability, communication, and prior knowledge. It fills a gap between classical MRTA (which assumes known costs and feasibility) and standard MARL (which typically allows communication or shared rewards).
 
-# Create environment with multiple drones and targets
-env = parallel_env(
-    drones_config=[
-        {'position': (100, 100), 'weapon_type': 'light'},
-        {'position': (900, 100), 'weapon_type': 'medium'},
-        {'position': (500, 900), 'weapon_type': 'heavy'},
-    ],
-    targets_config=[
-        {'position': (200, 200), 'class_type': 'A'},
-        {'position': (800, 200), 'class_type': 'B'},
-        {'position': (500, 800), 'class_type': 'C'},
-    ],
-    max_steps=100,
-)
+**2. Decentralized matrix-factorization policy.** A collaborative-filtering-inspired policy that each agent runs independently, learning latent compatibility structure from sparse public interaction traces without parameter exchange.
 
-# Reset returns observations and minimal infos keyed by agent ID
-observations, infos = env.reset(seed=42)
+**3. Benchmark environment.** A configurable PettingZoo/Gymnasium environment that enforces ZK observability constraints, generates episodes with hidden drone-target compatibility structure, and logs policy-agnostic metrics for systematic comparison.
 
-# Shared diagnostics are available from the env itself
-diagnostics = env.diagnostics.to_dict()
+**4. Empirical evaluation.** Preliminary results on a 9-drone, 27-target scenario show the MF policy closing ~92% of the efficiency gap between a random baseline and a privileged oracle, recovering embedding structure aligned with hidden compatibility modes.
 
-# Parallel execution: all agents act simultaneously
-while env.agents:
-    actions = {agent: env.action_space(agent).sample() for agent in env.agents}
-    observations, rewards, terminations, truncations, infos = env.step(actions)
+---
 
-# Example: infos are per-agent/minimal, diagnostics hold shared telemetry
-drone_0_info = infos["drone_0"]
-latest_diagnostics = env.diagnostics.to_dict()
-```
+## Results Snapshot
 
-Direct construction via `DroneEngageZKMRTA(...)` is still supported, but
-`parallel_env(...)` is the canonical factory entrypoint.
+Single seed (seed 42), 35 training episodes, 9 drones, 27 targets, latent dim = 3.
 
-### Running Demo
+| Metric | Random | MF Policy | Oracle |
+|---|---|---|---|
+| Steps to completion | 126 | **67** | 62 |
+| Total shots fired | 1,134 | **603** | 558 |
+| Avg. match quality | 0.308 | **0.550** | 0.654 |
+| Total latent mismatch (HP) | 628.7 | **235.9** | 145.2 |
 
-```bash
-# ZK-MRTA demo with random policy
-python3 main_zk_mrta.py
-```
+The MF policy reduces episode length by 47% relative to random and sits within 8% of the oracle — an agent with full privileged access to all hidden state.
+
+By episode 35, the learned embeddings form separated clusters that align with the three ground-truth latent compatibility modes, even though mode labels were never provided.
+
+---
+
+## The ZK Constraint in Practice
+
+The oracle knows the latent vectors, the remaining HP on every target, and can plan a globally optimal assignment each step. The MF policy knows none of that. Its only inputs are:
+
+- which targets are still active (binary flags)
+- the spatial positions of targets
+- last step's joint action vector (noisy)
+- last step's per-agent reward vector (noisy)
+
+The result is a characteristic tradeoff: the MF policy improves match quality and cuts episode length substantially, but generates more overkill (shots landing on targets neutralized in the same step) and more crowding (multiple drones converging on the same high-affinity target) than the oracle. Both are structural consequences of the ZK constraint — the policy cannot see remaining HP and cannot coordinate explicitly.
+
+---
 
 ## Project Structure
 
 ```
-TabulaDrone/
-├── tabula_drone/           # Main package
-│   ├── core/              # Shared state representations
-│   ├── envs/              # Environment implementations
-│   ├── logging/           # Episode logging
-│   ├── policies/          # Policy implementations
-│   └── scenarios/         # Scenario utilities
-├── tabula_viewer/         # Angular episode visualization web app
-├── tests/                 # Test suite
-├── logs/                  # Episode log output (generated)
-├── config/                # Scenario configuration files
-├── main_zk_mrta.py       # Demo script
-└── requirements.txt       # Dependencies
+ColabDroneSwarm/
+├── tabula_drone/               # Python simulation package
+│   ├── envs/                   # PettingZoo environment (ZK-MRTA)
+│   ├── policies/               # Random, Oracle, MatrixFactorization
+│   ├── scenarios/              # Latent scenario builder (hidden compatibility)
+│   ├── logging/                # Episode + engagement loggers
+│   └── utils/                  # Metrics, console rendering
+├── tabula_viewer/              # Angular visualization app
+│   └── src/app/components/
+│       ├── paper/              # Tabbed paper reader (rendered HTML sections)
+│       ├── map/                # Live 2D swarm map
+│       ├── embedding-visualization/   # 3D embedding renderer
+│       ├── integration-matrix/        # Running interaction matrix heatmap
+│       └── report/             # Cross-episode metrics report
+├── docs/academic-paper/        # Paper source (Markdown per section)
+├── config/scenario.json        # Scenario configuration
+├── main_zk_mrta.py             # Main runner
+└── tests/
 ```
 
-## Development
+---
 
-This project follows the Baby Steps methodology - each feature is developed in small, atomic, validated increments.
+## Running
+
+**Prerequisites:** Python 3.11+
+
+```bash
+pip install -r requirements.txt
+```
+
+**Run the benchmark** (all configured policies, all episodes):
+
+```bash
+python main_zk_mrta.py
+```
+
+Configuration is in [`config/scenario.json`](config/scenario.json). Key fields:
+
+```json
+{
+  "seed": 42,
+  "policy": { "type": ["random", "max_damage_oracle", "matrix_factorization_cf"] },
+  "drones": { "count": 9 },
+  "targets": { "count": 27 },
+  "environment": { "episodic": { "num_episodes": 35 } },
+  "collaborative_filtering": {
+    "matrix_factorization_cf": {
+      "latent_dim": 3,
+      "learning_rate": 0.01,
+      "use_integration_matrix": true
+    }
+  }
+}
+```
+
+**Launch the viewer** (requires Node.js / Angular CLI):
+
+```bash
+cd tabula_viewer
+ng serve
+```
+
+Then open `http://localhost:4200`. The viewer includes a tabbed paper reader, live swarm map, embedding visualizer, and episode comparison reports.
+
+---
+
+## Experimental Roadmap
+
+The current results are preliminary (single seed). The planned evaluation extends to:
+
+1. **Multi-seed paired benchmark** — 20 seeds, all three policies, reproducibility assessment
+2. **Supervision mode ablation** — direct reward vs. integration-matrix smoothing
+3. **Latent-dimension sensitivity** — factorization rank vs. hidden environment rank
+4. **Noise sensitivity** — separate sweeps for observation noise and reward noise
+5. **Swarm-scale scaling** — 3:9, 6:18, 9:27, 15:45 drone-target configurations
+
+---
+
+## Paper
+
+The full paper is readable section by section in the viewer, or as Markdown under [`docs/academic-paper/`](docs/academic-paper/).
+
+Sections: Abstract · Introduction · Literature Review · Model and Problem Definition · Methods · Framework Description · Experiments · Results · Next Steps
+
+---
 
 ## License
 
-TBD
+MIT
