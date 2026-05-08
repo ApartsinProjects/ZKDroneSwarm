@@ -173,9 +173,9 @@ The current results are preliminary (single seed). The planned evaluation extend
 
 ## Paper
 
-Full rendered paper: [`tabula_viewer/public/html/tabula-drone-full-paper.html`](tabula_viewer/public/html/tabula-drone-full-paper.html)
+Online: [apartsinprojects.github.io/ZKDroneSwarm](https://apartsinprojects.github.io/ZKDroneSwarm) — [Read the paper](https://apartsinprojects.github.io/ZKDroneSwarm/paper.html)
 
-Online: [apartsinprojects.github.io/ZKDroneSwarm](https://apartsinprojects.github.io/ZKDroneSwarm)
+Canonical HTML source: [`tabula_viewer/public/html/tabula-drone-full-paper.html`](tabula_viewer/public/html/tabula-drone-full-paper.html)
 
 Source sections (Markdown): [`docs/academic-paper/`](docs/academic-paper/)
 
