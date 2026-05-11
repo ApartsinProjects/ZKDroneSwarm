@@ -16,7 +16,7 @@ This baseline is intentionally naive. Its value lies not in performance, but in 
 
 ## 4.2 Oracle Benchmark
 
-The oracle policy provides an upper-bound benchmark by assuming privileged access to information unavailable under the ZK assumptions. In the implemented version, the oracle is an HP-aware marginal-allocation planner that uses true latent drone vectors, true target latent vectors, and current target hit points. It is therefore not ZK-compliant and is used only as an idealized comparison point.
+The oracle policy provides a near-optimal greedy benchmark by assuming privileged access to information unavailable under the ZK assumptions. In the implemented version, the oracle is an HP-aware marginal-allocation planner that uses true latent drone vectors, true target latent vectors, and current target hit points. It is therefore not ZK-compliant and is used only as an idealized comparison point.
 
 Unlike a one-to-one assignment rule, the oracle explicitly allows multiple drones to focus fire on the same target when doing so is beneficial. Its scoring rule combines several factors: effective damage capped by remaining target HP, a bottleneck weight that prioritizes difficult targets, a finish bonus for assignments that eliminate a target in the current step, an overkill penalty that discourages waste, and a future-value term that favors starting progress on hard targets earlier. The planner then performs a greedy marginal-allocation pass, assigning one drone at a time to the currently best drone-target pair until no beneficial assignment remains. This approximates globally efficient short-horizon coordination while retaining a computationally simple greedy structure. Because the oracle relies on privileged state, its purpose is not to model realistic deployment but to indicate the performance ceiling against which decentralized methods can be interpreted.
 
@@ -73,7 +73,9 @@ where $y_{ij}$ is either the immediate observed reward or the current running-me
 
 $$\mathcal{L}_{ij}^{(a_k)} = \left( e_{ij}^{(a_k)} \right)^2 + \tfrac{\lambda}{2} \left( \| P_{i,:}^{(a_k)} \|^2 + \| U_{:,j}^{(a_k)} \|^2 \right)$$
 
-using stochastic gradient descent:
+**Note on loss convention.** The data term uses $(e)^2$ rather than the $\frac{1}{2}(e)^2$ convention common in the collaborative filtering literature (e.g., Koren et al. [22]). The resulting gradient carries an explicit factor of 2 in the data term, which effectively doubles the data-loss contribution relative to the regularizer for the same $\eta$. Practitioners comparing learning-rate settings to published CF implementations should account for this difference.
+
+using stochastic gradient descent (SGD):
 
 $$P_{i,:}^{(a_k)} \leftarrow P_{i,:}^{(a_k)} - \eta \left( 2 e_{ij}^{(a_k)} U_{:,j}^{(a_k)} + \lambda P_{i,:}^{(a_k)} \right)$$
 

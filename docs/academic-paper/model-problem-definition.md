@@ -28,6 +28,8 @@ The ZK-MRTA framework is defined by strict informational constraints:
 
 These assumptions eliminate access to explicit models of task-agent compatibility and require all decision-making to rely solely on observed interaction outcomes.
 
+**Note on terminology.** The label *zero-knowledge* refers specifically to the absence of prior knowledge about task attributes and agent capabilities — not to the absence of all environmental observations. Agents do receive a public summary of interaction outcomes at each step (the joint action and reward vectors); this broadcast is the sole channel through which agents gain experience. It carries no capability or identity information and does not constitute communication in the traditional sense. This usage follows the informational interpretation of zero-knowledge common in the MRTA literature, distinct from the cryptographic usage.
+
 ## 3.3 Relation to Classical MRTA
 
 Classical Multi-Robot Task Allocation is typically formulated as an optimization problem defined by:
@@ -156,7 +158,7 @@ These latent variables are not observable to agents and serve only as an interna
 
 ### 3.8.2 Collision Events
 
-Because multiple agents may independently select the same task within a single time step, the environment tracks *collisions* as a coordination signal. A collision is registered whenever two or more agents target the same task in the same step: for each such task, every agent beyond the first (in the random processing order of §3.4) contributes one collision to the step count. Collisions are a diagnostic of coordination failure only; they do not alter task dynamics or affect rewards directly, but engagements against a task that has already been neutralized earlier in the step produce wasted shots whose rewards still reflect latent compatibility while contributing no damage.
+Because multiple agents may independently select the same task within a single time step, the environment tracks *collisions* as a coordination signal. A collision is registered whenever two or more agents target the same task in the same step: for each such task, every agent beyond the first (in the random processing order of §3.4) contributes one collision to the step count. Collisions are a coordination diagnostic; they do not alter task dynamics or affect rewards directly, but engagements against a task that has already been neutralized earlier in the step produce wasted shots whose rewards still reflect latent compatibility while contributing no damage. Importantly, collisions can arise from two distinct causes: unintentional contention, where independent agents independently select the same target without coordination, and deliberate focus-fire, where a planner explicitly assigns multiple agents to a single target to accelerate its neutralization. The collision count alone does not distinguish between these; interpretation requires context from the policy's decision mechanism (see §7.6).
 
 ## 3.9 Objective and Performance Metrics
 

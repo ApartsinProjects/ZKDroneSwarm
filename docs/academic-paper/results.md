@@ -75,7 +75,7 @@ The matrix-factorization policy's 35-episode trajectory suggests three broad pha
 
 **Phase 1 — Rapid Convergence (episodes 1–9).** Steps drop 40% (184 → 111) and match quality rises from 0.205 to 0.372 as the interaction matrix fills rapidly; by episode 3, all drone-target pairs have been explored at least once.
 
-**Phase 2 — Mid-Training Plateau with Crowding (episodes 9–21).** Improvement slows as steps settle near the mid-70s and match quality oscillates around 0.50–0.53. Collisions peak at 629 (episode 10), consistent with multiple agents converging on the same high-affinity targets and creating temporary contention.
+**Phase 2 — Mid-Training Plateau with Crowding (episodes 9–21).** Improvement slows as steps settle near the mid-70s and match quality oscillates around 0.50–0.53. Collision counts peak in this phase (reaching 579 at episode 12 among the selected episodes in Table 2), consistent with multiple agents converging on the same high-affinity targets and creating temporary contention.
 
 **Phase 3 — Slow Late Refinement (episodes 21–35).** Efficiency improves gradually again: steps fall to 67 and match quality reaches its training peak of 0.587 at episode 35. The late-stage gains are modest but consistent with continued refinement rather than full saturation.
 
@@ -95,7 +95,7 @@ Overall, the learning dynamics in this section are consistent with partial laten
 
 ## 7.6 Coordination Dynamics
 
-**Collisions.** Collisions peak at 629 (episode 10) during the crowding phase, then decline to 294 by episode 35 — higher than random (225) but lower than the oracle (382). The oracle's higher count reflects *deliberate* multi-drone focus-fire; MF collisions are a byproduct of independent agents converging on similar greedy choices — contention, not coordination.
+**Collisions.** Collision counts peak during the crowding phase (579 at episode 12 in the selected episodes of Table 2), then decline to 294 by episode 35. At the best episode (32), MF collisions (296) exceed the random baseline (225) but fall below the oracle (382). The oracle's higher count reflects *deliberate* multi-drone focus-fire — a consequence of its greedy multi-assignment planner. MF collisions are a byproduct of independent agents converging on similar greedy choices: contention, not coordination. The collision metric alone does not distinguish these two causes; the distinction rests on the policy mechanism, as discussed in §3.8.2.
 
 **Overkill.** Total overkill increases over training (4.6 HP at episode 1 → 8.95 HP at episode 35), the opposite direction from improvement. As the policy routes more drones to high-affinity targets, shots land on already-neutralized targets within the same timestep. Without HP visibility (a core ZK constraint), the policy cannot schedule fire to avoid this waste — unlike the oracle (3.65 HP), which incorporates remaining HP directly. This is a genuine limitation of the ZK-constrained design, not a transient artifact.
 
