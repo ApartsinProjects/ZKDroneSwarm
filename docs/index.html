@@ -22,13 +22,13 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 0.75rem 0;
-            font-size: 0.85rem;
+            margin: 0.45rem 0;
+            font-size: 0.84rem;
         }
-        
+
         th, td {
             border: 1px solid rgba(126, 104, 62, 0.2);
-            padding: 0.28rem 0.55rem;
+            padding: 0.22rem 0.5rem;
             text-align: left;
         }
         
@@ -55,7 +55,7 @@
     <div class="paper-section-container">
         <h1 style="text-align: center; margin-bottom: 0.5em;">Zero-Knowledge Multi-Robot Task Allocation: A Collaborative Filtering Approach</h1>
         
-        <p style="text-align: center; margin-top: 0; margin-bottom: 2em;">
+        <p style="text-align: center; margin-top: 0; margin-bottom: 0.5em;">
             <strong>Yigal Meshulam</strong> &nbsp;&middot;&nbsp; <strong>Yehudit Aperstein</strong> &nbsp;&middot;&nbsp; <strong>Alexander Apartsin</strong>
         </p>
         
@@ -84,7 +84,6 @@
         <p style="color:#cc0000; font-size:0.85em; font-weight:bold;">
             &#9888; Abstract statistics marked in this color are based on simulated data. Replace with real experimental values before submission.
         </p>
-
 
         <section class="keywords">
             <p><strong>Keywords:</strong> multi-robot task allocation; decentralized multi-agent systems; collaborative filtering; matrix factorization; zero-knowledge coordination; swarm robotics; online latent-factor learning</p>
@@ -835,7 +834,7 @@
         
         <p>The four methods examined in this paper occupy distinct positions on the knowledge spectrum. Their relationships are summarized by the following axis-by-axis comparison:</p>
         
-        <table style="width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
             <thead>
                 <tr style="background: rgba(255, 248, 233, 0.5);">
                     <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Axis</th>
@@ -926,7 +925,7 @@
         
         <p><strong>Table 2: Framework configuration surface.</strong></p>
         
-        <table style="width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
             <thead>
                 <tr style="background: rgba(255, 248, 233, 0.5);">
                     <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Group</th>
@@ -1292,7 +1291,6 @@
             <strong>Statistical significance.</strong> Wilcoxon signed-rank tests (paired, $n = 5$ seeds, two-tailed) on step counts yield: MF vs. UCB-Indep $W = 0$, $p = 0.063$; MF vs. Random $W = 0$, $p = 0.063$; MF vs. Oracle-L $W = 6$, $p = 0.44$ (not significant); MF vs. Oracle $W = 5$, $p = 0.31$ (not significant). The minimum achievable two-tailed $p$ for $n = 5$ pairs is $0.063$ (all pairs concordant). The non-significance of MF vs. Oracle-L reflects the small step-count difference (3.4 steps) relative to inter-seed variance. The large effect sizes (29% and 47% reductions relative to UCB-Indep and Random) provide practical evidence of meaningful separation despite the marginal formal significance at $n = 5$.
         </p>
 
-
         <h2>7.4 Episode Engagement Profiles</h2>
         
         <p>
@@ -1380,7 +1378,6 @@
                 <em>Figure 3. Multi-seed learning curves across 5 scenario seeds (mean &#177; 1&#963;). (a)&nbsp;Steps to completion per episode; (b)&nbsp;Average match quality per episode. Dotted reference lines mark Random baseline and Oracle benchmark. Three learning phases are visible in both panels: Phase 1 (rapid convergence, ep.&nbsp;1&ndash;9), Phase 2 (plateau with crowding, ep.&nbsp;9&ndash;21), and Phase 3 (slow refinement, ep.&nbsp;21&ndash;35). Shaded bands show inter-seed variance.</em> <span style="color:#cc0000; font-weight:bold;">[SIMULATED DATA: replace with real results before submission]</span>
             </figcaption>
         </figure>
-
 
         <h2>7.6 Latent Structure Recovery</h2>
         
@@ -1547,7 +1544,6 @@
             Performance degrades monotonically with noise, and the degradation is approximately linear for steps and match quality up to noise&nbsp;=&nbsp;0.3. At noise&nbsp;=&nbsp;0.5, step count increases by 43% and match quality drops by 0.08 absolute (14.8% relative) compared to the noiseless condition, indicating a substantial but not catastrophic performance loss. The inter-seed variance widens significantly at noise&nbsp;=&nbsp;0.5 (std 7.8 for steps vs. 2.1 at noise&nbsp;=&nbsp;0.0), suggesting that high noise makes the policy more sensitive to specific latent world geometry. Even at the highest tested noise level, the MF policy remains substantially better than the random baseline (89.3 vs. 129.4 steps), and the match quality (0.463) remains well above the random reference (0.303). The noiseless condition (0.0) recovers near-oracle step counts (62.4 vs. 63.0), confirming that the residual gap at the baseline noise level is primarily attributable to reward signal corruption rather than to the MF learning algorithm itself.
         </p>
 
-
         <h2>7.11 Limitations of the Current Evaluation</h2>
         
         <p>
@@ -1713,8 +1709,6 @@
             An independent Q-learner (IQL) that uses the same restricted public observation stream as the MF policy would satisfy ZK-constraints, and is a natural candidate for future comparison. IQL was not included in the present evaluation because (a) implementing a correct IQL with the same observation-space factorization required to make it ZK-compliant introduces non-trivial design choices that merit their own study, and (b) the UCB-Indep baseline already captures the key dimension of interest: can a per-arm learner that exploits no latent structure match the latent-exploiting MF policy? It cannot (§7.3). An IQL baseline would be expected to occupy a position between UCB-Indep and MF, and characterizing that gap is deferred to future work.
         </p>
 
-
-
         <h2>Declaration of Generative AI Use</h2>
         <p>
             The authors used AI-assisted writing tools (Claude by Anthropic) during the preparation of this manuscript to assist with drafting, editing, and literature organization. All scientific claims, experimental design, data analysis, and conclusions represent the authors' own work and intellectual judgment. The authors take full responsibility for the integrity of the work.
@@ -1734,8 +1728,6 @@
         <p>
             The benchmark environment, policy implementations, and configuration files used in this study are available at <a href="https://github.com/yigalmeshulam/ColabDroneSwarm">https://github.com/yigalmeshulam/ColabDroneSwarm</a>. The simulation log files for the seed-42 training run (used to produce Tables 3, 5 and Figures 1, 2) will be deposited in a public repository upon acceptance; the current submission includes all code necessary to reproduce the logs by re-running the simulation with the provided configuration. Results marked as simulated in Tables 4, 6, 7, 8 and Figures 3&ndash;5 must be replaced by real experimental data before final submission.
         </p>
-
-
 
         <h1>9. Conclusion</h1>
 
@@ -1766,7 +1758,6 @@
         <p>
             More broadly, ZK-MRTA establishes that useful coordination can emerge in the complete absence of shared models, capability disclosures, or communication infrastructure. The results show that matrix-factorization-based latent-utility learning is a viable mechanism for achieving it: the public interaction stream, despite carrying no explicit capability information, contains enough signal for agents to infer a usable approximation of the hidden compatibility geometry. This finding, consistent across seeds, supervision modes, factorization choices, and noise levels, provides a principled empirical basis for the theoretical framework established in Section 3 and for the connections to low-rank bandit theory [39], [40], [41] and heterogeneous cooperative MARL [45] identified in Sections 2 and 8.
         </p>
-
 
 <h1>Bibliography</h1>
         
