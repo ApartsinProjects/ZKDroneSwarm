@@ -89,7 +89,19 @@ li {
 }
 
 .katex-display {
-    margin: 0.55rem 0;
+    margin: 0.3rem 0;
+}
+
+/* Prevent double top-margin: p.margin-bottom + katex.margin-top stacks to 1.2rem.
+   When a paragraph is immediately followed by a display equation, collapse its
+   bottom margin so the total gap stays ~0.4rem instead of ~1.2rem. */
+p:has(+ .katex-display) {
+    margin-bottom: 0.1rem;
+}
+
+/* Restore breathing room between display equation and the following paragraph. */
+.katex-display + p {
+    margin-top: 0.2rem;
 }
 
 abbr {
