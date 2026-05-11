@@ -978,42 +978,20 @@
             The oracle benchmark defines an upper bound, and the random baseline defines a lower bound. The matrix-factorization policy is evaluated against both: performance relative to the random baseline measures the gain from learning, while performance relative to the oracle measures the residual gap to the idealized ceiling. For learning-curve analysis, performance is tracked across all 35 training episodes of the matrix-factorization policy; for direct cross-policy comparison, the best-performing MF episode by step count is used.
         </p>
         
-        <h2>6.6 Summary of Experimental Conditions</h2>
-        
-        <p>The table below summarizes the key parameters of the experimental configuration for reference.</p>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Parameter</th>
-                    <th>Value</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td>Drones ($m$)</td><td>9</td></tr>
-                <tr><td>Targets ($n$)</td><td>27</td></tr>
-                <tr><td>Latent dimension ($d$)</td><td>3</td></tr>
-                <tr><td>Number of latent modes</td><td>3</td></tr>
-                <tr><td>RNG seed</td><td>42</td></tr>
-                <tr><td>Center mode</td><td>One-hot (axis-aligned)</td></tr>
-                <tr><td>Mode sampling</td><td>Independent (drone / target)</td></tr>
-                <tr><td>Drone / target variance ($\sigma^2$)</td><td>0.2</td></tr>
-                <tr><td>Target HP ($h$)</td><td>10.0</td></tr>
-                <tr><td>Maximum steps ($T$)</td><td>250</td></tr>
-                <tr><td>NoOp allowed</td><td>No</td></tr>
-                <tr><td>Reward noise</td><td>0.2</td></tr>
-                <tr><td>Observation noise</td><td>0.2</td></tr>
-                <tr><td>Training episodes</td><td>35</td></tr>
-                <tr><td>Policy factorization dim ($d_f$)</td><td>3</td></tr>
-                <tr><td>Supervision mode</td><td>Integration-matrix</td></tr>
-                <tr><td>Initial $\varepsilon$</td><td>0.3</td></tr>
-                <tr><td>Epsilon decay ($\delta$)</td><td>0.9995</td></tr>
-                <tr><td>Minimum $\varepsilon$</td><td>0.02</td></tr>
-                <tr><td>Learning rate ($\eta$)</td><td>0.01</td></tr>
-                <tr><td>Regularization ($\lambda$)</td><td>0.02</td></tr>
-                <tr><td>Embedding initialization</td><td>$\mathcal{N}(0,\,0.01^2)$</td></tr>
-            </tbody>
-        </table>
+        <h2>6.6 Experimental Conditions</h2>
+
+        <p>
+            The benchmark uses $m = 9$ drones against $n = 27$ targets with latent dimension $d = 3$
+            (three axis-aligned one-hot modes, independent drone/target sampling, variance
+            $\sigma^2 = 0.2$, target HP $h = 10$, RNG seed&nbsp;42). Episodes run for up to
+            $T = 250$ steps with reward noise $\sigma_r = 0.2$ and observation noise $\pi_s = 0.2$;
+            no no-op action is available. The MF policy uses factorization dimension $d_f = 3$,
+            integration-matrix supervision, $\eta = 0.01$, $\lambda = 0.02$,
+            $\varepsilon_0 = 0.3$, decay $\delta = 0.9995$, floor $\varepsilon_{\min} = 0.02$,
+            and embeddings initialized from $\mathcal{N}(0,\,0.01^2)$; training runs for
+            35 episodes with persistent embeddings across episode boundaries. The complete
+            parameter listing is in Appendix&nbsp;B, Table&nbsp;B3.
+        </p>
 
 <h1>7. Results</h1>
         
@@ -1719,6 +1697,43 @@
         </table>
 
         <p><em>Table&nbsp;B2. MF policy hyperparameter search and selection on held-out seed&nbsp;314.</em></p>
+
+
+        <h3>B.3 Full Experimental Parameter Listing</h3>
+
+        <p>Table&nbsp;B3 lists every parameter of the primary experimental configuration (§6).</p>
+
+        <table>
+            <thead>
+                <tr><th>Parameter</th><th>Value</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Drones ($m$)</td><td>9</td></tr>
+                <tr><td>Targets ($n$)</td><td>27</td></tr>
+                <tr><td>Latent dimension ($d$)</td><td>3</td></tr>
+                <tr><td>Number of latent modes</td><td>3</td></tr>
+                <tr><td>Center mode</td><td>One-hot (axis-aligned)</td></tr>
+                <tr><td>Mode sampling</td><td>Independent (drone / target)</td></tr>
+                <tr><td>Drone / target variance ($\sigma^2$)</td><td>0.2</td></tr>
+                <tr><td>Target HP ($h$)</td><td>10.0</td></tr>
+                <tr><td>RNG seed</td><td>42</td></tr>
+                <tr><td>Maximum steps ($T$)</td><td>250</td></tr>
+                <tr><td>NoOp allowed</td><td>No</td></tr>
+                <tr><td>Reward noise ($\sigma_r$)</td><td>0.2</td></tr>
+                <tr><td>Observation noise ($\pi_s$)</td><td>0.2</td></tr>
+                <tr><td>Training episodes</td><td>35</td></tr>
+                <tr><td>Policy factorization dim ($d_f$)</td><td>3</td></tr>
+                <tr><td>Supervision mode</td><td>Integration-matrix</td></tr>
+                <tr><td>Initial exploration ($arepsilon_0$)</td><td>0.3</td></tr>
+                <tr><td>Exploration decay ($\delta$)</td><td>0.9995</td></tr>
+                <tr><td>Exploration floor ($arepsilon_{\min}$)</td><td>0.02</td></tr>
+                <tr><td>Learning rate ($\eta$)</td><td>0.01</td></tr>
+                <tr><td>Regularization ($\lambda$)</td><td>0.02</td></tr>
+                <tr><td>Embedding initialization</td><td>$\mathcal{N}(0,\,0.01^2)$</td></tr>
+            </tbody>
+        </table>
+
+        <p><em>Table&nbsp;B3. Complete parameter listing for the primary experimental configuration.</em></p>
 
 
 <h1>Bibliography</h1>
