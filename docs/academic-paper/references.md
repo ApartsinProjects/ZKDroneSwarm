@@ -1,6 +1,6 @@
 # Bibliography
 
-[1] P. R. Wurman, R. D'Andrea, and M. Mountz, "Coordinating hundreds of cooperative, autonomous vehicles in warehouses," AI Magazine, vol. 29, no. 1, pp. 9–19, 2008.
+[1] P. R. Wurman, R. D'Andrea, and M. Mountz, "Coordinating hundreds of cooperative, autonomous vehicles in warehouses," AI Magazine, vol. 29, no. 1, pp. 9–20, 2008.
 
 [2] M. Dorigo, G. Theraulaz, and V. Trianni, "Reflections on the future of swarm robotics," Science Robotics, vol. 5, no. 49, eabe4385, 2020.
 
@@ -36,7 +36,7 @@
 
 [18] T. Lattimore and C. Szepesvári, Bandit Algorithms. Cambridge, UK: Cambridge University Press, 2020.
 
-[19] N. Prisadnikov, "Exploration-exploitation trade-offs via probabilistic matrix factorization," M.S. thesis, Dept. Computer Science, ETH Zürich, 2014.
+[19] J. Kawale, H. H. Bui, B. Kveton, L. Tran-Thanh, and S. Chawla, "Efficient Thompson sampling for online matrix-factorization recommendation," in Advances in Neural Information Processing Systems, vol. 28, 2015, pp. 1297–1305.
 
 [20] J. B. Schafer, D. Frankowski, J. Herlocker, and S. Sen, "Collaborative filtering recommender systems," in The Adaptive Web, Berlin, Heidelberg: Springer, 2007, pp. 291–324.
 
@@ -46,7 +46,7 @@
 
 [23] B. Sarwar, G. Karypis, J. Konstan, and J. Riedl, "Application of dimensionality reduction in recommender system—a case study," Minnesota Univ. Minneapolis, Dept. of Computer Science, 2000.
 
-[24] A. Mnih and R. Salakhutdinov, "Probabilistic matrix factorization," in Advances in Neural Information Processing Systems, 2007, pp. 1257–1264.
+[24] R. Salakhutdinov and A. Mnih, "Probabilistic matrix factorization," in Advances in Neural Information Processing Systems, vol. 20, 2007, pp. 1257–1264.
 
 [25] Y. Koren, "Factorization meets the neighborhood: A multifaceted collaborative filtering model," in Proceedings of the 14th ACM SIGKDD International Conference on Knowledge Discovery and Data Mining, 2008, pp. 426–434.
 
@@ -63,3 +63,29 @@
 [31] W. Chen, Y. Wang, and Y. Yuan, "Combinatorial multi-armed bandit: General framework and applications," in Proceedings of the 30th International Conference on Machine Learning, 2013, pp. 151–159.
 
 [32] M. Ammad-ud-din, E. Ivannikova, S. A. Khan, W. Oyomno, Q. Fu, K. E. Tan, and A. Flanagan, "Federated collaborative filtering for privacy-preserving personalized recommendation system," arXiv preprint arXiv:1901.09888, 2019.
+
+[33] F. A. Oliehoek and C. Amato, A Concise Introduction to Decentralized POMDPs, Springer Briefs in Intelligent Systems. Cham: Springer, 2016. ISBN: 978-3-319-28927-4.
+
+[34] D. S. Bernstein, R. Givan, N. Immerman, and S. Zilberstein, "The complexity of decentralized control of Markov decision processes," Mathematics of Operations Research, vol. 27, no. 4, pp. 819–840, 2002.
+
+[35] Y. Yang, R. Luo, M. Li, M. Zhou, W. Zhang, and J. Wang, "Mean field multi-agent reinforcement learning," in Proceedings of the 35th International Conference on Machine Learning, PMLR, vol. 80, 2018, pp. 5571–5580.
+
+[36] E. Hillel, Z. Karnin, T. Koren, R. Lempel, and O. Somekh, "Distributed exploration in multi-armed bandits," in Advances in Neural Information Processing Systems, vol. 26, 2013.
+
+[37] P.-A. Wang, A. Proutiere, K. Ariu, Y. Jedra, and A. Russo, "Optimal algorithms for multiplayer multi-armed bandits," in Proceedings of the 23rd International Conference on Artificial Intelligence and Statistics, PMLR, vol. 108, 2020.
+
+[38] M. Agarwal, V. Aggarwal, and K. Azizzadenesheli, "Multi-agent multi-armed bandits with limited communication," Journal of Machine Learning Research, vol. 23, no. 212, pp. 1–24, 2022.
+
+[39] D. Nagaraj, S. Kowshik, A. Agarwal, P. Netrapalli, and P. Jain, "Multi-user reinforcement learning with low rank rewards," in Proceedings of the 40th International Conference on Machine Learning, PMLR, vol. 202, 2023.
+
+[40] S. Katariya, B. Kveton, C. Szepesvári, C. Vernade, and Z. Wen, "Stochastic rank-1 bandits," in Proceedings of the 20th International Conference on Artificial Intelligence and Statistics, PMLR, vol. 54, 2017.
+
+[41] Y. Kang, C.-J. Hsieh, and T. C. M. Lee, "Efficient frameworks for generalized low-rank matrix bandit problems," in Advances in Neural Information Processing Systems, vol. 35, 2022.
+
+[42] T. Wang, H. Dong, V. Lesser, and C. Zhang, "ROMA: Multi-agent reinforcement learning with emergent roles," in Proceedings of the 37th International Conference on Machine Learning, PMLR, vol. 119, 2020.
+
+[43] T. Wang, T. Gupta, A. Mahajan, B. Peng, S. Whiteson, and C. Zhang, "RODE: Learning roles to decompose multi-agent tasks," in Proceedings of the 9th International Conference on Learning Representations, 2021.
+
+[44] J. N. Hu, A. Lerer, A. Peysakhovich, and J. Foerster, "Other-play for zero-shot coordination," in Proceedings of the 37th International Conference on Machine Learning, PMLR, vol. 119, 2020.
+
+[45] Y. Zhong, J. G. Kuba, X. Feng, S. Hu, J. Ji, and Y. Yang, "Heterogeneous-agent reinforcement learning," Journal of Machine Learning Research, vol. 25, no. 32, pp. 1–67, 2024.

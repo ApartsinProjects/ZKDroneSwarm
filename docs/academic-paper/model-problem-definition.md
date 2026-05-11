@@ -47,6 +47,8 @@ This formulation assumes that both cost and feasibility are known or computable 
 
 In contrast, the ZK-MRTA framework removes access to both $C$ and $G$. Agents must therefore infer task suitability indirectly, based solely on observed outcomes, without explicit knowledge of task properties or their own capabilities.
 
+ZK-MRTA also differs from standard Dec-POMDP formulations [33], [34], which assume a known reward function: agents in a Dec-POMDP know how well a given action performs in a given world state, even if they cannot observe the full state. In ZK-MRTA, the reward function — specifically, the compatibility structure that determines how effective each drone-task pairing is — is itself the latent quantity to be learned. This places ZK-MRTA strictly outside the standard Dec-POMDP assumption set and motivates the online latent-factor learning approach developed in this paper.
+
 ## 3.4 Sequential Interaction Model
 
 ZK-MRTA is inherently a sequential decision-making problem. At each time step:
