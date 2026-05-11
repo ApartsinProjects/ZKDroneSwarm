@@ -151,10 +151,8 @@
 
         <h2>2.3 Decentralized Online Learning and Multi-Agent Frameworks</h2>
 
-        <h3>2.3.1 Multi-Armed Bandits and Exploration–Exploitation</h3>
-
         <p>
-            A complementary line of research addresses sequential decision-making under uncertainty through the multi-armed bandit (MAB) framework. In the single-agent MAB setting, an agent must repeatedly choose among actions with unknown reward distributions, balancing the exploration of unfamiliar options against the exploitation of currently promising ones [17], [18]. Contextual bandits extend this by conditioning action selection on observable features [30], while combinatorial bandits generalize to settings where multiple resources are allocated simultaneously [31]. These models are relevant to task allocation because they formalize the core challenge agents face in ZK-MRTA: choosing among tasks with unknown effectiveness from limited and noisy outcome data, without prior knowledge of the underlying reward structure.
+            <strong>Multi-Armed Bandits and Exploration–Exploitation.</strong> A complementary line of research addresses sequential decision-making under uncertainty through the multi-armed bandit (MAB) framework. In the single-agent MAB setting, an agent must repeatedly choose among actions with unknown reward distributions, balancing the exploration of unfamiliar options against the exploitation of currently promising ones [17], [18]. Contextual bandits extend this by conditioning action selection on observable features [30], while combinatorial bandits generalize to settings where multiple resources are allocated simultaneously [31]. These models are relevant to task allocation because they formalize the core challenge agents face in ZK-MRTA: choosing among tasks with unknown effectiveness from limited and noisy outcome data, without prior knowledge of the underlying reward structure.
         </p>
 
         <p>
@@ -165,36 +163,28 @@
             Kawale et al. [19] addressed the exploration–exploitation trade-off directly within matrix-factorization recommendation via Thompson sampling, demonstrating that principled uncertainty-aware exploration over the latent space outperforms naive ε-greedy schedules in sparse-data regimes. This finding is directly applicable to ZK-MRTA, where agents must balance exploiting emerging compatibility estimates against exploring under-observed task assignments.
         </p>
 
-        <h3>2.3.2 Cooperative and Multiplayer Bandits</h3>
-
         <p>
-            When multiple agents face a shared exploration problem, cooperative bandit variants become relevant. Hillel et al. [36] showed that \(k\) players exploring a shared bandit environment and communicating their statistics can achieve \(\sqrt{k}\) times better sample complexity than a single player, quantifying the communication-versus-exploration tradeoff. More recent work has pushed toward minimal coordination: Wang et al. [37] showed that fully decentralized multiplayer MAB algorithms can match the regret of a centralized controller without any inter-agent messaging, and Agarwal et al. [38] characterized achievable regret under only \(O(\log T)\) communication rounds per agent. In the absence of any communication channel, as required by ZK-MRTA, even these minimal coordination protocols are unavailable. The only shared information is the public step summary visible to all agents simultaneously; coordination must emerge implicitly. This is a strictly harder regime than cooperative bandits with communication. What ZK-MRTA agents can do instead is leverage the latent structure of the task space, an aspect absent from all bandit formulations, to generalize across under-observed pairs.
+            <strong>Cooperative and Multiplayer Bandits.</strong> When multiple agents face a shared exploration problem, cooperative bandit variants become relevant. Hillel et al. [36] showed that \(k\) players exploring a shared bandit environment and communicating their statistics can achieve \(\sqrt{k}\) times better sample complexity than a single player, quantifying the communication-versus-exploration tradeoff. More recent work has pushed toward minimal coordination: Wang et al. [37] showed that fully decentralized multiplayer MAB algorithms can match the regret of a centralized controller without any inter-agent messaging, and Agarwal et al. [38] characterized achievable regret under only \(O(\log T)\) communication rounds per agent. In the absence of any communication channel, as required by ZK-MRTA, even these minimal coordination protocols are unavailable. The only shared information is the public step summary visible to all agents simultaneously; coordination must emerge implicitly. This is a strictly harder regime than cooperative bandits with communication. What ZK-MRTA agents can do instead is leverage the latent structure of the task space, an aspect absent from all bandit formulations, to generalize across under-observed pairs.
         </p>
 
-        <h3>2.3.3 Dec-POMDPs and Independent Learning</h3>
-
         <p>
-            The decentralized partially observable Markov decision process (Dec-POMDP) [33], [34] provides the standard formal framework for cooperative multi-agent decision-making under partial observability without communication. In a Dec-POMDP, agents share a common reward function but cannot communicate directly. A standard practical approach is independent learning, where each agent treats its own observation-action-reward stream as a separate learning problem, ignoring the non-stationarity introduced by other agents' evolving policies. While theoretically limited, independent learners perform well in practice when agents share reward structure and can observe each other's actions [11].
+            <strong>Dec-POMDPs and Independent Learning.</strong> The decentralized partially observable Markov decision process (Dec-POMDP) [33], [34] provides the standard formal framework for cooperative multi-agent decision-making under partial observability without communication. In a Dec-POMDP, agents share a common reward function but cannot communicate directly. A standard practical approach is independent learning, where each agent treats its own observation-action-reward stream as a separate learning problem, ignoring the non-stationarity introduced by other agents' evolving policies. While theoretically limited, independent learners perform well in practice when agents share reward structure and can observe each other's actions [11].
         </p>
 
         <p>
             ZK-MRTA is strictly more constrained than standard Dec-POMDP formulations in one important respect: the reward model itself is unknown. In a Dec-POMDP, agents know the reward function, they know how well a given action performs in a given state, even if they cannot observe the full state directly. The learning challenge concerns the <em>state</em>, not the reward model. In ZK-MRTA, agents do not know which tasks they are effective against, so the compatibility structure that determines the reward function is itself a latent quantity to be inferred from interaction outcomes. Bayes-adaptive extensions of Dec-POMDPs can in principle represent reward-model uncertainty, but practical independent-learning work typically inherits the known-reward assumption. ZK-MRTA removes this assumption by design, placing it outside the scope of what existing Dec-POMDP approaches directly address.
         </p>
 
-        <h3>2.3.4 Mean-Field Approximations for Large Swarms</h3>
-
         <p>
-            As swarm size grows, exact multi-agent RL becomes intractable due to the exponential joint-action space. Mean-field multi-agent reinforcement learning [35] addresses this by approximating the influence of a large population on any individual agent through the mean of the population's action distribution, reducing the effective complexity from exponential to linear in agent count. Mean-field approaches are most powerful when agents are approximately interchangeable or when their pairwise interactions are local and symmetric.
+            <strong>Mean-Field Approximations for Large Swarms.</strong> As swarm size grows, exact multi-agent RL becomes intractable due to the exponential joint-action space. Mean-field multi-agent reinforcement learning [35] addresses this by approximating the influence of a large population on any individual agent through the mean of the population's action distribution, reducing the effective complexity from exponential to linear in agent count. Mean-field approaches are most powerful when agents are approximately interchangeable or when their pairwise interactions are local and symmetric.
         </p>
 
         <p>
             In ZK-MRTA, however, agents are heterogeneous by design: the central premise is that different drones have different latent compatibility with different targets, and exploiting this heterogeneity is the mechanism by which the policy improves over random assignment. A mean-field approximation that averages over agent behaviors would erase the very structure the policy is trying to recover. Mean-field MARL is therefore not directly applicable in the ZK-MRTA setting, but it establishes an important contrast: it confirms that coordination can scale in large swarms under approximate homogeneity, and the limits of that homogeneity assumption are exactly the regime in which ZK-MRTA operates.
         </p>
 
-        <h3>2.3.5 Emergent Roles and Heterogeneous-Agent MARL</h3>
-
         <p>
-            A strand of recent MARL research directly addresses the emergence of specialization in agent populations without prior specification of roles or capabilities. ROMA [42] shows that agents can learn stochastic role embeddings from behavioral trajectories, developing diverse task specializations without being given role labels or capability descriptions. RODE [43] decomposes the joint action space into role-specific sub-spaces by clustering actions according to their effects in the environment, again without requiring predefined capability information. Both approaches develop heterogeneous specializations purely from interaction experience, a mechanism conceptually close to ZK-MRTA agents developing task-compatibility alignment through SGD updates on private embeddings.
+            <strong>Emergent Roles and Heterogeneous-Agent MARL.</strong> A strand of recent MARL research directly addresses the emergence of specialization in agent populations without prior specification of roles or capabilities. ROMA [42] shows that agents can learn stochastic role embeddings from behavioral trajectories, developing diverse task specializations without being given role labels or capability descriptions. RODE [43] decomposes the joint action space into role-specific sub-spaces by clustering actions according to their effects in the environment, again without requiring predefined capability information. Both approaches develop heterogeneous specializations purely from interaction experience, a mechanism conceptually close to ZK-MRTA agents developing task-compatibility alignment through SGD updates on private embeddings.
         </p>
 
         <p>
@@ -282,8 +272,6 @@
             A further branch of recent work considers <strong>federated and decentralized collaborative filtering</strong>, in which latent factors are learned across distributed nodes without transmitting raw interaction data [32]. Although this line of research addresses distribution and privacy rather than the strict zero-knowledge regime studied here, it confirms that latent-factor learning can be performed without centralized data aggregation, reinforcing the suitability of MF-based methods for decentralized ZK-MRTA.
         </p>
 
-        <h2>2.7 Summary</h2>
-
         <p>
             Taken together, the three literatures point toward a single synthesis. Classical MRTA provides the structural vocabulary, taxonomies, solution families, heterogeneity, but assumes information access that ZK-MRTA explicitly removes. Online learning and bandit frameworks address decision-making under uncertainty but treat agent-task pairs as independent arms and cannot exploit shared latent structure. Dec-POMDP and independent learning frameworks remove the communication requirement but preserve the known-reward assumption. Cooperative bandit work quantifies the value of explicit coordination but requires at least minimal messaging [36], [37], [38]. Mean-field MARL scales coordination to large populations but erases agent heterogeneity [35]. Emergent-role MARL methods recover specialization without predefined capabilities [42], [43], [45], but in settings with explicit reward feedback and shared training; not the strict zero-knowledge public-observation regime of ZK-MRTA. Recent low-rank bandit and multi-user RL theory [39], [40], [41] provides the closest theoretical grounding, but assumes centralized trajectory aggregation that ZK-MRTA removes.
         </p>
@@ -311,29 +299,11 @@
         <p>
             <strong>Scope of the benchmark model.</strong> In the implemented benchmark (&#167;5), agents and tasks have fixed spatial positions drawn at initialization and do not move during an episode. Engagement is non-spatial: each agent can select any active task regardless of distance, and the reward depends solely on latent compatibility, not on physical proximity. This simplification isolates the ZK learning problem from the confounding effects of spatial planning and route optimization. Extensions to spatially dynamic settings, where agents must navigate to tasks, are a natural direction for future work but are outside the scope of the present evaluation.
         </p>
+        <p>Notation used throughout this paper is compiled in Appendix&nbsp;A.</p>
         
         <h2>3.2 Zero-Knowledge Assumptions</h2>
         
-        <p>The ZK-MRTA framework is defined by strict informational constraints:</p>
-        
-        <ul>
-            <li><strong>No prior knowledge of tasks</strong>: Agents have no access to task attributes such as difficulty, type, or required resources</li>
-            <li><strong>No self-knowledge</strong>: Agents do not know their own capabilities or effectiveness</li>
-            <li><strong>No knowledge of other agents</strong>: Agents cannot access the capabilities or internal states of others</li>
-            <li><strong>No communication</strong>: Direct communication between agents is not permitted</li>
-            <li><strong>Outcome-based learning only</strong>: Agents can observe only:
-                <ul>
-                    <li>the outcomes of their own actions, and</li>
-                    <li>a shared <em>public summary</em> of the previous step:
-                        <ul>
-                            <li>the joint action vector</li>
-                            <li>the per-agent reward vector</li>
-                        </ul>
-                    </li>
-                </ul>
-                <p style="margin-left: 2rem;">which carries the actions and outcomes of other agents but contains no capability or identity information (see §3.6 for the exact structure).</p>
-            </li>
-        </ul>
+        <p>The ZK-MRTA framework imposes four informational constraints. Agents have no prior knowledge of task attributes (difficulty, type, or required resources); they do not know their own capabilities or effectiveness; they cannot access the capabilities or internal states of other agents; and direct inter-agent communication is not permitted. The sole input available is each agent's per-step observation: the outcomes of its own actions together with a shared <em>public summary</em> of the previous step, comprising the joint action vector and the per-agent reward vector. This broadcast conveys the actions and outcomes of all agents but carries no capability or identity information (§3.6).</p>
         
         <p>
             These assumptions eliminate access to explicit models of task-agent compatibility and require all decision-making to rely solely on observed interaction outcomes.
@@ -345,15 +315,7 @@
         <h2>3.3 Relation to Classical MRTA</h2>
         
         <p>
-            Classical Multi-Robot Task Allocation is typically formulated as an optimization problem defined by:
-        </p>
-        
-        <ul>
-            <li>a cost function $C(a_i, t_j)$, and</li>
-            <li>a feasibility function $G(a_i, t_j) \in \{0, 1\}$</li>
-        </ul>
-        
-        <p>with the objective of finding an assignment $\Lambda \subseteq \mathcal{A} \times \mathcal{T}$ that minimizes total cost:</p>
+            Classical Multi-Robot Task Allocation is typically formulated as an optimization over a cost function $C(a_i, t_j)$ and a feasibility function $G(a_i, t_j) \in \{0, 1\}$, with the objective of finding an assignment $\Lambda \subseteq \mathcal{A} \times \mathcal{T}$ that minimizes total cost:</p>
         
         $$\min_{\Lambda} \sum_{(a_i, t_j) \in \Lambda} C(a_i, t_j)
         \quad \text{subject to} \quad
@@ -397,23 +359,9 @@
             The ZK-MRTA framework is defined abstractly, but particular benchmark instances may differ along a small number of structural dimensions. Two relevant axes are task dynamics and agent resource constraints.
         </p>
         
-        <h3>3.5.1 Target (Task) Types</h3>
+        <p><strong>Task dynamics.</strong> Targets may be <em>passive</em> (static; their state evolves only under incoming actions) or <em>active</em> (dynamic; they may move or react). The benchmark studied here uses passive targets with fixed resilience (HP), so neutralization is a cumulative-damage process.</p>
         
-        <ul>
-            <li><strong>Passive targets</strong>: Static tasks whose internal state evolves only as a consequence of incoming actions.</li>
-            <li><strong>Active targets</strong>: Dynamic tasks that may react, move, or otherwise change in response to interaction.</li>
-        </ul>
-        
-        <p>The benchmark studied in this paper instantiates passive targets with fixed resilience (HP), so neutralization is a cumulative-damage process.</p>
-        
-        <h3>3.5.2 Agent Resource Constraints</h3>
-        
-        <ul>
-            <li><strong>Infinite-capacity</strong>: Agents are not subject to a hard resource budget over the episode horizon.</li>
-            <li><strong>Finite-capacity</strong>: Agents possess limited expendable resources, such as ammunition or energy.</li>
-        </ul>
-        
-        <p>The experiments reported in this paper use the <strong>infinite-capacity</strong> variant: no per-agent ammunition limit is enforced, although ammunition consumption is still tracked diagnostically.</p>
+        <p><strong>Agent resource constraints.</strong> Agents may be <em>infinite-capacity</em> (no hard resource budget over the episode horizon) or <em>finite-capacity</em> (limited expendable resources such as ammunition or energy). The experiments reported here use the infinite-capacity variant; ammunition consumption is tracked diagnostically but does not constrain engagement.</p>
         
         <h2>3.6 Observation Model</h2>
         
@@ -537,24 +485,8 @@
         </p>
         
         <p>
-            At an abstract level, these metrics fall into four categories:
+            These metrics span four categories: <em>time-based</em> (steps to completion, total ammo consumed), <em>progress</em> (targets neutralized, shots per target), <em>coordination</em> (total target contention, total overkill), and <em>learning quality</em> (average latent match quality $\bar{q}$, latent mismatch in HP).
         </p>
-        
-        <ul>
-            <li><strong>Time-based metrics</strong>: measures of how quickly the system reaches a desired level of task completion</li>
-            <li><strong>Completion or progress metrics</strong>: measures of how much of the task set has been completed over the episode horizon</li>
-            <li><strong>Efficiency metrics</strong>: measures of resource use relative to achieved task progress</li>
-            <li><strong>Coordination metrics</strong>: measures of swarm-level redundancy, contention, and wasted effort</li>
-        </ul>
-        
-        <p>The specific metrics used in the empirical evaluation are:</p>
-        
-        <ul>
-            <li><strong>Steps to completion</strong> and <strong>total ammo consumed</strong> (time-based / efficiency)</li>
-            <li><strong>Shots per target</strong> and <strong>targets neutralized</strong> (efficiency / completion)</li>
-            <li><strong>Total collisions</strong> and <strong>total overkill</strong> (coordination)</li>
-            <li><strong>Average latent match quality</strong> and <strong>latent mismatch</strong> (learning quality)</li>
-        </ul>
         
         <p>The <strong>average latent match quality</strong> for a given episode is defined as:</p>
 
@@ -567,65 +499,14 @@
         <p>
             Two coordination phenomena receive particular attention in the analysis and are defined precisely here for reference throughout the paper:
         </p>
-        <ul>
-            <li>
-                <strong>Crowding</strong> (also called <em>collision</em> in the logged metrics): at timestep $t$, a <em>collision</em> is recorded when two or more agents select the same target $t_j$ and that target's HP is still positive at the start of the step. Crowding refers to the episodic pattern of elevated collision rates produced by independent agents converging on the same high-compatibility targets as their estimated utilities align. Crowding is <em>not</em> a safety failure; it is a coordination efficiency loss: shots that could have been directed at distinct targets are instead concentrated on one, potentially eliminating it faster but leaving others untouched.
-            </li>
-            <li>
-                <strong>Overkill</strong>: at timestep $t$, overkill is recorded for target $t_j$ if the total damage applied to $t_j$ within that timestep exceeds $t_j$'s remaining HP at the start of the step. Total overkill HP per episode sums these excesses. Overkill arises because agents engage targets simultaneously without knowledge of remaining HP and without intra-step coordination; shots landing on a target whose HP has already been reduced to zero within the same timestep are entirely wasted.
-            </li>
-        </ul>
-        
-        <h2>3.10 Notation Summary</h2>
-        
-        <table>
-            <thead>
-                <tr>
-                    <th>Symbol</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td>$\mathcal{A} = \{a_1, \ldots, a_m\}$</td><td>Set of agents</td></tr>
-                <tr><td>$\mathcal{T} = \{t_1, \ldots, t_n\}$</td><td>Set of tasks</td></tr>
-                <tr><td>$m$</td><td>Number of agents</td></tr>
-                <tr><td>$n$</td><td>Number of tasks</td></tr>
-                <tr><td>$t$</td><td>Discrete time step</td></tr>
-                <tr><td>$d$</td><td>Latent vector dimension</td></tr>
-                <tr><td>$o_t(a_i)$</td><td>Observation of agent $a_i$ at time $t$</td></tr>
-                <tr><td>$a_t(a_i)$</td><td>Action of agent $a_i$ at time $t$</td></tr>
-                <tr><td>$A$</td><td>Action space</td></tr>
-                <tr><td>$O$</td><td>Observation space</td></tr>
-                <tr><td>$\mathbf{a}_t$</td><td>Joint action of all agents</td></tr>
-                <tr><td>$\mathbf{p}$</td><td>Task position matrix</td></tr>
-                <tr><td>$\mathbf{b}$</td><td>Task active/inactive status vector</td></tr>
-                <tr><td>$\hat{\mathbf{s}}_{t-1}$</td><td>Previous joint action vector (public, possibly noisy)</td></tr>
-                <tr><td>$\tilde{\mathbf{r}}_{t-1}$</td><td>Previous observed reward vector (public)</td></tr>
-                <tr><td>$\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$</td><td>Hidden latent vector of agent $a_i$</td></tr>
-                <tr><td>$\mathbf{z}_j^{(t)} \in \mathbb{R}^d_{>0}$</td><td>Hidden latent vector of task $t_j$</td></tr>
-                <tr><td>$g_{ij}$</td><td>Latent dot-product compatibility</td></tr>
-                <tr><td>$r_{ij}$</td><td>Reward signal for agent $a_i$ engaging task $t_j$</td></tr>
-                <tr><td>$\tilde{r}_{ij}$</td><td>Observed (noisy) reward</td></tr>
-                <tr><td>$\sigma_r$</td><td>Reward noise standard deviation</td></tr>
-                <tr><td>$\pi_s$</td><td>Action-observation corruption probability</td></tr>
-                <tr><td>$\text{HP}_j$</td><td>Task resilience (hit points)</td></tr>
-                <tr><td>$M$</td><td>Set of performance metrics</td></tr>
-                <tr><td>$\pi = (\pi_1, \ldots, \pi_m)$</td><td>Joint decentralized policy</td></tr>
-                <tr><td>$\mu_k(\pi)$</td><td>Expected value of metric $k \in M$ under policy $\pi$</td></tr>
-                <tr><td>$C(a_i, t_j)$</td><td>Cost function (classical MRTA reference)</td></tr>
-                <tr><td>$G(a_i, t_j)$</td><td>Feasibility function (classical MRTA reference)</td></tr>
-                <tr><td>$\bar{q}$</td><td>Average latent match quality per episode: mean cosine similarity between drone and target latent vectors over all engagement events</td></tr>
-                <tr><td>$d_f$</td><td>Factorization dimension (policy hyperparameter; distinct from environment latent dimension $d$)</td></tr>
-                <tr><td>$P^{(a_i)} \in \mathbb{R}^{m \times d_f}$</td><td>Drone embedding matrix, local to agent $a_i$</td></tr>
-                <tr><td>$U^{(a_i)} \in \mathbb{R}^{d_f \times n}$</td><td>Target embedding matrix, local to agent $a_i$</td></tr>
-                <tr><td>$\eta$</td><td>SGD learning rate</td></tr>
-                <tr><td>$\lambda$</td><td>L2 regularization coefficient</td></tr>
-            </tbody>
-        </table>
-        
         <p>
-            <strong>Implementation note.</strong> In the accompanying benchmark implementation, the symbols $m$, $n$, and $d$ used throughout this paper correspond to the code variables <code>num_drones</code>, <code>num_targets</code>, and <code>latent_dim</code> respectively. The policy-side factorization dimension (used in §4) is tracked separately in code under a distinct variable to avoid conflating the environment's generative latent dimension with the learner's chosen approximation rank. The shorter symbols $m$, $n$, $d$ are preferred in the paper for consistency with the MRTA literature.
+            <strong>Target contention</strong> (logged as <em>collision</em>): at timestep $t$, a contention event is recorded when two or more agents select the same target $t_j$ and that target's HP is still positive at the start of the step. Target contention refers to the episodic pattern of elevated co-selection rates produced by independent agents converging on the same high-compatibility targets as their estimated utilities align. It is a coordination efficiency loss rather than a safety failure: shots that could have been directed at distinct targets are concentrated on one, potentially accelerating its neutralization but leaving others untouched.
         </p>
+        <p>
+            <strong>Overkill</strong>: at timestep $t$, overkill is recorded for target $t_j$ if the total damage applied to $t_j$ within that timestep exceeds its remaining HP at the start of the step. Total overkill HP per episode sums these excesses. Overkill arises because agents engage targets simultaneously without knowledge of remaining HP and without intra-step coordination; shots landing on a target whose HP has already been reduced to zero within the same timestep are wasted.
+        </p>
+        
+
         
         <h2>3.11 Formal Definition of ZK-MRTA</h2>
         
@@ -759,22 +640,8 @@
             This method is particularly well suited to ZK-MRTA because the relevant interaction matrix is not given in advance. Agents begin with no knowledge of true compatibility and must build an interaction structure gradually from sparse experience. The matrix-factorization policy addresses this by learning latent representations from observed rewards, thereby estimating hidden structure that cannot be read directly from the environment.
         </p>
         <p>
-            The structural assumption underlying this approach, that agent-task effectiveness is governed by a low-rank compatibility matrix, has a formal basis in the emerging low-rank bandit and multi-user RL literature. Katariya et al. [40] showed that a rank-1 interaction structure is learnable with sublinear regret from bandit feedback, and Kang et al. [41] extended this to general low-rank matrix bandit problems. Nagaraj et al. [39] established that multiple users sharing a low-rank reward structure can achieve significantly better sample efficiency than users learning independently, which motivates why each drone in ZK-MRTA maintains a full model of the swarm interaction matrix rather than only its own row. The ZK-MRTA setting differs from these in that agents cannot share raw trajectories with a central learner; they exploit the shared public observation stream instead. This difference motivates the decentralized SGD update architecture (§4.5.1) rather than centralized joint optimization.
+            The structural assumption underlying this approach, that agent-task effectiveness is governed by a low-rank compatibility matrix, has a formal basis in the emerging low-rank bandit and multi-user RL literature. Katariya et al. [40] showed that a rank-1 interaction structure is learnable with sublinear regret from bandit feedback, and Kang et al. [41] extended this to general low-rank matrix bandit problems. Nagaraj et al. [39] established that multiple users sharing a low-rank reward structure can achieve significantly better sample efficiency than users learning independently, which motivates why each drone in ZK-MRTA maintains a full model of the swarm interaction matrix rather than only its own row. The ZK-MRTA setting differs from these in that agents cannot share raw trajectories with a central learner; they exploit the shared public observation stream instead. This difference motivates the decentralized SGD update architecture (§4.4.1) rather than centralized joint optimization.
         </p>
-        
-        <h2>4.5 Action Selection</h2>
-        
-        <p>
-            At decision time, each agent $a_i$ uses only its own latent row $P_{i,:}^{(a_i)}$ to evaluate currently active targets. Action selection follows an $\varepsilon$-greedy mechanism. With probability $\varepsilon$, the agent explores by selecting a random active target. Otherwise, it exploits by selecting the target with the highest predicted utility. After each action, the exploration rate decays multiplicatively until it reaches a predefined floor. The initial exploration rate, decay factor, and floor are configurable hyperparameters; their values for the reported experiments are listed in §5.
-        </p>
-        
-        <p>
-            Formally, if $\mathcal{T}_t(a_i)$ is the set of active targets observed by agent $a_i$ at time $t$, then exploitation selects:
-        </p>
-        
-        $$a_t(a_i) = \arg\max_{j \in \mathcal{T}_t(a_i)} \hat{r}_{ij}^{(a_i)}$$
-        
-        <p>while exploration samples uniformly from $\mathcal{T}_t(a_i)$.</p>
         
         <h3>4.4.1 Learning from Shared Interaction Data</h3>
         
@@ -830,6 +697,20 @@
             <strong>Computational cost.</strong> Each agent $a_k$ maintains two matrices: $P^{(a_k)} \in \mathbb{R}^{m \times d_f}$ and $U^{(a_k)} \in \mathbb{R}^{d_f \times n}$, totaling $(m + n) \cdot d_f$ parameters per agent. For the benchmark configuration ($m = 9$, $n = 27$, $d_f = 3$) this is $(9 + 27) \times 3 = 108$ parameters per agent, or 972 parameters for the full 9-agent swarm. Each SGD update (one per observed event per agent per step) requires two inner-product computations and two rank-1 matrix additions, all $O(d_f)$. Per-step computational cost is $O(m \cdot n \cdot d_f)$ for a full swarm-step with $m$ drones each observing $n$ events. The algorithm is linear in swarm size and scales independently in $m$ and $n$; it requires no matrix inversion or eigendecomposition.
         </p>
 
+        <h2>4.5 Action Selection</h2>
+        
+        <p>
+            At decision time, each agent $a_i$ uses only its own latent row $P_{i,:}^{(a_i)}$ to evaluate currently active targets. Action selection follows an $\varepsilon$-greedy mechanism. With probability $\varepsilon$, the agent explores by selecting a random active target. Otherwise, it exploits by selecting the target with the highest predicted utility. After each action, the exploration rate decays multiplicatively until it reaches a predefined floor. The initial exploration rate, decay factor, and floor are configurable hyperparameters; their values for the reported experiments are listed in §5.
+        </p>
+        
+        <p>
+            Formally, if $\mathcal{T}_t(a_i)$ is the set of active targets observed by agent $a_i$ at time $t$, then exploitation selects:
+        </p>
+        
+        $$a_t(a_i) = \arg\max_{j \in \mathcal{T}_t(a_i)} \hat{r}_{ij}^{(a_i)}$$
+        
+        <p>while exploration samples uniformly from $\mathcal{T}_t(a_i)$.</p>
+        
         <h2>4.6 Summary of the Compared Methods</h2>
         
         <p>The four methods examined in this paper occupy distinct positions on the knowledge spectrum. Their relationships are summarized by the following axis-by-axis comparison:</p>
@@ -920,62 +801,10 @@
         <h2>5.2 Framework Surface and Configuration</h2>
         
         <p>
-            A benchmark instance is specified by a single JSON configuration file loaded through a typed configuration layer. Table 2 summarizes the top-level configuration groups and the axes of variation they control; this enumerates the surface over which the framework is reusable.
+            A benchmark instance is specified by a single JSON configuration file loaded through a typed configuration layer. Table&nbsp;B1 in Appendix&nbsp;B summarizes the top-level configuration groups and the axes of variation they control.
         </p>
         
-        <p><strong>Table 2: Framework configuration surface.</strong></p>
-        
-        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-            <thead>
-                <tr style="background: rgba(255, 248, 233, 0.5);">
-                    <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Group</th>
-                    <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Key parameters</th>
-                    <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Controls</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>latent_world</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>mode</code>, <code>center_mode</code>, <code>latent_dim</code>, <code>num_modes</code>, <code>drone_variance</code>, <code>target_variance</code>, <code>epsilon</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Hidden compatibility geometry (see §5.3)</td>
-                </tr>
-                <tr>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>world</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>size</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Spatial extent of the scenario</td>
-                </tr>
-                <tr>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>environment</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>max_steps</code>, <code>num_episodes</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Episode horizon and sampling</td>
-                </tr>
-                <tr>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>drones</code> / <code>targets</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>count</code>, <code>region</code>, spacing constraints, <code>target_hp</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Swarm size, task set, placement, resilience</td>
-                </tr>
-                <tr>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>collaborative_filtering</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>reward_noise</code>, <code>observation_noise</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Channel noise (see §5.4–§5.6)</td>
-                </tr>
-                <tr>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>policy</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>type</code>, <code>allow_noop</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Which policies are evaluated and whether the no-op action is exposed (§3.7)</td>
-                </tr>
-                <tr>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>seed</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">integer</td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Master seed for scenario construction and tie-breaking</td>
-                </tr>
-                <tr>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>logging</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>output_dir</code></td>
-                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Destination for post-hoc traces (§5.7)</td>
-                </tr>
-            </tbody>
-        </table>
+        <p>The full configuration surface is documented in Appendix&nbsp;B, Table&nbsp;B1.</p>
         
         <p>
             Scenario construction follows a fluent builder pattern (<code>LatentScenarioBuilder</code>) that takes the <code>latent_world</code> configuration and the drone/target groups and returns fully specified per-entity configurations, including hidden latent vectors. The environment itself is then instantiated from these configurations together with the noise parameters and horizon. This separation means new benchmark variants, different latent geometries, swarm sizes, task loads, or noise regimes, can be produced without modifying the environment class, which keeps the ZK-MRTA interaction contract fixed across studies.
@@ -1096,13 +925,9 @@
         <p>
             The MF policy involves five scalar hyperparameters: learning rate $\eta$, regularization coefficient $\lambda$, factorization dimension $d_f$, initial exploration rate $\varepsilon_0$, and decay factor $\delta$. These were selected through a manual coordinate-search procedure on a held-out scenario seed (seed&nbsp;314) not used in the primary evaluation. For each hyperparameter in turn, a small set of candidate values was evaluated while holding the others fixed:
         </p>
-        <ul>
-            <li>$\eta \in \{0.001, 0.005, 0.01, 0.05\}$; selected 0.01 (fastest stable convergence)</li>
-            <li>$\lambda \in \{0.01, 0.02, 0.05\}$; selected 0.02 (minimal over-regularization)</li>
-            <li>$d_f \in \{1, 2, 3, 4, 6\}$; selected 3 (matches ground-truth latent dimension; sensitivity reported in §7.8)</li>
-            <li>$\varepsilon_0 \in \{0.2, 0.3, 0.5\}$; selected 0.3 (sufficient early exploration)</li>
-            <li>$\delta \in \{0.999, 0.9995, 0.9998\}$; selected 0.9995 (reaches low $\varepsilon$ by episode 35)</li>
-        </ul>
+        <p>
+            The selected values were $\eta = 0.01$, $\lambda = 0.02$, $d_f = 3$, $\varepsilon_0 = 0.3$, and $\delta = 0.9995$. Candidate ranges and selection rationale are documented in Appendix&nbsp;B, Table&nbsp;B2.
+        </p>
         <p>
             This procedure is not a systematic grid search and may not identify global optima. The selected configuration is used for all experiments reported in Section&nbsp;7. Sensitivity to $d_f$ is characterized in §7.8; sensitivity to $\eta$, $\lambda$, and the $\varepsilon$-schedule is identified as future work in §8.
         </p>
@@ -1694,19 +1519,14 @@
             Addressing crowding without communication requires implicit turn-taking mechanisms. One candidate is an exploration-exploitation schedule that deliberately maintains diversity of preferences through the plateau phase; the analysis of Phase 2 in &#167;7.5 suggests that exploration decay partially resolves crowding in the late training phase, but the recovery is slow. Addressing overkill without HP access requires either estimating remaining HP from the public observation stream or introducing a cost for firing at targets with high estimated HP already consumed; both are tractable extensions within the ZK framework.
         </p>
 
-        <h2>8.6 Comparison with Emergent-Role MARL</h2>
+        <h2>8.6 MARL Comparisons and Exclusion Rationale</h2>
 
         <p>
-            The ZK-MRTA setting shares a structural property with ROMA [42] and RODE [43]: agents develop task specializations without predefined capability labels, driven entirely by interaction outcomes. The critical difference is that ROMA and RODE operate with shared training infrastructure and explicit reward feedback, whereas ZK-MRTA agents update private models from a shared observation stream with no gradient sharing. The convergence guarantees provided by Zhong et al. [45] for heterogeneous cooperative agents without parameter sharing provide theoretical grounding for why private local models can converge to efficient collective behavior; the multi-seed consistency observed here is an empirical instantiation of that guarantee in a decentralized, noise-corrupted setting.
+            The ZK-MRTA setting shares a structural property with ROMA [42] and RODE [43]: agents develop task specializations without predefined capability labels, driven entirely by interaction outcomes. The critical difference is that ROMA and RODE operate with shared training infrastructure and explicit reward feedback, whereas ZK-MRTA agents update private models from a shared observation stream with no gradient sharing. The convergence guarantees proved by Zhong et al. [45] for heterogeneous cooperative agents without parameter sharing provide theoretical grounding for why private local models can converge to efficient collective behavior; the multi-seed consistency observed here is an empirical instantiation of that guarantee in a decentralized, noise-corrupted setting.
         </p>
 
-        <h2>8.7 Exclusion of MARL Baselines</h2>
-
         <p>
-            Standard cooperative MARL algorithms, such as IQL [12], QMIX [44], or MAPPO, were not included as baselines. This exclusion is deliberate and principled, not a gap. MARL algorithms of these families require: (i) a centralized training phase (CTDE) with access to global state or joint reward signals, or (ii) direct inter-agent communication, or (iii) explicit capability disclosure for role assignment. All three requirements violate the ZK-MRTA constraints formalized in §3.2. The purpose of this paper is precisely to evaluate what is achievable when these resources are unavailable; including a baseline that requires them would conflate two different problem settings.
-        </p>
-        <p>
-            An independent Q-learner (IQL) that uses the same restricted public observation stream as the MF policy would satisfy ZK-constraints, and is a natural candidate for future comparison. IQL was not included in the present evaluation because (a) implementing a correct IQL with the same observation-space factorization required to make it ZK-compliant introduces non-trivial design choices that merit their own study, and (b) the UCB-Indep baseline already captures the key dimension of interest: can a per-arm learner that exploits no latent structure match the latent-exploiting MF policy? It cannot (§7.3). An IQL baseline would be expected to occupy a position between UCB-Indep and MF, and characterizing that gap is deferred to future work.
+            Standard cooperative MARL algorithms such as IQL [12], QMIX [44], or MAPPO were not included as baselines. This exclusion is deliberate and principled. MARL algorithms of these families require (i) a centralized training phase (CTDE) with access to global state or joint reward signals, (ii) direct inter-agent communication, or (iii) explicit capability disclosure for role assignment. All three requirements violate the ZK-MRTA constraints formalized in §3.2; including such baselines would conflate two qualitatively different problem settings. A ZK-compliant IQL variant that uses the same restricted public observation stream as the MF policy is a natural candidate for future comparison, but its correct formulation requires non-trivial observation-space factorization choices that merit independent study. The UCB-Indep baseline already isolates the key structural question: can a per-arm learner with no latent-structure exploitation match the MF policy? It cannot (§7.3). An IQL baseline would be expected to fall between UCB-Indep and MF; characterizing that gap is deferred to future work.
         </p>
 
         <h2>Declaration of Generative AI Use</h2>
@@ -1758,6 +1578,148 @@
         <p>
             More broadly, ZK-MRTA establishes that useful coordination can emerge in the complete absence of shared models, capability disclosures, or communication infrastructure. The results show that matrix-factorization-based latent-utility learning is a viable mechanism for achieving it: the public interaction stream, despite carrying no explicit capability information, contains enough signal for agents to infer a usable approximation of the hidden compatibility geometry. This finding, consistent across seeds, supervision modes, factorization choices, and noise levels, provides a principled empirical basis for the theoretical framework established in Section 3 and for the connections to low-rank bandit theory [39], [40], [41] and heterogeneous cooperative MARL [45] identified in Sections 2 and 8.
         </p>
+
+<h1>Appendix</h1>
+
+        <h2>Appendix A: Notation Summary</h2>
+
+        <p>Table&nbsp;A1 lists the mathematical symbols used throughout this paper.</p>
+
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Symbol</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>$\mathcal{A} = \{a_1, \ldots, a_m\}$</td><td>Set of agents</td></tr>
+                <tr><td>$\mathcal{T} = \{t_1, \ldots, t_n\}$</td><td>Set of tasks</td></tr>
+                <tr><td>$m$</td><td>Number of agents</td></tr>
+                <tr><td>$n$</td><td>Number of tasks</td></tr>
+                <tr><td>$t$</td><td>Discrete time step</td></tr>
+                <tr><td>$d$</td><td>Latent vector dimension</td></tr>
+                <tr><td>$o_t(a_i)$</td><td>Observation of agent $a_i$ at time $t$</td></tr>
+                <tr><td>$a_t(a_i)$</td><td>Action of agent $a_i$ at time $t$</td></tr>
+                <tr><td>$A$</td><td>Action space</td></tr>
+                <tr><td>$O$</td><td>Observation space</td></tr>
+                <tr><td>$\mathbf{a}_t$</td><td>Joint action of all agents</td></tr>
+                <tr><td>$\mathbf{p}$</td><td>Task position matrix</td></tr>
+                <tr><td>$\mathbf{b}$</td><td>Task active/inactive status vector</td></tr>
+                <tr><td>$\hat{\mathbf{s}}_{t-1}$</td><td>Previous joint action vector (public, possibly noisy)</td></tr>
+                <tr><td>$\tilde{\mathbf{r}}_{t-1}$</td><td>Previous observed reward vector (public)</td></tr>
+                <tr><td>$\mathbf{z}_i^{(a)} \in \mathbb{R}^d_{>0}$</td><td>Hidden latent vector of agent $a_i$</td></tr>
+                <tr><td>$\mathbf{z}_j^{(t)} \in \mathbb{R}^d_{>0}$</td><td>Hidden latent vector of task $t_j$</td></tr>
+                <tr><td>$g_{ij}$</td><td>Latent dot-product compatibility</td></tr>
+                <tr><td>$r_{ij}$</td><td>Reward signal for agent $a_i$ engaging task $t_j$</td></tr>
+                <tr><td>$\tilde{r}_{ij}$</td><td>Observed (noisy) reward</td></tr>
+                <tr><td>$\sigma_r$</td><td>Reward noise standard deviation</td></tr>
+                <tr><td>$\pi_s$</td><td>Action-observation corruption probability</td></tr>
+                <tr><td>$\text{HP}_j$</td><td>Task resilience (hit points)</td></tr>
+                <tr><td>$M$</td><td>Set of performance metrics</td></tr>
+                <tr><td>$\pi = (\pi_1, \ldots, \pi_m)$</td><td>Joint decentralized policy</td></tr>
+                <tr><td>$\mu_k(\pi)$</td><td>Expected value of metric $k \in M$ under policy $\pi$</td></tr>
+                <tr><td>$C(a_i, t_j)$</td><td>Cost function (classical MRTA reference)</td></tr>
+                <tr><td>$G(a_i, t_j)$</td><td>Feasibility function (classical MRTA reference)</td></tr>
+                <tr><td>$\bar{q}$</td><td>Average latent match quality per episode: mean cosine similarity between drone and target latent vectors over all engagement events</td></tr>
+                <tr><td>$d_f$</td><td>Factorization dimension (policy hyperparameter; distinct from environment latent dimension $d$)</td></tr>
+                <tr><td>$P^{(a_i)} \in \mathbb{R}^{m \times d_f}$</td><td>Drone embedding matrix, local to agent $a_i$</td></tr>
+                <tr><td>$U^{(a_i)} \in \mathbb{R}^{d_f \times n}$</td><td>Target embedding matrix, local to agent $a_i$</td></tr>
+                <tr><td>$\eta$</td><td>SGD learning rate</td></tr>
+                <tr><td>$\lambda$</td><td>L2 regularization coefficient</td></tr>
+            </tbody>
+        </table>
+        
+        <p>
+            <strong>Implementation note.</strong> In the accompanying benchmark implementation, the symbols $m$, $n$, and $d$ used throughout this paper correspond to the code variables <code>num_drones</code>, <code>num_targets</code>, and <code>latent_dim</code> respectively. The policy-side factorization dimension (used in §4) is tracked separately in code under a distinct variable to avoid conflating the environment's generative latent dimension with the learner's chosen approximation rank. The shorter symbols $m$, $n$, $d$ are preferred in the paper for consistency with the MRTA literature.
+        </p>
+        <h2>Appendix B: Implementation Details</h2>
+
+        <h3>B.1 Framework Configuration Surface</h3>
+
+        <p>
+            A benchmark instance is specified by a single JSON configuration file loaded through a typed configuration layer. Table&nbsp;B1 summarizes the top-level configuration groups and the axes of variation they control.
+        </p>
+
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+                <tr style="background: rgba(255, 248, 233, 0.5);">
+                    <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Group</th>
+                    <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Key parameters</th>
+                    <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Controls</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>latent_world</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>mode</code>, <code>center_mode</code>, <code>latent_dim</code>, <code>num_modes</code>, <code>drone_variance</code>, <code>target_variance</code>, <code>epsilon</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Hidden compatibility geometry (see §5.3)</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>world</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>size</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Spatial extent of the scenario</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>environment</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>max_steps</code>, <code>num_episodes</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Episode horizon and sampling</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>drones</code> / <code>targets</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>count</code>, <code>region</code>, spacing constraints, <code>target_hp</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Swarm size, task set, placement, resilience</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>collaborative_filtering</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>reward_noise</code>, <code>observation_noise</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Channel noise (see §5.4–§5.6)</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>policy</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>type</code>, <code>allow_noop</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Which policies are evaluated and whether the no-op action is exposed (§3.7)</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>seed</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">integer</td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Master seed for scenario construction and tie-breaking</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>logging</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;"><code>output_dir</code></td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Destination for post-hoc traces (§5.7)</td>
+                </tr>
+            </tbody>
+        </table>
+        <h3>B.2 Hyperparameter Search Details</h3>
+
+        <p>
+            Table&nbsp;B2 shows the candidate ranges evaluated during the coordinate-search procedure on held-out seed&nbsp;314 and the value selected for each hyperparameter.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Hyperparameter</th>
+                    <th>Candidates</th>
+                    <th>Selected</th>
+                    <th>Selection criterion</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>$\eta$ (learning rate)</td><td>0.001, 0.005, 0.01, 0.05</td><td>0.01</td><td>Fastest stable convergence</td></tr>
+                <tr><td>$\lambda$ (regularization)</td><td>0.01, 0.02, 0.05</td><td>0.02</td><td>Minimal over-regularization</td></tr>
+                <tr><td>$d_f$ (factorization dim.)</td><td>1, 2, 3, 4, 6</td><td>3</td><td>Matches ground-truth latent dimension; sensitivity in §7.8</td></tr>
+                <tr><td>$\varepsilon_0$ (initial exploration)</td><td>0.2, 0.3, 0.5</td><td>0.3</td><td>Sufficient early exploration</td></tr>
+                <tr><td>$\delta$ (exploration decay)</td><td>0.999, 0.9995, 0.9998</td><td>0.9995</td><td>Reaches floor $\varepsilon_{\min}$ by episode 35</td></tr>
+            </tbody>
+        </table>
+
+        <p><em>Table&nbsp;B2. MF policy hyperparameter search and selection on held-out seed&nbsp;314.</em></p>
+
 
 <h1>Bibliography</h1>
         
