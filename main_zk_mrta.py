@@ -27,6 +27,8 @@ from tabula_drone.policies.random_policy import RandomPolicy
 from tabula_drone.policies.max_damage_oracle import OptimalAssignmentOracle
 from tabula_drone.policies.matrix_factorization_policy import MatrixFactorizationPolicy
 from tabula_drone.policies.multi_agent_policy import MultiAgentPolicy
+from tabula_drone.policies.ucb_indep_policy import UCBIndepPolicy
+from tabula_drone.policies.oracle_l_policy import OracleLPolicy
 from tabula_drone.policies.base import IPolicy, bind_diagnostics_provider
 from tabula_drone.policies.utils.visualizer_bakery import (
     TSNE_MODE_PER_EPISODE,
@@ -142,6 +144,18 @@ def create_policy(
     """
     if policy_type == "max_damage_oracle":
         return OptimalAssignmentOracle(
+            seed=config.seed,
+            allow_noop=config.policy.allow_noop,
+        )
+    elif policy_type == "oracle_l":
+        return OracleLPolicy(allow_noop=config.policy.allow_noop)
+    elif policy_type == "ucb_indep":
+        if num_targets is None:
+            raise ValueError("num_targets is required for ucb_indep policy")
+        return UCBIndepPolicy(
+            num_agents=len(drones_config),
+            num_targets=num_targets,
+            c=2.0,
             seed=config.seed,
             allow_noop=config.policy.allow_noop,
         )

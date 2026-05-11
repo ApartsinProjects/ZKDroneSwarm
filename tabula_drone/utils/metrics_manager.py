@@ -42,11 +42,12 @@ class EpisodeMetrics:
         object.__setattr__(self, 'shots_per_target',
             self.total_ammo_used / self.targets_neutralized if self.targets_neutralized > 0 else 0.0)
 
-        # Average latent match quality: fraction of optimal damage achieved per shot
-        # Equivalent to: mean(actual_damage / optimal_damage) across all shots at active targets
-        # Uses the true optimal potential computed from _precompute_max_damage_per_target
+        # Average latent match quality: mean cosine similarity across all shots.
+        # The environment's reward is cosine_similarity(drone_vec, target_vec),
+        # so sum(agent_rewards) / total_ammo_used gives the mean per-shot cosine sim.
+        total_reward = sum(self.agent_rewards.values())
         object.__setattr__(self, 'avg_latent_match_quality',
-            self.total_gross_damage / self.total_optimal_potential if self.total_optimal_potential > 0 else 0.0)
+            total_reward / self.total_ammo_used if self.total_ammo_used > 0 else 0.0)
 
     @property
     def total_reward(self) -> float:

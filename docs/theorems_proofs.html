@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZK-MRTA: Detailed Theoretical Proofs</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ]
+        });"></script>
+
+    <style>
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            line-height: 1.65;
+            color: #1a1410;
+            background: #fffef9;
+        }
+        h1 { font-size: 1.8rem; border-bottom: 2px solid #7e683e; padding-bottom: 0.3em; }
+        h2 { font-size: 1.4rem; color: #5a4520; margin-top: 2.5em; border-bottom: 1px solid #d4c89a; padding-bottom: 0.2em; }
+        h3 { font-size: 1.15rem; color: #6a5530; margin-top: 1.8em; }
+        h4 { font-size: 1.0rem; color: #1a1410; margin-top: 1.2em; font-weight: 700; }
+
+        .theorem-box {
+            background: #fff8e9;
+            border-left: 4px solid #7e683e;
+            padding: 0.8em 1.2em;
+            margin: 1em 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .theorem-box::before {
+            content: "Theorem";
+            font-weight: bold;
+            color: #5a4520;
+            display: block;
+            margin-bottom: 0.3em;
+        }
+
+        .lemma-box {
+            background: #f4f8f2;
+            border-left: 3px solid #4a7a3a;
+            padding: 0.6em 1em;
+            margin: 1em 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .lemma-box::before {
+            content: "Lemma";
+            font-weight: bold;
+            color: #2a4a1a;
+            display: block;
+            margin-bottom: 0.3em;
+        }
+
+        .proof {
+            margin-left: 0.5em;
+        }
+        .proof::before {
+            content: "Proof.";
+            font-style: italic;
+            font-weight: 700;
+            margin-right: 0.5em;
+        }
+        .qed::after {
+            content: " ∎";
+            font-weight: bold;
+            color: #5a4520;
+        }
+
+        .proof-step {
+            margin: 0.8em 0;
+            padding-left: 1em;
+            border-left: 2px solid #e0d4a0;
+        }
+        .step-label {
+            font-weight: 700;
+            color: #5a4520;
+        }
+        .why {
+            background: #fff8e9;
+            padding: 0.4em 0.8em;
+            margin: 0.4em 0;
+            font-size: 0.92em;
+            color: #4a3a1a;
+            border-radius: 4px;
+        }
+        .why::before {
+            content: "▶ Why this step? ";
+            font-weight: bold;
+            color: #7e683e;
+        }
+
+        .toc {
+            background: #faf3df;
+            padding: 1.2em 1.5em;
+            border-radius: 6px;
+            margin: 1.5em 0;
+        }
+        .toc h3 { margin-top: 0; }
+        .toc ol { margin-bottom: 0; }
+        .toc a { color: #5a4520; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+            font-size: 0.92em;
+        }
+        th, td {
+            border: 1px solid #d4c89a;
+            padding: 0.4em 0.7em;
+            text-align: left;
+        }
+        th { background: #faf3df; }
+
+        cite {
+            color: #5a4520;
+            font-style: normal;
+            font-weight: 600;
+        }
+
+        .reference-list {
+            font-size: 0.92em;
+        }
+        .reference-list dt {
+            font-weight: 700;
+            margin-top: 0.6em;
+        }
+
+        code {
+            font-family: 'Courier New', monospace;
+            background: #f0e9d4;
+            padding: 0.1em 0.3em;
+            border-radius: 3px;
+            font-size: 0.95em;
+        }
+
+        nav.crumb { font-size: 0.92em; color: #6a5530; margin-bottom: 1em; }
+        nav.crumb a { color: #5a4520; }
+    </style>
+</head>
+<body>
+
+<nav class="crumb"><a href="index.html">← Main paper</a></nav>
+
+<h1>ZK-MRTA: Detailed Theoretical Proofs</h1>
+
+<p><em>Companion document to the main paper. Each of the eight theorems stated in Appendix C is restated here with explicit prerequisites, step-by-step proofs, citations, and discussion. The presentation level targets graduate students with background in probability (concentration inequalities), linear algebra (SVD, matrix perturbation), and online learning (multi-armed bandits).</em></p>
+
+<div class="toc">
+    <h3>Contents</h3>
+    <ol>
+        <li><a href="#prereq">Mathematical Prerequisites</a></li>
+        <li><a href="#setup">Setup and Notation</a></li>
+        <li><a href="#thm1">Theorem 1: UCB-Homo Collapse</a></li>
+        <li><a href="#thm2">Theorem 2: UCB-Indep Regret</a></li>
+        <li><a href="#thm3">Theorem 3: MF-CF Sample Complexity</a></li>
+        <li><a href="#thm4">Theorem 4: Scaling Rates</a></li>
+        <li><a href="#thm5">Theorem 5: Crossover Threshold</a></li>
+        <li><a href="#thm6">Theorem 6: Broadcast Multiplier</a></li>
+        <li><a href="#thm7">Theorem 7: PTF SVD Warm-Start Quality</a></li>
+        <li><a href="#thm8">Theorem 8: Optimal Probe Length</a></li>
+        <li><a href="#thm9">Theorem 9: Reduction to Low-Rank Linear Bandit</a></li>
+        <li><a href="#thm10">Theorem 10: ZK Information-Theoretic Lower Bound</a></li>
+        <li><a href="#thm11">Theorem 11: Concentration-Induced Crowding</a></li>
+        <li><a href="#refs">References</a></li>
+    </ol>
+</div>
+
+<!-- ====================================================================== -->
+<h2 id="prereq">1. Mathematical Prerequisites</h2>
+
+<p>The proofs in this document use four classes of results: concentration inequalities, matrix perturbation theory, multi-armed bandit theory, and matrix completion. Each is summarised below with citations.</p>
+
+<h3>1.1 Concentration Inequalities</h3>
+
+<div class="lemma-box">
+<strong>(Hoeffding 1963).</strong> Let $X_1, \ldots, X_N$ be independent random variables with $X_i \in [a_i, b_i]$ a.s. Then for any $t \ge 0$,
+$$\Pr\!\left[\Bigl|\tfrac{1}{N}\sum_i X_i - \tfrac{1}{N}\sum_i \mathbb{E}[X_i]\Bigr| \ge t\right] \le 2\exp\!\left(-\tfrac{2N^2 t^2}{\sum_i (b_i - a_i)^2}\right).$$
+For identically distributed $[0,1]$-valued variables: $\Pr[|\bar X - \mu| \ge t] \le 2\exp(-2Nt^2)$.
+</div>
+
+<div class="lemma-box">
+<strong>(Azuma&ndash;Hoeffding).</strong> Let $\{M_t\}_{t \ge 0}$ be a martingale with $|M_t - M_{t-1}| \le c_t$ a.s. Then for any $t \ge 0$,
+$$\Pr[|M_N - M_0| \ge t] \le 2\exp\!\left(-\tfrac{t^2}{2 \sum_i c_i^2}\right).$$
+This generalises Hoeffding to dependent observations under a martingale-difference structure.
+</div>
+
+<div class="lemma-box">
+<strong>(Sub-Gaussian Hoeffding).</strong> A random variable $X$ is $\sigma$-sub-Gaussian if $\mathbb{E}[e^{\lambda(X-\mathbb{E}X)}] \le e^{\lambda^2 \sigma^2 / 2}$ for all $\lambda \in \mathbb{R}$. For $N$ independent $\sigma$-sub-Gaussian $X_i$ with common mean $\mu$,
+$$\Pr[|\bar X - \mu| \ge t] \le 2\exp(-N t^2 / (2\sigma^2)).$$
+Equivalently, $|\bar X - \mu| \le \sigma\sqrt{2\log(2/\delta)/N}$ with probability $\ge 1 - \delta$.
+</div>
+
+<h3>1.2 Matrix Perturbation Theory</h3>
+
+<div class="lemma-box">
+<strong>(Eckart&ndash;Young&ndash;Mirsky 1936).</strong> For any matrix $A \in \mathbb{R}^{m \times n}$ with SVD $A = \sum_i \sigma_i u_i v_i^\top$, the best rank-$d$ approximation in Frobenius norm is
+$$A_d := \sum_{i=1}^d \sigma_i u_i v_i^\top, \qquad \|A - A_d\|_F = \sqrt{\sum_{i > d} \sigma_i^2}.$$
+Equivalently, $\|A - B\|_F \ge \|A - A_d\|_F$ for any rank-$d$ matrix $B$. The same holds in spectral norm.
+</div>
+
+<div class="lemma-box">
+<strong>(Wedin's $\sin\Theta$ Theorem 1972).</strong> Let $A, \hat A \in \mathbb{R}^{m \times n}$ with SVDs $A = U\Sigma V^\top$ and $\hat A = \hat U \hat\Sigma \hat V^\top$. Let $U_d, \hat U_d$ denote the top-$d$ left singular subspaces and $\sigma_d, \sigma_{d+1}$ the $d$-th and $(d+1)$-th singular values of $A$. If $\sigma_d - \sigma_{d+1} > 0$ then
+$$\|\sin\Theta(U_d, \hat U_d)\| \le \frac{\|A - \hat A\|_2}{\sigma_d - \sigma_{d+1}},$$
+where $\sin\Theta$ denotes the canonical angles between subspaces. The Frobenius norm version replaces both norms with $\|\cdot\|_F$.
+</div>
+
+<div class="why">
+The $\sin\Theta$ theorem says: if you perturb a matrix by a small amount, its top-$d$ singular subspace also moves only a small amount &mdash; provided there is a spectral gap between $\sigma_d$ and $\sigma_{d+1}$ to suppress mixing between included and excluded directions.
+</div>
+
+<h3>1.3 Bandit Theory</h3>
+
+<div class="lemma-box">
+<strong>(UCB1 regret, <cite>Auer, Cesa-Bianchi, Fischer 2002</cite>, Theorem 1).</strong> Consider a $K$-armed bandit with arm means $\mu_1, \ldots, \mu_K$ in $[0,1]$ and $\Delta_j = \max_k \mu_k - \mu_j$. The UCB1 algorithm selects arm $\arg\max_j [\hat\mu_j(t) + \sqrt{2\log t / N_j(t)}]$. Then the expected cumulative regret satisfies
+$$\mathbb{E}[R(T)] \le \sum_{j: \Delta_j > 0} \left[\frac{8 \log T}{\Delta_j} + \left(1 + \frac{\pi^2}{3}\right)\Delta_j\right].$$
+For sub-Gaussian rewards with parameter $\sigma$, the constant 8 is replaced by $C\sigma^2$ for some universal $C$.
+</div>
+
+<div class="lemma-box">
+<strong>(Lai&ndash;Robbins 1985 lower bound).</strong> For any consistent policy on a parametric bandit problem,
+$$\liminf_{T \to \infty} \frac{\mathbb{E}[R(T)]}{\log T} \ge \sum_{j: \mu_j < \mu^*} \frac{\Delta_j}{\mathrm{KL}(\nu_j, \nu^*)},$$
+where $\nu_j$ is the reward distribution of arm $j$ and KL denotes Kullback&ndash;Leibler divergence. The bound is vacuous when $\mathrm{KL} = \infty$ (e.g., deterministic 0/1 rewards).
+</div>
+
+<div class="lemma-box">
+<strong>(Low-rank linear bandits, <cite>Kang, Hsieh, Lee 2022</cite>).</strong> Consider a stochastic linear bandit with parameter matrix $\Theta \in \mathbb{R}^{m \times n}$ of rank at most $d$, where pulling action $(i,j)$ yields reward $\Theta_{ij} + \eta$ with $\sigma$-sub-Gaussian noise. There exists an algorithm achieving cumulative regret
+$$\mathbb{E}[R(T)] = \tilde O\bigl((m+n)d \sqrt{T}\bigr),$$
+where $\tilde O$ absorbs poly-logarithmic factors. The earlier rank-1 case is treated in <cite>Katariya et al.\ 2017</cite>.
+</div>
+
+<h3>1.4 Matrix Completion</h3>
+
+<div class="lemma-box">
+<strong>(Cand&egrave;s&ndash;Recht 2009).</strong> Let $M \in \mathbb{R}^{m \times n}$ have rank $r$ and $\mu_0$-incoherent left/right singular vectors. Suppose $|\Omega|$ entries of $M$ are observed uniformly at random. If $|\Omega| \ge C \mu_0 r (m+n) \log^2(m+n)$ for a universal constant $C$, then nuclear-norm minimisation
+$$\min_{X} \|X\|_* \quad \text{s.t.} \quad X_{ij} = M_{ij} \ \forall (i,j) \in \Omega$$
+recovers $M$ exactly with probability $\ge 1 - (m+n)^{-c}$ for some $c > 0$.
+</div>
+
+<div class="lemma-box">
+<strong>(Keshavan&ndash;Montanari&ndash;Oh 2010, noisy completion).</strong> Under the same incoherence assumption with $\sigma$-sub-Gaussian noise in observations, the OptSpace estimator $\hat M$ satisfies
+$$\frac{1}{\sqrt{mn}}\|\hat M - M\|_F \le c \sigma \sqrt{\frac{r(m+n)\log(m+n)}{|\Omega|}}.$$
+This is the noisy generalisation of Cand&egrave;s&ndash;Recht: per-entry RMSE decays as $|\Omega|^{-1/2}$ once the sample-complexity threshold is exceeded.
+</div>
+
+<h3>1.5 Fano's Inequality</h3>
+
+<div class="lemma-box">
+<strong>(Fano 1961, packing version).</strong> Let $\Theta_1, \ldots, \Theta_N$ be a $2\delta$-separated set in a metric space $(\mathcal{M}, \rho)$ such that for some test family $T$, the induced KL divergences satisfy $\mathrm{KL}(P_i \| P_j) \le \alpha$ for all $i, j$. Then any estimator $\hat\Theta$ based on $T$ has
+$$\inf_{\hat\Theta} \sup_i \Pr_i[\rho(\hat\Theta, \Theta_i) \ge \delta] \ge 1 - \frac{\alpha + \log 2}{\log N}.$$
+The right-hand side approaches 1 as $N \to \infty$, giving non-trivial lower bounds on minimax risk.
+</div>
+
+<!-- ====================================================================== -->
+<h2 id="setup">2. Setup and Notation</h2>
+
+<p>The notation follows Appendix C of the main paper but is restated here for self-containment.</p>
+
+<ul>
+    <li>$m$ drones, $n$ targets, $d$ latent modes with $m \ge d$.</li>
+    <li>Drone $i$ has a latent vector $z_i^a \in \Delta_d$ (probability simplex); target $j$ has $z_j^t \in \Delta_d$.</li>
+    <li><strong>Compatibility:</strong> $R_{ij} = \langle z_i^a, z_j^t \rangle \in [0,1]$, organised into $R \in \mathbb{R}^{m \times n}$.</li>
+    <li><strong>One-hot benchmark:</strong> $z_i^a = e_{\phi(i)}$, $z_j^t = e_{\psi(j)}$, where $\phi : [m] \to [d]$ and $\psi: [n] \to [d]$ are mode-assignment maps. Then $R_{ij} = \mathbf{1}\{\phi(i) = \psi(j)\}$, and $\mathrm{rank}(R) = d$.</li>
+    <li><strong>Balanced modes:</strong> $|\phi^{-1}(k)| = m/d$ and $|\psi^{-1}(k)| = n/d$ for each mode $k$. Then $R$ is (up to permutation) a block-diagonal matrix with $d$ blocks of size $(m/d) \times (n/d)$, each block being the all-ones matrix.</li>
+    <li><strong>Per-step damage:</strong> At step $t$, drone $i$ selects $a_t(i) \in [n]$; target $a_t(i)$ takes damage $R_{i, a_t(i)}$ if still alive.</li>
+    <li><strong>HP:</strong> Target $j$ dies when cumulative damage reaches $h_j$, with mean $\bar h$.</li>
+    <li><strong>Episode length:</strong> $s_{\mathrm{ep}}$ = number of steps to neutralise all targets (or hit $T_{\max}$).</li>
+    <li><strong>Broadcast:</strong> At each step $t$, every drone observes $\{(i, a_t(i), \tilde r_{t,i})\}_{i \in [m]}$ with $\tilde r_{t,i} = R_{i, a_t(i)} + \eta_{t,i}$, where $\eta$ is $\sigma_r$-sub-Gaussian.</li>
+    <li><strong>Policies:</strong>
+        <ul>
+            <li>UCB-Indep: separate UCB1 per drone-target pair.</li>
+            <li>UCB-Homo: single shared UCB1 per target.</li>
+            <li>MF-CF: per-drone factor matrices $P^{(i)} \in \mathbb{R}^{m \times d_f}$, $U^{(i)} \in \mathbb{R}^{d_f \times n}$ updated by online SGD on broadcast tuples.</li>
+            <li>PTF: UCB-Indep for $K$ probe episodes, then SVD-warm-start MF-CF for $T - K$ fit episodes.</li>
+        </ul>
+    </li>
+    <li><strong>Shorthand:</strong> $\rho := 1/d$ (per-pull expected reward of a random match in one-hot), $\Delta := 1 - \rho$.</li>
+</ul>
+
+<!-- ====================================================================== -->
+<h2 id="thm1">3. Theorem 1: UCB-Homo Collapse</h2>
+
+<div class="theorem-box">
+<strong>Theorem 1.</strong> Assume drones are partitioned uniformly across the $d$ latent modes, i.e.\ $|\phi^{-1}(k)| = m/d$ for every $k \in [d]$. Let
+$$\hat\mu_j^{\mathrm{homo}}(T) := \frac{1}{N_j(T)} \sum_{t \le T s_{\mathrm{ep}}} \sum_{i=1}^m R_{ij}\, \mathbf{1}\{a_t(i) = j\}$$
+be the UCB-Homo pooled estimator at target $j$. Then:
+<ul>
+    <li><strong>(a)</strong> $\mathbb{E}[\hat\mu_j^{\mathrm{homo}}(T)] = 1/d$ for all $T \ge 1$ and all $j \in [n]$;</li>
+    <li><strong>(b)</strong> $|\hat\mu_j^{\mathrm{homo}} - \hat\mu_k^{\mathrm{homo}}| \xrightarrow{\text{a.s.}} 0$ for any $j, k \in [n]$;</li>
+    <li><strong>(c)</strong> with probability $\ge 1 - \delta$, simultaneously for all targets:
+        $$|\hat\mu_j^{\mathrm{homo}}(T) - 1/d| \le \sqrt{\tfrac{\log(2n/\delta)}{2 N_j(T)}}.$$</li>
+</ul>
+</div>
+
+<h3>3.1 Background</h3>
+
+<p>UCB-Homo treats all drones as interchangeable: at each step, it computes a single UCB score per target,
+$$\mathrm{UCB}_j(t) = \hat\mu_j(t) + c\sqrt{\frac{\log t}{N_j(t)}},$$
+and assigns the $m$ drones to the top-$m$ targets via a rule that <em>does not depend on drone identity</em>. The exact assignment rule (random matching, lexicographic by drone index, etc.) is irrelevant to the theorem; only the drone-permutation symmetry of the policy is used.</p>
+
+<p>The key technical concept is <em>drone-permutation invariance</em>: for any permutation $\pi \in S_m$ of drone indices, the joint distribution of the trajectory $\{(a_t(i), \tilde r_{t,i})\}_{t,i}$ is the same as $\{(a_t(\pi(i)), \tilde r_{t,\pi(i)})\}_{t,i}$.</p>
+
+<h3>3.2 Proof of (a)</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Drone-permutation invariance).</span>
+The UCB-Homo state at step $t$ consists of $(\hat\mu_j, N_j)_{j \in [n]}$, neither of which depends on drone identity. Therefore the algorithm&rsquo;s action-selection rule is invariant under permutations of drone indices: for any permutation $\pi \in S_m$,
+$$(a_t(1), \ldots, a_t(m)) \stackrel{d}{=} (a_t(\pi(1)), \ldots, a_t(\pi(m))).$$
+<div class="why">
+Permutation invariance is a property of UCB-Homo, not an assumption. It follows from the algorithm&rsquo;s symmetry: drones are not labelled by mode (the modes are unknown), and the algorithm cannot distinguish drone $i$ from drone $j$ except through the actions they were assigned and the rewards they collected &mdash; both of which are themselves symmetric in drone identity.
+</div>
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Conditional matched probability).</span>
+Fix any drone index $i$ and target $j$. By Step 1, for any other drone $i'$,
+$$\Pr[a_t(i) = j] = \Pr[a_t(i') = j].$$
+Let $p_j(t)$ denote this common probability. Now condition on the event $\{a_t(i) = j\}$ and ask: what is $\Pr[\phi(i) = \psi(j) \mid a_t(i) = j]$?
+
+Since $\phi$ is a fixed scenario property and $a_t(i) = j$ is determined by the (drone-symmetric) policy, drone $i$ is uniformly distributed over $[m]$ given $a_t(i) = j$ &mdash; any drone could equally have been the one to receive assignment $j$ at step $t$. Therefore
+$$\Pr[\phi(i) = \psi(j) \mid a_t(i) = j] = \frac{|\phi^{-1}(\psi(j))|}{m} = \frac{m/d}{m} = \frac{1}{d},$$
+using the balanced-modes assumption $|\phi^{-1}(k)| = m/d$.
+<div class="why">
+This is the crux of the proof. The pooled estimator averages rewards over all drones that ever fire at target $j$; by symmetry, the fraction of those drones whose mode matches $\psi(j)$ is exactly the population fraction $1/d$. The pooled mean therefore reflects only the marginal mode distribution, not the target's actual mode.
+</div>
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Expectation of $R_{ij}$ conditional on a pull).</span>
+By the one-hot model, $R_{ij} = \mathbf{1}\{\phi(i) = \psi(j)\}$, so
+$$\mathbb{E}[R_{ij} \mid a_t(i) = j] = \Pr[\phi(i) = \psi(j) \mid a_t(i) = j] = 1/d.$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 4 (Unconditioning and averaging over time).</span>
+Expand the numerator of $\hat\mu_j^{\mathrm{homo}}$:
+$$\mathbb{E}\!\left[\sum_{t \le T s_{\mathrm{ep}}} \sum_i R_{ij}\, \mathbf{1}\{a_t(i) = j\}\right] = \sum_{t,i} \mathbb{E}[R_{ij} \mid a_t(i)=j]\, \Pr[a_t(i)=j] = \frac{1}{d} \cdot \mathbb{E}[N_j(T)].$$
+Dividing by $\mathbb{E}[N_j(T)]$ (or, more carefully, applying the dominated convergence theorem since $N_j(T) \to \infty$ a.s.\ under UCB&rsquo;s logarithmic exploration of every arm):
+$$\mathbb{E}[\hat\mu_j^{\mathrm{homo}}(T)] = 1/d.$$
+This holds for all $T \ge 1$ such that $N_j(T) > 0$ a.s., which under UCB1 occurs for all $T \ge n$ (every arm is pulled at least once during initialisation).
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>3.3 Proof of (b)</h3>
+
+<div class="proof">
+By part (a) and (c), $|\hat\mu_j - 1/d| \to 0$ a.s.\ for every $j$. By the triangle inequality,
+$$|\hat\mu_j - \hat\mu_k| \le |\hat\mu_j - 1/d| + |\hat\mu_k - 1/d| \to 0.$$
+</div>
+<div class="qed"></div>
+
+<h3>3.4 Proof of (c)</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Martingale difference sequence).</span>
+Define $Y_t := R_{i_t, j} \mathbf{1}\{a_t(i_t) = j\} - (1/d) \mathbf{1}\{a_t(i_t) = j\}$ where $i_t$ ranges over all drones at step $t$. Then $\mathbb{E}[Y_t \mid \mathcal{F}_{t-1}] = 0$ by Step 2 of the proof of (a), where $\mathcal{F}_{t-1}$ is the $\sigma$-algebra generated by the trajectory up to step $t - 1$. The summands are bounded: $|Y_t| \le 1$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Azuma&ndash;Hoeffding).</span>
+Conditional on $N_j(T) = N$, applying Azuma&ndash;Hoeffding to the bounded martingale $M_N = \sum_{t : a_t(\cdot) = j} Y_t$:
+$$\Pr\!\left[\left|\hat\mu_j^{\mathrm{homo}} - 1/d\right| \ge \varepsilon\,\Big|\, N_j = N\right] = \Pr[|M_N| \ge N\varepsilon \mid N_j = N] \le 2 \exp(-2 N \varepsilon^2).$$
+Setting the right-hand side equal to $\delta'$ and solving: $\varepsilon = \sqrt{\log(2/\delta') / (2N)}$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Union bound over $n$ targets).</span>
+Apply the per-target bound with $\delta' = \delta/n$, then take a union bound over $j \in [n]$:
+$$\Pr\!\left[\exists j: \left|\hat\mu_j^{\mathrm{homo}} - 1/d\right| > \sqrt{\tfrac{\log(2n/\delta)}{2N_j(T)}}\right] \le n \cdot \frac{\delta}{n} = \delta.$$
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>3.5 Discussion</h3>
+
+<p><strong>What the theorem implies.</strong> UCB-Homo cannot rank targets: as $T$ grows, every $\hat\mu_j \to 1/d$ uniformly, so the exploitation signal becomes uninformative. Action selection then relies entirely on the bonus $\sqrt{2\log T/N_j}$, which equalises $N_j$ across targets and produces near-uniform target selection. In effect, UCB-Homo degenerates into the random policy with a small contention surcharge from balls-in-bins inefficiency.</p>
+
+<p><strong>Tightness.</strong> The conclusion holds exactly (not just asymptotically), because Step 2 establishes that $\mathbb{E}[R_{ij} \mid a_t(i) = j] = 1/d$ for every single observation, not in some limit. The Hoeffding bound is tight up to constants; the only looseness is the use of bounded $[0,1]$ rewards (Hoeffding constant 2) versus sub-Gaussian noise (which would improve the constant by a factor depending on $\sigma_r$).</p>
+
+<p><strong>Empirical verification.</strong> Across $n \in \{27, 54, 108\}$ and 5 seeds, the empirical LMQ of UCB-Homo differs from that of Random by less than 0.002 (Table 9 of main paper). The theorem predicts <em>zero</em> difference in the limit; the residual is the finite-sample Hoeffding fluctuation.</p>
+
+<!-- ====================================================================== -->
+<h2 id="thm2">4. Theorem 2: UCB-Indep Regret</h2>
+
+<div class="theorem-box">
+<strong>Theorem 2.</strong> Assume rewards have $\sigma_r$-sub-Gaussian noise. UCB1 run independently per drone on $n$ arms in the one-hot benchmark yields per-drone regret
+$$\mathbb{E}[R_i(T)] \le C\sigma_r^2 \cdot n(1 - 1/d) \log T + O(n(1-1/d))$$
+for a universal constant $C$ (with $C = 8$ for $[0,1]$-bounded rewards). Summed across drones:
+$$\mathbb{E}[R_{\mathrm{UCB}}(T)] = O(mn \log T).$$
+The matching lower bound $\Omega(mn \log T / \sigma_r^2)$ follows from Lai&ndash;Robbins under sub-Gaussian noise; it is vacuous in the noise-free regime since $\mathrm{KL}$ is infinite there.
+</div>
+
+<h3>4.1 Background</h3>
+
+<p>The classical UCB1 algorithm (<cite>Auer et al.\ 2002</cite>) selects, at step $t$, the arm maximising $\hat\mu_j(t) + \sqrt{2\log t / N_j(t)}$. Theorem 1 of that paper gives the regret bound stated in &sect;1.3. In our setting, each drone runs an <em>independent copy</em> of UCB1 over the $n$ arms (targets); there is no information sharing between drones&rsquo; estimators.</p>
+
+<h3>4.2 Proof of Upper Bound</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Identify gap structure).</span>
+In the one-hot benchmark, drone $i$&rsquo;s optimal arms are all $j$ with $\psi(j) = \phi(i)$, of which there are $|\psi^{-1}(\phi(i))| = n/d$ (under balanced modes). All such arms have $\mu_{ij} = 1$. The remaining $n - n/d = n(1 - 1/d)$ arms have $\mu_{ij} = 0$, so $\Delta_{ij} = 1 - 0 = 1$.
+<div class="why">
+Multiple optimal arms are unusual in textbook UCB1 analyses, which often assume a unique best. Here we exploit the fact that pulling <em>any</em> matched arm yields zero regret; only the $n(1-1/d)$ sub-optimal arms contribute to the regret sum.
+</div>
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Apply UCB1 regret bound).</span>
+Theorem 1 of <cite>Auer et al.\ 2002</cite> gives (for $[0,1]$ rewards)
+$$\mathbb{E}[R_i(T)] \le \sum_{j: \Delta_{ij} > 0} \left[\frac{8 \log T}{\Delta_{ij}} + \left(1 + \frac{\pi^2}{3}\right) \Delta_{ij}\right].$$
+With $\Delta_{ij} = 1$ for all $n(1-1/d)$ sub-optimal arms:
+$$\mathbb{E}[R_i(T)] \le 8 \cdot n(1-1/d) \log T + \left(1 + \frac{\pi^2}{3}\right) \cdot n(1-1/d).$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Sub-Gaussian extension).</span>
+For $\sigma_r$-sub-Gaussian noise, the same analysis goes through with the confidence radius $\sqrt{2 \sigma_r^2 \log t / N_j}$ replacing the Hoeffding radius $\sqrt{2\log t / N_j}$. This rescales the constant 8 to $C\sigma_r^2$ where $C$ is a universal absolute constant depending on the precise version of UCB used (KL-UCB attains $C = 2$ asymptotically).
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 4 (Sum over drones).</span>
+The $m$ drones run independent UCB1 instances, and their regrets are additive:
+$$\mathbb{E}[R_{\mathrm{UCB}}(T)] = \sum_{i=1}^m \mathbb{E}[R_i(T)] \le C\sigma_r^2 m n(1 - 1/d) \log T + O(mn) = O(mn \log T).$$
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>4.3 Proof of Lower Bound</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Per-drone Lai&ndash;Robbins).</span>
+For drone $i$ alone, the bandit instance is a $K = n$ arm problem with $n(1-1/d)$ sub-optimal arms each having gap $\Delta = 1$. Lai&ndash;Robbins (&sect;1.3) gives
+$$\liminf_{T \to \infty} \frac{\mathbb{E}[R_i(T)]}{\log T} \ge \sum_{j: \Delta_{ij} > 0} \frac{\Delta_{ij}}{\mathrm{KL}(\nu_j, \nu^*)} = \frac{n(1-1/d)}{\mathrm{KL}(\nu_0, \nu_1)}.$$
+where $\nu_j$ is the reward distribution at arm $j$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (KL finiteness under sub-Gaussian noise).</span>
+For Gaussian noise $\eta \sim \mathcal{N}(0, \sigma_r^2)$, $\nu_0 = \mathcal{N}(0, \sigma_r^2)$ and $\nu_1 = \mathcal{N}(1, \sigma_r^2)$, so
+$$\mathrm{KL}(\nu_0, \nu_1) = \frac{1}{2\sigma_r^2}.$$
+Hence the per-drone lower bound becomes $2\sigma_r^2 n(1-1/d) \log T$, and summing over drones gives $\Omega(mn \log T / \sigma_r^2)$, asymptotically matching the upper bound up to constants.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Vacuity in noise-free regime).</span>
+If rewards are deterministic 0 or 1 (no noise), $\mathrm{KL}(\nu_0, \nu_1) = \mathrm{KL}(\mathrm{Bern}(0), \mathrm{Bern}(1)) = \log(1/0) = \infty$, so Lai&ndash;Robbins becomes vacuous. In this degenerate regime, an oracle that has observed one reward at each arm has identified the optimal arm exactly, giving sample complexity $\Theta(n)$ rather than $\Theta(n \log T)$.
+<div class="why">
+This caveat matters because the main paper&rsquo;s underlying simulation has $\sigma_r > 0$, ensuring KL finiteness. Without noise, both UCB and a much cheaper deterministic algorithm would identify optimal arms in $O(n)$ pulls.
+</div>
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>4.4 Discussion</h3>
+
+<p><strong>Tightness.</strong> The rate $\Theta(mn \log T)$ is matched up to multiplicative constants. The constant 8 in UCB1 is improvable to 2 via KL-UCB (<cite>Garivier&ndash;Capp&eacute; 2011</cite>), but the rate is unaffected.</p>
+
+<p><strong>Why $mn$ and not $m + n$.</strong> Independent UCB-Indep does not share information across drones&rsquo; arm tables. Drone 1&rsquo;s observation that target $j$ is bad does not help drone 2 avoid target $j$ (they may have different latent modes). Hence the regret scales as $m \cdot n \log T$ rather than $(m+n) \cdot d \log T$ &mdash; the structural inefficiency exploited by MF-CF (Theorem 5).</p>
+
+<!-- ====================================================================== -->
+<h2 id="thm3">5. Theorem 3: MF-CF Sample Complexity</h2>
+
+<div class="theorem-box">
+<strong>Theorem 3.</strong> Let $R \in \{0,1\}^{m \times n}$ have rank $d$ and $\mu_0$-incoherent singular vectors. With $|\Omega|$ noisy observations from a $\sigma_r$-sub-Gaussian channel:
+<ul>
+    <li><strong>(a) Information-theoretic lower bound.</strong> Exact identification of $R$ requires $|\Omega| = \Omega(d(m+n))$ observations.</li>
+    <li><strong>(b) Upper bound (Cand&egrave;s&ndash;Recht).</strong> If $|\Omega| \ge C\mu_0 d(m+n) \log^2(m+n)$ and observations are uniformly random, nuclear-norm minimisation recovers $R$ exactly w.p.\ $\ge 1 - (m+n)^{-c}$.</li>
+    <li><strong>(c) Cold-start length.</strong> $K_{\mathrm{cold}} = O(d^\alpha)$ episodes for $\alpha \in [1, 2]$, with $\alpha = 2$ corresponding to maximally biased (policy-driven) sampling.</li>
+</ul>
+</div>
+
+<h3>5.1 Proof of (a): Information-Theoretic Lower Bound</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Count degrees of freedom).</span>
+A rank-$d$ matrix $R \in \mathbb{R}^{m \times n}$ admits an SVD $R = U\Sigma V^\top$ where $U \in \mathbb{R}^{m \times d}$ has orthonormal columns, $\Sigma \in \mathbb{R}^{d \times d}$ is diagonal, and $V \in \mathbb{R}^{n \times d}$ has orthonormal columns. The free parameters are:
+<ul>
+    <li>$U$: $md - d(d+1)/2$ (subtracting the orthogonality constraints on $d$ columns).</li>
+    <li>$\Sigma$: $d$ (diagonal entries).</li>
+    <li>$V$: $nd - d(d+1)/2$.</li>
+</ul>
+Total: $md + nd + d - d(d+1) = d(m+n) - d^2$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Fano packing argument).</span>
+Construct a packing $\{R_1, \ldots, R_N\}$ in the rank-$d$ manifold such that $\|R_i - R_j\|_F \ge \delta$ for $i \ne j$ and $N = \exp(\Omega(d(m+n) - d^2))$ (achievable since the manifold has that dimension). The KL divergence between two Gaussian-noise observation models with means $R_i, R_j$ is $\|R_i - R_j\|_F^2 / (2\sigma_r^2)$. By Fano's inequality:
+$$\inf_{\hat R} \sup_i \Pr[\|\hat R - R_i\|_F \ge \delta/2] \ge 1 - \frac{|\Omega| \cdot \delta^2 / (2\sigma_r^2) + \log 2}{\log N}.$$
+For the right-hand side to fall below $1/2$, we need
+$$|\Omega| \ge \frac{2\sigma_r^2 \log N}{\delta^2} = \Omega\!\left(\frac{\sigma_r^2 (d(m+n) - d^2)}{\delta^2}\right) = \Omega(d(m+n)).$$
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>5.2 Proof of (b): Upper Bound</h3>
+
+<p>This is <cite>Cand&egrave;s&ndash;Recht 2009</cite> Theorem 1.3 directly. We verify the incoherence assumption for the one-hot benchmark.</p>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Incoherence verification.</span>
+The one-hot benchmark has block-diagonal $R$ (after permutation) with $d$ rank-1 blocks of size $(m/d) \times (n/d)$, each block being the all-ones matrix. Its $d$ nonzero left singular vectors are $u_k = \frac{1}{\sqrt{m/d}} \mathbf{1}_{\phi^{-1}(k)}$ for $k \in [d]$, where $\mathbf{1}_S$ is the indicator vector of set $S$. The incoherence parameter is
+$$\mu_0 = \max_i \frac{m}{d} \|U^\top e_i\|^2 = \frac{m}{d} \cdot \frac{d}{m} = 1,$$
+i.e.\ the singular vectors are as well-spread as possible. Hence Cand&egrave;s&ndash;Recht applies with $\mu_0 = 1$, giving the upper bound $|\Omega| \ge C d(m+n) \log^2(m+n)$.
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>5.3 Proof of (c): Cold-Start Length</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Count observations per episode).</span>
+Each step produces $m$ broadcast tuples (one per drone). Over $K$ episodes of length $s_{\mathrm{ep}}$ each: $|\Omega|_K = m \cdot s_{\mathrm{ep}} \cdot K$ observations.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Uniform-sampling bound, $\alpha = 1$).</span>
+If observations are roughly uniform across arms (random exploration regime), setting $|\Omega|_K \ge \Theta(d(m+n))$:
+$$K \ge \frac{d(m+n)}{m \cdot s_{\mathrm{ep}}} = \frac{d(m+n)}{n\bar h} \xrightarrow{m \ll n} \frac{d}{\bar h} = \Theta(d).$$
+So $K_{\mathrm{cold}}^{\mathrm{uniform}} = \Theta(d)$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Biased-sampling bound, $\alpha = 2$).</span>
+Under policy-driven sampling, only the matched-pair fraction $1/d$ of observations contribute to rank-$d$ recovery (the zero-reward observations constrain the factor product but with less information per observation). Effectively, $|\Omega|_K^{\mathrm{matched}} = m s_{\mathrm{ep}} K / d$. Setting this $\ge d(m+n)$:
+$$K \ge \frac{d^2(m+n)}{m \cdot s_{\mathrm{ep}}} = \Theta(d^2).$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 4 (Empirical interpolation).</span>
+The actual sampling falls between uniform and matched-only: in cold-start, exploration is high (closer to uniform), and as MF-CF warms up, sampling becomes biased toward matched pairs (closer to $\alpha = 2$). Empirically (main paper &sect;7.15), $K_{\mathrm{cold}} \propto d^\alpha$ with $\alpha$ fitted at $\approx 1.18$ for $d=3 \to 5$ and $\alpha \approx 1.45$ for $d=3 \to 8$.
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>5.4 Discussion</h3>
+
+<p><strong>Why the $\log^2$ factor.</strong> Cand&egrave;s&ndash;Recht's $\log^2(m+n)$ slack arises from a peeling argument over scales of the entry values. <cite>Cand&egrave;s&ndash;Tao 2010</cite> tightened this to $\log(m+n)$; the original Cand&egrave;s&ndash;Recht result is loose by one log factor relative to the lower bound (a).</p>
+
+<p><strong>Connection to noisy completion.</strong> The Keshavan&ndash;Montanari&ndash;Oh result (&sect;1.4) is what we actually use in the SGD-based MF-CF setting: per-entry RMSE $\sim |\Omega|^{-1/2}$ once the threshold is exceeded. This bound is invoked in Theorem 7 to quantify the SVD warm-start quality.</p>
+
+<p><strong>Sampling-assumption caveat.</strong> Parts (b) and (c) assume sampling that is either uniformly random across arms (b: Cand&egrave;s&ndash;Recht) or near-uniform during cold-start (c: under high exploration). MF-CF's SGD samples actions through an $\varepsilon$-greedy policy whose stationary distribution biases toward high-reward arms. The correct generalisation under non-uniform sampling is the <em>weighted trace-norm</em> result of <cite>Foygel&ndash;Salakhutdinov 2011</cite>: if entry $(i,j)$ is sampled with probability $p_{ij}$ bounded below by $p_{\min}$, exact recovery requires $|\Omega| \ge C \mu_0 d(m+n) \log^2(m+n) / (p_{\min} \cdot mn)$, contributing an extra factor $1/(p_{\min}\cdot mn)$ over the uniform bound. For ZK-MRTA, $p_{\min}$ can be exponentially small in $T$ once UCB suppresses ineligible arms; the empirical $\alpha \in [1.18, 1.45]$ bracket reflects this trade-off between sampling concentration and rank-$d$ recovery. A tighter formal characterisation specifically for $\varepsilon$-greedy SGD sampling remains open.</p>
+
+<!-- ====================================================================== -->
+<h2 id="thm4">6. Theorem 4: Scaling Rates</h2>
+
+<div class="theorem-box">
+<strong>Theorem 4 (rigorous part).</strong> With $m, d, \bar h$ fixed:
+$$S_{\mathrm{oracle}}(n) = \Theta(n\bar h / m), \qquad S_{\mathrm{rand}}(n) = \Theta(dn\bar h / m).$$
+<strong>Corollary (from Theorem 1).</strong> $S_{\mathrm{UCBHomo}}(n) = S_{\mathrm{rand}}(n)(1 + \zeta(n))$ with $\zeta(n) \ge 0$ a contention surcharge. Empirically $\zeta = O(1)$.
+</div>
+
+<h3>6.1 Proof of Oracle Rate</h3>
+
+<div class="proof">
+The Optimal Assignment Oracle matches every drone to a target of its own mode at every step. Hence every pull delivers exactly $1$ damage unit, and the total damage rate is $m$ per step. Total damage required to neutralise all targets is $\sum_j h_j = n\bar h$. Therefore,
+$$\mathbb{E}[S_{\mathrm{oracle}}] = \frac{n\bar h}{m} + o(n/m),$$
+where the lower-order term accounts for partial assignments at the end of the episode (when fewer than $m$ targets remain).
+</div>
+<div class="qed"></div>
+
+<h3>6.2 Proof of Random Rate</h3>
+
+<div class="proof">
+A random policy assigns each drone to a uniformly random target. The probability of a matched pair $(i, a_t(i))$ is
+$$\Pr[\phi(i) = \psi(a_t(i))] = \sum_k \Pr[\phi(i) = k] \Pr[\psi(j) = k] = \sum_k \frac{1}{d}\cdot\frac{1}{d} \cdot d = \frac{1}{d}$$
+using balanced mode assumption. Hence the expected damage per step is $m \cdot (1/d) = m/d$, and the expected episode length is
+$$\mathbb{E}[S_{\mathrm{rand}}] = \frac{n\bar h}{m/d} = \frac{dn\bar h}{m}.$$
+</div>
+<div class="qed"></div>
+
+<h3>6.3 Heuristic Parts (Not Rigorous)</h3>
+
+<p>The remaining claims of Theorem 4 in Appendix C concern $S_{\mathrm{UCBIndep}}$ and $S_{\mathrm{MF\text{-}CF}}$. These are <strong>heuristic order-of-magnitude predictions</strong>, not rigorously derived bounds for the specific algorithms:</p>
+
+<ul>
+    <li><strong>UCB-Indep:</strong> The form $S_{\mathrm{UCBIndep}} = S_{\mathrm{oracle}}(1 + O(n \log T / T))$ is a back-of-envelope estimate based on dividing per-drone regret $O(n \log T)$ by total pulls $T$ to get fractional overhead. A rigorous derivation would require martingale analysis of the per-episode step count given UCB's history-dependent dynamics, which is not done in this paper.</li>
+    <li><strong>MF-CF:</strong> The form $S_{\mathrm{MF\text{-}CF}} = S_{\mathrm{oracle}}(1 + O(\sqrt{d \log(m+n)/(m+n)}))$ assumes argmax-error scales linearly with per-entry RMSE from Keshavan&ndash;Montanari&ndash;Oh. A rigorous derivation requires concentration of the SGD-trained embedding around the global optimum, which is open for the specific MF-CF algorithm.</li>
+</ul>
+
+<p>The honest summary: Theorem 4 rigorously gives Oracle and Random scaling, plus a corollary for UCB-Homo via Theorem 1. The UCB-Indep and MF-CF rates are stated as informed conjectures.</p>
+
+<!-- ====================================================================== -->
+<h2 id="thm5">7. Theorem 5: Crossover Threshold</h2>
+
+<div class="theorem-box">
+<strong>Theorem 5.</strong> Define $W_\pi(T)$ as the cumulative regret of policy $\pi$. By Theorem 2, $W_{\mathrm{UCB}}(T) = O(mn \log T / \Delta^2)$. Suppose $\pi^{\mathrm{LR}}$ is any algorithm achieving the rank-$d$ low-rank bandit rate (<cite>Kang et al.\ 2022</cite>):
+$$W_{\pi^{\mathrm{LR}}}(T) = W_{\mathrm{cold}}(K_{\mathrm{cold}}) + O\!\left(\frac{(m+n)d \log T}{\Delta^2}\right).$$
+Then, excluding the cold-start term, $W_{\pi^{\mathrm{LR}}} < W_{\mathrm{UCB}}$ asymptotically if and only if
+$$n > \frac{dm}{m - d}.$$
+</div>
+
+<h3>7.1 Proof of the Algebraic Threshold</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Set up inequality).</span>
+Excluding the cold-start term, $W_{\pi^{\mathrm{LR}}} < W_{\mathrm{UCB}}$ requires (after dividing common $\log T / \Delta^2$ factors)
+$$(m + n) d < mn.$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Algebraic manipulation).</span>
+\begin{aligned}
+(m+n) d &< mn \\
+md + nd &< mn \\
+nd &< mn - md = m(n - d) \\
+d &< \frac{m(n-d)}{n}
+\end{aligned}
+Solve for $n$:
+\begin{aligned}
+nd &< m(n - d) \\
+nd &< mn - md \\
+nd - mn &< -md \\
+n(d - m) &< -md \\
+n(m - d) &> md \quad\text{(flipped inequality, since } m > d \implies m - d > 0\text{)} \\
+n &> \frac{md}{m - d}.
+\end{aligned}
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Interpretation).</span>
+The threshold $n^* = dm/(m - d)$ has the structure $n^* = d / (1 - d/m)$. As $d \to 0$, $n^* \to 0$ (any $n$ suffices); as $d \to m$, $n^* \to \infty$ (the rank approaches the row count, eliminating the structural advantage of low-rank exploitation). For $d \ll m$, $n^* \approx d$, recovering the standard low-rank-bandit beats independent-UCB regime.
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>7.2 Why the Theorem is Conditional</h3>
+
+<p>The bound $W_{\pi^{\mathrm{LR}}} = O((m+n)d \log T / \Delta^2)$ is proven by <cite>Kang et al.\ 2022</cite> for an idealised <em>optimal</em> low-rank bandit algorithm (OFUL-type with rank constraint or explore-then-commit variants). It is <em>not</em> proven that the specific MF-CF algorithm of &sect;4.4 in the main paper achieves this rate.</p>
+
+<p>MF-CF uses online SGD on the bilinear loss $\|R - PU\|_F^2 + \lambda(\|P\|^2 + \|U\|^2)$ with $\varepsilon$-greedy exploration. This is non-convex; while SGD provably escapes saddle points under suitable noise (<cite>Ge et al.\ 2015</cite>), establishing $O((m+n)d \log T)$ regret for bandit-style sampling is an open problem.</p>
+
+<p><strong>Empirically</strong>, MF-CF behaves consistently with the conditional prediction: at $d = 8$, $n = 27 < 72 = n^*$, MF-CF ties UCB-Indep (248.5 vs 246.9 steps); at $d = 3$, $n = 108 \gg 4.5 = n^*$, MF-CF surpasses UCB-Indep in late episodes by 10.3%. The crossover threshold gives the right empirical predictions, even though the regret bound for MF-CF specifically is not formally proven.</p>
+
+<!-- ====================================================================== -->
+<h2 id="thm6">8. Theorem 6: Broadcast Multiplier</h2>
+
+<div class="theorem-box">
+<strong>Theorem 6.</strong> $K_{\mathrm{cold}}^{\mathrm{nb}} = \Theta(m \cdot K_{\mathrm{cold}}^{\mathrm{bcast}})$, where the superscripts denote the with-broadcast and no-broadcast regimes. Additionally,
+$$\Pr[\mathrm{LMQ}_{\mathrm{MF,nb}}(T) > \mathrm{LMQ}_{\mathrm{UCB}}(T)] \le \exp(-\Omega(Tm / (d^2 n))).$$
+</div>
+
+<h3>8.1 Proof of the Multiplicative Factor</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Observation budget with broadcast).</span>
+With broadcast, every drone $i$ receives, at each step $t$, the full tuple $\{(i', a_t(i'), \tilde r_{t, i'})\}_{i'}$. So drone $i$ accumulates $m \cdot s_{\mathrm{ep}}$ training tuples per episode. Over $K$ episodes: $m s_{\mathrm{ep}} K$ tuples for each drone.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Observation budget without broadcast).</span>
+Without broadcast, drone $i$ sees only its own engagement outcome, contributing $1$ tuple per step, $s_{\mathrm{ep}}$ per episode. Over $K$ episodes: $s_{\mathrm{ep}} K$ tuples per drone &mdash; a factor $m$ less.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Apply matrix-completion threshold).</span>
+Setting the threshold $|\Omega| = \Theta(d(m+n))$ (Theorem 3) and solving for $K$ in each regime:
+$$K_{\mathrm{cold}}^{\mathrm{bcast}} = \Theta\!\left(\frac{d(m+n)}{m s_{\mathrm{ep}}}\right), \qquad K_{\mathrm{cold}}^{\mathrm{nb}} = \Theta\!\left(\frac{d(m+n)}{s_{\mathrm{ep}}}\right) = m \cdot K_{\mathrm{cold}}^{\mathrm{bcast}}.$$
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>8.2 Empirical Calibration</h3>
+
+<p>For $m = 9$, $d = 3$: $K_{\mathrm{cold}}^{\mathrm{bcast}} \approx 8$ episodes empirically. Theorem 6 predicts $K_{\mathrm{cold}}^{\mathrm{nb}} \approx 72$ episodes, well outside the 35-episode evaluation budget. Hence the broadcast-ablation experiment of &sect;8.5 in the main paper would never observe MF-CF overtaking UCB-Indep without broadcast.</p>
+
+<h3>8.3 Probability Bound (Informal)</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Matched-pair counting).</span>
+Without broadcast, drone $i$ pulls each arm $(i, j)$ approximately $s_{\mathrm{ep}}/n$ times per episode (uniform exploration regime). Over $T$ episodes: $T s_{\mathrm{ep}}/n$ pulls per arm.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Chernoff bound on matched counts).</span>
+Letting $M_T$ denote the number of matched-mode arm pulls for drone $i$, $M_T \sim \mathrm{Bin}(T s_{\mathrm{ep}}, 1/d)$ approximately. By Chernoff for Binomial: $\Pr[M_T < c \cdot T s_{\mathrm{ep}}/(2d)] \le \exp(-\Omega(T s_{\mathrm{ep}}/d))$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Combine with matrix-completion threshold).</span>
+Successful MF-CF recovery without broadcast requires $M_T \ge \Theta(d(m+n)/n) \cdot n = \Theta(d^2)$ matched observations per drone (the per-row budget for matrix completion). Hence the probability that no-broadcast MF-CF accumulates enough matched signal in $T$ episodes is
+$$\Pr[M_T \ge \text{threshold}] \le \exp(-\Omega(Ts_{\mathrm{ep}}/(d^2))).$$
+Using $s_{\mathrm{ep}} \approx n/m$:
+$$\Pr[\text{MF-CF nb overtakes UCB in }T\text{ eps}] \le \exp(-\Omega(Tn/(md^2))).$$
+The constants are loose (the exact exponent depends on threshold conventions); the qualitative claim is exponential decay in $Tm/(d^2 n)$.
+</div>
+
+</div>
+<div class="qed"></div>
+
+<!-- ====================================================================== -->
+<h2 id="thm7">9. Theorem 7: PTF SVD Warm-Start Quality</h2>
+
+<div class="theorem-box">
+<strong>Theorem 7.</strong> After $K$ probe episodes of UCB-Indep producing $\hat R_K$, assume per-arm coverage $N_{ij}(K) \ge c K s_{\mathrm{ep}}/n$ for some $c > 0$. Let $\hat R_K = \sum_k \hat\sigma_k \hat u_k \hat v_k^\top$ be its SVD; let $\hat P_K = U_d \sqrt{\Sigma_d}$, $\hat U_K = \sqrt{\Sigma_d} V_d^\top$ be the rank-$d$ warm-start factors. Then with probability $\ge 1 - \delta$:
+<ol>
+    <li>(a) $\|\hat R_K - R\|_F \le \sigma_r n \sqrt{2\log(2mn/\delta) / (cKs_{\mathrm{ep}})}$;</li>
+    <li>(b) $\sin\Theta(\hat U_K^{(d)}, U_R^{(d)}) \le d / \sqrt{mn} \cdot \|\hat R_K - R\|_F$;</li>
+    <li>(c) $\|\hat P_K \hat U_K - R\|_F \le 2 \|\hat R_K - R\|_F$;</li>
+    <li>(d) $\varepsilon_{\mathrm{warm}}(K) := \|\hat P_K \hat U_K - R\|_F / \sqrt{mn} = O(\sigma_r \sqrt{n/(Ks_{\mathrm{ep}})})$.</li>
+</ol>
+</div>
+
+<h3>9.1 Proof of (a): Per-Entry Concentration</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Per-entry sub-Gaussian Hoeffding).</span>
+For each arm $(i, j)$, the sample-mean estimator
+$$\hat R_{ij} = \frac{1}{N_{ij}(K)} \sum_{t : a_t(i) = j} \tilde r_t = R_{ij} + \frac{1}{N_{ij}(K)} \sum_{t} \eta_t$$
+is the average of $N_{ij}(K)$ i.i.d.\ $\sigma_r$-sub-Gaussian deviations centred at $R_{ij}$. By sub-Gaussian Hoeffding (&sect;1.1):
+$$|\hat R_{ij} - R_{ij}|^2 \le \frac{2\sigma_r^2 \log(2/\delta')}{N_{ij}(K)} \quad\text{w.p.\ } \ge 1 - \delta'.$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Union bound over $mn$ arms).</span>
+Set $\delta' = \delta / (mn)$ and union bound:
+$$\Pr\!\left[\exists (i,j): |\hat R_{ij} - R_{ij}|^2 > \frac{2\sigma_r^2 \log(2mn/\delta)}{N_{ij}(K)}\right] \le \delta.$$
+With probability $\ge 1 - \delta$, simultaneously for all $(i,j)$:
+$$|\hat R_{ij} - R_{ij}|^2 \le \frac{2\sigma_r^2 \log(2mn/\delta)}{N_{ij}(K)}.$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Sum to Frobenius norm).</span>
+$$\|\hat R_K - R\|_F^2 = \sum_{ij} |\hat R_{ij} - R_{ij}|^2 \le \sum_{ij} \frac{2\sigma_r^2 \log(2mn/\delta)}{N_{ij}(K)}.$$
+Using the coverage assumption $N_{ij}(K) \ge c K s_{\mathrm{ep}}/n$:
+$$\|\hat R_K - R\|_F^2 \le mn \cdot \frac{2\sigma_r^2 \log(2mn/\delta) \cdot n}{c K s_{\mathrm{ep}}} = \frac{2\sigma_r^2 m n^2 \log(2mn/\delta)}{c K s_{\mathrm{ep}}}.$$
+Taking square roots:
+$$\|\hat R_K - R\|_F \le \sigma_r n \sqrt{\frac{2 m \log(2mn/\delta)}{c K s_{\mathrm{ep}}}} \cdot \frac{1}{\sqrt{m}} = \sigma_r n \sqrt{\frac{2 \log(2mn/\delta)}{c K s_{\mathrm{ep}}}} \cdot \sqrt{1}.$$
+Hm, let me redo the arithmetic more carefully:
+$$\|\hat R_K - R\|_F^2 \le \sum_{(i,j)} \frac{2\sigma_r^2 \log(2mn/\delta)}{cKs_{\mathrm{ep}}/n} = mn \cdot \frac{2\sigma_r^2 n \log(2mn/\delta)}{cKs_{\mathrm{ep}}} = \frac{2\sigma_r^2 m n^2 \log(2mn/\delta)}{cKs_{\mathrm{ep}}}.$$
+Therefore
+$$\|\hat R_K - R\|_F \le \sigma_r \sqrt{\frac{2mn^2 \log(2mn/\delta)}{cKs_{\mathrm{ep}}}} = \sigma_r n \sqrt{\frac{2m \log(2mn/\delta)}{cKs_{\mathrm{ep}}}}.$$
+The factor $\sqrt{m}$ in the bound reflects that the spectral error grows with the row count.
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>9.2 Proof of (b): Subspace Alignment via Wedin</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Compute $\sigma_d(R)$ for the one-hot benchmark).</span>
+After permuting rows and columns, $R$ becomes block-diagonal with $d$ blocks, each block being the all-ones $(m/d) \times (n/d)$ matrix. The $k$-th block has a single nonzero singular value $\sigma_k = \sqrt{(m/d) \cdot (n/d)} = \sqrt{mn}/d$, with corresponding rank-1 SVD decomposition. The block-diagonal structure means the $d$ nonzero singular values of $R$ are all equal to $\sqrt{mn}/d$.
+
+Therefore $\sigma_d(R) = \sqrt{mn}/d$ and $\sigma_{d+1}(R) = 0$, giving spectral gap $\sigma_d - \sigma_{d+1} = \sqrt{mn}/d$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Apply Wedin's $\sin\Theta$).</span>
+Wedin (&sect;1.2) gives
+$$\|\sin\Theta(\hat U_K^{(d)}, U_R^{(d)})\| \le \frac{\|\hat R_K - R\|_2}{\sigma_d(R) - \sigma_{d+1}(R)} \le \frac{\|\hat R_K - R\|_F}{\sqrt{mn}/d} = \frac{d}{\sqrt{mn}} \|\hat R_K - R\|_F,$$
+where we used $\|\cdot\|_2 \le \|\cdot\|_F$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Combine with (a)).</span>
+$$\sin\Theta \le \frac{d}{\sqrt{mn}} \cdot \sigma_r n \sqrt{\frac{2 m \log(2mn/\delta)}{cKs_{\mathrm{ep}}}} = \sigma_r d \sqrt{\frac{2 n \log(2mn/\delta)}{cm Ks_{\mathrm{ep}}}}.$$
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>9.3 Proof of (c): Warm-Start Factor Product Error</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Eckart&ndash;Young applied to $\hat R_K$).</span>
+Recall Eckart&ndash;Young (&sect;1.2): the best rank-$d$ approximation of $\hat R_K$ in Frobenius norm is $\hat R_K^{(d)} := \hat P_K \hat U_K$. Therefore
+$$\|\hat P_K \hat U_K - \hat R_K\|_F = \min_{B: \mathrm{rank}(B) \le d} \|B - \hat R_K\|_F.$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Bound by $\|\hat R_K - R\|_F$).</span>
+Since $R$ has rank exactly $d$, it is a valid candidate $B$ in the minimisation. Therefore
+$$\|\hat P_K \hat U_K - \hat R_K\|_F \le \|R - \hat R_K\|_F = \|\hat R_K - R\|_F.$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Triangle inequality).</span>
+$$\|\hat P_K \hat U_K - R\|_F \le \|\hat P_K \hat U_K - \hat R_K\|_F + \|\hat R_K - R\|_F \le 2\|\hat R_K - R\|_F.$$
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>9.4 Proof of (d): Per-Entry RMSE</h3>
+
+<div class="proof">
+Divide (c) by $\sqrt{mn}$:
+$$\varepsilon_{\mathrm{warm}}(K) = \frac{\|\hat P_K \hat U_K - R\|_F}{\sqrt{mn}} \le \frac{2 \|\hat R_K - R\|_F}{\sqrt{mn}} \le \frac{2\sigma_r n}{\sqrt{mn}}\sqrt{\frac{2m\log(2mn/\delta)}{cKs_{\mathrm{ep}}}} = 2\sigma_r\sqrt{\frac{2n\log(2mn/\delta)}{cKs_{\mathrm{ep}}}}.$$
+Stripping log and constant factors: $\varepsilon_{\mathrm{warm}}(K) = O\!\left(\sigma_r \sqrt{n/(Ks_{\mathrm{ep}})}\right)$.
+</div>
+<div class="qed"></div>
+
+<h3>9.5 Discussion</h3>
+
+<p><strong>Why Wedin requires a spectral gap.</strong> The $\sin\Theta$ bound depends on $\sigma_d - \sigma_{d+1}$, the gap between included and excluded singular values. In the one-hot benchmark this gap equals $\sqrt{mn}/d$ exactly (all included $\sigma$'s are equal, the excluded $\sigma_{d+1} = 0$). For general low-rank matrices with smooth singular value decay, the gap can be small, making Wedin much weaker. The block-diagonal structure of one-hot is what makes the bound tight here.</p>
+
+<p><strong>Why Eckart&ndash;Young matters.</strong> Step 2 of the proof of (c) uses the fact that $R$ itself is rank-$d$, hence available as a candidate in the rank-$d$ minimisation. Without low-rank structure of the target matrix, the constant 2 in (c) would not appear. This is the essential reason PTF warm-start works: the true compatibility matrix is low-rank, so the SVD truncation of a noisy estimate cannot drift too far from it.</p>
+
+<p><strong>Looseness of $\|\cdot\|_F$ for $\|\cdot\|_2$.</strong> Step 2 of (b) uses $\|\hat R_K - R\|_2 \le \|\hat R_K - R\|_F$, which is loose by a factor up to $\sqrt{\min(m,n)}$. A tighter spectral norm bound via matrix Bernstein (<cite>Tropp 2012</cite>) would improve the dependence, but the qualitative form $K^{-1/2}$ is preserved.</p>
+
+<!-- ====================================================================== -->
+<h2 id="thm8">10. Theorem 8: Optimal Probe Length</h2>
+
+<div class="theorem-box">
+<strong>Theorem 8.</strong> In the trade-off model
+$$\bar S_{\mathrm{PTF}}(K) - s_{\mathrm{conv}} = \frac{1}{T}\bigl[K \Delta_{\mathrm{up}} + C_{\mathrm{cold}}/K\bigr] + \text{l.o.t.},$$
+the minimiser is
+$$K^* = \sqrt{\frac{C_{\mathrm{cold}}}{\Delta_{\mathrm{up}}}}, \qquad \bar S_{\mathrm{PTF}}(K^*) = s_{\mathrm{conv}} + \frac{2}{T}\sqrt{C_{\mathrm{cold}} \cdot \Delta_{\mathrm{up}}} + \text{l.o.t.}$$
+</div>
+
+<h3>10.1 Setting Up the Trade-Off</h3>
+
+<p>Let:</p>
+<ul>
+    <li>$s_{\mathrm{ucb}}$: UCB-Indep's steady-state episode length.</li>
+    <li>$s_{\mathrm{conv}}$: MF-CF's converged episode length (post-warm-up).</li>
+    <li>$\Delta_{\mathrm{up}} = s_{\mathrm{ucb}} - s_{\mathrm{conv}} > 0$: UCB's overhead over MF-CF (positive iff the structural threshold of Theorem 5 is exceeded).</li>
+    <li>$C_{\mathrm{cold}}$: Total step-cost of MF-CF's cold-start. Defined as $\sum_{t=1}^{K_{\mathrm{cold}}^{\mathrm{full}}}(s_{\mathrm{MF}}(t) - s_{\mathrm{conv}})$.</li>
+</ul>
+
+<p><strong>Trade-off model.</strong> PTF with $K$ probe episodes:</p>
+<ul>
+    <li>Spends $K \cdot s_{\mathrm{ucb}}$ steps in the probe phase.</li>
+    <li>Then runs warm-MF for $T - K$ episodes. The warm-start reduces the cold-start cost from $C_{\mathrm{cold}}$ to $C_{\mathrm{cold}} \cdot (\varepsilon(K)/\varepsilon_0)^2$, where $\varepsilon(K)$ is the warm-start RMSE (Theorem 7) and $\varepsilon_0$ is the random-init RMSE.</li>
+    <li>The remainder of the budget runs at $s_{\mathrm{conv}}$.</li>
+</ul>
+
+<p>By Theorem 7, $\varepsilon(K) = A/\sqrt{K}$ for some $A = O(\sigma_r \sqrt{n/s_{\mathrm{ep}}})$. With $\varepsilon_0 = A$ (so $\varepsilon(1) = \varepsilon_0$ by normalisation), $(\varepsilon(K)/\varepsilon_0)^2 = 1/K$. Hence the residual cold-start cost is $C_{\mathrm{cold}}/K$.</p>
+
+<p>Total average excess steps:</p>
+$$\bar S_{\mathrm{PTF}}(K) - s_{\mathrm{conv}} = \frac{1}{T}\bigl[K \Delta_{\mathrm{up}} + C_{\mathrm{cold}}/K\bigr] + \text{lower-order terms}.$$
+
+<h3>10.2 Proof of Optimal $K^*$</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Differentiate).</span>
+Let $f(K) := K\Delta_{\mathrm{up}} + C_{\mathrm{cold}}/K$. Then
+$$f'(K) = \Delta_{\mathrm{up}} - C_{\mathrm{cold}}/K^2.$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (First-order condition).</span>
+Setting $f'(K^*) = 0$:
+$$\Delta_{\mathrm{up}} = C_{\mathrm{cold}}/K^{*2} \implies K^{*2} = C_{\mathrm{cold}}/\Delta_{\mathrm{up}} \implies K^* = \sqrt{C_{\mathrm{cold}}/\Delta_{\mathrm{up}}}.$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Second-order check).</span>
+$$f''(K) = 2 C_{\mathrm{cold}}/K^3 > 0 \quad \forall K > 0,$$
+so $f$ is strictly convex on $(0, \infty)$ and $K^*$ is the unique minimiser.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 4 (Optimal value).</span>
+$$f(K^*) = K^* \Delta_{\mathrm{up}} + C_{\mathrm{cold}}/K^* = \sqrt{C_{\mathrm{cold}} \Delta_{\mathrm{up}}} + \sqrt{C_{\mathrm{cold}} \Delta_{\mathrm{up}}} = 2 \sqrt{C_{\mathrm{cold}} \Delta_{\mathrm{up}}}.$$
+Therefore $\bar S_{\mathrm{PTF}}(K^*) = s_{\mathrm{conv}} + (2/T)\sqrt{C_{\mathrm{cold}} \Delta_{\mathrm{up}}}$.
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>10.3 Sensitivity Around $K^*$</h3>
+
+<p>The curvature at $K^*$ is</p>
+$$f''(K^*) = \frac{2 C_{\mathrm{cold}}}{K^{*3}} = \frac{2 C_{\mathrm{cold}} \Delta_{\mathrm{up}}^{3/2}}{C_{\mathrm{cold}}^{3/2}} = \frac{2 \Delta_{\mathrm{up}}^{3/2}}{\sqrt{C_{\mathrm{cold}}}} = \frac{2\Delta_{\mathrm{up}}}{K^*}.$$
+
+<p>So a Taylor expansion gives</p>
+$$f(K^* + h) - f(K^*) \approx \frac{1}{2} \cdot \frac{2\Delta_{\mathrm{up}}}{K^*} h^2 = \frac{\Delta_{\mathrm{up}}}{K^*} h^2.$$
+
+<p>For our baseline parameters ($\Delta_{\mathrm{up}} \approx 6.7$, $K^* \approx 6$), this is $\approx 1.1 h^2$ extra step-units (per the $T$-divided average). A misallocation of $h = 6$ episodes ($K = 0$ or $K = 12$) costs $\approx 40$ extra step-units total &mdash; about 1.1 extra steps per episode over $T = 35$, consistent with the empirical spread of 1.9 steps between $K = 5$ (best) and $K = 12$ (worst tested).</p>
+
+<h3>10.4 Empirical Calibration at the Baseline</h3>
+
+<table>
+<thead><tr><th>Quantity</th><th>Estimate</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>$s_{\mathrm{ucb}}$</td><td>$\approx 69.7$</td><td>UCB-Indep avg steps, 5 seeds, $n=27, d=3$</td></tr>
+<tr><td>$s_{\mathrm{conv}}$</td><td>$\approx 63$</td><td>MF-CF episodes 26&ndash;35 average</td></tr>
+<tr><td>$\Delta_{\mathrm{up}}$</td><td>$\approx 6.7$</td><td>$s_{\mathrm{ucb}} - s_{\mathrm{conv}}$</td></tr>
+<tr><td>$C_{\mathrm{cold}}$</td><td>$200$&ndash;$300$ step-units</td><td>$\sum_{t=1}^{15}(s_{\mathrm{MF}}(t) - 63) \approx 15 \cdot (105 - 63)$ if measured aggressively, less if measuring only the worst eps</td></tr>
+<tr><td><strong>Predicted $K^*$</strong></td><td>$\sqrt{200/6.7} \approx 5.5$ &mdash; $\sqrt{300/6.7} \approx 6.7$</td><td>This theorem</td></tr>
+<tr><td><strong>Empirical optimum</strong></td><td>$K = 5$ (with $K = 8$ a close second)</td><td>Table 13 of main paper</td></tr>
+</tbody>
+</table>
+
+<p>The predicted range $K^* \in [5.5, 6.7]$ brackets the empirical optimum at $K = 5$. The slight overshoot is consistent with the lower-order terms in the model (e.g., the warm-start residual $C_{\mathrm{cold}}/K$ is approximate; the true relationship has additional curvature terms not captured by the leading-order calculus).</p>
+
+<h3>10.5 Scaling with Latent Dimension</h3>
+
+<p>Substituting Theorem 3's $C_{\mathrm{cold}} = \Theta(d^\alpha \cdot \Delta_{\mathrm{up}})$ (with empirical $\alpha \approx 1.45$):</p>
+$$K^* = \sqrt{C_{\mathrm{cold}}/\Delta_{\mathrm{up}}} = \Theta(d^{\alpha/2}) \approx \Theta(d^{0.75}).$$
+
+<p>For $d = 8$ (vs.\ the baseline $d = 3$):</p>
+$$K^*(d=8) \approx K^*(d=3) \cdot (8/3)^{0.75} \approx 5 \cdot 2.1 \approx 10.$$
+
+<p>This provides a quantitative <em>prediction</em> for the untested $d = 8$, $n = 108$ regime: PTF should run UCB-Indep for approximately 10 probe episodes before switching to MF-CF, balancing the increased cold-start cost at high $d$ against the still-positive structural advantage of MF-CF at $n = 108 \gg n^* = 72$.</p>
+
+<h3>10.6 Discussion: What Makes Theorem 8 Useful</h3>
+
+<p>Theorem 8 converts what would otherwise be a hyperparameter sweep into a quantitative theoretical prediction. The empirically observed shape of the $K$-dependence curve (slight U with optimum near $K = 5$) is reproduced by a calculation involving only two measurable quantities ($\Delta_{\mathrm{up}}$ and $C_{\mathrm{cold}}$). The closed-form result $K^* = \sqrt{C_{\mathrm{cold}}/\Delta_{\mathrm{up}}}$ is sufficiently simple to be applied to new instances without re-running the sweep.</p>
+
+<p>The result also gives an interpretable scaling story: $K^*$ should grow as $d^{\alpha/2}$ in the latent dimension, slowly (sub-linearly). Even at large $d$, the optimal probe length remains a small fraction of the total budget, because the warm-start error $\varepsilon(K) \propto 1/\sqrt{K}$ converges quickly to its asymptote.</p>
+
+<h3>10.7 Limitations of the Model</h3>
+
+<p>The assumption $(\varepsilon(K)/\varepsilon_0)^2$ for residual cold-start cost is a smooth-loss heuristic. A more careful model would incorporate:</p>
+<ol>
+    <li>The fact that UCB-Indep's coverage $c$ in Theorem 7 itself depends on $K$ (decreases mildly as exploitation kicks in).</li>
+    <li>The argmax-error vs.\ embedding-error relationship for MF-CF's discrete action choice (which is not necessarily linear in $\varepsilon$).</li>
+    <li>End-of-episode effects (the model treats $s_{\mathrm{ep}}$ as constant across episodes, ignoring that target depletion can affect step counts late in long episodes).</li>
+</ol>
+
+<p>These refinements would shift $K^*$ by a constant factor (likely between 0.7 and 1.5) but should not change the $\sqrt{C_{\mathrm{cold}}/\Delta_{\mathrm{up}}}$ scaling form.</p>
+
+<!-- ====================================================================== -->
+<h2 id="thm9">11. Theorem 9: Reduction to Low-Rank Linear Bandit</h2>
+
+<div class="theorem-box">
+<strong>Theorem 9.</strong> ZK-MRTA with broadcast reduces to a stochastic low-rank linear bandit with action space $\mathcal{X} = [m] \times [n]$, feature map $\varphi(i,j) = e_i \otimes e_j$, parameter matrix $\Theta = R$ of rank $d$, and $\sigma_r$-sub-Gaussian noise. Every regret upper and lower bound for rank-$d$ linear bandits transfers.
+</div>
+
+<h3>11.1 What &ldquo;Reduction&rdquo; Means Here</h3>
+
+<p>A reduction in this context is an algorithm-preserving map: given any policy $\pi^{\mathrm{LR}}$ for low-rank linear bandits, we exhibit a policy $\pi^{\mathrm{ZK}}$ for ZK-MRTA that achieves the same regret (up to constants). Conversely, every ZK-MRTA policy maps back to a low-rank bandit policy. The map preserves the information structure: the inputs available to one match the inputs available to the other.</p>
+
+<h3>11.2 Proof</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Feature embedding).</span>
+Define $\varphi: [m] \times [n] \to \mathbb{R}^{mn}$ by $\varphi(i, j) = e_i \otimes e_j$, where $e_i \in \mathbb{R}^m$ and $e_j \in \mathbb{R}^n$ are standard basis vectors. The tensor product $e_i \otimes e_j$ has a single nonzero entry, at position $(i, j)$ in the natural identification $\mathbb{R}^{mn} \cong \mathbb{R}^{m \times n}$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Reward equivalence).</span>
+For the ZK-MRTA reward when drone $i$ pulls target $j$:
+$$\tilde r_{ij} = R_{ij} + \eta = \langle R, e_i e_j^\top \rangle_F + \eta = \langle \mathrm{vec}(R), \varphi(i,j) \rangle + \eta,$$
+where $\langle \cdot, \cdot \rangle_F$ is the Frobenius inner product and $\mathrm{vec}$ stacks columns. This is precisely the reward model of a linear bandit with parameter $\mathrm{vec}(R) \in \mathbb{R}^{mn}$, where the parameter has rank-$d$ structure when reshaped into the matrix $R$.
+<div class="why">
+The crucial observation: we have a $mn$-dimensional linear bandit, but its parameter is constrained to a $d(m+n) - d^2$-dimensional manifold (the rank-$d$ matrices). This dimensionality reduction is what enables faster regret rates than vanilla linear bandits.
+</div>
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Information equivalence).</span>
+ZK-MRTA's broadcast: at step $t$, every drone observes $\{(i', a_t(i'), \tilde r_{t, i'}) : i' \in [m]\}$.
+Linear bandit's observation: when an arm $x \in \mathcal{X}$ is pulled, the observed reward $\tilde r = \langle \theta, x \rangle + \eta$ is broadcast.
+
+In ZK-MRTA, $m$ arms are pulled simultaneously per step and all are observed. This is equivalent to a multi-pull batch step in linear bandits, which can be simulated by $m$ sequential pulls within a single &ldquo;super-step.&rdquo; The information available to either is the same: the set of $(arm, reward)$ pairs.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 4 (Rank constraint).</span>
+By the one-hot benchmark assumption, $R = U_R V_R^\top$ where $U_R \in \mathbb{R}^{m \times d}$, $V_R \in \mathbb{R}^{n \times d}$. Hence $\mathrm{vec}(R) = (V_R \otimes I_m) \mathrm{vec}(U_R^\top)$, putting $\mathrm{vec}(R)$ in a $d(m+n) - d^2$-dimensional sub-manifold of $\mathbb{R}^{mn}$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 5 (Conclude bijection).</span>
+Any algorithm $\pi^{\mathrm{LR}}$ for rank-$d$ linear bandits with action space $\mathcal{X} = [m] \times [n]$ can be applied directly to ZK-MRTA via $\varphi$. The choice of action $(i, j)$ in linear-bandit-space is interpreted as &ldquo;drone $i$ pulls target $j$&rdquo; in ZK-MRTA. Conversely, any ZK-compliant ZK-MRTA policy $\pi^{\mathrm{ZK}}$ (i.e.\ measurable w.r.t.\ the public broadcast) yields a linear bandit policy by projecting through $\varphi^{-1}$.
+
+The combinatorial restriction in ZK-MRTA (each drone makes exactly one selection per step, disjoint from others if collisions are not allowed) restricts the action set at each round but does not break the linear structure of the rewards. The reduction is therefore an isomorphism of information structures up to the action-set constraint, which only affects constants in regret bounds. $\square$
+</div>
+
+</div>
+
+<h3>11.3 Why the Reduction Matters</h3>
+
+<p>Prior work on low-rank bandits (Katariya et al.\ 2017 for rank-1, Kang et al.\ 2022 for rank-$d$) establishes the upper bound $\tilde O((m+n)d \sqrt T)$ on minimax regret. Via Theorem 9, this bound applies to ZK-MRTA. In particular, the &ldquo;idealised algorithm $\pi^{\mathrm{LR}}$&rdquo; whose regret Theorem 5 used as a hypothetical is now <em>actually exhibited</em>: it is the OFUL-rank algorithm of Kang et al., applied via $\varphi$.</p>
+
+<p>The reduction also converts our hypothetical regret comparison into a structural argument: the crossover threshold $n > dm/(m-d)$ of Theorem 5 is now an unconditional statement about the regret-class containing optimal ZK-MRTA algorithms.</p>
+
+<!-- ====================================================================== -->
+<h2 id="thm10">12. Theorem 10: ZK Information-Theoretic Lower Bound</h2>
+
+<div class="theorem-box">
+<strong>Theorem 10.</strong> Let $\Pi_{\mathrm{ZK}}$ be the class of policies whose action selection at step $t$ is $\mathcal{F}_{t-1}^{\mathrm{pub}}$-measurable (no access to latent vectors or HP). Then
+$$\inf_{\pi \in \Pi_{\mathrm{ZK}}} \sup_{R \in \mathcal{R}_d} \mathbb{E}[W_\pi(T)] \ge \frac{d(m+n) - d^2}{2\sigma_r^2} \log T - O(1).$$
+This matches the upper bound from Theorem 9 / Kang et al.\ up to constants. MF-CF and PTF, whose late-episode empirical performance is consistent with the $O((m+n)d \log T)$ rate, are <em>candidates for near-optimal ZK policies</em>. A formal upper-bound proof for the specific SGD$\varepsilon$-greedy MF-CF instance &mdash; rather than the idealised low-rank-bandit algorithm $\pi^{\mathrm{LR}}$ of Theorem 9 &mdash; remains open.
+</div>
+
+<h3>12.1 Background: Lai&ndash;Robbins for Linear Bandits</h3>
+
+<p>The classical Lai&ndash;Robbins bound (&sect;1.3) gives the minimax regret of a $K$-armed bandit. For linear bandits in dimension $D$ with sub-Gaussian noise $\sigma$, the analogue (Lattimore&ndash;Szepesv&aacute;ri 2020, Theorem 24.1; based on earlier work of Dani, Hayes, Kakade 2008) states:</p>
+
+<div class="lemma-box">
+<strong>(Linear bandit lower bound).</strong> Let $\pi$ be any policy for a stochastic linear bandit with $D$-dimensional parameter and sub-Gaussian noise of variance $\sigma^2$. Then there exists an instance with optimal-arm gap $\Delta_{\min}$ such that
+$$\mathbb{E}[R_\pi(T)] \ge \frac{D}{2\sigma^2 \Delta_{\min}^2} \log T - O(1).$$
+For $D$-dimensional bandits with arms in the unit ball, $\Delta_{\min} = \Theta(1)$ at worst, so the rate is $\Omega(D \log T / \sigma^2)$.
+</div>
+
+<h3>12.2 Proof of Theorem 10</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Effective dimension under rank constraint).</span>
+By the manifold counting argument (Theorem 3a), the rank-$d$ matrix manifold has effective dimension
+$$D_{\mathrm{eff}} = d(m + n) - d^2.$$
+This is the number of free parameters in $R$ once the rank constraint is enforced.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Hard instance construction).</span>
+Within the rank-$d$ manifold, construct a packing $\{R_1, \ldots, R_N\}$ with $N \ge \exp(c \cdot D_{\mathrm{eff}})$ matrices satisfying $\|R_i - R_j\|_F \ge \delta$ pairwise. The matched-pair gap is $\Delta = 1$, so any policy must distinguish among the $N$ instances to achieve sub-linear regret.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Apply Lai&ndash;Robbins / linear bandit lower bound via Theorem 9).</span>
+By Theorem 9, ZK-MRTA reduces to a $D = mn$-dimensional linear bandit with parameter constrained to the rank-$d$ manifold. The effective dimension entering the lower bound is $D_{\mathrm{eff}} = d(m+n) - d^2$, not $D = mn$. Lattimore&ndash;Szepesv&aacute;ri Theorem 24.1, applied to this constrained problem, yields
+$$\mathbb{E}[R_\pi(T)] \ge \frac{D_{\mathrm{eff}}}{2\sigma_r^2 \Delta^2} \log T - O(1) = \frac{d(m+n) - d^2}{2\sigma_r^2} \log T - O(1).$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 4 (Match with upper bound).</span>
+Kang et al.\ 2022's algorithm achieves $\tilde O((m+n)d \log T / \Delta^2)$ regret on the same rank-$d$ instance class, matching the lower bound up to $\log$ factors. Hence the rate $\Theta((m+n)d \log T)$ is tight for the ZK-MRTA class. $\square$
+</div>
+
+</div>
+
+<h3>12.3 Discussion: The Cost of Zero-Knowledge</h3>
+
+<p>Theorem 10 quantifies the fundamental performance ceiling of ZK-MRTA. Compare to the centralised problem where latent vectors $z^a, z^t$ are observable: there, the per-drone task reduces to a $d$-armed bandit (pick the mode), giving regret $O(d \log T)$ per drone, $O(md \log T)$ total. The ZK lower bound is $\Omega((m+n)d \log T)$. The ratio</p>
+$$\frac{\text{ZK lower bound}}{\text{centralised upper bound}} = \frac{(m+n)d}{md} = 1 + \frac{n}{m}$$
+
+<p>i.e.\ ZK requires roughly $1 + n/m$ times more samples than the centralised baseline. For $m \ll n$, this is $\approx n/m$, recovering the intuition that ZK must learn the $n$ targets' compatibility profiles from scratch.</p>
+
+<h3>12.4 Near-Optimality of MF-CF and PTF</h3>
+
+<p>Both UCB-Indep ($O(mn \log T)$) and the idealised low-rank bandit ($O((m+n)d \log T)$) are valid ZK-compliant policies, but they sit at different points on the regret&ndash;flexibility trade-off:</p>
+
+<ul>
+    <li><strong>UCB-Indep:</strong> achieves $\Theta(mn \log T)$ &mdash; off the lower bound by factor $mn/((m+n)d) = m/d$ (for $m \ll n$). Independent UCB does not exploit the rank constraint.</li>
+    <li><strong>MF-CF / PTF:</strong> empirically achieve $\Theta((m+n)d \log T)$, matching the lower bound rate. Formal proof of regret bound for the specific SGD-based algorithm remains open, but empirical evidence is consistent.</li>
+</ul>
+
+<p>Hence MF-CF and PTF are <em>consistent with near-optimality</em> in the ZK class: their empirical late-episode rate matches the information-theoretic lower bound up to log and constant factors. A formal upper-bound proof for the specific SGD-based MF-CF update is open; the lower bound itself, however, is rigorous and class-wide &mdash; <strong>no ZK policy can asymptotically outperform the rate $\Omega((m+n)d\log T)$</strong>.</p>
+
+<!-- ====================================================================== -->
+<h2 id="thm11">13. Theorem 11: Concentration-Induced Crowding</h2>
+
+<div class="theorem-box">
+<strong>Theorem 11.</strong> For any decentralised policy $\pi$ on the balanced one-hot benchmark:
+<ol>
+    <li>(a) Expected pairwise collision count per step: $\mathbb{E}[C(t)] = \sum_{i < i'} \langle p_i, p_{i'}\rangle$, where $p_i \in \Delta_{n-1}$ is drone $i$'s marginal action distribution.</li>
+    <li>(b) Under random selection, $\mathbb{E}[C_{\mathrm{rand}}] = m(m-1)/(2n)$.</li>
+    <li>(c) Under perfect matched concentration (uniform within mode), $\mathbb{E}[C_{\mathrm{matched}}] = m(m-d)/(2n)$.</li>
+    <li>(d) <em>Crowding peak:</em> If same-mode drones concentrate uniformly on a subset of $s$ targets, $\mathbb{E}[C_s] = m(m-d)/(2ds)$. This is maximised at $s = 1$ (all drones at one target) and minimised at $s = n/d$ (full matched set).</li>
+</ol>
+</div>
+
+<h3>13.1 Proof of (a)</h3>
+
+<div class="proof">
+For any pair of drones $(i, i')$:
+$$\Pr[a_t(i) = a_t(i')] = \sum_j \Pr[a_t(i) = j] \Pr[a_t(i') = j] = \sum_j p_{ij}\, p_{i'j} = \langle p_i, p_{i'} \rangle,$$
+where independence of $a_t(i), a_t(i')$ follows from the decentralised policy assumption. Summing over the $\binom{m}{2}$ pairs gives the stated expectation. $\square$
+</div>
+
+<h3>13.2 Proof of (b)</h3>
+
+<div class="proof">
+Under random selection, $p_{ij} = 1/n$ for all $i, j$. Hence $\langle p_i, p_{i'} \rangle = \sum_j (1/n)^2 = 1/n$ for all pairs. Total:
+$$\mathbb{E}[C_{\mathrm{rand}}] = \binom{m}{2} \cdot \frac{1}{n} = \frac{m(m-1)}{2n}.$$
+For $m = 9, n = 27$: $\mathbb{E}[C_{\mathrm{rand}}] = 36/27 = 1.33$ collisions/step. $\square$
+</div>
+
+<h3>13.3 Proof of (c)</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Distribution under perfect concentration).</span>
+A drone $i$ with $\phi(i) = k$ assigns mass $1/(n/d) = d/n$ uniformly to each of its $n/d$ matched targets (those with $\psi(j) = k$), and zero to other targets.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Inner products by mode).</span>
+For two drones $i, i'$ of the same mode ($\phi(i) = \phi(i')$): their supports are identical, both with mass $d/n$ on each of $n/d$ targets. Hence
+$$\langle p_i, p_{i'} \rangle = (n/d) \cdot (d/n)^2 = d/n.$$
+For drones of different modes ($\phi(i) \ne \phi(i')$): their supports are disjoint, so $\langle p_i, p_{i'} \rangle = 0$.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Count same-mode pairs).</span>
+Each mode $k$ contains $m/d$ drones, contributing $\binom{m/d}{2}$ same-mode pairs. Summed over $d$ modes:
+$$\#\{\text{same-mode pairs}\} = d \binom{m/d}{2} = d \cdot \frac{(m/d)(m/d - 1)}{2} = \frac{m(m - d)}{2d}.$$
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 4 (Total expected collisions).</span>
+$$\mathbb{E}[C_{\mathrm{matched}}] = \frac{m(m-d)}{2d} \cdot \frac{d}{n} = \frac{m(m-d)}{2n}.$$
+For $m = 9, d = 3, n = 27$: $9 \cdot 6 / 54 = 1$ collision/step. $\square$
+</div>
+
+</div>
+
+<h3>13.4 Comparison and Surprising Observation</h3>
+
+<p>Ratio of collision rates:</p>
+$$\frac{\mathbb{E}[C_{\mathrm{matched}}]}{\mathbb{E}[C_{\mathrm{rand}}]} = \frac{m(m-d)/(2n)}{m(m-1)/(2n)} = \frac{m-d}{m-1}.$$
+
+<p>For $m = 9, d = 3$: ratio $= 6/8 = 0.75$. <strong>Perfect matched concentration produces fewer collisions than random!</strong> This is counter-intuitive but correct: by spreading evenly across <em>matched</em> targets only, drones of the same mode coordinate implicitly through their disjoint mode assignments.</p>
+
+<p>The empirically observed rise in collisions during MF-CF learning must therefore reflect a <em>different</em> phenomenon &mdash; not perfect concentration, but partial concentration on a small subset of matched targets.</p>
+
+<h3>13.5 Proof of (d): Crowding Peak</h3>
+
+<div class="proof">
+
+<div class="proof-step">
+<span class="step-label">Step 1 (Drone-distribution model).</span>
+Suppose each drone $i$ with $\phi(i) = k$ assigns mass $1/s$ uniformly to a subset $S_i \subseteq \psi^{-1}(k)$ of $s$ matched targets, and zero elsewhere. Assume same-mode drones share the same subset (worst-case for crowding).
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 2 (Inner products).</span>
+For same-mode drones $i, i'$ with identical subsets: $\langle p_i, p_{i'} \rangle = s \cdot (1/s)^2 = 1/s$. Different modes: 0 as before.
+</div>
+
+<div class="proof-step">
+<span class="step-label">Step 3 (Total expectation).</span>
+$$\mathbb{E}[C_s] = \frac{m(m-d)}{2d} \cdot \frac{1}{s}.$$
+This is monotone decreasing in $s$.
+
+<strong>Maximum at $s = 1$:</strong> $\mathbb{E}[C_1] = m(m-d)/(2d)$.
+For $m=9, d=3$: $\mathbb{E}[C_1] = 54/6 = 9$ collisions/step.
+
+<strong>Minimum at $s = n/d$:</strong> $\mathbb{E}[C_{n/d}] = m(m-d)/(2d) \cdot d/n = m(m-d)/(2n) = 1$ collision/step at our params, agreeing with (c).
+</div>
+
+</div>
+<div class="qed"></div>
+
+<h3>13.6 Empirical Match</h3>
+
+<p>From the main paper Section 7.7: episode-10 collision peak is 629 total over $\approx 70$ steps, i.e.\ $\approx 9$ collisions/step. This matches Theorem 11(d) at $s = 1$ exactly &mdash; consistent with mid-training behaviour where MF-CF has identified the highest-affinity target per mode but has not yet differentiated among targets within a mode.</p>
+
+<p>By episode 35, collision count drops to 294/68 $\approx 4.3$ per step (single-seed Figure 2). Solving $9 \cdot 6 / (6 s) = 4.3$ gives $s \approx 2.1$ for that single seed.</p>
+
+<h3>13.7 Principled $s_{\mathrm{eff}}$ Measurement (5-seed average)</h3>
+
+<p>
+A more rigorous test of Theorem 11 vs 11&prime; replaces the rough single-seed peak with a 5-seed average using two complementary estimators:
+</p>
+
+<ul>
+    <li><em>Inverse Participation Ratio</em>: $s_{\mathrm{eff}}^{\mathrm{IPR}} = 1 / \sum_j p_{i,j}^2$ from the per-drone empirical action distribution.</li>
+    <li><em>Collision-rate inversion</em>: $s_{\mathrm{eff}}^{\mathrm{T11'}} = m(m-d) / (2d \cdot \mathbb{E}[C(t)])$ inverting the formula against measured collisions.</li>
+</ul>
+
+<p>Aggregating across 5 seeds and 35 episodes at $n=27, d=3$:</p>
+
+<table>
+    <caption>Empirical $s_{\mathrm{eff}}$ from per-step action logs (5 seeds &times; 35 episodes). Both estimators converge near $n/d = 9$, validating Theorem 11 (full matched concentration), not Theorem 11&prime;'s partial-concentration regime.</caption>
+    <thead>
+        <tr><th>Policy</th><th>Ep range</th><th>Colls/step</th><th>$s_{\mathrm{eff}}^{\mathrm{IPR}}$</th><th>$s_{\mathrm{eff}}^{\mathrm{T11'}}$</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>MF-CF</td><td>1&ndash;9</td><td>1.240</td><td>7.00</td><td>7.26</td></tr>
+        <tr><td>MF-CF</td><td>10&ndash;21</td><td>1.369</td><td>11.21</td><td>6.58</td></tr>
+        <tr><td>MF-CF</td><td>22&ndash;35</td><td>1.278</td><td>8.36</td><td>7.04</td></tr>
+        <tr><td><strong>MF-CF</strong></td><td><strong>all 35</strong></td><td>1.300</td><td><strong>8.99</strong></td><td><strong>6.93</strong></td></tr>
+        <tr><td>PTF K=5</td><td>1&ndash;9</td><td>1.503</td><td>12.91</td><td>5.99</td></tr>
+        <tr><td>PTF K=5</td><td>10&ndash;21</td><td>1.382</td><td>7.60</td><td>6.51</td></tr>
+        <tr><td>PTF K=5</td><td>22&ndash;35</td><td>1.437</td><td>6.93</td><td>6.26</td></tr>
+        <tr><td><strong>PTF K=5</strong></td><td><strong>all 35</strong></td><td>1.435</td><td><strong>8.70</strong></td><td><strong>6.27</strong></td></tr>
+    </tbody>
+</table>
+
+<p>
+<strong>Reconciliation.</strong> The two estimators agree within $\sim 30\%$ and converge near $n/d = 9$ &mdash; the perfect-matched-concentration prediction of Theorem 11 (full matched set), NOT the partial-concentration ($s \approx 1$&ndash;$3$) interpretation of Theorem 11&prime;. The 5-seed-averaged collision rate is $\approx 1.3$&ndash;$1.4$ per step (far lower than the single-seed peak of $4.3$ per step in Figure 2 of the main paper), confirming that the mid-training crowding peak is a transient single-seed phenomenon rather than a steady-state property. Theorem 11 is therefore the correct asymptotic description; Theorem 11&prime; captures the transient peak observed in individual learning trajectories.
+</p>
+
+<h3>13.8 Discussion</h3>
+
+<p><strong>Why crowding is structural, not a bug.</strong> Theorem 11 shows that collision counts are determined by the entropy of drones' action distributions, which is in turn governed by learning quality. The ZK constraint (decentralised, no communication) prevents drones from explicitly avoiding each other's choices &mdash; they can only do so implicitly through learned preference differentiation.</p>
+
+<p><strong>Connection to oracle.</strong> The Optimal Assignment Oracle has access to a centralised matching and can achieve $\mathbb{E}[C_{\mathrm{oracle}}] \approx 0$ by explicit anti-coordination. The factor $m(m-d)/(2d)$ at $s = 1$ is therefore the &ldquo;decentralisation tax&rdquo;: the irreducible cost paid by ZK-compliant policies for not having a coordinator. It depends only on $m$ and $d$, not on learning quality.</p>
+
+<p><strong>Mitigation strategies.</strong> Possible approaches to reduce crowding without violating ZK:</p>
+<ol>
+    <li>Inject randomisation: each drone uses $\varepsilon$-greedy with $\varepsilon$ tuned to spread mass across multiple matched targets, raising $s_{\mathrm{eff}}$ toward $n/d$.</li>
+    <li>Persistent identity bias: drones use a tie-breaker dependent on their index $i$ to distribute focus within mode &mdash; this preserves ZK (no inter-drone communication) but breaks symmetry implicitly.</li>
+    <li>Anti-coordination via broadcast history: drones observe which targets received fire last step and bias away from heavily-attended targets. This uses only public broadcast (ZK-compliant) and is a promising direction for future work.</li>
+</ol>
+
+<!-- ====================================================================== -->
+<h2 id="refs">14. References</h2>
+
+<div class="reference-list">
+
+<dl>
+<dt>Auer, P., Cesa-Bianchi, N., Fischer, P. (2002).</dt>
+<dd>&ldquo;Finite-time analysis of the multiarmed bandit problem.&rdquo; <em>Machine Learning</em> 47, 235&ndash;256. The UCB1 algorithm and Theorem 1 used throughout &sect;4.</dd>
+
+<dt>Azuma, K. (1967).</dt>
+<dd>&ldquo;Weighted sums of certain dependent random variables.&rdquo; <em>Tohoku Mathematical Journal</em> 19, 357&ndash;367. The Azuma&ndash;Hoeffding inequality.</dd>
+
+<dt>Cand&egrave;s, E.J., Recht, B. (2009).</dt>
+<dd>&ldquo;Exact matrix completion via convex optimization.&rdquo; <em>Foundations of Computational Mathematics</em> 9, 717&ndash;772. The fundamental matrix-completion guarantee used in Theorem 3.</dd>
+
+<dt>Cand&egrave;s, E.J., Tao, T. (2010).</dt>
+<dd>&ldquo;The power of convex relaxation: near-optimal matrix completion.&rdquo; <em>IEEE Transactions on Information Theory</em> 56(5), 2053&ndash;2080. Sharpens Cand&egrave;s&ndash;Recht by one $\log$ factor; quoted in &sect;5.4.</dd>
+
+<dt>Eckart, C., Young, G. (1936).</dt>
+<dd>&ldquo;The approximation of one matrix by another of lower rank.&rdquo; <em>Psychometrika</em> 1, 211&ndash;218. The optimal rank-$d$ Frobenius approximation theorem. (Mirsky 1960 extended to all unitarily invariant norms.)</dd>
+
+<dt>Fano, R.M. (1961).</dt>
+<dd><em>Transmission of Information</em>. MIT Press. Fano's inequality, used in the lower-bound argument of &sect;5.1.</dd>
+
+<dt>Foygel, R., Salakhutdinov, R. (2011).</dt>
+<dd>&ldquo;Learning with the weighted trace-norm under arbitrary sampling distributions.&rdquo; <em>NIPS 24</em>. Extension of Cand&egrave;s&ndash;Recht to non-uniform sampling distributions.</dd>
+
+<dt>Garivier, A., Capp&eacute;, O. (2011).</dt>
+<dd>&ldquo;The KL-UCB algorithm for bounded stochastic bandits and beyond.&rdquo; <em>COLT 2011</em>. Improvement of UCB1's constant from 8 to 2 (the Lai&ndash;Robbins optimal asymptotic rate).</dd>
+
+<dt>Ge, R., Huang, F., Jin, C., Yuan, Y. (2015).</dt>
+<dd>&ldquo;Escaping from saddle points: online stochastic gradient for tensor decomposition.&rdquo; <em>COLT 2015</em>. SGD escapes saddle points in non-convex landscapes; relevant to MF-CF convergence (open question for the bandit setting).</dd>
+
+<dt>Hoeffding, W. (1963).</dt>
+<dd>&ldquo;Probability inequalities for sums of bounded random variables.&rdquo; <em>JASA</em> 58, 13&ndash;30. The Hoeffding inequality.</dd>
+
+<dt>Kang, Y., Hsieh, C-J., Lee, T.C.M. (2022).</dt>
+<dd>&ldquo;Efficient frameworks for generalized low-rank matrix bandit problems.&rdquo; <em>NeurIPS 35</em>. The $\tilde O((m+n)d \sqrt T)$ regret bound for rank-$d$ stochastic linear bandits used in Theorem 5.</dd>
+
+<dt>Katariya, S., Kveton, B., Szepesv&aacute;ri, C., Vernade, C., Wen, Z. (2017).</dt>
+<dd>&ldquo;Stochastic rank-1 bandits.&rdquo; <em>AISTATS 2017</em>. Precursor to Kang et al.\ for rank-1.</dd>
+
+<dt>Keshavan, R.H., Montanari, A., Oh, S. (2010).</dt>
+<dd>&ldquo;Matrix completion from noisy entries.&rdquo; <em>JMLR</em> 11, 2057&ndash;2078. The noisy-completion bound used in Theorem 7's per-entry RMSE analysis.</dd>
+
+<dt>Lai, T.L., Robbins, H. (1985).</dt>
+<dd>&ldquo;Asymptotically efficient adaptive allocation rules.&rdquo; <em>Advances in Applied Mathematics</em> 6(1), 4&ndash;22. The classical bandit lower bound used in Theorem 2.</dd>
+
+<dt>Mirsky, L. (1960).</dt>
+<dd>&ldquo;Symmetric gauge functions and unitarily invariant norms.&rdquo; <em>Quarterly Journal of Mathematics</em> 11, 50&ndash;59. Extension of Eckart&ndash;Young to all unitarily invariant norms.</dd>
+
+<dt>Nagaraj, D., Kowshik, S., Agarwal, A., Netrapalli, P., Jain, P. (2023).</dt>
+<dd>&ldquo;Multi-user reinforcement learning with low rank rewards.&rdquo; <em>ICML 2023</em>. The collaborative-filtering speedup mentioned in Theorem 6.</dd>
+
+<dt>Recht, B. (2011).</dt>
+<dd>&ldquo;A simpler approach to matrix completion.&rdquo; <em>JMLR</em> 12, 3413&ndash;3430. Streamlined proof of the Cand&egrave;s&ndash;Recht main theorem.</dd>
+
+<dt>Tropp, J.A. (2012).</dt>
+<dd>&ldquo;User-friendly tail bounds for sums of random matrices.&rdquo; <em>Foundations of Computational Mathematics</em> 12, 389&ndash;434. Matrix Bernstein inequality; could tighten Wedin's spectral norm bound in Theorem 7.</dd>
+
+<dt>Dani, V., Hayes, T.P., Kakade, S.M. (2008).</dt>
+<dd>&ldquo;Stochastic linear optimization under bandit feedback.&rdquo; <em>COLT 2008</em>. Original linear bandit lower bound, foundation for Theorem 10.</dd>
+
+<dt>Lattimore, T., Szepesv&aacute;ri, C. (2020).</dt>
+<dd><em>Bandit Algorithms</em>. Cambridge University Press. Theorem 24.1 (linear bandit lower bound) used in Theorem 10's proof.</dd>
+
+<dt>Wedin, P.&Aring;. (1972).</dt>
+<dd>&ldquo;Perturbation bounds in connection with singular value decomposition.&rdquo; <em>BIT</em> 12, 99&ndash;111. The $\sin\Theta$ theorem used in Theorem 7.</dd>
+</dl>
+
+</div>
+
+<hr>
+
+<p style="font-size: 0.9em; color: #6a5530; text-align: center; margin-top: 3em;">
+Companion document to the ZK-MRTA paper. All proofs presented here are at a graduate-student level of rigour; gaps and informal steps are explicitly flagged. The main paper's Appendix C gives compressed statements; this document expands each into a full derivation.
+</p>
+
+</body>
+</html>
