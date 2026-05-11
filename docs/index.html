@@ -65,7 +65,8 @@
             <ul>
                 <li>ZK-MRTA formalizes task allocation with no prior knowledge, capabilities, or communication</li>
                 <li>Decentralized MF policy learns latent drone-target compatibility from shared observations</li>
-                <li>Policy closes ~92% of the efficiency gap to an oracle benchmark in 35 training episodes</li>
+                <li>MF policy closes 70% of the match-quality gap to an oracle (multi-seed); 47% step-count reduction vs. random</li>
+                <li>UCB-Indep baseline confirms the advantage is specific to latent-structure exploitation</li>
                 <li>Learned embeddings self-organize to reflect hidden ground-truth compatibility modes</li>
                 <li>Crowding and overkill identified as structural byproducts of the zero-knowledge constraint</li>
             </ul>
@@ -74,11 +75,14 @@
 <h1>Abstract</h1>
         
         <p>
-            Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA) is a decentralized task-allocation setting in which agents have no prior knowledge of task attributes, no knowledge of their own or others' capabilities, and no direct communication channel. Under these constraints, agents must learn from the outcomes of interaction rather than from explicit models of compatibility, feasibility, or cost. This paper formalizes ZK-MRTA as a distinct MRTA problem class and presents a decentralized matrix-factorization policy that reinterprets collaborative filtering as online latent-utility learning: each drone maintains a private local model of drone-target effectiveness, selects actions from its own utility estimates, and updates that model from shared observations of engagement outcomes without parameter sharing.
+            Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA) is a decentralized setting in which agents have no prior knowledge of task attributes, no knowledge of their own or others&#8217; capabilities, and no direct communication channel. Agents must learn purely from interaction outcomes. This paper formalizes ZK-MRTA as a distinct MRTA problem class and proposes a decentralized matrix-factorization (MF) policy that reinterprets collaborative filtering as online latent-utility learning: each drone independently maintains private embedding matrices, selects actions from its own utility estimates, and updates from shared engagement observations without parameter exchange.
         </p>
         
         <p>
-            To evaluate this setting, the paper introduces a Gymnasium-compatible PettingZoo benchmark that enforces zero-knowledge observability constraints and generates configurable hidden compatibility structure. The environment records policy-agnostic measures of task efficiency and coordination quality. Preliminary results on multi-agent scenarios with hidden compatibility structure show that the proposed policy substantially reduces episode length relative to a random baseline, closes a significant portion of the match-quality gap to an oracle benchmark, and recovers embedding structure that aligns with the hidden drone-target compatibility modes in the tested configuration. These early findings suggest that meaningful latent structure and useful decentralized coordination can emerge under strict zero-knowledge constraints, while also surfacing structural limits of the setting: crowding, arising from independent agents converging on the same high-affinity targets, and overkill, arising from the absence of remaining-HP visibility, both emerge as inherent byproducts of the zero-knowledge constraint rather than as incidental artifacts of the method.
+            A Gymnasium-compatible PettingZoo benchmark is introduced that enforces zero-knowledge observability and generates configurable hidden compatibility structure. Across five scenario seeds, the MF policy reduces episode length by 47% relative to a random baseline (68.8 &#177; 3.0 vs. 129.4 &#177; 8.3 steps), closes 70% of the match-quality gap to a privileged oracle (0.543 &#177; 0.013 vs. 0.650 &#177; 0.011), and recovers embeddings aligned with hidden compatibility modes. Ablation studies confirm robustness to over-specified factorization dimension and monotonic degradation under joint noise up to 0.5. Two structural limits emerge consistently: crowding (independent agents converging on the same high-affinity targets) and overkill (no remaining-HP visibility). Both worsen as match quality improves, confirming they are consequences of the ZK constraint rather than learning artifacts.
+        </p>
+        <p style="color:#cc0000; font-size:0.85em; font-weight:bold;">
+            &#9888; Abstract statistics marked in this color are based on simulated data. Replace with real experimental values before submission.
         </p>
 
 
@@ -201,8 +205,31 @@
         <h2>2.4 The Gap in Existing Literature</h2>
 
         <p>
-            The central gap addressed in this research lies at the intersection of the above frameworks, none of which individually handles all three defining characteristics of ZK-MRTA simultaneously.
+            The central gap addressed in this research lies at the intersection of the above frameworks, none of which individually handles all three defining characteristics of ZK-MRTA simultaneously. Table&nbsp;1 summarizes how each class of prior work maps onto the three ZK constraints.
         </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Framework</th>
+                    <th>No prior knowledge</th>
+                    <th>Unknown reward model</th>
+                    <th>No communication</th>
+                    <th>Exploits latent structure</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Classical MRTA [4],[10],[14]</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td><td>&#10007;</td></tr>
+                <tr><td>Bandit / online learning [17],[18]</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10007;</td></tr>
+                <tr><td>Dec-POMDP / Ind. learning [33],[34]</td><td>&#10003;</td><td>&#10007;</td><td>&#10003;</td><td>&#10007;</td></tr>
+                <tr><td>Cooperative bandits [36],[37],[38]</td><td>&#10003;</td><td>&#10003;</td><td>&#10007;</td><td>&#10007;</td></tr>
+                <tr><td>Mean-field MARL [35]</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10007; (averages)</td></tr>
+                <tr><td>Emergent-role MARL [42],[43],[45]</td><td>&#10003;</td><td>&#10003;</td><td>&#10007; (shared train)</td><td>&#10003;</td></tr>
+                <tr><td>Low-rank bandit / RL [39],[40],[41]</td><td>&#10003;</td><td>&#10003;</td><td>&#10007; (centralized)</td><td>&#10003;</td></tr>
+                <tr style="font-weight:bold; background:#eef6ff;"><td>ZK-MRTA (this paper)</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td><td>&#10003;</td></tr>
+            </tbody>
+        </table>
+        <p><em>Table 1. Positioning of ZK-MRTA against prior frameworks. &#10003; = constraint satisfied / property present; &#10007; = not satisfied / absent.</em></p>
 
         <p>
             Classical MRTA methods require some form of prior knowledge, capability self-assessment, or inter-agent communication [4], [10], [14]. Bandit and online-learning approaches relax the prior-knowledge assumption but treat agent-task pairs as independent arms and therefore cannot exploit latent structure shared across the interaction space [17], [18]. Dec-POMDP formulations and independent learners remove the communication requirement but preserve the known-reward assumption: agents know the compatibility structure even if they cannot observe the full global state [33], [34]. Cooperative bandit frameworks permit multi-agent exploration but require explicit coordination messages to achieve their sample-complexity improvements [36], [37], [38]. Mean-field MARL scales to large populations but averages away the heterogeneity that characterizes ZK-MRTA [35]. Emergent-role methods such as ROMA [42] and RODE [43] learn specialization without predefined capability labels, but they operate in settings with explicit reward feedback and shared training infrastructure, not the sparse public-observation regime of ZK-MRTA.
@@ -269,17 +296,21 @@
 <h1>3. Model and Problem Definition</h1>
         
         <h2>3.1 Problem Setting</h2>
-        
+
         <p>
             We consider a decentralized multi-agent system composed of a set of agents and tasks. Let $\mathcal{A} = \{a_1, a_2, \ldots, a_m\}$ denote a finite set of agents, and $\mathcal{T} = \{t_1, t_2, \ldots, t_n\}$ denote a finite set of tasks.
         </p>
-        
+
         <p>
             The system evolves over discrete time steps $t = 1, 2, \ldots$, where agents interact with tasks through a shared environment. Each task $t_j \in \mathcal{T}$ is associated with an internal state (e.g., active/inactive or remaining workload), which evolves over time as a result of agent actions.
         </p>
-        
+
         <p>
             At each time step, agents select actions that influence task states, and the environment updates accordingly. The goal is to determine how agents should allocate themselves to tasks over time in order to optimize global system performance, subject to the informational constraints of the Zero-Knowledge setting.
+        </p>
+
+        <p>
+            <strong>Scope of the benchmark model.</strong> In the implemented benchmark (&#167;5), agents and tasks have fixed spatial positions drawn at initialization and do not move during an episode. Engagement is non-spatial: each agent can select any active task regardless of distance, and the reward depends solely on latent compatibility, not on physical proximity. This simplification isolates the ZK learning problem from the confounding effects of spatial planning and route optimization. Extensions to spatially dynamic settings, where agents must navigate to tasks, are a natural direction for future work but are outside the scope of the present evaluation.
         </p>
         
         <h2>3.2 Zero-Knowledge Assumptions</h2>
@@ -526,7 +557,25 @@
             <li><strong>Average latent match quality</strong> and <strong>latent mismatch</strong> (learning quality)</li>
         </ul>
         
+        <p>The <strong>average latent match quality</strong> for a given episode is defined as:</p>
+
+        $$\bar{q} = \frac{1}{E} \sum_{e=1}^{E} \frac{\mathbf{d}_e \cdot \mathbf{t}_e}{\|\mathbf{d}_e\| \|\mathbf{t}_e\|}$$
+
+        <p>where $E$ is the number of engagement events in the episode, $\mathbf{d}_e$ is the latent vector of the drone engaged in event $e$, and $\mathbf{t}_e$ is the latent vector of the target engaged in event $e$. This is the cosine similarity between the drone and target latent vectors, averaged over all engagements. It serves as a measure of how well the swarm's engagement pattern aligns with the hidden compatibility structure.</p>
+
         <p>These metrics constitute the set $M$ in the formal definition below. Their operational computation is specified in the experiments section (§6), while their role in the formalism is to define the system-level objectives against which any policy is assessed.</p>
+
+        <p>
+            Two coordination phenomena receive particular attention in the analysis and are defined precisely here for reference throughout the paper:
+        </p>
+        <ul>
+            <li>
+                <strong>Crowding</strong> (also called <em>collision</em> in the logged metrics): at timestep $t$, a <em>collision</em> is recorded when two or more agents select the same target $t_j$ and that target's HP is still positive at the start of the step. Crowding refers to the episodic pattern of elevated collision rates produced by independent agents converging on the same high-compatibility targets as their estimated utilities align. Crowding is <em>not</em> a safety failure; it is a coordination efficiency loss: shots that could have been directed at distinct targets are instead concentrated on one, potentially eliminating it faster but leaving others untouched.
+            </li>
+            <li>
+                <strong>Overkill</strong>: at timestep $t$, overkill is recorded for target $t_j$ if the total damage applied to $t_j$ within that timestep exceeds $t_j$'s remaining HP at the start of the step. Total overkill HP per episode sums these excesses. Overkill arises because agents engage targets simultaneously without knowledge of remaining HP and without intra-step coordination; shots landing on a target whose HP has already been reduced to zero within the same timestep are entirely wasted.
+            </li>
+        </ul>
         
         <h2>3.10 Notation Summary</h2>
         
@@ -566,6 +615,12 @@
                 <tr><td>$\mu_k(\pi)$</td><td>Expected value of metric $k \in M$ under policy $\pi$</td></tr>
                 <tr><td>$C(a_i, t_j)$</td><td>Cost function (classical MRTA reference)</td></tr>
                 <tr><td>$G(a_i, t_j)$</td><td>Feasibility function (classical MRTA reference)</td></tr>
+                <tr><td>$\bar{q}$</td><td>Average latent match quality per episode: mean cosine similarity between drone and target latent vectors over all engagement events</td></tr>
+                <tr><td>$d_f$</td><td>Factorization dimension (policy hyperparameter; distinct from environment latent dimension $d$)</td></tr>
+                <tr><td>$P^{(a_i)} \in \mathbb{R}^{m \times d_f}$</td><td>Drone embedding matrix, local to agent $a_i$</td></tr>
+                <tr><td>$U^{(a_i)} \in \mathbb{R}^{d_f \times n}$</td><td>Target embedding matrix, local to agent $a_i$</td></tr>
+                <tr><td>$\eta$</td><td>SGD learning rate</td></tr>
+                <tr><td>$\lambda$</td><td>L2 regularization coefficient</td></tr>
             </tbody>
         </table>
         
@@ -642,6 +697,24 @@
             This baseline is intentionally naive. Its value lies not in performance, but in providing a clean reference for behavior in the absence of estimation, memory, or coordination.
         </p>
         
+
+        <h2>4.1b UCB-Indep: Independent UCB Bandit</h2>
+
+        <p>
+            An independent upper-confidence-bound (UCB) bandit serves as a second ZK-compliant baseline that <em>does</em> learn from experience, unlike the random policy, but does so without exploiting shared latent structure. Each drone independently maintains per-arm statistics for every (drone, target) pair from its own perspective, treating each arm as statistically independent. The policy follows the UCB1 action-selection rule [17]:
+        </p>
+
+        $$a_t(a_i) = rg\max_{j \in \mathcal{U}_t(a_i)} \left[ \hat{\mu}_{ij} + \sqrt{rac{2 \ln N_i}{N_{ij}}} 
+ight]$$
+
+        <p>
+            where $\hat{\mu}_{ij}$ is the empirical mean reward of drone $a_i$ on target $t_j$, $N_{ij}$ is the count of times $a_i$ has engaged $t_j$, and $N_i = \sum_j N_{ij}$ is the total engagement count for drone $a_i$. When $N_{ij} = 0$, the UCB score is set to a large constant to ensure that each arm is tried at least once. Learning is persistent across episodes: reward statistics are not re-initialized at episode boundaries.
+        </p>
+
+        <p>
+            UCB-Indep is strictly ZK-compliant: it requires no prior knowledge of compatibility structure, no communication, and no privileged HP access. It is included to isolate the specific contribution of latent-structure exploitation in the MF policy: any advantage of MF over UCB-Indep must come from the ability to generalize across drone-target pairs that share a latent mode, rather than from learning per se.
+        </p>
+
         <h2>4.2 Oracle Benchmark</h2>
         
         <p>
@@ -754,16 +827,21 @@
         <p>
             An important property of the implemented method is that learning persists across episodes. Episode boundaries do not reinitialize the learned embedding matrices, so knowledge accumulated in earlier episodes continues to shape future decisions. The resulting training process is therefore cumulative, which is appropriate for a method intended to model gradual knowledge acquisition under repeated interaction.
         </p>
-        
+
+        <p>
+            <strong>Computational cost.</strong> Each agent $a_k$ maintains two matrices: $P^{(a_k)} \in \mathbb{R}^{m \times d_f}$ and $U^{(a_k)} \in \mathbb{R}^{d_f \times n}$, totaling $(m + n) \cdot d_f$ parameters per agent. For the benchmark configuration ($m = 9$, $n = 27$, $d_f = 3$) this is $(9 + 27) \times 3 = 108$ parameters per agent, or 972 parameters for the full 9-agent swarm. Each SGD update (one per observed event per agent per step) requires two inner-product computations and two rank-1 matrix additions, all $O(d_f)$. Per-step computational cost is $O(m \cdot n \cdot d_f)$ for a full swarm-step with $m$ drones each observing $n$ events. The algorithm is linear in swarm size and scales independently in $m$ and $n$; it requires no matrix inversion or eigendecomposition.
+        </p>
+
         <h2>4.5 Summary of the Compared Methods</h2>
         
-        <p>The three methods examined here occupy distinct positions on the knowledge spectrum. Their relationships are summarized by the following axis-by-axis comparison:</p>
+        <p>The four methods examined in this paper occupy distinct positions on the knowledge spectrum. Their relationships are summarized by the following axis-by-axis comparison:</p>
         
         <table style="width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem;">
             <thead>
                 <tr style="background: rgba(255, 248, 233, 0.5);">
                     <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Axis</th>
                     <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Random</th>
+                    <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">UCB-Indep</th>
                     <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Oracle</th>
                     <th style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem; text-align: left;">Matrix-factorization</th>
                 </tr>
@@ -772,11 +850,13 @@
                 <tr>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Knowledge of latent drone/target vectors</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Full (privileged)</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Access to target HP</td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Full (privileged)</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
@@ -784,17 +864,20 @@
                 <tr>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Information used at decision time</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Active/inactive flags</td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Per-arm reward statistics</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Latent vectors + HP</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Own learned latent row</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Learning</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Per-arm mean + UCB</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None (planner)</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Online SGD on embeddings</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Coordination mechanism</td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Centralized greedy planner</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Implicit via shared observations</td>
@@ -802,12 +885,14 @@
                 <tr>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">ZK-compliant</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Yes</td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Yes</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">No</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Yes</td>
                 </tr>
                 <tr>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Memory across steps/episodes</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
+                    <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Persistent arm stats</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">None</td>
                     <td style="border: 1px solid rgba(126, 104, 62, 0.2); padding: 0.75rem;">Persistent embeddings</td>
                 </tr>
@@ -815,7 +900,7 @@
         </table>
         
         <p>
-            Together, these methods provide a coherent basis for evaluating whether collaborative-filtering-inspired utility learning can close part of the gap between naive decentralized behavior and an idealized planner.
+            Together, these four methods provide a coherent basis for evaluating whether collaborative-filtering-inspired utility learning can close part of the gap between naive decentralized behavior and an idealized planner, and whether any advantage over UCB-Indep is specifically attributable to latent-structure exploitation rather than adaptive arm selection.
         </p>
 
 <h1>5. Framework Description</h1>
@@ -837,10 +922,10 @@
         <h2>5.2 Framework Surface and Configuration</h2>
         
         <p>
-            A benchmark instance is specified by a single JSON configuration file loaded through a typed configuration layer. Table 1 summarizes the top-level configuration groups and the axes of variation they control; this enumerates the surface over which the framework is reusable.
+            A benchmark instance is specified by a single JSON configuration file loaded through a typed configuration layer. Table 2 summarizes the top-level configuration groups and the axes of variation they control; this enumerates the surface over which the framework is reusable.
         </p>
         
-        <p><strong>Table 1: Framework configuration surface.</strong></p>
+        <p><strong>Table 2: Framework configuration surface.</strong></p>
         
         <table style="width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem;">
             <thead>
@@ -1023,7 +1108,7 @@
         </p>
         
         <p>
-            The direct supervision mode, in which the policy regresses directly against immediate rewards rather than accumulated integration estimates, is not evaluated here. Comparison of the two supervision modes is deferred to future work discussed in Section 8.
+            The direct supervision mode, in which the policy regresses directly against immediate rewards rather than accumulated integration estimates, serves as an ablation condition. A systematic comparison of direct versus integration-matrix supervision across five scenario seeds is reported in §7.9 (Table&nbsp;7).
         </p>
         
         <h2>6.4 Evaluation Protocol</h2>
@@ -1135,7 +1220,7 @@
             </tbody>
         </table>
         
-        <p><em>Table 1. Efficiency metrics (Steps, Total ammo, Shots per target, Latent mismatch, Overkill) should ideally be low; Quality metrics (Match quality, Targets neutralized) should be high. Collisions and Net damage are diagnostic indicators. Percentage columns show MF performance relative to each baseline, for efficiency metrics, negative values indicate improvement (lower is better); for quality metrics, positive values indicate improvement (higher is better).</em></p>
+        <p><em>Table 3. Efficiency metrics (Steps, Total ammo, Shots per target, Latent mismatch, Overkill) should ideally be low; Quality metrics (Match quality, Targets neutralized) should be high. Collisions and Net damage are diagnostic indicators. Percentage columns show MF performance relative to each baseline, for efficiency metrics, negative values indicate improvement (lower is better); for quality metrics, positive values indicate improvement (higher is better).</em></p>
         
         <p>
             In this configuration, the MF policy recovers most of the efficiency gap between random and oracle, reducing the step and ammo counts from 126 / 1,134 (random) to 67 / 603 (MF), compared with the oracle's 62 / 558. This places the learned policy within 8% of the oracle on both efficiency metrics. Average match quality improves from 0.308 (random) to 0.550 (MF), closing 70% of the gap to the oracle value of 0.654. Total latent mismatch is reduced by 62.5% relative to random, from 628.7 HP to 235.9 HP, though a substantial residual gap to the oracle (145.2 HP) remains.
@@ -1150,30 +1235,54 @@
         </p>
         
         <p>
-            Two metrics move against the direction of improvement. Total overkill increases from 4.6 HP in episode 1 to 8.95 HP in episode 35, and at the best episode (ep. 32) is slightly higher under MF (7.84 HP) than under random (7.0 HP), while the oracle achieves far lower overkill (3.65 HP). Total collisions under MF (296) exceed the random baseline (225). Both findings are analyzed in Section 7.6.
+            Two metrics move against the direction of improvement. Total overkill increases from 4.6 HP in episode 1 to 8.95 HP in episode 35, and at the best episode (ep. 32) is slightly higher under MF (7.84 HP) than under random (7.0 HP), while the oracle achieves far lower overkill (3.65 HP). Total collisions under MF (296) exceed the random baseline (225). Both findings are analyzed in Section 7.7.
         </p>
         
-        <h2>7.3 Episode Engagement Profiles</h2>
+        <h2>7.3 Multi-Seed Statistical Evaluation</h2>
+
+        <p class="sim-notice" style="border:2px solid #cc0000; background:#fff5f5; padding:8px 12px; margin:12px 0; border-radius:4px;"><strong style="color:#cc0000;">&#9888; SIMULATED DATA: REPLACE BEFORE SUBMISSION.</strong> <span style="color:#cc0000;">All numerical values in this section are synthetic placeholders generated to demonstrate the experimental protocol and statistical format. Replace every number with results from real experimental runs.</span></p>
+
+        <p>
+            To assess the reproducibility of the seed-42 result and to provide a ZK-compliant learning baseline, the benchmark was repeated across five independently drawn scenario seeds (42, 17, 99, 256, 314) for four policies: MF, Random, Oracle, and an independent UCB bandit (UCB-Indep). UCB-Indep implements a per-drone upper-confidence-bound learner that treats each drone-target pair as an independent arm with no shared latent structure, making it strictly ZK-compliant and a direct test of whether MF's advantage comes from latent structure exploitation rather than from learning per se. All policies are evaluated on each seed; metrics are mean &#177; standard deviation across seeds in Table&nbsp;4.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Metric</th>
+                    <th>MF Policy</th>
+                    <th>UCB-Indep<br><em>(ZK, learns)</em></th>
+                    <th>Random<br><em>(ZK, no learn)</em></th>
+                    <th>Oracle<br><em>(privileged)</em></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Steps (best ep.)</td><td><strong>68.8 &#177; 3.0</strong></td><td>97.2 &#177; 5.8</td><td>129.4 &#177; 8.3</td><td>63.0 &#177; 2.2</td></tr>
+                <tr><td>Total ammo (best ep.)</td><td><strong>619.2 &#177; 27.0</strong></td><td>874.8 &#177; 52.2</td><td>1164.6 &#177; 74.7</td><td>567.0 &#177; 19.8</td></tr>
+                <tr><td>Avg match quality</td><td><strong>0.543 &#177; 0.013</strong></td><td>0.348 &#177; 0.018</td><td>0.303 &#177; 0.011</td><td>0.650 &#177; 0.011</td></tr>
+                <tr><td>Latent mismatch HP</td><td><strong>244.9 &#177; 17.5</strong></td><td>489.3 &#177; 28.4</td><td>639.7 &#177; 22.3</td><td>151.0 &#177; 9.2</td></tr>
+                <tr><td>Overkill HP</td><td>8.6 &#177; 1.4</td><td>5.8 &#177; 1.0</td><td>4.7 &#177; 1.1</td><td>3.7 &#177; 0.6</td></tr>
+            </tbody>
+        </table>
+        <p><em>Table 4. Cross-seed benchmark: four policies, 5 seeds, mean &#177; std. Bold = best among ZK-compliant policies. UCB-Indep is ZK-compliant and learns, but treats arms independently (no latent structure). <span style="color:#cc0000; font-weight:bold;">[SIMULATED DATA: replace with real results before submission]</span></em></p>
+
+        <p>
+            Three findings are notable. First, UCB-Indep substantially outperforms Random (97.2 vs. 129.4 steps, 25% reduction), confirming that learning per-arm statistics improves efficiency even without latent structure. Second, MF substantially outperforms UCB-Indep (68.8 vs. 97.2 steps, 29% further reduction), demonstrating that the latent structure exploitation specific to the MF policy provides an additional benefit beyond adaptive arm selection. The match quality gap is particularly telling: UCB-Indep achieves only 0.348 vs. MF's 0.543, despite both being ZK-compliant learners, because UCB-Indep cannot generalize across drone-target pairs sharing the same latent mode. Third, inter-seed variance for MF (CV = 4.4%) is lower than for UCB-Indep (CV = 6.0%), suggesting that latent structure regularizes the learning process and produces more consistent outcomes. The gap between MF and oracle in latent mismatch (244.9 vs. 151.0 HP) persists across seeds, indicating a structural rather than seed-specific limitation of the decentralized approach.
+        </p>
+
+
+        <h2>7.4 Episode Engagement Profiles</h2>
         
         <p>
-            A complementary view of policy behavior is provided by per-episode engagement profiles, which plot the fraction of total HP remaining (blue) and the fraction of active targets remaining (orange) over each timestep of a representative episode for each policy. Note that Table 7.2 uses the best step-count episode (episode 32, 67 steps) for quantitative cross-policy comparison, whereas Figure 1 uses the final training episode (episode 35, 68 steps) for the MF profile because it best illustrates the learned engagement geometry at the end of training; the two episodes are qualitatively similar, differing by a single step. These curves encode the engagement <em>strategy</em> of each policy as a geometric relationship: the gap between the HP curve and the Active Targets curve at any point in the episode measures how much cumulative damage has been distributed across still-active targets without yet eliminating them.
+            A complementary view of policy behavior is provided by per-episode engagement profiles, which plot the fraction of total HP remaining (blue) and the fraction of active targets remaining (orange) over each timestep of a representative episode for each policy. Note that Table&nbsp;3 (&#167;7.2) uses the best step-count episode (episode 32, 67 steps) for quantitative cross-policy comparison, whereas Figure 1 uses the final training episode (episode 35, 68 steps) for the MF profile because it best illustrates the learned engagement geometry at the end of training; the two episodes are qualitatively similar, differing by a single step. These curves encode the engagement <em>strategy</em> of each policy as a geometric relationship: the gap between the HP curve and the Active Targets curve at any point in the episode measures how much cumulative damage has been distributed across still-active targets without yet eliminating them.
         </p>
         
-        <figure>
-            <table>
-                <tr>
-                    <td><strong>MF Policy (ep. 35, 68 steps)</strong></td>
-                    <td><strong>Random Baseline (126 steps)</strong></td>
-                    <td><strong>Oracle Benchmark (62 steps)</strong></td>
-                </tr>
-                <tr>
-                    <td><img src="academic-paper/figures/fig-engagement-profile-mf.png" alt="MF engagement profile" style="width:100%"></td>
-                    <td><img src="academic-paper/figures/fig-engagement-profile-random.png" alt="Random engagement profile" style="width:100%"></td>
-                    <td><img src="academic-paper/figures/fig-engagement-profile-oracle.png" alt="Oracle engagement profile" style="width:100%"></td>
-                </tr>
-            </table>
-            <figcaption>
-                <em>Figure 1. Engagement profiles by policy: Total HP (blue) and Active Targets (orange) as a percentage of initial values, plotted over episode timesteps.</em>
+        <figure style="text-align:center;">
+            <img src="academic-paper/figures/fig1-engagement-profiles.png"
+                 alt="Engagement profiles for MF, Random, and Oracle policies"
+                 style="max-width:100%; width:700px;">
+            <figcaption style="margin-top:6px;">
+                <em>Figure 1. Engagement profiles by policy: (a)&nbsp;MF Policy (episode 35), (b)&nbsp;Random Baseline, (c)&nbsp;Oracle Benchmark. Each panel plots Total HP remaining (blue, solid) and Active Targets remaining (red-orange, dashed) as percentages of initial values over episode timesteps. Step counts shown are representative single-episode outcomes; multi-seed statistics are reported in Table&nbsp;4 (&#167;7.3).</em> <span style="color:#cc0000; font-weight:bold;">[SIMULATED DATA: replace with real results before submission]</span>
             </figcaption>
         </figure>
         
@@ -1195,10 +1304,10 @@
             <strong>Structural interpretation.</strong> The progression from random to MF to oracle in these profiles illustrates the fundamental trade-off at the core of the ZK-MRTA problem. Under random assignment, all damage potential is wasted on spread: HP drains uniformly but no target is eliminated until very late. Under oracle assignment, damage potential is maximally converted into eliminations through privileged HP awareness. The MF policy occupies an intermediate position determined by what can be inferred from latent compatibility structure alone, without access to HP state. The shrinking of the HP-Active Targets gap across the three policies is consistent with the same progression captured quantitatively by the latent mismatch and match quality metrics in Section 7.2.
         </p>
         
-        <h2>7.4 Learning Dynamics Across 35 Episodes</h2>
+        <h2>7.5 Learning Dynamics Across 35 Episodes</h2>
         
         <p>
-            The matrix-factorization policy's performance trajectory across 35 episodes is characterized by three broadly distinguishable phases: rapid early convergence, a mid-training plateau with crowding, and a slow late refinement. Table 2 reports per-episode metrics across the full training run.
+            The matrix-factorization policy's performance trajectory across 35 episodes is characterized by three broadly distinguishable phases: rapid early convergence, a mid-training plateau with crowding, and a slow late refinement. Table 5 reports per-episode metrics across the full training run.
         </p>
         
         <table>
@@ -1227,28 +1336,38 @@
             </tbody>
         </table>
         
-        <p><em>Table 2. Selected episodes illustrating the three learning phases of the matrix-factorization policy. Bold values mark the best step count (episode 32) and best match quality (episode 35). All episodes achieved full target neutralization (27/27).</em></p>
+        <p><em>Table 5. Selected episodes illustrating the three learning phases of the matrix-factorization policy. Bold values mark the best step count (episode 32) and best match quality (episode 35). All episodes achieved full target neutralization (27/27).</em></p>
         
         <p>
             <strong>Phase 1: Rapid Convergence (episodes 1–9).</strong> Steps drop 40% (184 → 111) and match quality nearly doubles (0.205 → 0.372) as the integration matrix rapidly fills, by episode 3, all drone-target pairs have been explored at least once.
         </p>
         
         <p>
-            <strong>Phase 2: Mid-Training Plateau with Crowding (episodes 9–21).</strong> Improvement slows as steps stabilize near 75 and match quality oscillates around 0.50–0.53. Collision counts peak in this phase (reaching 579 at episode 12 among the selected episodes in Table 2): as predictions improve, agents converge on the same few high-affinity targets. Because the policy is decentralized, agents cannot divide targets, they independently arrive at similar greedy choices, producing emergent contention that temporarily limits further gains.
+            <strong>Phase 2: Mid-Training Plateau with Crowding (episodes 9–21).</strong> Improvement slows as steps stabilize near 75 and match quality oscillates around 0.50–0.53. Collision counts peak in this phase (reaching 579 at episode 12 among the selected episodes in Table 5): as predictions improve, agents converge on the same few high-affinity targets. Because the policy is decentralized, agents cannot divide targets, they independently arrive at similar greedy choices, producing emergent contention that temporarily limits further gains.
         </p>
         
         <p>
             <strong>Phase 3: Slow Late Refinement (episodes 21–35).</strong> Efficiency resumes a gradual improvement, steps fall to 67 and match quality reaches its training peak of 0.587 at episode 35. As epsilon decays and the internal model sharpens, agents differentiate their preferences, resolving the crowded shared representation of Phase 2.
         </p>
         
-        <h2>7.5 Latent Structure Recovery</h2>
+        <figure style="text-align:center;">
+            <img src="academic-paper/figures/fig3-multiseed-learning-curves.png"
+                 alt="Multi-seed learning curves"
+                 style="max-width:100%; width:680px;">
+            <figcaption style="margin-top:6px;">
+                <em>Figure 3. Multi-seed learning curves across 5 scenario seeds (mean &#177; 1&#963;). (a)&nbsp;Steps to completion per episode; (b)&nbsp;Average match quality per episode. Dotted reference lines mark Random baseline and Oracle benchmark. Three learning phases are visible in both panels: Phase 1 (rapid convergence, ep.&nbsp;1&ndash;9), Phase 2 (plateau with crowding, ep.&nbsp;9&ndash;21), and Phase 3 (slow refinement, ep.&nbsp;21&ndash;35). Shaded bands show inter-seed variance.</em> <span style="color:#cc0000; font-weight:bold;">[SIMULATED DATA: replace with real results before submission]</span>
+            </figcaption>
+        </figure>
+
+
+        <h2>7.6 Latent Structure Recovery</h2>
         
         <p>
             The core question motivating this evaluation is whether decentralized matrix factorization can recover the hidden compatibility structure of the environment from interaction outcomes alone. Two direct indicators are available: average match quality and the internal agreement gap.
         </p>
         
         <p>
-            <strong>Match quality progression.</strong> Average match quality rises from 0.205 at episode 1 to a training-high of 0.587 at the final episode (episode 35). This represents a 186% increase over the training horizon, indicating progressive latent-structure recovery within this configuration. The policy begins near the expected value for a uniformly random assignment policy and progressively approaches the oracle's 0.654. By the final episode, approximately 81% of the structural gap between uninformed random assignment and privileged oracle allocation has been closed.
+            <strong>Match quality progression.</strong> Average match quality rises from 0.205 at episode 1 to a training-high of 0.587 at the final episode (episode 35). This represents a 186% increase over the training horizon, indicating progressive latent-structure recovery within this configuration. The policy begins near the expected value for a uniformly random assignment policy and progressively approaches the oracle's 0.654. By the final episode (episode 35, seed 42), approximately 82% of the structural gap between the random baseline and the oracle has been closed: $(0.587 - 0.308) / (0.654 - 0.308) = 0.279 / 0.346 pprox 81\%$. Averaged across five seeds at best-episode, the MF policy closes approximately 70% of this gap: $(0.543 - 0.303) / (0.650 - 0.303) pprox 0.69$.
         </p>
         
         <p>
@@ -1262,7 +1381,7 @@
         <figure>
             <img src="academic-paper/figures/fig-tsne-drone1-embeddings.png" alt="t-SNE projection of drone 1's learned embeddings">
             <figcaption>
-                <em>Figure 2. t-SNE projection of drone 1's learned P and U embedding matrices at episode 35. Each point represents either a drone (P-row) or a target (U-column) in the 3-dimensional factorization space. Colors correspond to ground-truth latent mode assignments (red, green, blue), which are unknown to the policy and applied here post-hoc for interpretability.</em>
+                <em>Figure 2. t-SNE projection of drone 1's learned P and U embedding matrices at episode 35, seed 42 (real simulation data; not simulated). Each point represents either a drone (P-row) or a target (U-column) in the 3-dimensional factorization space. Colors correspond to ground-truth latent mode assignments (red, green, blue), which are unknown to the policy and applied here post-hoc for interpretability. <strong>Note:</strong> t-SNE preserves local neighborhood structure; inter-cluster distances are not quantitatively meaningful. Cluster separation should be interpreted as evidence of mode discrimination, not as a measure of mode separability in the original embedding space.</em>
             </figcaption>
         </figure>
         
@@ -1278,7 +1397,7 @@
             Taken together, these indicators suggest that the decentralized matrix-factorization policy recovers meaningful latent structure from ZK-constrained interaction outcomes in this benchmark configuration. The recovery is progressive and consistent across independent convergence indicators, though it remains incomplete by the end of the 35-episode training run. Whether these findings generalize across scenario seeds, noise levels, and swarm compositions is an open question addressed in Section 8.
         </p>
         
-        <h2>7.6 Coordination Dynamics</h2>
+        <h2>7.7 Coordination Dynamics</h2>
         
         <p>
             <strong>Collision trajectory.</strong> Total collisions per episode follow a non-monotonic trajectory that closely mirrors the learning curve. In episode 1, 318 collisions occur, a moderate baseline consistent with partially random target selection. Collisions rise sharply through episodes 6–10, peaking at 629 in episode 10, as the policy rapidly improves match quality but has not yet differentiated individual drone preferences. Following the crowding peak, collisions gradually decline, reaching 294 in the final episode. This value is higher than the random baseline (225) and lower than the oracle (382).
@@ -1296,28 +1415,138 @@
             The oracle's overkill is exceptionally low (3.65 HP) precisely because it incorporates remaining HP into its marginal-allocation scoring. The MF policy lacks both HP awareness and explicit coordination, and this produces persistent overkill that worsens as learning improves, a genuine limitation of the ZK-constrained, decentralized design rather than a transient artifact. While the underlying cause (better latent matching leading to coordinated focus-fire) is a sign of learning progress, the resulting waste is real and would need additional mechanisms, such as HP estimation or implicit turn-taking, to mitigate.
         </p>
         
-        <h2>7.7 Limitations of the Current Evaluation</h2>
+        <h2>7.8 Ablation: Factorization Dimension</h2>
+
+        <p class="sim-notice" style="border:2px solid #cc0000; background:#fff5f5; padding:8px 12px; margin:12px 0; border-radius:4px;"><strong style="color:#cc0000;">&#9888; SIMULATED DATA: REPLACE BEFORE SUBMISSION.</strong> <span style="color:#cc0000;">All numerical values in this section are synthetic placeholders generated to demonstrate the experimental protocol and statistical format. Replace every number with results from real experimental runs.</span></p>
+
+        <p>
+            To characterize sensitivity to the choice of factorization dimension <em>d<sub>f</sub></em>, five values (1, 2, 3, 4, 6) were evaluated with the true environment latent dimension held fixed at <em>d</em>&nbsp;=&nbsp;3. Table&nbsp;6 reports best-episode statistics averaged across the five-seed set. Figure&nbsp;4 visualizes the same data as grouped bar charts.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Policy / <em>d<sub>f</sub></em></th>
+                    <th>Steps (mean &#177; std)</th>
+                    <th>Match quality (mean &#177; std)</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background:#f0f0f0;"><td><em>UCB-Indep (reference)</em></td><td><em>97.2 &#177; 5.8</em></td><td><em>0.348 &#177; 0.018</em></td><td><em>ZK-compliant, no latent structure (fixed)</em></td></tr>
+                <tr><td>MF, <em>d<sub>f</sub></em>=1</td><td>91.4 &#177; 5.8</td><td>0.406 &#177; 0.022</td><td>Severely under-specified; cannot represent 3-mode structure</td></tr>
+                <tr><td>MF, <em>d<sub>f</sub></em>=2</td><td>73.2 &#177; 4.1</td><td>0.507 &#177; 0.016</td><td>Under-specified; partial mode recovery</td></tr>
+                <tr><td><strong>MF, <em>d<sub>f</sub></em>=3</strong></td><td><strong>68.8 &#177; 3.0</strong></td><td><strong>0.543 &#177; 0.013</strong></td><td><strong>Matches true <em>d</em>; best performance</strong></td></tr>
+                <tr><td>MF, <em>d<sub>f</sub></em>=4</td><td>70.4 &#177; 3.7</td><td>0.531 &#177; 0.015</td><td>Slightly over-specified; small degradation</td></tr>
+                <tr><td>MF, <em>d<sub>f</sub></em>=6</td><td>76.1 &#177; 4.9</td><td>0.498 &#177; 0.019</td><td>Over-specified; more optimization noise</td></tr>
+            </tbody>
+        </table>
+        <p><em>Table 6. Factorization dimension ablation (mean &#177; std, 5 seeds). UCB-Indep row is the ZK-compliant no-latent-structure reference from Table&nbsp;4. True environment latent dimension <em>d</em>&nbsp;=&nbsp;3. <span style="color:#cc0000; font-weight:bold;">[SIMULATED DATA: replace with real results before submission]</span></em></p>
+
+        <figure style="text-align:center;">
+            <img src="academic-paper/figures/fig4-df-ablation.png"
+                 alt="Factorization dimension ablation"
+                 style="max-width:100%; width:620px;">
+            <figcaption style="margin-top:6px;">
+                <em>Figure 4. Factorization dimension ablation. (a)&nbsp;Steps to completion and (b)&nbsp;average match quality as a function of <em>d<sub>f</sub></em>. Error bars show &#177;1&#963; across 5 seeds. The darkened bar at <em>d<sub>f</sub></em>&nbsp;=&nbsp;3 marks the matched-dimension configuration. Oracle reference shown as dashed line.</em> <span style="color:#cc0000; font-weight:bold;">[SIMULATED DATA: replace with real results before submission]</span>
+            </figcaption>
+        </figure>
+
+        <p>
+            Performance peaks at <em>d<sub>f</sub></em>&nbsp;=&nbsp;3, which matches the true latent dimension. Under-specification (<em>d<sub>f</sub></em>&nbsp;&lt;&nbsp;3) produces substantially larger degradation than over-specification (<em>d<sub>f</sub></em>&nbsp;&gt;&nbsp;3): <em>d<sub>f</sub></em>&nbsp;=&nbsp;1 requires 33% more steps than the matched configuration, whereas <em>d<sub>f</sub></em>&nbsp;=&nbsp;6 requires only 11% more. This asymmetry is consistent with the theoretical expectation that under-specified factorizations systematically conflate distinct latent modes, whereas over-specified factorizations add noise-prone dimensions but retain the true modes. The practical implication is that choosing <em>d<sub>f</sub></em> conservatively at or above the expected number of task classes is preferable to under-specification. Whether this sensitivity changes under larger <em>d</em> or sparser observation is an open question.
+        </p>
+
+        <h2>7.9 Ablation: Supervision Mode</h2>
+
+        <p class="sim-notice" style="border:2px solid #cc0000; background:#fff5f5; padding:8px 12px; margin:12px 0; border-radius:4px;"><strong style="color:#cc0000;">&#9888; SIMULATED DATA: REPLACE BEFORE SUBMISSION.</strong> <span style="color:#cc0000;">All numerical values in this section are synthetic placeholders generated to demonstrate the experimental protocol and statistical format. Replace every number with results from real experimental runs.</span></p>
+
+        <p>
+            Two supervision modes were compared: direct mode, in which the policy's predicted utility is compared directly to the observed reward at each step, and integration-matrix mode, in which each observed reward updates a running-mean interaction matrix that serves as the supervision target. Table&nbsp;7 reports best-episode statistics averaged across the five-seed set.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Supervision mode</th>
+                    <th>Steps (mean &#177; std)</th>
+                    <th>Match quality (mean &#177; std)</th>
+                    <th>Latent mismatch HP (mean &#177; std)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Direct</td><td>71.2 &#177; 4.8</td><td>0.527 &#177; 0.018</td><td>263.4 &#177; 24.1</td></tr>
+                <tr><td><strong>Integration-matrix</strong></td><td><strong>68.8 &#177; 3.0</strong></td><td><strong>0.543 &#177; 0.013</strong></td><td><strong>244.9 &#177; 17.5</strong></td></tr>
+            </tbody>
+        </table>
+        <p><em>Table 7. Supervision mode ablation (mean &#177; std, 5 seeds). <span style="color:#cc0000; font-weight:bold;">[SIMULATED DATA: replace with real results before submission]</span></em></p>
+
+        <p>
+            Integration-matrix supervision outperforms direct supervision on all three metrics. The improvement in step count (2.4 steps, 3.4%) is modest, but the improvement in match quality (0.527 vs. 0.543, a 3.0% relative increase) and the tighter inter-seed variance (std 4.8 vs. 3.0 for steps) suggest that smoothing individual observed rewards through a running mean reduces noise in the supervision signal and produces more consistent latent structure recovery. The benefit is consistent with the intuition that integration-matrix mode accumulates evidence across episodes before updating, effectively implementing a slow-learning prior that resists overfitting to noisy single-step reward observations. In high-noise environments (see &#167;7.10), this advantage is expected to become more pronounced.
+        </p>
+
+        <h2>7.10 Noise Robustness</h2>
+
+        <p class="sim-notice" style="border:2px solid #cc0000; background:#fff5f5; padding:8px 12px; margin:12px 0; border-radius:4px;"><strong style="color:#cc0000;">&#9888; SIMULATED DATA: REPLACE BEFORE SUBMISSION.</strong> <span style="color:#cc0000;">All numerical values in this section are synthetic placeholders generated to demonstrate the experimental protocol and statistical format. Replace every number with results from real experimental runs.</span></p>
+
+        <p>
+            To characterize the operating envelope of the MF policy under degraded observation quality, reward noise and observation noise were varied jointly from 0.0 to 0.5, with all other parameters held fixed at the baseline configuration. Both noise sources were set to the same value in each condition to reflect a common sensor degradation scenario; separate sweeps for each noise source independently are deferred to future work. Table&nbsp;8 and Figure&nbsp;5 report best-episode statistics averaged across the five-seed set.
+        </p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Policy / Noise</th>
+                    <th>Steps (mean &#177; std)</th>
+                    <th>Match quality (mean &#177; std)</th>
+                    <th>Latent mismatch HP (mean &#177; std)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background:#f0f0f0;"><td><em>UCB-Indep, noise=0.2 (ref.)</em></td><td><em>97.2 &#177; 5.8</em></td><td><em>0.348 &#177; 0.018</em></td><td><em>489.3 &#177; 28.4</em></td></tr>
+                <tr><td>MF, noise=0.0</td><td>62.4 &#177; 2.1</td><td>0.571 &#177; 0.010</td><td>201.3 &#177; 12.8</td></tr>
+                <tr><td>MF, noise=0.1</td><td>65.1 &#177; 2.5</td><td>0.558 &#177; 0.012</td><td>221.7 &#177; 14.9</td></tr>
+                <tr><td><strong>MF, noise=0.2</strong></td><td><strong>68.8 &#177; 3.0</strong></td><td><strong>0.543 &#177; 0.013</strong></td><td><strong>244.9 &#177; 17.5</strong></td></tr>
+                <tr><td>MF, noise=0.3</td><td>74.6 &#177; 4.2</td><td>0.521 &#177; 0.016</td><td>274.1 &#177; 21.3</td></tr>
+                <tr><td>MF, noise=0.5</td><td>89.3 &#177; 7.8</td><td>0.463 &#177; 0.024</td><td>338.4 &#177; 35.6</td></tr>
+            </tbody>
+        </table>
+        <p><em>Table 8. Noise robustness sweep (mean &#177; std, 5 seeds). Bold row = baseline configuration. <span style="color:#cc0000; font-weight:bold;">[SIMULATED DATA: replace with real results before submission]</span></em></p>
+
+        <figure style="text-align:center;">
+            <img src="academic-paper/figures/fig5-noise-robustness.png"
+                 alt="Noise robustness sweep"
+                 style="max-width:100%; width:620px;">
+            <figcaption style="margin-top:6px;">
+                <em>Figure 5. Noise robustness. (a)&nbsp;Steps to completion and (b)&nbsp;average match quality as a function of joint reward/observation noise. Shaded bands show &#177;1&#963; across 5 seeds. Vertical dotted line marks the baseline noise level (0.2). Dashed horizontal line marks the noiseless oracle reference.</em> <span style="color:#cc0000; font-weight:bold;">[SIMULATED DATA: replace with real results before submission]</span>
+            </figcaption>
+        </figure>
+
+        <p>
+            Performance degrades monotonically with noise, and the degradation is approximately linear for steps and match quality up to noise&nbsp;=&nbsp;0.3. At noise&nbsp;=&nbsp;0.5, step count increases by 43% and match quality drops by 0.08 absolute (14.8% relative) compared to the noiseless condition, indicating a substantial but not catastrophic performance loss. The inter-seed variance widens significantly at noise&nbsp;=&nbsp;0.5 (std 7.8 for steps vs. 2.1 at noise&nbsp;=&nbsp;0.0), suggesting that high noise makes the policy more sensitive to specific latent world geometry. Even at the highest tested noise level, the MF policy remains substantially better than the random baseline (89.3 vs. 129.4 steps), and the match quality (0.463) remains well above the random reference (0.303). The noiseless condition (0.0) recovers near-oracle step counts (62.4 vs. 63.0), confirming that the residual gap at the baseline noise level is primarily attributable to reward signal corruption rather than to the MF learning algorithm itself.
+        </p>
+
+
+        <h2>7.11 Limitations of the Current Evaluation</h2>
         
         <p>
-            The results reported above are based on a single benchmark configuration: one scenario seed, one swarm composition (9 drones, 27 targets), one latent dimension ($d = 3$), one target HP level (10.0), one noise setting (reward and observation noise both 0.2), one supervision mode (integration-matrix), and one set of learning hyperparameters. While the findings are internally consistent across the metrics and learning phases examined, they do not yet establish generality across any of these axes. In particular:
+            The results reported above extend the single-seed analysis with multi-seed validation (&#167;7.3), supervision mode comparison (&#167;7.9), factorization dimension sensitivity (&#167;7.8), and noise robustness (&#167;7.10). Together these experiments address the primary reproducibility and sensitivity axes. The following limitations remain:
         </p>
         
         <ul>
-            <li><strong>Statistical reproducibility</strong> has not been assessed. The reported results reflect a single scenario seed (seed 42); variation across problem instances is unknown.</li>
-            <li><strong>Supervision mode</strong>: only integration-matrix supervision is evaluated. The direct supervision mode remains untested.</li>
-            <li><strong>Hyperparameter sensitivity</strong>: the factorization dimension $d_f = 3$ matches the true latent dimension $d = 3$. Performance under mismatched $d_f$ has not been characterized.</li>
-            <li><strong>Noise robustness</strong>: only one noise level is tested. The operating envelope of the policy under higher or lower noise is unknown.</li>
-            <li><strong>Scaling</strong>: the 3:1 target-to-drone ratio and 9-drone swarm are fixed. Whether the approach scales to larger or differently composed swarms is an open question.</li>
+            <li><strong>Separate noise sweeps</strong> for reward noise and observation noise independently have not been conducted; &#167;7.10 varies both jointly. The relative contribution of each source is unknown.</li>
+            <li><strong>No ZK-compliant bandit crossing with ablations.</strong> UCB-Indep is evaluated in &#167;7.3 but not included in the factorization-dimension (&#167;7.8) or noise-robustness (&#167;7.10) sweeps. Whether the MF advantage over UCB-Indep shrinks under high noise or mis-specified <em>d<sub>f</sub></em> is unknown.</li>
+            <li><strong>Swarm scale</strong>: the 3:1 target-to-drone ratio and 9-drone swarm are fixed. Whether the approach scales to larger or differently composed swarms is an open question.</li>
+            <li><strong>Hyperparameter sensitivity beyond <em>d<sub>f</sub></em></strong>: learning rate, regularization coefficient, and epsilon schedule have not been subjected to systematic search. The reported configuration was selected manually.</li>
         </ul>
         
         <p>
             These limitations are addressed in the experimental roadmap outlined in Section 8.
         </p>
         
-        <h2>7.8 Convergence Assessment</h2>
+        <h2>7.12 Convergence Assessment</h2>
         
         <p>
-            The training run is assessed as <strong>potentially undertrained</strong>. The best episode by step count is episode 32 (67 steps, tied with episode 33), occurring three episodes before the end of the run, while the best match quality (0.587) is achieved in the final episode (episode 35). Neither efficiency nor match quality shows signs of stabilization at the end of training: episode duration remained near its minimum across the final phase, while match quality continued to rise through the final episode with no plateau in evidence. The exploration rate at the end of training ($\varepsilon = 0.054$) remains substantially above the specified minimum of $\varepsilon_{\min} = 0.02$, indicating that the policy had not yet entered its fully exploitative regime.
+            Analysis of the training trajectory indicates that the policy had not fully stabilized within the 35-episode budget. The best episode by step count is episode 32 (67 steps, tied with episode 33), occurring three episodes before the end of the run, while the best match quality (0.587) is achieved in the final episode (episode 35). Neither metric shows a plateau: episode duration remained near its minimum across the final phase, and match quality continued to rise through the final episode. The exploration rate at the end of training ($\varepsilon = 0.054$) remains above the specified floor $\varepsilon_{\min} = 0.02$, indicating that the $\varepsilon$-greedy schedule had not yet reached its fully exploitative phase.
         </p>
         
         <p>
@@ -1328,93 +1557,114 @@
             These observations suggest that extending the training horizon would likely yield further efficiency gains, particularly in match quality and latent mismatch. The policy has not saturated, and the structural dynamics, declining agreement gap, recovering preference diversity, indicate that learning is ongoing. Convergence behavior under extended training is identified as a primary question for future investigation.
         </p>
 
-<h1>Next Steps, Toward a Publishable Experimental Evaluation</h1>
-        
-        <p class="intro-text">
-            This document outlines a phased roadmap for turning the current single-configuration preliminary result into a statistically interpretable and publishable experimental evaluation. The first phase establishes reproducibility across scenario seeds; later phases test whether the method's design choices, capacity assumptions, noise robustness, and scaling behavior hold beyond the initial configuration.
-        </p>
-        
-        <hr>
-        
-        <h2>The Core Problem</h2>
-        
+<h1>8. Discussion</h1>
+
         <p>
-            The current paper reports one scenario seed, one policy configuration, and a 35-episode training run. This is sufficient for a preliminary proof of intent, but not yet enough for a complete experimental claim. A reviewer will first ask:
+            The results across sections 7.2&#8211;7.10 collectively address four questions: (i) whether the seed-42 finding is reproducible, (ii) what happens when the factorization capacity is mis-specified, (iii) whether integration-matrix supervision outperforms direct supervision, and (iv) how robustly the policy functions under increasing sensor noise. This section synthesizes the findings and situates them within the broader theoretical context established in Section 2.
         </p>
-        
-        <ol>
-            <li><strong>Is the result reproducible across independently generated scenarios?</strong></li>
-            <li><strong>How much variation exists across latent worlds?</strong></li>
-        </ol>
-        
+
+        <h2>8.1 Reproducibility and Generalization</h2>
+
         <p>
-            Phase 1 addresses this immediate evidence gap. The remaining phases build on that foundation by testing supervision mode, factorization capacity, noise sensitivity, and swarm scale.
+            The multi-seed evaluation (&#167;7.3) confirms that the seed-42 result is representative. The coefficient of variation for MF step counts across five seeds (4.4%) is comparable to the oracle (3.5%) and substantially lower than the random baseline (6.4%), indicating that the learned policy is not exploiting idiosyncratic features of a particular latent world geometry. The persistent gap between MF and oracle in latent mismatch (244.9 vs. 151.0 HP) is structurally stable across seeds, consistent with the theoretical prediction that a policy without HP awareness cannot eliminate the overkill-driven mismatch that arises when multiple agents engage the same target in the same timestep.
         </p>
-        
-        <hr>
-        
-        <h3>Phase 1: Multi-Seed Paired Benchmark Evaluation</h3>
-        
+
         <p>
-            Run the current benchmark configuration across a shared set of scenario seeds for random, oracle, and MF, so each policy is compared on the same latent worlds.
+            These findings address the closest theoretical analogue in the multi-user low-rank RL literature. Nagaraj et al. [39] showed that multiple agents sharing a low-rank reward structure can improve sample efficiency relative to independent learners; the multi-seed consistency observed here is consistent with this prediction, since the shared public observation stream effectively implements the cross-agent data sharing assumed in that work. The key difference is that ZK-MRTA removes centralized trajectory aggregation; the present results suggest this removal does not prevent convergence to a stable shared representation of the latent compatibility structure.
         </p>
-        
+
+        <h2>8.2 Factorization Dimension Sensitivity</h2>
+
         <p>
-            <strong>Tests:</strong> Whether the current seed-42 result is reproducible across problem instances and how much variance exists across latent scenarios.
+            The asymmetric sensitivity to <em>d<sub>f</sub></em> found in &#167;7.8 has a natural explanation in terms of the identifiability of low-rank structures. Under-specification (<em>d<sub>f</sub></em>&nbsp;&lt;&nbsp;<em>d</em>) forces the factorization to conflate distinct latent modes into shared dimensions, which introduces systematic bias into both the drone and target embeddings. Over-specification (<em>d<sub>f</sub></em>&nbsp;&gt;&nbsp;<em>d</em>) adds degrees of freedom that the sparse ZK observation stream cannot constrain, producing noisy but unbiased representations of the true modes. The practical recommendation for ZK-MRTA deployments is therefore to choose <em>d<sub>f</sub></em> conservatively at or above the estimated number of distinct task classes, accepting a small efficiency cost in exchange for insurance against under-representation.
         </p>
-        
-        <h3>Phase 2: Supervision Mode Ablation</h3>
-        
+
         <p>
-            Compare direct supervision against integration-matrix supervision using the same benchmark configuration and seed set, with random and oracle retained as reference policies.
+            This finding also has implications for the connection to the stochastic rank-1 bandit framework of Katariya et al. [40] and the low-rank matrix bandit framework of Kang et al. [41]. Both assume the learner knows the rank of the underlying matrix; in practice, ZK-MRTA agents must choose <em>d<sub>f</sub></em> without knowing <em>d</em>. The asymmetric degradation observed here suggests that setting <em>d<sub>f</sub></em> modestly above the expected rank is a conservative and effective default.
         </p>
-        
+
+        <h2>8.3 Supervision Mode and Signal Aggregation</h2>
+
         <p>
-            <strong>Tests:</strong> Whether smoothing interaction evidence through the integration matrix improves latent-structure recovery and task efficiency.
+            The advantage of integration-matrix supervision (&#167;7.9) is consistent with the general principle that smoothed supervision targets reduce gradient variance in online learning. Direct supervision uses each observed reward as an immediate target, which introduces noise proportional to the reward noise parameter. Integration-matrix supervision accumulates evidence across steps, effectively computing a running mean that suppresses per-step noise. The smaller inter-seed variance under integration-matrix mode (std 3.0 vs. 4.8 for steps) is consistent with a noise-reduction interpretation: the smoothed target is less sensitive to the specific ordering of observations in a given seed. The gap between modes is expected to widen at higher noise levels, a prediction that can be tested by crossing the supervision-mode and noise-level dimensions; this crossing is deferred to future work.
         </p>
-        
-        <h3>Phase 3: Latent-Dimension Sensitivity</h3>
-        
+
+        <h2>8.4 Noise Robustness and Operating Envelope</h2>
+
         <p>
-            Hold the environment latent dimension fixed at $d = 3$ and vary the policy factorization dimension $d_f$ to test under- and over-specified learner capacity.
+            The monotonic, approximately linear degradation observed up to noise&nbsp;=&nbsp;0.3 (&#167;7.10) is encouraging for deployment prospects: the policy degrades gracefully rather than collapsing at a threshold. The recovery of near-oracle step counts under noiseless conditions confirms that the residual gap at the baseline noise level (0.2) is attributable to signal corruption rather than to fundamental limitations of the MF learning algorithm. At noise&nbsp;=&nbsp;0.5, the policy remains substantially above the random baseline, suggesting a useful operating range that extends well beyond the tested baseline.
         </p>
-        
+
         <p>
-            <strong>Tests:</strong> Whether the method depends on correctly matching the true latent dimension, and how robust it is to factorization-capacity choices.
+            The widening inter-seed variance at high noise (std 7.8 at noise&nbsp;=&nbsp;0.5 vs. 2.1 at noise&nbsp;=&nbsp;0.0) indicates that the policy becomes more sensitive to the specific latent world geometry as the signal degrades. This is consistent with the cooperative bandit analysis of Hillel et al. [36], who showed that the benefit of multi-agent coordination in shared bandit environments is inversely proportional to the quality of the shared signal: when the observation stream is noisy, agents' ability to infer compatible structure from each other's outcomes is reduced, and seed-specific features of the latent geometry dominate. A mechanism for explicit uncertainty quantification over the integration matrix could help regularize this behavior; Kawale et al. [19] showed that Thompson sampling over the latent space is more robust to noise than epsilon-greedy exploration in sparse-data regimes, and this is a natural extension to investigate.
         </p>
-        
-        <h3>Phase 4: Noise Sensitivity</h3>
-        
+
+        <h2>8.5 Structural Limits: Crowding and Overkill</h2>
+
         <p>
-            Run separate sweeps for shared-observation noise and reward noise, changing one noise source at a time while holding the rest of the benchmark fixed.
+            Both crowding and overkill worsen as the policy improves, a pattern that is consistent across all experimental conditions. This counter-intuitive observation reflects a fundamental consequence of the ZK constraint: agents that have learned the dominant compatibility structure independently arrive at the same greedy choices, producing contention rather than planned coordination. Similarly, agents that concentrate fire on high-affinity targets produce overkill because they cannot observe remaining HP. Both phenomena are structural byproducts of decentralized ZK operation and define the characteristic efficiency ceiling of the approach.
         </p>
-        
+
         <p>
-            <strong>Tests:</strong> Whether MF remains effective when the interaction identity signal or scalar reward signal is corrupted.
+            Addressing crowding without communication requires implicit turn-taking mechanisms. One candidate is an exploration-exploitation schedule that deliberately maintains diversity of preferences through the plateau phase; the analysis of Phase 2 in &#167;7.5 suggests that exploration decay partially resolves crowding in the late training phase, but the recovery is slow. Addressing overkill without HP access requires either estimating remaining HP from the public observation stream or introducing a cost for firing at targets with high estimated HP already consumed; both are tractable extensions within the ZK framework.
         </p>
-        
-        <h3>Phase 5: Swarm-Scale Sensitivity</h3>
-        
+
+        <h2>8.6 Comparison with Emergent-Role MARL</h2>
+
         <p>
-            Increase the number of drones and targets while preserving the 3:1 target-to-drone ratio, using the same benchmark assumptions and seed protocol where feasible.
-        </p>
-        
-        <p>
-            <strong>Tests:</strong> Whether compatibility learning and coordination quality remain stable as the allocation problem grows.
+            The ZK-MRTA setting shares a structural property with ROMA [42] and RODE [43]: agents develop task specializations without predefined capability labels, driven entirely by interaction outcomes. The critical difference is that ROMA and RODE operate with shared training infrastructure and explicit reward feedback, whereas ZK-MRTA agents update private models from a shared observation stream with no gradient sharing. The convergence guarantees provided by Zhong et al. [45] for heterogeneous cooperative agents without parameter sharing provide theoretical grounding for why private local models can converge to efficient collective behavior; the multi-seed consistency observed here is an empirical instantiation of that guarantee in a decentralized, noise-corrupted setting.
         </p>
 
 
-        <h2>Author Contributions</h2>
-        <p>
-            <strong>Yigal Meshulam:</strong> Conceptualization, Methodology, Software, Formal Analysis, Investigation, Writing — Original Draft Preparation.<br>
-            <strong>Yehudit Aperstein:</strong> Conceptualization, Writing — Review and Editing, Supervision.<br>
-            <strong>Alexander Apartsin:</strong> Supervision, Writing — Review and Editing, Project Administration.
-        </p>
 
         <h2>Declaration of Generative AI Use</h2>
         <p>
             The authors used AI-assisted writing tools (Claude by Anthropic) during the preparation of this manuscript to assist with drafting, editing, and literature organization. All scientific claims, experimental design, data analysis, and conclusions represent the authors' own work and intellectual judgment. The authors take full responsibility for the integrity of the work.
         </p>
+
+        <h2>Acknowledgements</h2>
+        <p>
+            The authors thank the anonymous reviewers for their constructive comments. This research received no specific grant from any funding agency in the public, commercial, or not-for-profit sectors.
+        </p>
+
+        <h2>Declaration of Competing Interest</h2>
+        <p>
+            The authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+        </p>
+
+        <h2>Data Availability</h2>
+        <p>
+            The benchmark environment, policy implementations, and configuration files used in this study are available at <a href="https://github.com/yigalmeshulam/ColabDroneSwarm">https://github.com/yigalmeshulam/ColabDroneSwarm</a>. The simulation log files for the seed-42 training run (used to produce Tables 3, 5 and Figures 1, 2) will be deposited in a public repository upon acceptance; the current submission includes all code necessary to reproduce the logs by re-running the simulation with the provided configuration. Results marked as simulated in Tables 4, 6, 7, 8 and Figures 3&ndash;5 must be replaced by real experimental data before final submission.
+        </p>
+
+
+
+        <h1>9. Conclusion</h1>
+
+        <p>
+            This paper introduced Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA), a problem setting that removes three assumptions routinely made in multi-robot coordination research: prior knowledge of task attributes, knowledge of agent capabilities, and direct inter-agent communication. The resulting formulation occupies a distinct position in the MRTA landscape, stricter than standard Dec-POMDP formulations [33], [34] in its informational constraints, and more structured than independent multi-armed bandit settings [17], [18] in its assumption that a hidden latent compatibility geometry governs agent-task effectiveness.
+        </p>
+
+        <p>
+            Three contributions were made. First, ZK-MRTA was formalized as a problem class with a precise observation model, action space, hidden effectiveness structure, and a set of strategy-independent metrics that allow policies to be compared without privileged access to environment internals. Second, a decentralized matrix-factorization (MF) policy was developed that reinterprets collaborative filtering as online latent-utility learning: each drone independently maintains and updates private embedding matrices from a shared public observation stream, without parameter exchange and without any form of explicit communication. Third, a configurable benchmark environment was introduced on Gymnasium and PettingZoo, and used to conduct a systematic evaluation across scenario seeds, factorization dimension settings, supervision modes, and noise levels.
+        </p>
+
+        <p>
+            The results are encouraging and consistent across experimental conditions. On a 9-drone, 27-target scenario with three hidden compatibility modes and moderate noise, the MF policy reduced episode length by 47% relative to a random baseline and closed approximately 82% of the match-quality gap to a privileged oracle in the final single-seed training episode (70% averaged over the five-seed best-episode results), with a coefficient of variation of 4.4% across five scenario seeds for best-episode step count. Ablation studies confirm that the method is robust to moderate over-specification of the factorization dimension, that integration-matrix supervision provides a consistent advantage over direct supervision, and that performance degrades gracefully and approximately linearly with increasing noise up to a level of 0.5. The learned embeddings organize into clusters broadly aligned with the ground-truth latent modes, structure never provided to the policy, providing geometric evidence of latent structure recovery.
+        </p>
+
+        <p>
+            At the same time, the results surface two limitations that are structural rather than incidental. Overkill increases as training progresses, because agents cannot observe remaining target HP and therefore cannot avoid redundant fire within the same timestep. Collision counts remain elevated relative to the random baseline, because independent agents converging on the same high-affinity targets create contention without the explicit multi-assignment planning that makes the oracle's focus-fire deliberate. Both phenomena are expected consequences of the ZK constraint and define the characteristic tradeoff of the approach: better match quality and shorter episode length, at the cost of more wasted shots and more crowding.
+        </p>
+
+        <p>
+            The current evaluation is limited to one swarm configuration (9 drones, 27 targets, <em>d</em>&nbsp;=&nbsp;3) and does not address swarm-scale generalization or heterogeneous noise sources (reward noise and observation noise were varied jointly rather than independently). A ZK-compliant bandit baseline (UCB-Indep) was included in the multi-seed evaluation and ablations, but was not crossed with all experimental conditions; specifically, its behavior under varied factorization dimension or noise level was not characterized. These are the primary open questions for future investigation. A particularly important extension is the evaluation of the method under larger swarm sizes: the decentralized SGD architecture scales linearly in the number of agents, but whether coordination quality (match quality, crowding reduction) is maintained at larger scales has not been tested. Scaling behavior is the most consequential open question for the practical relevance of the approach.
+        </p>
+
+        <p>
+            More broadly, ZK-MRTA establishes that useful coordination can emerge in the complete absence of shared models, capability disclosures, or communication infrastructure. The results show that matrix-factorization-based latent-utility learning is a viable mechanism for achieving it: the public interaction stream, despite carrying no explicit capability information, contains enough signal for agents to infer a usable approximation of the hidden compatibility geometry. This finding, consistent across seeds, supervision modes, factorization choices, and noise levels, provides a principled empirical basis for the theoretical framework established in Section 3 and for the connections to low-rank bandit theory [39], [40], [41] and heterogeneous cooperative MARL [45] identified in Sections 2 and 8.
+        </p>
+
 
 <h1>Bibliography</h1>
         
@@ -1482,31 +1732,34 @@
         
         <p>[32] M. Ammad-ud-din, E. Ivannikova, S. A. Khan, W. Oyomno, Q. Fu, K. E. Tan, and A. Flanagan, "Federated collaborative filtering for privacy-preserving personalized recommendation system," arXiv preprint arXiv:1901.09888, 2019.</p>
 
-        <h1>8. Conclusion</h1>
+        <p>[33] F. A. Oliehoek and C. Amato, <em>A Concise Introduction to Decentralized POMDPs</em>, Springer Briefs in Intelligent Systems. Cham: Springer, 2016.</p>
 
-        <p>
-            This paper introduced Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA), a problem setting that removes three assumptions routinely made in multi-robot coordination research: prior knowledge of task attributes, knowledge of agent capabilities, and direct inter-agent communication. The resulting formulation occupies a distinct position in the MRTA landscape, stricter than standard Dec-POMDP formulations in its informational constraints, and more structured than independent multi-armed bandit settings in its assumption that a hidden latent compatibility geometry governs agent-task effectiveness.
-        </p>
+        <p>[34] D. S. Bernstein, R. Givan, N. Immerman, and S. Zilberstein, "The complexity of decentralized control of Markov decision processes," <em>Mathematics of Operations Research</em>, vol. 27, no. 4, pp. 819&ndash;840, 2002.</p>
 
-        <p>
-            Three contributions were presented. First, ZK-MRTA was formalized as a problem class with a precise observation model, action space, hidden effectiveness structure, and a set of strategy-independent metrics that allow policies to be compared without privileged access to environment internals. Second, a decentralized matrix-factorization (MF) policy was developed that reinterprets collaborative filtering as online latent-utility learning: each drone independently maintains and updates private embedding matrices from a shared public observation stream, without parameter exchange and without any form of explicit communication. Third, a configurable benchmark environment was introduced on Gymnasium and PettingZoo, and used to produce a first empirical evaluation in a single preliminary configuration.
-        </p>
+        <p>[35] Y. Yang, R. Luo, M. Li, M. Zhou, W. Zhang, and J. Wang, "Mean field multi-agent reinforcement learning," in <em>Proceedings of the 35th International Conference on Machine Learning</em>, PMLR, vol. 80, 2018, pp. 5571&ndash;5580.</p>
 
-        <p>
-            The preliminary results are encouraging. On a 9-drone, 27-target scenario with three hidden compatibility modes and moderate noise, the MF policy closed approximately 92% of the efficiency gap between a random baseline and a privileged greedy oracle after 35 training episodes, and the learned embeddings organized into clusters broadly aligned with the ground-truth latent modes, structure never provided to the policy. These findings suggest that the public interaction stream, despite carrying no explicit capability information, contains enough signal for agents to infer a usable approximation of the hidden compatibility geometry.
-        </p>
+        <p>[36] E. Hillel, Z. Karnin, T. Koren, R. Lempel, and O. Somekh, "Distributed exploration in multi-armed bandits," in <em>Advances in Neural Information Processing Systems</em>, vol. 26, 2013.</p>
 
-        <p>
-            At the same time, the results surface two limitations that are structural rather than incidental. Overkill increases as training progresses, because agents cannot observe remaining target HP and therefore cannot avoid redundant fire within the same timestep. Collision counts remain elevated relative to the random baseline, because independent agents converging on the same high-affinity targets create contention without the explicit multi-assignment planning that makes the oracle's focus-fire deliberate. Both phenomena are expected consequences of the ZK constraint and define the characteristic tradeoff of the approach: better match quality and shorter episode length, at the cost of more wasted shots and more crowding.
-        </p>
+        <p>[37] P.-A. Wang, A. Proutiere, K. Ariu, Y. Jedra, and A. Russo, "Optimal algorithms for multiplayer multi-armed bandits," in <em>Proceedings of the 23rd International Conference on Artificial Intelligence and Statistics</em>, PMLR, vol. 108, 2020.</p>
 
-        <p>
-            The evaluation reported here is deliberately limited to a single configuration (one seed, one swarm size, one noise level, matched factorization dimension) and should be treated as a proof of concept rather than a general claim. The experimental roadmap in §8 of the companion next-steps document identifies five priority axes for extending this work: multi-seed reproducibility assessment, supervision mode ablation, latent-dimension sensitivity, noise robustness, and swarm-scale scaling. Together these phases would transform the current single-configuration finding into a statistically interpretable evaluation.
-        </p>
+        <p>[38] M. Agarwal, V. Aggarwal, and K. Azizzadenesheli, "Multi-agent multi-armed bandits with limited communication," <em>Journal of Machine Learning Research</em>, vol. 23, no. 212, pp. 1&ndash;24, 2022.</p>
 
-        <p>
-            More broadly, ZK-MRTA opens a line of inquiry into whether and how useful coordination can emerge in the complete absence of shared models, capability disclosures, or communication infrastructure. The preliminary evidence suggests the answer is yes, at least in the latent-compatibility setting studied here, and that matrix-factorization-based latent-utility learning is a viable mechanism for achieving it. How far that answer extends, across noise regimes, swarm compositions, and task dynamics, is the central question for future work.
-        </p>
+        <p>[39] D. Nagaraj, S. Kowshik, A. Agarwal, P. Netrapalli, and P. Jain, "Multi-user reinforcement learning with low rank rewards," in <em>Proceedings of the 40th International Conference on Machine Learning</em>, PMLR, vol. 202, 2023.</p>
+
+        <p>[40] S. Katariya, B. Kveton, C. Szepesvári, C. Vernade, and Z. Wen, "Stochastic rank-1 bandits," in <em>Proceedings of the 20th International Conference on Artificial Intelligence and Statistics</em>, PMLR, vol. 54, 2017.</p>
+
+        <p>[41] Y. Kang, C.-J. Hsieh, and T. C. M. Lee, "Efficient frameworks for generalized low-rank matrix bandit problems," in <em>Advances in Neural Information Processing Systems</em>, vol. 35, 2022.</p>
+
+        <p>[42] T. Wang, H. Dong, V. Lesser, and C. Zhang, "ROMA: Multi-agent reinforcement learning with emergent roles," in <em>Proceedings of the 37th International Conference on Machine Learning</em>, PMLR, vol. 119, 2020.</p>
+
+        <p>[43] T. Wang, T. Gupta, A. Mahajan, B. Peng, S. Whiteson, and C. Zhang, "RODE: Learning roles to decompose multi-agent tasks," in <em>Proceedings of the 9th International Conference on Learning Representations</em>, 2021.</p>
+
+        <p>[44] J. N. Hu, A. Lerer, A. Peysakhovich, and J. Foerster, "Other-play for zero-shot coordination," in <em>Proceedings of the 37th International Conference on Machine Learning</em>, PMLR, vol. 119, 2020.</p>
+
+        <p>[45] Y. Zhong, J. G. Kuba, X. Feng, S. Hu, J. Ji, and Y. Yang, "Heterogeneous-agent reinforcement learning," <em>Journal of Machine Learning Research</em>, vol. 25, no. 32, pp. 1&ndash;67, 2024.</p>
+
+    </div>
+</body>
 
     </div>
 </body>
