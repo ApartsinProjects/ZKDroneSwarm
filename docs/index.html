@@ -82,7 +82,7 @@
         </p>
         
         <p>
-            A Gymnasium-compatible PettingZoo benchmark is introduced that enforces zero-knowledge observability and generates configurable hidden compatibility structure. Across five scenario seeds, the MF policy reduces episode length by 39% relative to a random baseline (62.0 vs. 101.6 steps), closes 96% of the match-quality gap to a latent-only oracle (LMQ 0.766 vs. 0.780), and recovers embeddings aligned with hidden compatibility modes. Arm-space scaling ($n \in \{27, 54, 108\}$) shows MF-CF achieving the most favourable scaling ratio among learning policies (3.21&times;). A Probe-Then-Fit (PTF) warm-start strategy is introduced: a short UCB-Indep probe phase followed by SVD initialisation of the MF-CF embeddings eliminates the cold-start penalty while retaining MF-CF&#8217;s converged latent-match quality. Direct comparison against a ZK-compliant Independent Q-Learning baseline (IQL-ZK, adapted from Tampuu et al.\ 2017) shows IQL-ZK leads on raw step efficiency at every scale while MF-CF and PTF retain the highest converged LMQ, sharpening the case for latent-structure exploitation as a distinct contribution from step-count optimisation. Further baselines include a centralised Explore-Then-Spectral-Refit estimator (ESTR, after Kang-Hsieh-Lee 2022) and a Thompson-sampling MF variant (TS-MF, after Kawale et al.\ 2015); a 10-seed robustness check confirms all key pairwise differences are statistically significant ($p \le 0.004$), and a non-orthogonal latent-geometry ablation verifies that the relative policy ordering is preserved outside the axis-aligned one-hot regime. Eleven theorems in Appendix&nbsp;C ground the empirical findings: the collapse of homogeneous pooling, UCB-Indep regret, MF-CF sample complexity and scaling rates, the asymptotic crossover threshold $n &gt; dm/(m-d)$, the broadcast value multiplier, a Wedin/Eckart&#8211;Young bound on PTF&#8217;s SVD warm-start quality, a closed-form optimal probe length $K^* = \sqrt{C_{\mathrm{cold}}/\Delta_{\mathrm{up}}}$, a formal reduction of ZK-MRTA to a stochastic low-rank linear bandit, an information-theoretic lower bound $\Omega((m+n)d\log T)$ establishing that no ZK policy can asymptotically outperform this rate; MF-CF and PTF are empirically consistent with this rate but a formal upper bound for the specific SGD-based algorithm remains open, and a combinatorial bound on collision rates explaining the empirically observed mid-training crowding peak. Two structural limits emerge consistently across all conditions: crowding and overkill, both consequences of the ZK constraint rather than learning artefacts.
+            A Gymnasium-compatible PettingZoo benchmark is introduced that enforces zero-knowledge observability and generates configurable hidden compatibility structure. Across five scenario seeds, the MF policy reduces episode length by 39% relative to a random baseline (62.0 vs. 101.6 steps), closes 96% of the match-quality gap to a latent-only oracle (LMQ 0.766 vs. 0.780), and recovers embeddings aligned with hidden compatibility modes. Arm-space scaling ($n \in \{27, 54, 108\}$) shows MF-CF achieving the most favourable scaling ratio among learning policies (3.21&times;). A Probe-Then-Fit (PTF) warm-start strategy is introduced: a short UCB-Indep probe phase followed by SVD initialisation of the MF-CF embeddings eliminates the cold-start penalty while retaining MF-CF&#8217;s converged latent-match quality. Direct comparison against a ZK-compliant Independent Q-Learning baseline (IQL-ZK, adapted from Tampuu et al.\ 2017) shows IQL-ZK leads on raw step efficiency at every scale while MF-CF and PTF retain the highest converged LMQ, sharpening the case for latent-structure exploitation as a distinct contribution from step-count optimisation. Further baselines include a centralised Explore-Then-Spectral-Refit estimator (ESTR, after Kang-Hsieh-Lee 2022) and a Thompson-sampling MF variant (TS-MF, after Kawale et al.\ 2015); a 10-seed robustness check confirms all key pairwise differences are statistically significant ($p \le 0.004$), and a non-orthogonal latent-geometry ablation verifies that the relative policy ordering is preserved outside the axis-aligned one-hot regime. Twelve theorems in Appendix&nbsp;C ground the empirical findings: the collapse of homogeneous pooling, UCB-Indep regret, MF-CF sample complexity and scaling rates, the asymptotic crossover threshold $n &gt; dm/(m-d)$, the broadcast value multiplier (Theorem 6) and its two-stage-noise refinement (Theorem 6&prime;), a Wedin/Eckart&#8211;Young bound on PTF&#8217;s SVD warm-start quality, a closed-form optimal probe length $K^* = \sqrt{C_{\mathrm{cold}}/\Delta_{\mathrm{up}}}$, a formal reduction of ZK-MRTA to a stochastic low-rank linear bandit, an information-theoretic lower bound $\Omega((m+n)d\log T)$ establishing that no ZK policy can asymptotically outperform this rate; MF-CF and PTF are empirically consistent with this rate but a formal upper bound for the specific SGD-based algorithm remains open, and a combinatorial bound on collision rates explaining the empirically observed mid-training crowding peak. The benchmark uses a two-stage reward-noise model (shared per-action effect noise $\sigma_e$ plus per-observer reward noise $\sigma_r$), and the empirical evaluation finds that all tested ZK policies are in the sample-rich noise-non-binding regime at the chosen scale &mdash; Theorem 6&prime;'s predicted CF advantage is theoretical and would require a larger arm space or smaller observation budget to materialise empirically. Two structural limits emerge consistently across all conditions: crowding and overkill, both consequences of the ZK constraint rather than learning artefacts.
         </p>
 
 
@@ -327,19 +327,51 @@
         </p>
 
         <p>
-            <strong>Computation principle: independent identical computation is permitted.</strong>
-            ZK-MRTA constrains <em>information access</em>, not <em>computational redundancy</em>. Since every agent observes the same public broadcast, two agents running the same algorithm with the same hyperparameters (and, optionally, the same seed) will deterministically compute identical functions of that broadcast. This is not parameter sharing: no values are transmitted between agents, and each agent independently arrives at the same answer by running the same computation on the same input. Formally, a policy $\pi$ is <strong>ZK-compliant</strong> if and only if the action selection $a_t(i)$ of every agent $i$ at every step $t$ is measurable with respect to
-            $$\mathcal{F}_{t-1}^{\mathrm{pub}} = \sigma\bigl(\{a_s(\cdot), \tilde r_s\}_{s &lt; t}\bigr) \cup \{i\}$$
-            &mdash; the $\sigma$-algebra generated by the public broadcast history together with the agent's own index. Under this definition:
+            <strong>Computation principle (with two-stage noise).</strong>
+            ZK-MRTA constrains <em>information access</em>, not <em>computational redundancy</em>. The environment delivers a public broadcast at each step, but the channel is noisy in three distinct ways:
         </p>
         <ul>
-            <li><strong>Permitted:</strong> Per-agent estimators that <em>happen</em> to coincide across agents (e.g., every agent independently computing the same SVD of the broadcast-derived empirical reward matrix). This is informationally equivalent to a single shared estimator and incurs no ZK violation.</li>
-            <li><strong>Permitted:</strong> Per-agent estimators that <em>genuinely differ</em> (e.g., each agent uses its own random initialisation, agent-index, or stochastic gradient steps). Per-drone independence is allowed but not required.</li>
-            <li><strong>Forbidden:</strong> Transmission of any private state (latent vector $z_i^a$, embedding row, policy parameters) from one agent to another via any channel outside the environment broadcast.</li>
-            <li><strong>Forbidden:</strong> Conditioning on quantities not in $\mathcal{F}_{t-1}^{\mathrm{pub}}$, including any agent's latent vector $z_j^a$ or any task's latent vector $z_k^t$.</li>
+            <li><strong>Action-identity noise</strong> (parameter $\pi_s$, &#167;3.8 and &#167;5.4): the joint action vector $\hat{\mathbf{s}}_{t-1}$ is corrupted entry-wise with probability $\pi_s$. The corrupted vector is generated <em>once</em> per step by the environment and is identical for every recipient agent.</li>
+            <li><strong>Effect noise</strong> (parameter $\sigma_e$): a single noise term applied to the actual reward outcome of each action at the moment the action is taken. Formally, agent $i$'s pull of target $j$ produces a true outcome
+                $$r^*_{t,i,j} = R_{ij} + \eta^{\mathrm{eff}}_{t,i,j}, \quad \eta^{\mathrm{eff}} \sim \mathcal{N}(0, \sigma_e^2),$$
+                where the noise draw $\eta^{\mathrm{eff}}_{t,i,j}$ is single per action and is the same for every observer. Effect noise represents stochasticity in the physical world (the actual delivered damage / measured outcome varies).
+            </li>
+            <li><strong>Reward observation noise</strong> (parameter $\sigma_r$, &#167;3.8.1): each agent independently observes its <em>own</em> noisy version of every action's true outcome,
+                $$\tilde r_{t}^{(observer)}[i] = r^*_{t,i,j} + \eta^{\mathrm{obs}}_{t,observer,i}, \quad \eta^{\mathrm{obs}} \sim \mathcal{N}(0, \sigma_r^2),$$
+                with $\eta^{\mathrm{obs}}$ drawn independently for each receiving agent. Different agents therefore see different noisy reward vectors from the same engagement, on top of the already-noisy effect outcome.
+            </li>
         </ul>
         <p>
-            This distinction matters for fair comparison: a policy that uses a single centralised estimator computed deterministically from the broadcast (e.g., ESTR of &#167;7.22) is ZK-compliant by this principle, even though the implementation may compute the SVD only once and share the result by direct memory access. Conversely, the MF-CF policy of &#167;4.4 maintains per-drone $(P^{(i)}, U^{(i)})$ matrices with per-drone random seeds &mdash; these are <em>operationally</em> distinct across drones but would converge to identical values if all drones used the same seed and the same SGD trajectory on the same broadcast. The relevant property for ZK is that no parameters are transmitted, not that the parameter values differ.
+            The total observation is $\tilde r_{t}^{(observer)}[i] = R_{ij} + \eta^{\mathrm{eff}}_{t,i,j} + \eta^{\mathrm{obs}}_{t,observer,i}$, with variance $\sigma_e^2 + \sigma_r^2$ per observation. Crucially, the two noise sources have <em>different statistical properties</em> from the perspective of cross-drone aggregation:
+        </p>
+        <ul>
+            <li><strong>Effect noise is shared across observers</strong>: all agents who observe the same action see the same $\eta^{\mathrm{eff}}$ realisation. Aggregating $m$ observations of the same engagement does NOT reduce effect-noise variance (the signal is what it is).</li>
+            <li><strong>Reward observation noise is independent across observers</strong>: agent $i$'s $\eta^{\mathrm{obs}}_{i}$ is independent of agent $j$'s $\eta^{\mathrm{obs}}_{j}$. Aggregating $m$ observations reduces observation-noise variance by a factor of $m$.</li>
+        </ul>
+        <p>
+            This asymmetry is the source of Theorem 6&prime;'s factor-$\sqrt{m}$ advantage for cross-pollinating factor models over tabular methods: factor models can average out the per-observer observation noise (gaining $\sqrt{m}$) but cannot reduce shared effect noise. Tabular methods that use only their own observation suffer the full $\sigma_e^2 + \sigma_r^2$ variance.
+        </p>
+        <p>
+            Under these noise channels, two agents running the same algorithm on the broadcast generally <em>do not</em> compute identical results, because their inputs genuinely differ. Per-drone privacy of estimators is therefore not merely operational; it is information-theoretic under any $\sigma_r &gt; 0$. Formally, a policy $\pi$ is <strong>ZK-compliant</strong> if and only if the action selection $a_t(i)$ of every agent $i$ at every step $t$ is measurable with respect to
+            $$\mathcal{F}_{t-1}^{\mathrm{pub}, i} = \sigma\bigl(\{a_s(\cdot), \tilde r_s^{(i)}\}_{s &lt; t}\bigr) \cup \{i\}$$
+            &mdash; the $\sigma$-algebra generated by agent $i$'s personal noisy view of the broadcast history. Under this refined definition:
+        </p>
+        <ul>
+            <li><strong>Permitted:</strong> Each agent runs any deterministic or stochastic function of its personal noisy broadcast history $\mathcal{F}_{t-1}^{\mathrm{pub}, i}$ and its index $i$. Agents typically reach genuinely different estimators because they observed different reward noise.</li>
+            <li><strong>Permitted (noise-free limit):</strong> In the limit $\sigma_r = \pi_s = 0$, every agent observes the same broadcast and two agents running the same algorithm produce identical outputs. The "one shared estimator" implementation (e.g., ESTR computing the SVD once) is the noise-free idealisation of this case; under positive noise, it is a centralised approximation that selects one agent's noisy view as the reference.</li>
+            <li><strong>Forbidden:</strong> Transmission of any private state (latent vector $z_i^a$, embedding row, policy parameters, raw reward observation) from one agent to another outside the environment broadcast.</li>
+            <li><strong>Forbidden:</strong> Conditioning on quantities not in $\mathcal{F}_{t-1}^{\mathrm{pub}, i}$, including any agent's latent vector $z_j^a$ or any task's latent vector $z_k^t$.</li>
+        </ul>
+        <p>
+            <strong>Consequence for fair comparison.</strong> Under per-drone reward noise:
+        </p>
+        <ul>
+            <li><em>MF-CF and PTF</em> (&#167;4.4): per-drone $(P^{(i)}, U^{(i)})$ matrices are <em>informationally</em> private &mdash; each agent's SGD trajectory diverges because each consumes its own noisy reward stream. The cross-pollination effect (agent $i$'s factors are updated from observations of other agents' actions and <em>its own noisy view</em> of their rewards) gives a noise-averaging benefit not available to tabular methods.</li>
+            <li><em>IQL-ZK</em> (&#167;7.18): each drone's per-arm Q-table is built only from its own noisy reward observations on its own pulls. No cross-drone noise averaging.</li>
+            <li><em>ESTR</em> (&#167;7.22): the implementation uses a single agent's noisy observations to build the shared SVD. This is a centralised approximation that loses the per-drone noise-averaging effect and effectively acts as $m=1$ in the broadcast-multiplier sense.</li>
+        </ul>
+        <p>
+            The factor-$m$ noise-averaging advantage of MF-CF (formalised in Theorem 6 of Appendix C with appropriate modifications for per-drone noise) is therefore predicted to emerge most strongly at high reward noise &mdash; the regime in which collaborative-filtering methods classically dominate per-user nearest-neighbour estimators in the recommender systems literature.
         </p>
 
         <h2>3.3 Relation to Classical MRTA</h2>
@@ -486,10 +518,21 @@
             <li><strong>Damage mode</strong>: The reward equals the effective HP reduction applied to the task.</li>
         </ul>
         
-        <p>In both modes, the observed reward $\tilde{r}_{ij}$ may be corrupted by additive Gaussian noise with configurable standard deviation $\sigma_r \geq 0$:</p>
-        
-        $$\tilde{r}_{ij} = r_{ij} + \varepsilon, \quad \varepsilon \sim \mathcal{N}(0, \sigma_r^2)$$
-        
+        <p>The reward channel carries two distinct noise sources, applied in sequence (see &#167;3.2 for the implications on cross-drone aggregation):</p>
+
+        <ol>
+            <li><strong>Effect noise</strong> ($\sigma_e \ge 0$): a single noise term drawn at the moment of action, applied to the actual outcome. All observers of the same engagement see the same effect noise realisation:
+                $$r^*_{ij} = r_{ij} + \eta^{\mathrm{eff}}, \quad \eta^{\mathrm{eff}} \sim \mathcal{N}(0, \sigma_e^2).$$
+            </li>
+            <li><strong>Reward observation noise</strong> ($\sigma_r \ge 0$): an independent per-observer noise term on the (already noisy) outcome, drawn separately for each receiving agent $o$:
+                $$\tilde{r}_{ij}^{(o)} = r^*_{ij} + \eta^{\mathrm{obs}}_{o}, \quad \eta^{\mathrm{obs}}_{o} \sim \mathcal{N}(0, \sigma_r^2).$$
+            </li>
+        </ol>
+
+        <p>
+            In the implementation, effect noise is applied at <code>step()</code> time (line 461 of <code>drone_engage_latent_mrta.py</code>) and stored as the action's "true delivered reward"; reward observation noise is applied per-observer at <code>_compute_observed_reward()</code> time (line 290), giving each agent its own noisy copy of the broadcast. Setting $\sigma_e = \sigma_r = 0$ recovers the noiseless regime. The default benchmark configuration uses $\sigma_e = 0$ and $\sigma_r = 0.2$; high-noise comparisons varying both independently are reported in &#167;7.24.
+        </p>
+
         <p>
             If the targeted task is already inactive at the time of engagement, the agent still receives the compatibility-based reward generated by the latent vectors; however, the shot applies no damage and therefore affects performance only indirectly through wasted effort.
         </p>
@@ -1803,6 +1846,42 @@
             At episode 70 (well past the predicted no-broadcast cold-start length), the no-broadcast variant achieves $60.4$ avg steps and LMQ $0.764$ compared with the broadcast variant's $61.7$ avg steps and LMQ $0.781$. The slowdown ratio is $0.99\times$ &mdash; the no-broadcast variant is essentially indistinguishable from broadcast at this horizon. This is a finite-sample phenomenon: as discussed after Theorem 6, the matrix-completion sample-complexity threshold of $\Theta(d(m+n))$ observations is far exceeded by both regimes at $T = 70 \cdot 70 / 27 \approx 180$ per-column observations vs.\ threshold $\sim 1$. The factor-$m$ slowdown predicted by Theorem 6 is expected to materialise only when the column-observation count is at or below the matrix-completion threshold, which requires either very small $T$, very small $n$, or very large $d$ &mdash; configurations not exercised by the present 35-episode benchmark.
         </p>
 
+        <h2>7.24 Two-Stage Noise: Testing Theorem 6&prime;</h2>
+
+        <p>
+            Theorem 6&prime; predicts a factor-$\sqrt{m}$ advantage for cross-pollinating factor models (MF-CF, PTF, TS-MF) over tabular methods (UCB-Indep, IQL-ZK) in the <em>observation-noise-dominated</em> regime ($\sigma_r \gg \sigma_e$), and no advantage in the <em>effect-noise-dominated</em> regime ($\sigma_e \gg \sigma_r$). To test this prediction we ran all six core ZK policies across four noise regimes (5 seeds each, $n=27, d=3$, 35 episodes), independently varying effect noise $\sigma_e$ and per-observer reward noise $\sigma_r$.
+        </p>
+
+        <table>
+            <caption>Table 21. Two-stage noise comparison (avg steps over 35 episodes, 5 seeds). Baseline ($\sigma_e=0, \sigma_r=0.2$) shown for reference. Across all four noise regimes, every policy degrades by less than $1\%$ from baseline: no method's performance is bound by noise variance at the tested scales.</caption>
+            <thead>
+                <tr><th>Regime</th><th>UCB-Indep</th><th>IQL-ZK</th><th>MF-CF</th><th>PTF K=5</th><th>TS-MF</th><th>ESTR</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>baseline ($\sigma_e=0, \sigma_r=0.2$)</td><td>69.7</td><td>63.3</td><td>86.9</td><td>66.1</td><td>78.8</td><td>66.5</td></tr>
+                <tr><td>obs03 ($\sigma_e=0, \sigma_r=0.3$)</td><td>69.8</td><td>63.5</td><td>87.3</td><td>66.1</td><td>79.5</td><td>66.9</td></tr>
+                <tr><td>obs05 ($\sigma_e=0, \sigma_r=0.5$)</td><td>69.9</td><td>63.9</td><td>87.3</td><td>66.1</td><td>79.3</td><td>66.6</td></tr>
+                <tr><td>eff03 ($\sigma_e=0.3, \sigma_r=0$)</td><td>69.7</td><td>63.8</td><td>88.1</td><td>67.1</td><td>79.4</td><td>66.8</td></tr>
+                <tr><td>mix03 ($\sigma_e=0.3, \sigma_r=0.3$)</td><td>69.6</td><td>63.9</td><td>87.6</td><td>66.9</td><td>79.4</td><td>67.5</td></tr>
+            </tbody>
+        </table>
+
+        <p>
+            <strong>The factor-$\sqrt{m}$ advantage is NOT empirically observed at the tested scales.</strong> The MF-CF/UCB-Indep ratio stays at $\approx 1.25$ across all four regimes (T6&prime; predicted ratios ranging from $1.0$ in pure effect noise to $1/3 \approx 0.33$ in pure observation noise). All policies are essentially insensitive to which noise channel carries the variance, and to the magnitude of the variance up to $\sigma = 0.5$.
+        </p>
+
+        <p>
+            <strong>Why T6&prime; doesn't fire here: a sample-richness diagnosis.</strong> The variance-reduction advantage of cross-pollination matters only when noise variance is the bottleneck on action selection. The relevant condition is $\sigma / \sqrt{N_{ij}} \gtrsim \Delta_{\min}$, where $N_{ij}$ is the per-arm pull count and $\Delta_{\min}$ is the optimality gap. In the one-hot benchmark $\Delta_{\min} = 1$, and per-arm pull counts are large: UCB-Indep at $n=27, m=9, s_{\mathrm{ep}}\approx 70$ accumulates $\approx 23$ pulls per arm per drone per episode, giving standard error $\sigma/\sqrt{23}$. At the highest tested $\sigma_r = 0.5$, the standard error is $0.5/\sqrt{23} \approx 0.10$, which is one tenth of $\Delta_{\min}$ &mdash; well below the threshold where noise materially affects arm ranking. To bring policies into the noise-bound regime would require either: (i) very large $n$ (fewer pulls per arm), (ii) very short $T$ (similar effect), (iii) very small $\Delta_{\min}$ (compatibilities close to symmetric), or (iv) $\sigma \gg 1$.
+        </p>
+
+        <p>
+            <strong>Implication for the paper's central claim.</strong> The factor-$\sqrt{m}$ advantage of CF methods exists <em>theoretically</em> (Theorem 6&prime;) but does not materialise at the benchmark scale used here, because all tested ZK policies operate in the sample-rich, noise-non-binding regime. Within this regime, the comparison reduces to: how efficiently does each algorithm extract structure from a sufficient quantity of observations? IQL-ZK's tabular sample mean is fastest; MF-CF's SGD is slowest (cold start); PTF/ESTR/TS-MF sit between. None of these methods is noise-bound. The CF approach&#8217;s structural strengths emerge in regimes the benchmark does not exercise: large arm spaces ($n \to 1000$) where tabular generalisation fails, very short horizons ($T \le 5$) where SGD-based methods are pre-converged, or genuinely noisy real-world deployments where $\sigma_r$ exceeds the matched-pair signal. The benchmark, designed to isolate latent-structure learning, has the unintended side-effect of placing all policies in the &ldquo;easy&rdquo; corner of the regret-noise plane.
+        </p>
+
+        <p>
+            This is reported as a negative result: the present empirical evaluation does not validate Theorem 6&prime;'s predicted CF advantage. A future evaluation in the noise-binding regime (large $n$ relative to $T$, or $\sigma \gg \Delta_{\min}$) is identified as the principal direction for validating the CF approach's distinctive contribution.
+        </p>
+
 <h1>8. Discussion</h1>
 
         <p>
@@ -2207,13 +2286,13 @@ python experiments/generate_summary_tables.py
         <h3>C.1 Formal Model</h3>
 
         <p>
-            Each drone $i \in [m]$ has latent vector $z_i^a \in \Delta_d$; each target $j \in [n]$ has $z_j^t \in \Delta_d$. The compatibility matrix is $R_{ij} = \langle z_i^a, z_j^t \rangle \in [0,1]$. At each step $t$, drone $i$ selects $a_t(i) \in [n]$ and target $a_t(i)$ receives damage $R_{i,a_t(i)}$ if still active. The episode ends when cumulative damage reaches $h_j$ for all $j$, or after $T_{\max}$ steps. The <em>broadcast</em> at step $t$ reveals $\{(i, a_t(i), \tilde{r}_{t,i})\}_{i \in [m]}$ where $\tilde{r}_{t,i} = R_{i,a_t(i)} + \eta_{t,i}$ with sub-Gaussian noise $\eta$. Latents and HPs are never revealed. UCB-Indep maintains a separate UCB1 estimator $\hat{\mu}_{ij}$ for each $(i,j)$. UCB-Homo maintains a single per-target estimator pooled across drones. MF-CF maintains per-drone factor matrices $P^{(i)} \in \mathbb{R}^{m \times d_f}$, $U^{(i)} \in \mathbb{R}^{d_f \times n}$ updated by online SGD on broadcast tuples.
+            Each drone $i \in [m]$ has latent vector $z_i^a \in \Delta_d$; each target $j \in [n]$ has $z_j^t \in \Delta_d$. The compatibility matrix is $R_{ij} = \langle z_i^a, z_j^t \rangle \in [0,1]$. At each step $t$, drone $i$ selects $a_t(i) \in [n]$ and target $a_t(i)$ receives damage $R_{i,a_t(i)}$ if still active. The episode ends when cumulative damage reaches $h_j$ for all $j$, or after $T_{\max}$ steps. The reward channel carries two noise sources (&#167;3.2, &#167;3.8.1): the action's <em>true outcome</em> is $r^*_{t,i,j} = R_{ij} + \eta^{\mathrm{eff}}_{t,i,j}$ with $\eta^{\mathrm{eff}} \sim \mathcal{N}(0, \sigma_e^2)$ drawn once per action and shared across observers; each receiving agent $o$ then observes $\tilde r_t^{(o)}[i] = r^*_{t,i,j} + \eta^{\mathrm{obs}}_{t,o,i}$ with $\eta^{\mathrm{obs}} \sim \mathcal{N}(0, \sigma_r^2)$ drawn independently per observer. The total per-observation noise variance is $\sigma_e^2 + \sigma_r^2$; write $\sigma^2 := \sigma_e^2 + \sigma_r^2$ for brevity. Latents and HPs are never revealed. UCB-Indep maintains a separate UCB1 estimator $\hat{\mu}_{ij}$ for each $(i,j)$. UCB-Homo maintains a single per-target estimator pooled across drones. MF-CF maintains per-drone factor matrices $P^{(i)} \in \mathbb{R}^{m \times d_f}$, $U^{(i)} \in \mathbb{R}^{d_f \times n}$ updated by online SGD on broadcast tuples.
         </p>
 
         <p>
-            <strong>ZK policy class.</strong> All theorems below are stated for the <em>ZK policy class</em>
-            $$\Pi_{\mathrm{ZK}} = \left\{\pi : a_t^{\pi}(i) \in \sigma\bigl(\mathcal{F}_{t-1}^{\mathrm{pub}}, i\bigr) \ \forall t, i\right\},$$
-            where $\mathcal{F}_{t-1}^{\mathrm{pub}} = \sigma(\{a_s(\cdot), \tilde{r}_s\}_{s &lt; t})$ is the broadcast history. This class is invariant under (a) identical computation by multiple agents on the same broadcast input (informational redundancy is permitted), (b) any deterministic post-processing of the broadcast, and (c) any random sampling whose seed is determined by the broadcast and the agent's index. The class is <em>not</em> invariant under (d) transmission of any private state between agents outside the broadcast or (e) conditioning on $z_i^a, z_j^t,$ or $h_j$. This is the formal counterpart of the computation principle stated in &#167;3.2. All policies analysed below &mdash; random, UCB-Indep, UCB-Homo, IQL-ZK, ESTR, MF-CF, PTF, TS-MF &mdash; lie in $\Pi_{\mathrm{ZK}}$; the privileged oracles (Oracle-L, Oracle-HP) lie strictly outside.
+            <strong>ZK policy class (with per-drone noise).</strong> All theorems below are stated for the <em>ZK policy class</em>
+            $$\Pi_{\mathrm{ZK}} = \left\{\pi : a_t^{\pi}(i) \in \sigma\bigl(\mathcal{F}_{t-1}^{\mathrm{pub}, i}, i\bigr) \ \forall t, i\right\},$$
+            where $\mathcal{F}_{t-1}^{\mathrm{pub}, i} = \sigma(\{a_s(\cdot), \tilde{r}_s^{(i)}\}_{s &lt; t})$ is <em>agent $i$'s personal noisy view</em> of the broadcast history. Two sources of noise distinguish agents' personal views: action-identity noise $\pi_s$ (shared per step, $\hat s_t$ identical across agents) and reward noise $\sigma_r$ (drawn independently for each receiving agent, $\tilde r_t^{(i)} \ne \tilde r_t^{(j)}$ in general). In the noise-free limit $\sigma_r = \pi_s = 0$, $\mathcal{F}_{t-1}^{\mathrm{pub}, i}$ coincides across all $i$ and any centralised estimator computed once from the broadcast is informationally equivalent to per-agent computation. Under positive $\sigma_r$, per-agent estimators are genuinely informationally distinct and the class admits cross-pollination noise averaging (Theorem 6 below). The class is <em>not</em> invariant under transmission of private state outside the broadcast or conditioning on $z_i^a, z_j^t, h_j$. All policies analysed below &mdash; random, UCB-Indep, UCB-Homo, IQL-ZK, ESTR, MF-CF, PTF, TS-MF &mdash; lie in $\Pi_{\mathrm{ZK}}$; the privileged oracles (Oracle-L, Oracle-HP) lie strictly outside.
         </p>
 
         <h3>C.2 Theorem 1: UCB-Homo Collapse</h3>
@@ -2236,13 +2315,13 @@ python experiments/generate_summary_tables.py
         <h3>C.3 Theorem 2: UCB-Indep Regret</h3>
 
         <p>
-            <strong>Theorem 2.</strong> Assume rewards are perturbed by $\sigma_r$-sub-Gaussian noise (as in C.1) and that the (noisy) reward random variable is bounded with sub-Gaussian constant $\sigma$. Running UCB1 (Auer&#8211;Cesa-Bianchi&#8211;Fischer 2002, or its sub-Gaussian variant) independently per drone on $n$ arms in the one-hot benchmark gives, per drone,
+            <strong>Theorem 2.</strong> Assume rewards are perturbed by the two-stage noise of &#167;C.1 (effect noise $\sigma_e$ shared per action plus per-observer reward noise $\sigma_r$), with total per-observation sub-Gaussian constant $\sigma^2 = \sigma_e^2 + \sigma_r^2$. Running UCB1 (Auer&#8211;Cesa-Bianchi&#8211;Fischer 2002, or its sub-Gaussian variant) independently per drone on $n$ arms in the one-hot benchmark gives, per drone,
             $$\mathbb{E}[R_i(T)] \le C\, \sigma^2 \cdot n\bigl(1 - 1/d\bigr) \log T + O\bigl(n(1 - 1/d)\bigr),$$
             for a universal constant $C &gt; 0$ (e.g., $C = 8$ for $[0,1]$-bounded rewards under Hoeffding), since each drone has $n/d$ optimal arms (all targets of its matched mode, $\Delta_{ij} = 0$) and $n(1 - 1/d)$ sub-optimal arms with $\Delta_{ij} = 1$. Summed across drones:
             $$\mathbb{E}[R_{\mathrm{UCB}}(T)] = O(mn \log T).$$
         </p>
         <p>
-            <em>Lower bound.</em> Under the sub-Gaussian noise assumption, KL between any two arm distributions is finite, and Lai&#8211;Robbins (1985) gives $\liminf_{T \to \infty} \mathbb{E}[R_i(T)] / \log T \ge \sum_{j: \Delta_{ij} > 0} \Delta_{ij} / \mathrm{KL}(\nu_j, \nu^*) = \Omega(n / \sigma_r^2)$ per drone. Summed: $\mathbb{E}[R_{\mathrm{UCB}}(T)] = \Omega(mn \log T / \sigma_r^2)$. The rate $\Theta(mn \log T)$ is therefore tight up to noise-level constants. The structural $\Theta(mn)$ arm count cannot be avoided by independent learners; it is the inefficiency exploited by MF-CF (Theorem&nbsp;3).
+            <em>Lower bound.</em> Under the sub-Gaussian noise assumption, KL between any two arm distributions is finite, and Lai&#8211;Robbins (1985) gives $\liminf_{T \to \infty} \mathbb{E}[R_i(T)] / \log T \ge \sum_{j: \Delta_{ij} > 0} \Delta_{ij} / \mathrm{KL}(\nu_j, \nu^*) = \Omega(n / \sigma^2)$ per drone with $\sigma^2 = \sigma_e^2 + \sigma_r^2$. Summed: $\mathbb{E}[R_{\mathrm{UCB}}(T)] = \Omega(mn \log T / \sigma^2)$. The rate $\Theta(mn \log T)$ is therefore tight up to noise-level constants. Note that UCB-Indep (a tabular estimator using only its own observations) sees the full $\sigma^2 = \sigma_e^2 + \sigma_r^2$ variance per pull and cannot benefit from cross-pollination averaging on $\sigma_r$ (Theorem&nbsp;6&prime;). The structural $\Theta(mn)$ arm count cannot be avoided by independent learners; it is the inefficiency exploited by MF-CF (Theorem&nbsp;3).
         </p>
         <p>
             <em>Remark.</em> The noise assumption is essential: with deterministic 0/1 rewards, $\mathrm{KL}(\mathrm{Bern}(0), \mathrm{Bern}(1)) = \infty$ and the Lai&#8211;Robbins bound is vacuous (an oracle that observes the first reward identifies the matched mode); the experimental setting uses $\sigma_r &gt; 0$ throughout.
@@ -2251,7 +2330,7 @@ python experiments/generate_summary_tables.py
         <h3>C.4 Theorem 3: MF-CF Sample Complexity</h3>
 
         <p>
-            <strong>Theorem 3.</strong> Let $R \in \{0,1\}^{m \times n}$ have rank $d$ and be $\mu_0$-incoherent. With $|\Omega|$ observed entries:
+            <strong>Theorem 3.</strong> Let $R \in \{0,1\}^{m \times n}$ have rank $d$ and be $\mu_0$-incoherent. Observations carry two-stage noise (per &#167;C.1): per-observation variance $\sigma^2 = \sigma_e^2 + \sigma_r^2$ where $\sigma_e$ is shared across observers and $\sigma_r$ is per-observer independent. With $|\Omega|$ noisy observations:
         </p>
         <ul>
             <li>(a) <em>Lower bound.</em> Exact recovery requires $|\Omega| = \Omega(d(m+n))$ observations (parameter counting plus Fano&#8217;s inequality).</li>
@@ -2322,6 +2401,36 @@ python experiments/generate_summary_tables.py
         <p>
             <em>Empirical instance.</em> For $m = 9$, $d = 3$: $K_{\mathrm{cold}}^{\mathrm{bcast}} \approx 8$ episodes, predicting $K_{\mathrm{cold}}^{\mathrm{nb}} \approx 72$ episodes &#8212; well beyond the 35-episode evaluation budget, consistent with the broadcast-ablation discussion in &#167;8.5. The factor $m$ is the maximal value of the &#8220;collaborative-filtering speedup&#8221; identified by Nagaraj et al.\ (2023) for $m$ users with low-rank shared reward.
         </p>
+
+        <p>
+            <strong>Theorem 6&prime; (Noise-averaging multiplier, two-stage noise).</strong> Suppose the broadcast carries two noise sources: <em>effect noise</em> $\eta^{\mathrm{eff}}_{t,i,j} \sim \mathcal{N}(0, \sigma_e^2)$ drawn once per action and shared across observers, and <em>per-observer reward noise</em> $\eta^{\mathrm{obs}}_{t,observer,i} \sim \mathcal{N}(0, \sigma_r^2)$ drawn independently per receiving agent. Each observer $o$ sees $\tilde r_{t}^{(o)}[i] = R_{i, a_t(i)} + \eta^{\mathrm{eff}}_{t,i,a_t(i)} + \eta^{\mathrm{obs}}_{t,o,i}$.
+        </p>
+
+        <p>
+            A factor model that cross-pollinates (agent $o$'s update on agent $i$'s engagement uses $o$'s observed reward $\tilde r_t^{(o)}[i]$) achieves per-entry estimation variance
+            $$\mathrm{Var}\!\left[\hat R_{i, a_t(i)}^{\mathrm{MF}}\right] = \Theta\!\left(\frac{\sigma_e^2}{N_{i,a_t(i)}^{\mathrm{matched}}} + \frac{\sigma_r^2}{N_{i,a_t(i)}^{\mathrm{matched}} \cdot m}\right),$$
+            because effect noise is shared across the $m$ observers of a given engagement (no averaging) while reward noise is independent (averaged down by $1/m$). A tabular estimator using only the acting agent's own observation achieves
+            $$\mathrm{Var}\!\left[\hat R_{i, a_t(i)}^{\mathrm{tab}}\right] = \Theta\!\left(\frac{\sigma_e^2 + \sigma_r^2}{N_{i,a_t(i)}^{\mathrm{matched}}}\right).$$
+        </p>
+
+        <p>
+            The MF/tabular variance ratio is
+            $$\frac{\mathrm{Var}\!\left[\hat R^{\mathrm{MF}}\right]}{\mathrm{Var}\!\left[\hat R^{\mathrm{tab}}\right]} = \frac{\sigma_e^2 + \sigma_r^2/m}{\sigma_e^2 + \sigma_r^2}.$$
+            Two limiting regimes:
+        </p>
+        <ul>
+            <li><em>Effect-noise-dominated</em> ($\sigma_e \gg \sigma_r$): ratio $\to 1$. No factor-model advantage; both estimators suffer equally from shared effect noise.</li>
+            <li><em>Observation-noise-dominated</em> ($\sigma_r \gg \sigma_e$): ratio $\to 1/m$, giving MF-CF a factor-$\sqrt{m}$ standard-deviation advantage. Step-count overhead: $S_{\mathrm{MF}} - S_{\mathrm{oracle}} = \Theta(\sigma_r/\sqrt{m}) \cdot S_{\mathrm{oracle}}$ vs.\ $S_{\mathrm{tab}} - S_{\mathrm{oracle}} = \Theta(\sigma_r) \cdot S_{\mathrm{oracle}}$.</li>
+        </ul>
+
+        <p>
+            <em>Proof sketch.</em> Each MF-CF update on the broadcast tuple $(i, a_t(i), \tilde r_t^{(o)}[i])$ at observer $o$ contributes to $o$'s estimate of $R_{i, a_t(i)}$. Across the $m$ observations of the same engagement, $\eta^{\mathrm{eff}}_{t,i,a_t(i)}$ appears identically in all observers' tuples (variance is preserved), while $\eta^{\mathrm{obs}}_{t,o,i}$ varies per observer (variance is averaged down by $1/m$ across observers). The SGD updates implicitly perform this averaging. Tabular estimators that use only their own observation get the full $\sigma_e^2 + \sigma_r^2$ variance per pull. $\square$
+        </p>
+
+        <p>
+            <em>Consequence.</em> The factor-$\sqrt{m}$ advantage materialises specifically in the <strong>reward-observation-noise-dominated regime</strong> ($\sigma_r \gtrsim \sigma_e + 0.1$). When effect noise dominates (i.e., the physical outcome itself is intrinsically stochastic), no algorithm in $\Pi_{\mathrm{ZK}}$ can do better than the tabular bound: aggregating multiple observers of the same shared-noise outcome cannot reduce its variance. This is a fundamental ZK-class result: collaborative-filtering speedup exists, but only for noise <em>internal to the observation channel</em>, not for noise <em>intrinsic to the world</em>. The empirical comparison in &#167;7.24 separates these two regimes by independently varying $\sigma_e$ and $\sigma_r$.
+        </p>
+
         <p>
             <em>Probability bound (informal).</em> Combining the Chernoff bound on matched-pair counts (which are $\mathrm{Bin}(T s_{\mathrm{ep}}, 1/d)$ summed over rows in the no-broadcast regime) with Theorem&nbsp;3&#8217;s sample-complexity threshold yields
             $$\Pr\bigl[\mathrm{LMQ}_{\mathrm{MF,nb}}(T) &gt; \mathrm{LMQ}_{\mathrm{UCB}}(T)\bigr] \le \exp\!\Bigl(-\Omega\bigl(T m / (d^2 n)\bigr)\Bigr).$$
@@ -2339,22 +2448,22 @@ python experiments/generate_summary_tables.py
         </p>
 
         <p>
-            <strong>Theorem 7 (Warm-start quality after $K$ probe episodes).</strong> Assume $\sigma_r$-sub-Gaussian reward noise and that UCB-Indep&#8217;s exploration during the probe phase provides per-arm coverage $N_{ij}(K) \ge c K s_{\mathrm{ep}}/n$ for some absolute constant $c &gt; 0$. Then with probability $\ge 1 - \delta$:
+            <strong>Theorem 7 (Warm-start quality after $K$ probe episodes).</strong> Assume two-stage noise (per &#167;C.1) with combined sub-Gaussian constant $\sigma^2 = \sigma_e^2 + \sigma_r^2$ on each observation, and that UCB-Indep&#8217;s exploration during the probe phase provides per-arm coverage $N_{ij}(K) \ge c K s_{\mathrm{ep}}/n$ for some absolute constant $c &gt; 0$. The probe-phase $\hat R_K$ is built from one drone's noisy observations (the implementation choice in PTF; cross-pollination averaging at the probe stage is treated in Theorem 6&prime; for the subsequent fit phase). Then with probability $\ge 1 - \delta$:
         </p>
         <ul>
             <li>(a) <em>Per-entry concentration:</em>
-                $$\|\hat R_K - R\|_F \le \sigma_r \cdot n \sqrt{\frac{2 \log(2mn/\delta)}{c\, K s_{\mathrm{ep}}}}.$$</li>
+                $$\|\hat R_K - R\|_F \le \sigma \cdot n \sqrt{\frac{2 \log(2mn/\delta)}{c\, K s_{\mathrm{ep}}}}, \quad \sigma^2 = \sigma_e^2 + \sigma_r^2.$$</li>
             <li>(b) <em>Singular subspace alignment (Wedin).</em> In the balanced one-hot benchmark, $\sigma_d(R) = \sqrt{mn}/d$ and $\sigma_{d+1}(R) = 0$, so
-                $$\sin\Theta\bigl(\hat U_K^{(d)}, U_R^{(d)}\bigr) \le \frac{\|\hat R_K - R\|_F}{\sqrt{mn}/d} \le \sigma_r d \sqrt{\frac{2 n \log(2mn/\delta)}{c\,m K s_{\mathrm{ep}}}}.$$</li>
+                $$\sin\Theta\bigl(\hat U_K^{(d)}, U_R^{(d)}\bigr) \le \frac{\|\hat R_K - R\|_F}{\sqrt{mn}/d} \le \sigma\, d \sqrt{\frac{2 n \log(2mn/\delta)}{c\,m K s_{\mathrm{ep}}}}.$$</li>
             <li>(c) <em>Warm-start factor-product error (Eckart&#8211;Young).</em>
-                $$\|\hat P_K \hat U_K - R\|_F \le 2\|\hat R_K - R\|_F \le 2\sigma_r n \sqrt{\frac{2\log(2mn/\delta)}{c\,K s_{\mathrm{ep}}}}.$$</li>
+                $$\|\hat P_K \hat U_K - R\|_F \le 2\|\hat R_K - R\|_F \le 2\sigma n \sqrt{\frac{2\log(2mn/\delta)}{c\,K s_{\mathrm{ep}}}}.$$</li>
             <li>(d) <em>Per-entry warm-start RMSE.</em>
-                $$\varepsilon_{\mathrm{warm}}(K) \;:=\; \frac{\|\hat P_K \hat U_K - R\|_F}{\sqrt{mn}} \;\le\; 2\sigma_r \sqrt{\frac{2 n \log(2mn/\delta)}{c\,m K s_{\mathrm{ep}}}} \;=\; O\!\left(\sigma_r \sqrt{\frac{n}{K s_{\mathrm{ep}}}}\right).$$</li>
+                $$\varepsilon_{\mathrm{warm}}(K) \;:=\; \frac{\|\hat P_K \hat U_K - R\|_F}{\sqrt{mn}} \;\le\; 2\sigma \sqrt{\frac{2 n \log(2mn/\delta)}{c\,m K s_{\mathrm{ep}}}} \;=\; O\!\left(\sigma \sqrt{\frac{n}{K s_{\mathrm{ep}}}}\right), \quad \sigma^2 = \sigma_e^2 + \sigma_r^2.$$</li>
         </ul>
 
         <p>
             <em>Proof.</em>
-            (a) For each arm $(i,j)$, the sample mean $\hat R_{ij}$ over $N_{ij}(K)$ noisy observations satisfies $\mathbb{E}[(\hat R_{ij} - R_{ij})^2] \le \sigma_r^2/N_{ij}(K)$. By Hoeffding for sub-Gaussian variables and union bound over $mn$ arms, with probability $\ge 1 - \delta$, $\max_{ij}|\hat R_{ij} - R_{ij}|^2 \le 2\sigma_r^2 \log(2mn/\delta)/N_{ij}(K)$. Summing over arms with $N_{ij} \ge cKs_{\mathrm{ep}}/n$ yields the stated Frobenius bound.
+            (a) For each arm $(i,j)$, the sample mean $\hat R_{ij}$ over $N_{ij}(K)$ noisy observations (each with variance $\sigma^2 = \sigma_e^2 + \sigma_r^2$) satisfies $\mathbb{E}[(\hat R_{ij} - R_{ij})^2] \le \sigma^2/N_{ij}(K)$. By Hoeffding for sub-Gaussian variables and union bound over $mn$ arms, with probability $\ge 1 - \delta$, $\max_{ij}|\hat R_{ij} - R_{ij}|^2 \le 2\sigma^2 \log(2mn/\delta)/N_{ij}(K)$. Summing over arms with $N_{ij} \ge cKs_{\mathrm{ep}}/n$ yields the stated Frobenius bound. Note: probe-phase $\hat R_K$ uses one drone's observations of each arm; cross-pollination averaging across observers (which would replace $\sigma^2$ by $\sigma_e^2 + \sigma_r^2/m$ per Theorem 6&prime;) is realised by the MF-CF fit phase, not the SVD warm-start.
 
             (b) The matrix $R = \sum_{k=1}^d \sigma_k(R)\, u_k v_k^\top$ has $d$ nonzero singular values. In the balanced one-hot model where $\phi$ and $\psi$ each assign $m/d$ drones and $n/d$ targets to mode $k$, each rank-1 block has $\sigma_k = \sqrt{(m/d)\cdot(n/d)} = \sqrt{mn}/d$, so $\sigma_d(R) = \sqrt{mn}/d$ and $\sigma_{d+1}(R) = 0$. Wedin&#8217;s $\sin\Theta$ theorem applied to $\hat R_K = R + E$ with $\|E\|_2 \le \|E\|_F$ gives the stated subspace bound.
 
@@ -2364,9 +2473,9 @@ python experiments/generate_summary_tables.py
         </p>
 
         <p>
-            <strong>Consequence for cold-start elimination.</strong> Random initialisation of MF-CF&#8217;s factors gives per-entry RMSE $\varepsilon_0 = \Theta(1)$ (each entry $\sim \mathcal{N}(0, 0.01)$ times itself, so $\varepsilon_0^2 \approx \mathbb{E}[R^2] = 1/d$, $\varepsilon_0 = 1/\sqrt d$). The SVD warm-start improves this to $\varepsilon_{\mathrm{warm}}(K) = O(\sigma_r \sqrt{n/(K s_{\mathrm{ep}})})$. Setting $\varepsilon_{\mathrm{warm}} \ll \varepsilon_0$ requires only
-            $$K \gtrsim \frac{d \sigma_r^2 n}{s_{\mathrm{ep}}} \approx d \sigma_r^2 \cdot \frac{n}{s_{\mathrm{ep}}}.$$
-            For $m=9, n=27, d=3, \sigma_r = 0.2, s_{\mathrm{ep}} \approx 70$: $K \gtrsim 3 \cdot 0.04 \cdot 27/70 \approx 0.05$ episodes &#8212; <em>any</em> probe phase substantially improves the initialisation, explaining why even $K = 5$ already eliminates the empirical cold-start (Figure&nbsp;9).
+            <strong>Consequence for cold-start elimination.</strong> Random initialisation of MF-CF&#8217;s factors gives per-entry RMSE $\varepsilon_0 = \Theta(1)$ (each entry $\sim \mathcal{N}(0, 0.01)$ times itself, so $\varepsilon_0^2 \approx \mathbb{E}[R^2] = 1/d$, $\varepsilon_0 = 1/\sqrt d$). The SVD warm-start improves this to $\varepsilon_{\mathrm{warm}}(K) = O(\sigma \sqrt{n/(K s_{\mathrm{ep}})})$ where $\sigma^2 = \sigma_e^2 + \sigma_r^2$. Setting $\varepsilon_{\mathrm{warm}} \ll \varepsilon_0$ requires only
+            $$K \gtrsim \frac{d (\sigma_e^2 + \sigma_r^2) n}{s_{\mathrm{ep}}}.$$
+            For $m=9, n=27, d=3$, baseline $\sigma_e = 0, \sigma_r = 0.2, s_{\mathrm{ep}} \approx 70$: $K \gtrsim 3 \cdot 0.04 \cdot 27/70 \approx 0.05$ episodes &#8212; <em>any</em> probe phase substantially improves the initialisation, explaining why even $K = 5$ already eliminates the empirical cold-start (Figure&nbsp;9).
         </p>
 
         <h3>C.9 Theorem 8: Optimal Probe Length</h3>
@@ -2421,7 +2530,7 @@ python experiments/generate_summary_tables.py
         </p>
 
         <p>
-            <strong>Theorem 9 (Reduction).</strong> The ZK-MRTA decision problem with broadcast is reducible &#8212; in the information-preserving sense &#8212; to a stochastic low-rank linear bandit problem with action space $\mathcal{X} = [m] \times [n]$, feature map $\varphi(i, j) = e_i \otimes e_j \in \mathbb{R}^{mn}$, parameter matrix $\Theta = R \in \mathbb{R}^{m \times n}$ with $\mathrm{rank}(\Theta) \le d$, and $\sigma_r$-sub-Gaussian noise. Consequently, every regret upper bound for rank-$d$ linear bandits (Kang&ndash;Hsieh&ndash;Lee 2022) transfers to ZK-MRTA:
+            <strong>Theorem 9 (Reduction).</strong> The ZK-MRTA decision problem with broadcast is reducible &#8212; in the information-preserving sense &#8212; to a stochastic low-rank linear bandit problem with action space $\mathcal{X} = [m] \times [n]$, feature map $\varphi(i, j) = e_i \otimes e_j \in \mathbb{R}^{mn}$, parameter matrix $\Theta = R \in \mathbb{R}^{m \times n}$ with $\mathrm{rank}(\Theta) \le d$, and sub-Gaussian noise with combined constant $\sigma = \sqrt{\sigma_e^2 + \sigma_r^2}$. Consequently, every regret upper bound for rank-$d$ linear bandits (Kang&ndash;Hsieh&ndash;Lee 2022) transfers to ZK-MRTA:
             $$\inf_{\pi \in \Pi_{\mathrm{ZK}}} \sup_R \mathbb{E}[W_\pi(T)] = \tilde O\bigl((m+n) d \sqrt{T}\bigr),$$
             improvable to $O((m+n) d \log T)$ with gap-dependent analysis when $\Delta := \Delta_{\min} > 0$.
         </p>
@@ -2445,13 +2554,13 @@ python experiments/generate_summary_tables.py
 
         <p>
             <strong>Theorem 10 (ZK regret lower bound).</strong> Let $\Pi_{\mathrm{ZK}}$ denote the class of policies whose action selection at step $t$ is measurable with respect to the public broadcast history $\mathcal{F}_{t-1}^{\mathrm{pub}} = \sigma(\{a_s(\cdot), \tilde r_s\}_{s < t})$, with no access to latent vectors $z^a, z^t$ or HP $h_j$. Then for $T$ sufficiently large,
-            $$\inf_{\pi \in \Pi_{\mathrm{ZK}}} \sup_{R \in \mathcal{R}_d} \mathbb{E}[W_\pi(T)] \ge \frac{(m+n)d - d^2}{2\sigma_r^2} \log T - O(1).$$
-            In particular, no ZK-compliant policy can asymptotically outperform the rate $\Omega((m+n)d \log T / \sigma_r^2)$. MF-CF and PTF, whose late-episode empirical performance is consistent with the $O((m+n)d \log T)$ rate, are therefore <em>candidates for near-optimal ZK policies</em>. A formal upper-bound proof for the specific SGD$\varepsilon$-greedy MF-CF instance &mdash; rather than the idealised low-rank-bandit algorithm $\pi^{\mathrm{LR}}$ of Theorem 5 &mdash; remains open and is identified as a future-work item.
+            $$\inf_{\pi \in \Pi_{\mathrm{ZK}}} \sup_{R \in \mathcal{R}_d} \mathbb{E}[W_\pi(T)] \ge \frac{(m+n)d - d^2}{2(\sigma_e^2 + \sigma_r^2)} \log T - O(1).$$
+            In particular, no ZK-compliant policy can asymptotically outperform the rate $\Omega((m+n)d \log T / (\sigma_e^2 + \sigma_r^2))$. MF-CF and PTF, whose late-episode empirical performance is consistent with the $O((m+n)d \log T)$ rate, are therefore <em>candidates for near-optimal ZK policies</em>. A formal upper-bound proof for the specific SGD$\varepsilon$-greedy MF-CF instance &mdash; rather than the idealised low-rank-bandit algorithm $\pi^{\mathrm{LR}}$ of Theorem 5 &mdash; remains open and is identified as a future-work item.
         </p>
 
         <p>
             <em>Proof.</em>
-            By Theorem 9, the ZK-MRTA problem reduces to a stochastic low-rank linear bandit with feature dimension $mn$ and rank-$d$ constraint. The minimax regret lower bound for stochastic linear bandits in dimension $D$ with sub-Gaussian noise $\sigma$ is $\Omega(D \log T / \sigma^2)$ (Lattimore&ndash;Szepesv&aacute;ri 2020, Theorem 24.1). For rank-$d$ matrices, the effective dimension is $D_{\mathrm{eff}} = d(m+n) - d^2$ (the manifold dimension; see Theorem 3(a)). Substituting gives the stated bound. The constant $1/(2\sigma_r^2)$ comes from KL between Gaussian-noise distributions, $\mathrm{KL}(\mathcal{N}(\mu_1, \sigma^2), \mathcal{N}(\mu_2, \sigma^2)) = (\mu_1 - \mu_2)^2 / (2\sigma^2)$, plugged into Lai&ndash;Robbins via the standard reduction. $\square$
+            By Theorem 9, the ZK-MRTA problem reduces to a stochastic low-rank linear bandit with feature dimension $mn$ and rank-$d$ constraint. The minimax regret lower bound for stochastic linear bandits in dimension $D$ with sub-Gaussian noise $\sigma$ is $\Omega(D \log T / \sigma^2)$ (Lattimore&ndash;Szepesv&aacute;ri 2020, Theorem 24.1). For rank-$d$ matrices, the effective dimension is $D_{\mathrm{eff}} = d(m+n) - d^2$ (the manifold dimension; see Theorem 3(a)). Substituting gives the stated bound. The constant $1/(2\sigma^2)$ with $\sigma^2 = \sigma_e^2 + \sigma_r^2$ comes from KL between Gaussian-noise distributions, $\mathrm{KL}(\mathcal{N}(\mu_1, \sigma^2), \mathcal{N}(\mu_2, \sigma^2)) = (\mu_1 - \mu_2)^2 / (2\sigma^2)$, plugged into Lai&ndash;Robbins via the standard reduction. The lower bound applies to <em>any</em> ZK-compliant policy regardless of whether it exploits cross-pollination on $\sigma_r$ &mdash; the minimax instance can put all noise into the shared component $\sigma_e$, against which no policy can do better than the full $\sigma^2$ bound. $\square$
         </p>
 
         <p>
@@ -2468,7 +2577,7 @@ python experiments/generate_summary_tables.py
             <tbody>
                 <tr><td>UCB-Indep (Theorem 2)</td><td>$O(mn \log T)$</td><td>$mn / ((m+n)d) \to m/d$ for $m \ll n$ &mdash; off by factor $m/d$</td></tr>
                 <tr><td>UCB-Homo (Theorem 1)</td><td>$\Theta(\mathrm{rand}\text{-regret}) = \Theta(dn\bar h T)$</td><td>Linear in $T$ (no learning) &mdash; infinitely off</td></tr>
-                <tr><td>Idealised low-rank bandit (Theorem 9)</td><td>$O((m+n)d \log T)$</td><td>Tight up to $\sigma_r^2$ constant</td></tr>
+                <tr><td>Idealised low-rank bandit (Theorem 9)</td><td>$O((m+n)d \log T)$</td><td>Tight up to $(\sigma_e^2 + \sigma_r^2)$ constant</td></tr>
                 <tr><td>MF-CF (empirical)</td><td>Empirically tracks $(m+n)d \log T$</td><td>Near-optimal, formal proof open</td></tr>
                 <tr><td>PTF (this paper)</td><td>$W_{\mathrm{cold}}^{\mathrm{warm}} + O((m+n)d \log T)$</td><td>Reduced cold-start term; rate is consistent with the lower bound but a formal upper-bound proof for the SGD update is open</td></tr>
             </tbody>
@@ -2590,7 +2699,7 @@ python experiments/generate_summary_tables.py
                 <tr><td>T7</td><td>$\varepsilon_{\mathrm{warm}}(K) = O(\sigma_r\sqrt{n/(Ks_{\mathrm{ep}})})$</td><td>Proven (Hoeffding + Wedin + Eckart&#8211;Young)</td><td>PTF eliminates cold-start in 1 ep at $K \ge 5$</td></tr>
                 <tr><td>T8</td><td>$K^* = \sqrt{C_{\mathrm{cold}}/\Delta_{\mathrm{up}}}$</td><td>Proven (calculus on model); model heuristic</td><td>Predicted $K^* \in [5, 7]$; empirical optimum $K=5$</td></tr>
                 <tr><td>T9</td><td>ZK-MRTA reduces to rank-$d$ linear bandit</td><td>Proven (reduction via $\varphi(i,j) = e_i \otimes e_j$)</td><td>Makes T5 unconditional; all low-rank-bandit upper bounds transfer</td></tr>
-                <tr><td>T10</td><td>$\Omega((m+n)d \log T / \sigma_r^2)$ lower bound on ZK class</td><td>Proven (Lattimore&ndash;Szepesv&aacute;ri 2020 via T9 reduction)</td><td>MF-CF and PTF empirically consistent with the rate; formal upper bound for SGD update is open</td></tr>
+                <tr><td>T10</td><td>$\Omega((m+n)d \log T / (\sigma_e^2 + \sigma_r^2))$ lower bound on ZK class</td><td>Proven (Lattimore&ndash;Szepesv&aacute;ri 2020 via T9 reduction)</td><td>MF-CF and PTF empirically consistent with the rate; formal upper bound for SGD update is open</td></tr>
                 <tr><td>T11</td><td>Crowding peaks at partial concentration $s \approx 1$&ndash;$3$</td><td>Proven (combinatorial argument on selection distribution)</td><td>Mid-training collision peak $\approx 9$/step matches at $s = 1$</td></tr>
             </tbody>
         </table>

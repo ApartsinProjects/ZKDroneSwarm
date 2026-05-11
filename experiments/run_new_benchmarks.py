@@ -247,13 +247,48 @@ SET_K_CONDITIONS.append({
 
 # ---------------------------------------------------------------------------
 # Set L: No-broadcast MF-CF long-horizon (70 episodes) for s_eff and T6 viz
-# Note: this dataset is NOT used as paper claim; it produces a visualisation
-# of the no-broadcast cold-start curve at the predicted T6 horizon.
 # ---------------------------------------------------------------------------
 SET_L_CONDITIONS = [
     {"name": "long70_bcast",   "policy": "mf_cf",    "num_targets": 27},
     {"name": "long70_nbcast",  "policy": "mf_cf_nb", "num_targets": 27},
 ]
+
+# ---------------------------------------------------------------------------
+# Set M: TWO-STAGE NOISE comparison (Theorem 6' validation)
+#
+# The noise model has two stages:
+#   1. Effect noise (sigma_e): single per-action noise applied at action time,
+#      affecting the actual outcome. SHARED across all observers.
+#   2. Reward observation noise (sigma_r): per-drone observation noise on
+#      rewards. DIFFERENT per observer.
+#
+# Theorem 6' predicts MF-CF gains sqrt(m) variance reduction over tabular
+# methods specifically due to per-drone reward noise (which provides m
+# independent noisy estimates of the same shared outcome). Effect noise
+# affects all methods equally (no averaging possible since it's shared).
+#
+# Test conditions:
+#   - sigma_e=0.0, sigma_r=0.3: pure observation noise (T6' applies)
+#   - sigma_e=0.0, sigma_r=0.5: pure observation noise (high)
+#   - sigma_e=0.3, sigma_r=0.0: pure effect noise (no T6' advantage expected)
+#   - sigma_e=0.3, sigma_r=0.3: combined noise
+# ---------------------------------------------------------------------------
+SET_M_CONDITIONS = []
+NOISE_GRID = [
+    ("obs03", 0.0, 0.3),  # pure per-drone observation noise
+    ("obs05", 0.0, 0.5),  # high per-drone observation noise
+    ("eff03", 0.3, 0.0),  # pure shared effect noise (control)
+    ("mix03", 0.3, 0.3),  # both noise sources combined
+]
+for label, sigma_e, sigma_r in NOISE_GRID:
+    for policy in ["ucb_indep", "iql_zk", "mf_cf", "ptf_k5", "ts_mf", "estr"]:
+        SET_M_CONDITIONS.append({
+            "name": f"noise_{label}",
+            "policy": policy,
+            "num_targets": 27,
+            "effect_noise": sigma_e,
+            "reward_noise": sigma_r,
+        })
 
 
 ALL_SETS = {
@@ -268,6 +303,7 @@ ALL_SETS = {
     "J": SET_J_CONDITIONS,
     "K": SET_K_CONDITIONS,
     "L": SET_L_CONDITIONS,
+    "M": SET_M_CONDITIONS,
 }
 
 
@@ -289,7 +325,7 @@ def build_jobs(conditions, seeds, out_dir, episodes):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sets", nargs="+", default=["A", "B", "C"],
-                        choices=["A", "B", "C", "D", "E", "G", "H", "I", "J", "K", "L"], metavar="SET",
+                        choices=["A", "B", "C", "D", "E", "G", "H", "I", "J", "K", "L", "M"], metavar="SET",
                         help="Which experiment sets to run (default: A B C; K = ESTR + TS-MF; L = no-bcast long horizon)")
     parser.add_argument("--seeds", nargs="+", type=int, default=SEEDS)
     parser.add_argument("--episodes", type=int, default=EPISODES)

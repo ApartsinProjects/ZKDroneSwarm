@@ -55,6 +55,12 @@ def build_env_and_configs(config, seed=None):
 
     observation_noise = cf_config.observation_noise if cf_config else 0.0
 
+    # Effect noise: single per-action noise applied to the actual outcome.
+    # If not present in config, falls back to the same value as reward_noise
+    # so the legacy single-noise model is recovered when only one knob is set.
+    effect_noise_attr = getattr(cf_config, "effect_noise", None) if cf_config else None
+    effect_noise = float(effect_noise_attr) if effect_noise_attr is not None else 0.0
+
     latent_world_dict = {
         "mode": builder.mode,
         "latent_dim": builder.latent_dim,
@@ -72,6 +78,7 @@ def build_env_and_configs(config, seed=None):
         scenario_id=config.environment.scenario_id,
         reward_noise=reward_noise,
         observation_noise=observation_noise,
+        effect_noise=effect_noise,
         builder=builder,
         latent_world=latent_world_dict,
         target_hp=config.targets.target_hp,

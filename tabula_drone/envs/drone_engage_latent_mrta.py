@@ -60,6 +60,7 @@ class DroneEngageLatentMRTA(ParallelEnv):
         scenario_id: str = "latent_mrta_benchmark",
         reward_noise: float = 0.0,
         observation_noise: float = 0.0,
+        effect_noise: float = 0.0,
         builder: Optional[Any] = None,
         latent_world: Optional[Dict[str, Any]] = None,
         target_hp: float = 1.0,
@@ -77,8 +78,9 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self.drones_config = drones_config
         self.targets_config = targets_config
         self.scenario_id = scenario_id
-        self.reward_noise = reward_noise
-        self.observation_noise = observation_noise
+        self.reward_noise = reward_noise        # per-drone observation noise on rewards
+        self.observation_noise = observation_noise  # action-identity corruption (shared per step)
+        self.effect_noise = effect_noise        # single per-action noise applied to the actual outcome
         self.builder = builder
         # Convert latent_world to dict if it's a dataclass, otherwise use as-is
         if latent_world is not None:
@@ -449,7 +451,16 @@ class DroneEngageLatentMRTA(ParallelEnv):
                 reward = float(cosine_similarity)
             else:
                 reward = 0.0
-            
+
+            # Effect noise: single per-action noise applied once at the action.
+            # This represents stochasticity in the actual outcome (the "true
+            # delivered reward"), and is the SAME for every observer of this
+            # engagement. Per-drone observation noise (self.reward_noise) is
+            # applied later in _compute_observed_reward, independently per
+            # receiving agent, on top of this shared noisy outcome.
+            if self.effect_noise > 0:
+                reward = reward + float(self.rng.normal(0, self.effect_noise))
+
             rewards[agent_id] = reward
             self.last_rewards[agent_id] = reward
             

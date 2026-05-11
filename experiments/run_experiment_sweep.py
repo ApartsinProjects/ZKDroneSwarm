@@ -147,6 +147,8 @@ def apply_overrides(config, overrides, extra):
         cf = dataclasses.replace(cf, reward_noise=overrides["reward_noise"])
     if "observation_noise" in overrides and cf is not None:
         cf = dataclasses.replace(cf, observation_noise=overrides["observation_noise"])
+    if "effect_noise" in overrides and cf is not None:
+        cf = dataclasses.replace(cf, effect_noise=overrides["effect_noise"])
     if "ucb_c" in overrides:
         ucb_c = float(overrides["ucb_c"])
 

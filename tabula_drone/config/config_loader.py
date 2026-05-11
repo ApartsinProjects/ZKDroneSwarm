@@ -149,8 +149,9 @@ class MFPolicyConfig:
 @dataclass
 class CollaborativeFilteringConfig:
     """Collaborative filtering policy configuration."""
-    reward_noise: float
-    observation_noise: float
+    reward_noise: float            # per-drone observation noise on rewards
+    observation_noise: float       # action-identity corruption probability
+    effect_noise: float = 0.0      # single per-action noise on the actual outcome (shared across observers)
     enable_tsne_enrichment: bool = False
     ep_greedy_cf: Optional[EpGreedyCFConfig] = None
     ucb_cf: Optional[UCBCFConfig] = None

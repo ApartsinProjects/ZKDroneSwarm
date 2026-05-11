@@ -290,9 +290,9 @@ The right-hand side approaches 1 as $N \to \infty$, giving non-trivial lower bou
 </ul>
 
 <div class="lemma-box" style="background:#fff8e9; border-left-color:#7e683e;">
-<strong>(ZK policy class).</strong> All theorems below are stated for the ZK policy class
-$$\Pi_{\mathrm{ZK}} = \left\{\pi : a_t^{\pi}(i) \in \sigma\bigl(\mathcal{F}_{t-1}^{\mathrm{pub}}, i\bigr) \ \forall t, i\right\},$$
-where $\mathcal{F}_{t-1}^{\mathrm{pub}} = \sigma(\{a_s(\cdot), \tilde{r}_s\}_{s &lt; t})$ is the broadcast history and $i$ is the agent index. Under this definition, ZK forbids transmission of any private state (latent vector, embedding row, policy parameters) between agents, and forbids conditioning on $z_i^a, z_j^t, h_j$. It does <em>not</em> forbid multiple agents independently computing the same function of the broadcast: a policy that uses a single centralised estimator computed deterministically from the broadcast (e.g., ESTR of &sect;7.22 in the main paper) is in $\Pi_{\mathrm{ZK}}$ because each agent could in principle compute that estimator independently and obtain the same result. This is the formal counterpart of the computation principle stated in &sect;3.2 of the main paper.
+<strong>(ZK policy class with per-drone noise).</strong> All theorems below are stated for the ZK policy class
+$$\Pi_{\mathrm{ZK}} = \left\{\pi : a_t^{\pi}(i) \in \sigma\bigl(\mathcal{F}_{t-1}^{\mathrm{pub}, i}, i\bigr) \ \forall t, i\right\},$$
+where $\mathcal{F}_{t-1}^{\mathrm{pub}, i} = \sigma(\{a_s(\cdot), \tilde{r}_s^{(i)}\}_{s &lt; t})$ is agent $i$'s <em>personal noisy view</em> of the broadcast history. Two noise channels distinguish agents' views: action-identity noise $\pi_s$ (shared per step, $\hat s_t$ identical across agents) and reward noise $\sigma_r$ (drawn independently per receiving agent, so $\tilde r_t^{(i)} \ne \tilde r_t^{(j)}$ in general). In the noise-free limit $\sigma_r = \pi_s = 0$, all agents observe the same broadcast and any centralised estimator is informationally equivalent to per-agent computation (the case implemented by ESTR). Under positive $\sigma_r$, per-agent estimators are genuinely informationally distinct and the class admits cross-pollination noise averaging &mdash; the mechanism behind Theorem 6&prime;'s $\sqrt{m}$ advantage for factor models in the high-noise regime. ZK forbids transmission of any private state between agents and forbids conditioning on $z_i^a, z_j^t, h_j$.
 </div>
 
 <!-- ====================================================================== -->
