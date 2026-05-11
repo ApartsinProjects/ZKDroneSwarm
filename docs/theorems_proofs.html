@@ -289,6 +289,12 @@ The right-hand side approaches 1 as $N \to \infty$, giving non-trivial lower bou
     <li><strong>Shorthand:</strong> $\rho := 1/d$ (per-pull expected reward of a random match in one-hot), $\Delta := 1 - \rho$.</li>
 </ul>
 
+<div class="lemma-box" style="background:#fff8e9; border-left-color:#7e683e;">
+<strong>(ZK policy class).</strong> All theorems below are stated for the ZK policy class
+$$\Pi_{\mathrm{ZK}} = \left\{\pi : a_t^{\pi}(i) \in \sigma\bigl(\mathcal{F}_{t-1}^{\mathrm{pub}}, i\bigr) \ \forall t, i\right\},$$
+where $\mathcal{F}_{t-1}^{\mathrm{pub}} = \sigma(\{a_s(\cdot), \tilde{r}_s\}_{s &lt; t})$ is the broadcast history and $i$ is the agent index. Under this definition, ZK forbids transmission of any private state (latent vector, embedding row, policy parameters) between agents, and forbids conditioning on $z_i^a, z_j^t, h_j$. It does <em>not</em> forbid multiple agents independently computing the same function of the broadcast: a policy that uses a single centralised estimator computed deterministically from the broadcast (e.g., ESTR of &sect;7.22 in the main paper) is in $\Pi_{\mathrm{ZK}}$ because each agent could in principle compute that estimator independently and obtain the same result. This is the formal counterpart of the computation principle stated in &sect;3.2 of the main paper.
+</div>
+
 <!-- ====================================================================== -->
 <h2 id="thm1">3. Theorem 1: UCB-Homo Collapse</h2>
 
