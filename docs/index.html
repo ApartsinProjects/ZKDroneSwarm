@@ -56,9 +56,21 @@
         <h1 style="text-align: center; margin-bottom: 0.5em;">Zero-Knowledge Multi-Robot Task Allocation: A Collaborative Filtering Approach</h1>
         
         <p style="text-align: center; margin-top: 0; margin-bottom: 2em;">
-            <strong>Yigal Meshulam</strong> &nbsp;&middot;&nbsp; <strong>Alexander Apartsin</strong> &nbsp;&middot;&nbsp; <strong>Yehudit Aperstein</strong>
+            <strong>Yigal Meshulam</strong> &nbsp;&middot;&nbsp; <strong>Yehudit Aperstein</strong> &nbsp;&middot;&nbsp; <strong>Alexander Apartsin</strong>
         </p>
         
+
+        <section class="highlights">
+            <h4>Highlights</h4>
+            <ul>
+                <li>ZK-MRTA formalizes task allocation with no prior knowledge, capabilities, or communication</li>
+                <li>Decentralized MF policy learns latent drone-target compatibility from shared observations</li>
+                <li>Policy closes ~92% of the efficiency gap to an oracle benchmark in 35 training episodes</li>
+                <li>Learned embeddings self-organize to reflect hidden ground-truth compatibility modes</li>
+                <li>Crowding and overkill identified as structural byproducts of the zero-knowledge constraint</li>
+            </ul>
+        </section>
+
 <h1>Abstract</h1>
         
         <p>
@@ -66,8 +78,13 @@
         </p>
         
         <p>
-            To evaluate this setting, the paper introduces a Gymnasium-compatible PettingZoo benchmark that enforces zero-knowledge observability constraints and generates configurable hidden compatibility structure. The environment records policy-agnostic measures of task efficiency and coordination quality. Preliminary results on multi-agent scenarios with hidden compatibility structure show that the proposed policy substantially reduces episode length relative to a random baseline, closes a significant portion of the match-quality gap to an oracle benchmark, and recovers embedding structure that aligns with the hidden drone-target compatibility modes in the tested configuration. These early findings suggest that meaningful latent structure and useful decentralized coordination can emerge under strict zero-knowledge constraints, while also surfacing characteristic limits of the setting, including crowding and overkill causing the system to behave less optimally — a characteristic byproduct of the matrix-factorization policy's decentralized and communication-free nature.
+            To evaluate this setting, the paper introduces a Gymnasium-compatible PettingZoo benchmark that enforces zero-knowledge observability constraints and generates configurable hidden compatibility structure. The environment records policy-agnostic measures of task efficiency and coordination quality. Preliminary results on multi-agent scenarios with hidden compatibility structure show that the proposed policy substantially reduces episode length relative to a random baseline, closes a significant portion of the match-quality gap to an oracle benchmark, and recovers embedding structure that aligns with the hidden drone-target compatibility modes in the tested configuration. These early findings suggest that meaningful latent structure and useful decentralized coordination can emerge under strict zero-knowledge constraints, while also surfacing structural limits of the setting: crowding, arising from independent agents converging on the same high-affinity targets, and overkill, arising from the absence of remaining-HP visibility, both emerge as inherent byproducts of the zero-knowledge constraint rather than as incidental artifacts of the method.
         </p>
+
+
+        <section class="keywords">
+            <p><strong>Keywords:</strong> multi-robot task allocation; decentralized multi-agent systems; collaborative filtering; matrix factorization; zero-knowledge coordination; swarm robotics; online latent-factor learning</p>
+        </section>
 
 <h1>1. Introduction</h1>
         
@@ -76,7 +93,7 @@
         </p>
 
         <p>
-            These challenges fall within the broader problem of Multi-Robot Task Allocation (MRTA), which studies how tasks should be distributed across multiple agents to optimize system-level performance [7], [8]. Classical MRTA approaches — optimization-based assignment, market-based bidding, reinforcement learning, and coalition formation — differ substantially in mechanism but share a common informational premise: the allocation process relies on some combination of prior knowledge about task costs or difficulty, prior knowledge about agent capabilities or types, and explicit inter-agent communication to coordinate assignments [4], [10], [14]. Such assumptions are often appropriate in structured environments, but they become limiting when task properties are hidden, agent capabilities are not known in advance, and a reliable coordination channel is unavailable.
+            These challenges fall within the broader problem of Multi-Robot Task Allocation (MRTA), which studies how tasks should be distributed across multiple agents to optimize system-level performance [7], [8]. Classical MRTA approaches, optimization-based assignment, market-based bidding, reinforcement learning, and coalition formation, differ substantially in mechanism but share a common informational premise: the allocation process relies on some combination of prior knowledge about task costs or difficulty, prior knowledge about agent capabilities or types, and explicit inter-agent communication to coordinate assignments [4], [10], [14]. Such assumptions are often appropriate in structured environments, but they become limiting when task properties are hidden, agent capabilities are not known in advance, and a reliable coordination channel is unavailable.
         </p>
 
         <p>
@@ -84,11 +101,11 @@
         </p>
 
         <p>
-            A third relevant framework is multi-armed bandits (MAB) and their cooperative extensions. Classical bandit theory characterizes optimal exploration–exploitation policies for a single agent facing unknown reward distributions [17], [18]. Multiplayer and cooperative bandit variants extend this to settings where agents share an exploration problem and may coordinate to improve sample efficiency [36]. Bandit formulations capture the no-prior-knowledge aspect of ZK-MRTA, but they treat each agent-task pair as an independent arm. In ZK-MRTA, the hidden compatibility geometry creates statistical dependencies across pairs: the payoff of assigning drone \(a_i\) to task \(t_j\) is not independent of the payoff of assigning drone \(a_k\) to \(t_j\), because both payoffs reflect the same underlying latent task structure. A model that can represent and exploit this shared structure can generalize far more efficiently from sparse experience than a pure bandit approach.
+            Multi-armed bandits (MAB) and their cooperative extensions form a third relevant framework. Classical bandit theory characterizes optimal exploration–exploitation policies for a single agent facing unknown reward distributions [17], [18]. Multiplayer and cooperative bandit variants extend this to settings where agents share an exploration problem and may coordinate to improve sample efficiency [36]. Bandit formulations capture the no-prior-knowledge aspect of ZK-MRTA, but they treat each agent-task pair as an independent arm. In ZK-MRTA, the hidden compatibility geometry creates statistical dependencies across pairs: the payoff of assigning drone \(a_i\) to task \(t_j\) is not independent of the payoff of assigning drone \(a_k\) to \(t_j\), because both payoffs reflect the same underlying latent task structure. A model that can represent and exploit this shared structure can generalize far more efficiently from sparse experience than a pure bandit approach.
         </p>
 
         <p>
-            This paper addresses the intersection of these gaps by introducing Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA), a problem formulation in which agents must allocate tasks without prior knowledge of task attributes, without knowledge of their own or others' capabilities, and without direct communication. Unlike Dec-POMDP formulations, agents also lack knowledge of the reward model itself. Unlike standard bandit approaches, the setting assumes a hidden latent compatibility geometry across agent-task pairs — a structure that can be learned through decentralized matrix factorization. Under this formulation, agents observe only the outcomes of their own actions and a shared public summary of the previous step's interactions; the hidden compatibility structure is never exposed directly.
+            This paper addresses all three gaps together by introducing Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA), a problem formulation in which agents must allocate tasks without prior knowledge of task attributes, without knowledge of their own or others' capabilities, and without direct communication. Unlike Dec-POMDP formulations, agents also lack knowledge of the reward model itself. Unlike standard bandit approaches, the setting assumes a hidden latent compatibility geometry across agent-task pairs, a structure that can be learned through decentralized matrix factorization. Under this formulation, agents observe only the outcomes of their own actions and a shared public summary of the previous step's interactions; the hidden compatibility structure is never exposed directly.
         </p>
 
         <p>
@@ -100,14 +117,10 @@
         </p>
 
         <p>
-            This paper makes three main contributions. First, it formalizes ZK-MRTA as a distinct task-allocation setting in which compatibility, capability, and task structure are hidden from agents and cannot be recovered through communication, and defines a suite of strategy-independent performance metrics for evaluating behavior under these constraints. Second, it introduces a decentralized matrix-factorization policy that reinterprets collaborative filtering as online latent-utility learning from sparse public interaction outcomes, with each agent maintaining private embedding matrices updated via SGD from the shared observation stream. Third, it presents a modular benchmark environment and uses it to provide a first empirical evaluation of the method in a single preliminary configuration, including analysis of latent-structure recovery, coordination dynamics, and efficiency relative to random and oracle baselines.
+            Three contributions are made. First, it formalizes ZK-MRTA as a distinct task-allocation setting in which compatibility, capability, and task structure are hidden from agents and cannot be recovered through communication, and defines a suite of strategy-independent performance metrics for evaluating behavior under these constraints. Second, it introduces a decentralized matrix-factorization policy that reinterprets collaborative filtering as online latent-utility learning from sparse public interaction outcomes, with each agent maintaining private embedding matrices updated via SGD from the shared observation stream. Third, it presents a modular benchmark environment and uses it to provide a first empirical evaluation of the method in a single preliminary configuration, including analysis of latent-structure recovery, coordination dynamics, and efficiency relative to random and oracle baselines.
         </p>
 
 <h1>2. Literature Review</h1>
-        
-        <p>
-            This section situates ZK-MRTA at the intersection of three relevant literatures: swarm robotics and MRTA, decentralized online learning and multi-agent frameworks, and collaborative filtering with latent-factor models. The goal is not only to survey prior work, but to clarify which assumptions dominate existing approaches, where those assumptions become limiting under strict zero-knowledge constraints, and why matrix-factorization-based latent-utility learning provides a suitable theoretical foundation for the method studied in this paper.
-        </p>
 
         <h2>2.1 Swarm Robotics and the Emergence of MRTA</h2>
 
@@ -152,7 +165,7 @@
         <h3>2.3.2 Cooperative and Multiplayer Bandits</h3>
 
         <p>
-            When multiple agents face a shared exploration problem, cooperative bandit variants become relevant. Hillel et al. [36] showed that \(k\) players exploring a shared bandit environment and communicating their statistics can achieve \(\sqrt{k}\) times better sample complexity than a single player, quantifying the communication-versus-exploration tradeoff. More recent work has pushed toward minimal coordination: Wang et al. [37] showed that fully decentralized multiplayer MAB algorithms can match the regret of a centralized controller without any inter-agent messaging, and Agarwal et al. [38] characterized achievable regret under only \(O(\log T)\) communication rounds per agent. In the absence of any communication channel, as required by ZK-MRTA, even these minimal coordination protocols are unavailable. The only shared information is the public step summary visible to all agents simultaneously; coordination must emerge implicitly. This is a strictly harder regime than cooperative bandits with communication. What ZK-MRTA agents can do instead is leverage the latent structure of the task space — an aspect absent from all bandit formulations — to generalize across under-observed pairs.
+            When multiple agents face a shared exploration problem, cooperative bandit variants become relevant. Hillel et al. [36] showed that \(k\) players exploring a shared bandit environment and communicating their statistics can achieve \(\sqrt{k}\) times better sample complexity than a single player, quantifying the communication-versus-exploration tradeoff. More recent work has pushed toward minimal coordination: Wang et al. [37] showed that fully decentralized multiplayer MAB algorithms can match the regret of a centralized controller without any inter-agent messaging, and Agarwal et al. [38] characterized achievable regret under only \(O(\log T)\) communication rounds per agent. In the absence of any communication channel, as required by ZK-MRTA, even these minimal coordination protocols are unavailable. The only shared information is the public step summary visible to all agents simultaneously; coordination must emerge implicitly. This is a strictly harder regime than cooperative bandits with communication. What ZK-MRTA agents can do instead is leverage the latent structure of the task space, an aspect absent from all bandit formulations, to generalize across under-observed pairs.
         </p>
 
         <h3>2.3.3 Dec-POMDPs and Independent Learning</h3>
@@ -162,7 +175,7 @@
         </p>
 
         <p>
-            ZK-MRTA is strictly more constrained than standard Dec-POMDP formulations in one important respect: the reward model itself is unknown. In a Dec-POMDP, agents know the reward function — they know how well a given action performs in a given state — even if they cannot observe the full state directly. The learning challenge concerns the <em>state</em>, not the reward model. In ZK-MRTA, agents do not know which tasks they are effective against, so the compatibility structure that determines the reward function is itself a latent quantity to be inferred from interaction outcomes. Bayes-adaptive extensions of Dec-POMDPs can in principle represent reward-model uncertainty, but practical independent-learning work typically inherits the known-reward assumption. ZK-MRTA removes this assumption by design, placing it outside the scope of what existing Dec-POMDP approaches directly address.
+            ZK-MRTA is strictly more constrained than standard Dec-POMDP formulations in one important respect: the reward model itself is unknown. In a Dec-POMDP, agents know the reward function, they know how well a given action performs in a given state, even if they cannot observe the full state directly. The learning challenge concerns the <em>state</em>, not the reward model. In ZK-MRTA, agents do not know which tasks they are effective against, so the compatibility structure that determines the reward function is itself a latent quantity to be inferred from interaction outcomes. Bayes-adaptive extensions of Dec-POMDPs can in principle represent reward-model uncertainty, but practical independent-learning work typically inherits the known-reward assumption. ZK-MRTA removes this assumption by design, placing it outside the scope of what existing Dec-POMDP approaches directly address.
         </p>
 
         <h3>2.3.4 Mean-Field Approximations for Large Swarms</h3>
@@ -178,7 +191,7 @@
         <h3>2.3.5 Emergent Roles and Heterogeneous-Agent MARL</h3>
 
         <p>
-            A strand of recent MARL research directly addresses the emergence of specialization in agent populations without prior specification of roles or capabilities. ROMA [42] shows that agents can learn stochastic role embeddings from behavioral trajectories, developing diverse task specializations without being given role labels or capability descriptions. RODE [43] decomposes the joint action space into role-specific sub-spaces by clustering actions according to their effects in the environment, again without requiring predefined capability information. Both approaches develop heterogeneous specializations purely from interaction experience — a mechanism conceptually close to ZK-MRTA agents developing task-compatibility alignment through SGD updates on private embeddings.
+            A strand of recent MARL research directly addresses the emergence of specialization in agent populations without prior specification of roles or capabilities. ROMA [42] shows that agents can learn stochastic role embeddings from behavioral trajectories, developing diverse task specializations without being given role labels or capability descriptions. RODE [43] decomposes the joint action space into role-specific sub-spaces by clustering actions according to their effects in the environment, again without requiring predefined capability information. Both approaches develop heterogeneous specializations purely from interaction experience, a mechanism conceptually close to ZK-MRTA agents developing task-compatibility alignment through SGD updates on private embeddings.
         </p>
 
         <p>
@@ -200,7 +213,7 @@
         </p>
 
         <p>
-            The closest work in the theoretical literature is the multi-user low-rank RL setting studied by Nagaraj et al. [39], where multiple agents share an MDP with a low-rank reward structure and learn without sharing per-agent reward functions — a formulation structurally similar to ZK-MRTA's latent compatibility matrix. However, that work assumes centralized aggregation of trajectories for joint learning; ZK-MRTA requires each agent to maintain strictly private parameters updated only from the shared public observation stream. The adaptation proposed in this paper — decentralized online MF as latent-utility learning — bridges this gap by combining the latent-structure assumption from the low-rank RL literature with the decentralized update architecture from online collaborative filtering.
+            The closest work in the theoretical literature is the multi-user low-rank RL setting studied by Nagaraj et al. [39], where multiple agents share an MDP with a low-rank reward structure and learn without sharing per-agent reward functions, a formulation structurally similar to ZK-MRTA's latent compatibility matrix. However, that work assumes centralized aggregation of trajectories for joint learning; ZK-MRTA requires each agent to maintain strictly private parameters updated only from the shared public observation stream. The adaptation proposed in this paper, decentralized online MF as latent-utility learning, bridges this gap by combining the latent-structure assumption from the low-rank RL literature with the decentralized update architecture from online collaborative filtering.
         </p>
 
         <h2>2.5 Collaborative Filtering as a Relevant Theoretical Foundation</h2>
@@ -224,7 +237,7 @@
         </p>
 
         <p>
-            Singular Value Decomposition (SVD) and related factorization methods are especially relevant in sparse settings because they extract dominant latent structure while suppressing noise [23]. Probabilistic extensions of matrix factorization further improve robustness under uncertainty by modeling latent factors and observations probabilistically [24], [26]. Collectively, this literature shows that latent-factor methods are well suited to settings in which signal is sparse, indirect, and partially noisy — precisely the regime that characterizes ZK-MRTA.
+            Singular Value Decomposition (SVD) and related factorization methods are especially relevant in sparse settings because they extract dominant latent structure while suppressing noise [23]. Probabilistic extensions of matrix factorization further improve robustness under uncertainty by modeling latent factors and observations probabilistically [24], [26]. Collectively, this literature shows that latent-factor methods are well suited to settings in which signal is sparse, indirect, and partially noisy: precisely the regime that characterizes ZK-MRTA.
         </p>
 
         <p>
@@ -232,32 +245,28 @@
         </p>
 
         <p>
-            A recent line of work has formalized the connection between matrix factorization and bandit feedback. Katariya et al. [40] introduced stochastic rank-1 bandits, where the reward of a (row, column) arm pair equals the product of latent row and column values — the minimal non-trivial factorization structure and a direct precursor to the compatibility matrix in ZK-MRTA. Kang et al. [41] extended this to general low-rank matrix bandit problems with efficient upper-confidence-bound algorithms, and Nagaraj et al. [39] extended the low-rank reward assumption to the multi-user RL setting, showing that multiple agents sharing a low-rank reward structure can learn more efficiently than agents treating each arm independently. Taken together, this line of work provides theoretical grounding for the core assumption of ZK-MRTA: that a low-rank compatibility matrix governs agent-task effectiveness, and that this structure is identifiable and exploitable from sparse bandit feedback.
+            A recent line of work has formalized the connection between matrix factorization and bandit feedback. Katariya et al. [40] introduced stochastic rank-1 bandits, where the reward of a (row, column) arm pair equals the product of latent row and column values, the minimal non-trivial factorization structure and a direct precursor to the compatibility matrix in ZK-MRTA. Kang et al. [41] extended this to general low-rank matrix bandit problems with efficient upper-confidence-bound algorithms, and Nagaraj et al. [39] extended the low-rank reward assumption to the multi-user RL setting, showing that multiple agents sharing a low-rank reward structure can learn more efficiently than agents treating each arm independently. Taken together, this line of work provides theoretical grounding for the core assumption of ZK-MRTA: that a low-rank compatibility matrix governs agent-task effectiveness, and that this structure is identifiable and exploitable from sparse bandit feedback.
         </p>
 
         <p>
-            More recent neural collaborative filtering [28] and factorization machines [29] offer greater representational flexibility but require substantially more data and computational resources. For the decentralized, low-data regime considered here — where each agent must learn from tens to hundreds of private observations without access to centralized training or shared gradients — classical SGD-based matrix factorization offers a more appropriate balance between expressiveness, data efficiency, and interpretability. The connection between latent-factor learning and bandit-style exploration, established by Kawale et al. [19] and formalized in the low-rank bandit literature [40], [41], further reinforces the suitability of this family of methods for sequential decision-making under sparse feedback.
+            More recent neural collaborative filtering [28] and factorization machines [29] offer greater representational flexibility but require substantially more data and computational resources. For the decentralized, low-data regime considered here, where each agent must learn from tens to hundreds of private observations without access to centralized training or shared gradients, classical SGD-based matrix factorization offers a more appropriate balance between expressiveness, data efficiency, and interpretability. The connection between latent-factor learning and bandit-style exploration, established by Kawale et al. [19] and formalized in the low-rank bandit literature [40], [41], further reinforces the suitability of this family of methods for sequential decision-making under sparse feedback.
         </p>
 
         <p>
-            A further branch of recent work considers <strong>federated and decentralized collaborative filtering</strong>, in which latent factors are learned across distributed nodes without transmitting raw interaction data [32]. Although this line of research addresses distribution and privacy rather than the strict zero-knowledge regime studied here, it confirms that latent-factor learning can be performed without centralized data aggregation — reinforcing the suitability of MF-based methods for decentralized ZK-MRTA.
+            A further branch of recent work considers <strong>federated and decentralized collaborative filtering</strong>, in which latent factors are learned across distributed nodes without transmitting raw interaction data [32]. Although this line of research addresses distribution and privacy rather than the strict zero-knowledge regime studied here, it confirms that latent-factor learning can be performed without centralized data aggregation, reinforcing the suitability of MF-based methods for decentralized ZK-MRTA.
         </p>
 
         <h2>2.7 Summary</h2>
 
         <p>
-            Taken together, the reviewed literatures converge on a single synthesis. Classical MRTA provides the structural vocabulary — taxonomies, solution families, heterogeneity — but assumes information access that ZK-MRTA explicitly removes. Online learning and bandit frameworks address decision-making under uncertainty but treat agent-task pairs as independent arms and cannot exploit shared latent structure. Dec-POMDP and independent learning frameworks remove the communication requirement but preserve the known-reward assumption. Cooperative bandit work quantifies the value of explicit coordination but requires at least minimal messaging [36], [37], [38]. Mean-field MARL scales coordination to large populations but erases agent heterogeneity [35]. Emergent-role MARL methods recover specialization without predefined capabilities [42], [43], [45], but in settings with explicit reward feedback and shared training — not the strict zero-knowledge public-observation regime of ZK-MRTA. Recent low-rank bandit and multi-user RL theory [39], [40], [41] provides the closest theoretical grounding, but assumes centralized trajectory aggregation that ZK-MRTA removes.
+            Taken together, the three literatures point toward a single synthesis. Classical MRTA provides the structural vocabulary, taxonomies, solution families, heterogeneity, but assumes information access that ZK-MRTA explicitly removes. Online learning and bandit frameworks address decision-making under uncertainty but treat agent-task pairs as independent arms and cannot exploit shared latent structure. Dec-POMDP and independent learning frameworks remove the communication requirement but preserve the known-reward assumption. Cooperative bandit work quantifies the value of explicit coordination but requires at least minimal messaging [36], [37], [38]. Mean-field MARL scales coordination to large populations but erases agent heterogeneity [35]. Emergent-role MARL methods recover specialization without predefined capabilities [42], [43], [45], but in settings with explicit reward feedback and shared training; not the strict zero-knowledge public-observation regime of ZK-MRTA. Recent low-rank bandit and multi-user RL theory [39], [40], [41] provides the closest theoretical grounding, but assumes centralized trajectory aggregation that ZK-MRTA removes.
         </p>
 
         <p>
-            Collaborative filtering, and in particular online matrix factorization, supplies exactly what the other frameworks lack: a principled mechanism for inferring hidden compatibility from sparse, incrementally accumulated observations, without explicit feature engineering, centralized knowledge, or direct parameter exchange. The adaptation proposed in this paper — decentralized online MF as latent-utility learning for cooperative task allocation — is motivated by this precise gap at the intersection of existing frameworks, and its connection to the emerging low-rank bandit and heterogeneous MARL literatures provides both the theoretical motivation and the empirical context for the approach.
+            Collaborative filtering, and in particular online matrix factorization, supplies exactly what the other frameworks lack: a principled mechanism for inferring hidden compatibility from sparse, incrementally accumulated observations, without explicit feature engineering, centralized knowledge, or direct parameter exchange. The adaptation proposed in this paper, decentralized online MF as latent-utility learning for cooperative task allocation, is motivated by this precise gap at the intersection of existing frameworks, and its connection to the emerging low-rank bandit and heterogeneous MARL literatures provides both the theoretical motivation and the empirical context for the approach.
         </p>
 
 <h1>3. Model and Problem Definition</h1>
-        
-        <p class="intro-text">
-            This section formalizes ZK-MRTA as a sequential multi-agent decision problem under strict informational constraints. It defines the core assumptions, interaction model, objectives, and notation used throughout the paper; notation is summarized in §3.10.
-        </p>
         
         <h2>3.1 Problem Setting</h2>
         
@@ -300,7 +309,7 @@
             These assumptions eliminate access to explicit models of task-agent compatibility and require all decision-making to rely solely on observed interaction outcomes.
         </p>
         <p>
-            <strong>Note on terminology.</strong> The label <em>zero-knowledge</em> refers specifically to the absence of prior knowledge about task attributes and agent capabilities — not to the absence of all environmental observations. Agents do receive a public summary of interaction outcomes at each step (the joint action and reward vectors); this broadcast carries no capability or identity information and does not constitute communication in the traditional sense. This usage follows the informational interpretation common in the MRTA literature, distinct from the cryptographic usage.
+            <strong>Note on terminology.</strong> The label <em>zero-knowledge</em> refers specifically to the absence of prior knowledge about task attributes and agent capabilities, not to the absence of all environmental observations. Agents do receive a public summary of interaction outcomes at each step (the joint action and reward vectors); this broadcast carries no capability or identity information and does not constitute communication in the traditional sense. This usage follows the informational interpretation common in the MRTA literature, distinct from the cryptographic usage.
         </p>
         
         <h2>3.3 Relation to Classical MRTA</h2>
@@ -326,7 +335,7 @@
             In contrast, the ZK-MRTA framework removes access to both $C$ and $G$. Agents must therefore infer task suitability indirectly, based solely on observed outcomes, without explicit knowledge of task properties or their own capabilities.
         </p>
         <p>
-            ZK-MRTA also differs from standard Dec-POMDP formulations [33], [34], which assume a known reward function: agents in a Dec-POMDP know how well a given action performs in a given world state, even if they cannot observe the full state. In ZK-MRTA, the reward function — specifically, the compatibility structure that determines how effective each drone-task pairing is — is itself the latent quantity to be learned. This places ZK-MRTA strictly outside the standard Dec-POMDP assumption set and motivates the online latent-factor learning approach developed in this paper.
+            ZK-MRTA also differs from standard Dec-POMDP formulations [33], [34], which assume a known reward function: agents in a Dec-POMDP know how well a given action performs in a given world state, even if they cannot observe the full state. In ZK-MRTA, the reward function: specifically, the compatibility structure that determines how effective each drone-task pairing is, is itself the latent quantity to be learned. This places ZK-MRTA strictly outside the standard Dec-POMDP assumption set and motivates the online latent-factor learning approach developed in this paper.
         </p>
         
         <h2>3.4 Sequential Interaction Model</h2>
@@ -349,7 +358,7 @@
         </p>
         
         <p>
-            Within a single time step, individual agents' actions are resolved in a uniformly random order. This ordering governs the sequential resolution of contending engagements — for example, when multiple agents target the same task, an earlier-processed agent may neutralize it before a later-processed agent's shot lands.
+            Within a single time step, individual agents' actions are resolved in a uniformly random order. This ordering governs the sequential resolution of contending engagements, for example, when multiple agents target the same task, an earlier-processed agent may neutralize it before a later-processed agent's shot lands.
         </p>
         
         <h2>3.5 Problem Variants</h2>
@@ -387,10 +396,10 @@
         <p>where:</p>
         
         <ul>
-            <li>$\mathbf{p} \in \mathbb{R}^{n \times 2}$ — spatial positions of all tasks</li>
-            <li>$\mathbf{b} \in \{0,1\}^n$ — binary active/inactive status of each task</li>
-            <li>$\hat{\mathbf{s}}_{t-1} \in \{0,\ldots,n\}^m$ — the (possibly noisy) joint action vector from the previous step (which task each agent selected)</li>
-            <li>$\tilde{\mathbf{r}}_{t-1} \in \mathbb{R}^m$ — the (possibly noisy) reward received by each agent in the previous step</li>
+            <li>$\mathbf{p} \in \mathbb{R}^{n \times 2}$: spatial positions of all tasks</li>
+            <li>$\mathbf{b} \in \{0,1\}^n$: binary active/inactive status of each task</li>
+            <li>$\hat{\mathbf{s}}_{t-1} \in \{0,\ldots,n\}^m$: the (possibly noisy) joint action vector from the previous step (which task each agent selected)</li>
+            <li>$\tilde{\mathbf{r}}_{t-1} \in \mathbb{R}^m$: the (possibly noisy) reward received by each agent in the previous step</li>
         </ul>
         
         <p>
@@ -566,7 +575,7 @@
         
         <h2>3.11 Formal Definition of ZK-MRTA</h2>
         
-        <p><strong>Definition 1</strong> (Zero-Knowledge Multi-Robot Task Allocation — general problem class).</p>
+        <p><strong>Definition 1</strong> (Zero-Knowledge Multi-Robot Task Allocation: General Problem Class).</p>
         
         <p>A ZK-MRTA problem is defined by the tuple:</p>
         
@@ -588,7 +597,7 @@
         </p>
         
         <p>
-            The problem is subject to the Zero-Knowledge constraints defined in §3.2: agents have no prior knowledge of tasks or their own capabilities, cannot communicate, and must rely solely on $O$ at each step. The objective is to design decentralized agent behaviors — algorithms that map observations and private memory to actions — that improve the performance metrics $M$ (§3.9).
+            The problem is subject to the Zero-Knowledge constraints defined in §3.2: agents have no prior knowledge of tasks or their own capabilities, cannot communicate, and must rely solely on $O$ at each step. The objective is to design decentralized agent behaviors, algorithms that map observations and private memory to actions, that improve the performance metrics $M$ (§3.9).
         </p>
         
         <p>
@@ -611,14 +620,12 @@
 
 <h1>4. Methods</h1>
         
-        <p class="intro-text">
-            This section presents the three methods compared in the paper and frames them through a single distinction: what an agent <em>knows or infers</em> about the utility of an assignment (estimation) versus how that information is turned into an action (decision). This framing is useful in ZK-MRTA because the problem is defined precisely by the absence of prior knowledge, explicit communication, and direct access to hidden compatibility structure; different methods are therefore best read as alternative responses to the same core difficulty.
-        </p>
+        
         
         <h2>4.1 Random Baseline</h2>
         
         <p>
-            The random policy serves as the weakest baseline and lower-bound reference. It is fully ZK-compliant: it does not use target hit points, hidden target types, latent compatibility values, or any history of previous interactions. Instead, it reads only the visible active/inactive status of each target and samples uniformly from the valid actions.
+            The random policy serves as the weakest baseline, providing a performance floor. It is fully ZK-compliant: it does not use target hit points, hidden target types, latent compatibility values, or any history of previous interactions. Instead, it reads only the visible active/inactive status of each target and samples uniformly from the valid actions.
         </p>
         
         <p>
@@ -674,14 +681,14 @@
         </p>
         
         <p>
-            Although the predictor $\hat{r}_{kj}^{(a_i)}$ is defined for any drone $a_k$, agent $a_i$ only uses its own row $P_{i,:}^{(a_i)}$ when choosing an action (§4.4). The remaining rows are nevertheless learned, and this is necessary rather than incidental: updating the shared target embedding $U^{(a_i)}_{:,j}$ from drone $a_m$'s observed engagement requires agent $a_i$'s current estimate of $P^{(a_i)}_{m,:}$, so maintaining the full drone-embedding matrix is what enables the target embeddings to absorb information from swarm-wide interactions. This is the classical collaborative-filtering transfer effect: updates driven by other drones refine the shared $U^{(a_i)}$ and thereby sharpen the self-row's predictions. Each agent's parameters remain private — collaboration flows through the shared observation stream, not through parameter exchange.
+            Although the predictor $\hat{r}_{kj}^{(a_i)}$ is defined for any drone $a_k$, agent $a_i$ only uses its own row $P_{i,:}^{(a_i)}$ when choosing an action (§4.4). The remaining rows are nevertheless learned, and this is necessary rather than incidental: updating the shared target embedding $U^{(a_i)}_{:,j}$ from drone $a_m$'s observed engagement requires agent $a_i$'s current estimate of $P^{(a_i)}_{m,:}$, so maintaining the full drone-embedding matrix is what enables the target embeddings to absorb information from swarm-wide interactions. This is the classical collaborative-filtering transfer effect: updates driven by other drones refine the shared $U^{(a_i)}$ and thereby sharpen the self-row's predictions. Each agent's parameters remain private; collaboration flows through the shared observation stream, not through parameter exchange.
         </p>
         
         <p>
             This method is particularly well suited to ZK-MRTA because the relevant interaction matrix is not given in advance. Agents begin with no knowledge of true compatibility and must build an interaction structure gradually from sparse experience. The matrix-factorization policy addresses this by learning latent representations from observed rewards, thereby estimating hidden structure that cannot be read directly from the environment.
         </p>
         <p>
-            The structural assumption underlying this approach — that agent-task effectiveness is governed by a low-rank compatibility matrix — has a formal basis in the emerging low-rank bandit and multi-user RL literature. Katariya et al. [40] showed that a rank-1 interaction structure is learnable with sublinear regret from bandit feedback, and Kang et al. [41] extended this to general low-rank matrix bandit problems. Nagaraj et al. [39] established that multiple users sharing a low-rank reward structure can achieve significantly better sample efficiency than users learning independently, which motivates why each drone in ZK-MRTA maintains a full model of the swarm interaction matrix rather than only its own row. The ZK-MRTA setting differs from these in that agents cannot share raw trajectories with a central learner; they exploit the shared public observation stream instead. This difference motivates the decentralized SGD update architecture (§4.4.1) rather than centralized joint optimization.
+            The structural assumption underlying this approach, that agent-task effectiveness is governed by a low-rank compatibility matrix, has a formal basis in the emerging low-rank bandit and multi-user RL literature. Katariya et al. [40] showed that a rank-1 interaction structure is learnable with sublinear regret from bandit feedback, and Kang et al. [41] extended this to general low-rank matrix bandit problems. Nagaraj et al. [39] established that multiple users sharing a low-rank reward structure can achieve significantly better sample efficiency than users learning independently, which motivates why each drone in ZK-MRTA maintains a full model of the swarm interaction matrix rather than only its own row. The ZK-MRTA setting differs from these in that agents cannot share raw trajectories with a central learner; they exploit the shared public observation stream instead. This difference motivates the decentralized SGD update architecture (§4.4.1) rather than centralized joint optimization.
         </p>
         
         <h2>4.4 Action Selection</h2>
@@ -701,7 +708,7 @@
         <h3>4.4.1 Learning from Shared Interaction Data</h3>
         
         <p>
-            Learning relies on the public-observation assumption introduced in §3: after each step, every agent sees which drone engaged which target and the resulting reward signal, even though the underlying compatibility structure that generated those rewards remains hidden. Concretely, the public step summary exposes two arrays that drive the learner: the joint action vector identifies the engaged drone-target pairs $(a_i, t_j)$; and the per-agent reward vector provides the supervision target $y_{ij}$ in direct mode, or a single sample feeding the running mean in integration-matrix mode. No privileged state is consumed — the learner sees only what the environment makes public.
+            Learning relies on the public-observation assumption introduced in §3: after each step, every agent sees which drone engaged which target and the resulting reward signal, even though the underlying compatibility structure that generated those rewards remains hidden. Concretely, the public step summary exposes two arrays that drive the learner: the joint action vector identifies the engaged drone-target pairs $(a_i, t_j)$; and the per-agent reward vector provides the supervision target $y_{ij}$ in direct mode, or a single sample feeding the running mean in integration-matrix mode. No privileged state is consumed; the learner sees only what the environment makes public.
         </p>
         
         <p>
@@ -709,7 +716,7 @@
         </p>
         
         <ul>
-            <li><strong>Direct mode</strong>: The policy compares its predicted utility for each observed drone-target event directly to the corresponding observed reward. All events — including wasted shots on inactive targets — are used for gradient updates, because the reward stream always reflects compatibility rather than a separate invalid-action marker.</li>
+            <li><strong>Direct mode</strong>: The policy compares its predicted utility for each observed drone-target event directly to the corresponding observed reward. All events, including wasted shots on inactive targets, are used for gradient updates, because the reward stream always reflects compatibility rather than a separate invalid-action marker.</li>
             <li><strong>Integration-matrix mode</strong>: The policy first updates a running-mean interaction matrix and then uses that accumulated estimate as the supervision target. Every observed reward contributes to that running mean, including rewards from shots that were task-ineffective because the target had already been neutralized earlier in the step. This preserves the interpretation that the learner models compatibility from the public reward stream alone, while coordination costs remain visible through episode-level efficiency metrics rather than reward gating.</li>
         </ul>
         
@@ -833,7 +840,7 @@
             A benchmark instance is specified by a single JSON configuration file loaded through a typed configuration layer. Table 1 summarizes the top-level configuration groups and the axes of variation they control; this enumerates the surface over which the framework is reusable.
         </p>
         
-        <p><strong>Table 1 — Framework configuration surface.</strong></p>
+        <p><strong>Table 1: Framework configuration surface.</strong></p>
         
         <table style="width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.9rem;">
             <thead>
@@ -888,7 +895,7 @@
         </table>
         
         <p>
-            Scenario construction follows a fluent builder pattern (<code>LatentScenarioBuilder</code>) that takes the <code>latent_world</code> configuration and the drone/target groups and returns fully specified per-entity configurations, including hidden latent vectors. The environment itself is then instantiated from these configurations together with the noise parameters and horizon. This separation means new benchmark variants — different latent geometries, swarm sizes, task loads, or noise regimes — can be produced without modifying the environment class, which keeps the ZK-MRTA interaction contract fixed across studies.
+            Scenario construction follows a fluent builder pattern (<code>LatentScenarioBuilder</code>) that takes the <code>latent_world</code> configuration and the drone/target groups and returns fully specified per-entity configurations, including hidden latent vectors. The environment itself is then instantiated from these configurations together with the noise parameters and horizon. This separation means new benchmark variants, different latent geometries, swarm sizes, task loads, or noise regimes, can be produced without modifying the environment class, which keeps the ZK-MRTA interaction contract fixed across studies.
         </p>
         
         <h2>5.3 Latent Benchmark Construction</h2>
@@ -950,13 +957,13 @@
         </p>
         
         <p>
-            This logging layer is what allows the policy-agnostic metrics of §3.9 (time-to-completion, collisions, overkill, latent-match quality, and others) to be computed offline from identical traces, and it supports optional enrichments such as t-SNE projections of policy internal state — used in §7 to interpret emergent swarm behavior, and discussed in detail there.
+            This logging layer is what allows the policy-agnostic metrics of §3.9 (time-to-completion, collisions, overkill, latent-match quality, and others) to be computed offline from identical traces, and it supports optional enrichments such as t-SNE projections of policy internal state, used in §7 to interpret emergent swarm behavior, and discussed in detail there.
         </p>
         
         <h2>5.8 Summary</h2>
         
         <p>
-            The framework should be understood as a <strong>configurable latent benchmark environment</strong> for decentralized ZK-MRTA rather than as one fixed scenario. Its surface is defined by a small set of declarative choices — latent-world geometry, channel noise, task dynamics, reward mode, and logging — and its contract with policies is fixed by the observation tuple of §3.6 and the action space of §3.7. The next section specifies the particular parameter values and policy configurations used in the experiments reported in this paper.
+            The framework should be understood as a <strong>configurable latent benchmark environment</strong> for decentralized ZK-MRTA rather than as one fixed scenario. Its surface is defined by a small set of declarative choices, latent-world geometry, channel noise, task dynamics, reward mode, and logging, and its contract with policies is fixed by the observation tuple of §3.6 and the action space of §3.7. The next section specifies the particular parameter values and policy configurations used in the experiments reported in this paper.
         </p>
 
 <h1>6. Experiments</h1>
@@ -1016,7 +1023,7 @@
         </p>
         
         <p>
-            The direct supervision mode — in which the policy regresses directly against immediate rewards rather than accumulated integration estimates — is not evaluated here. Comparison of the two supervision modes is deferred to future work discussed in Section 8.
+            The direct supervision mode, in which the policy regresses directly against immediate rewards rather than accumulated integration estimates, is not evaluated here. Comparison of the two supervision modes is deferred to future work discussed in Section 8.
         </p>
         
         <h2>6.4 Evaluation Protocol</h2>
@@ -1086,14 +1093,12 @@
 
 <h1>7. Results</h1>
         
-        <p class="intro-text">
-            This section reports the results of the evaluation described in Section 6. It presents task-completion outcomes, cross-policy comparisons, learning dynamics, latent-structure recovery, coordination effects, and the convergence assessment for the decentralized matrix-factorization policy.
-        </p>
+        
         
         <h2>7.1 Task Completion</h2>
         
         <p>
-            All three policies — random, oracle, and matrix-factorization — successfully neutralized all 27 targets in their respective evaluation episodes. The task-completion criterion is therefore not a differentiating signal in this experiment: the MF policy achieved 100% success in all 35 training episodes, and both the random and oracle baselines succeeded in their single evaluation episodes.
+            All three policies, random, oracle, and matrix-factorization, successfully neutralized all 27 targets in their respective evaluation episodes. The task-completion criterion is therefore not a differentiating signal in this experiment: the MF policy achieved 100% success in all 35 training episodes, and both the random and oracle baselines succeeded in their single evaluation episodes.
         </p>
         
         <p>
@@ -1130,7 +1135,7 @@
             </tbody>
         </table>
         
-        <p><em>Table 1. Efficiency metrics (Steps, Total ammo, Shots per target, Latent mismatch, Overkill) should ideally be low; Quality metrics (Match quality, Targets neutralized) should be high. Collisions and Net damage are diagnostic indicators. Percentage columns show MF performance relative to each baseline — for efficiency metrics, negative values indicate improvement (lower is better); for quality metrics, positive values indicate improvement (higher is better).</em></p>
+        <p><em>Table 1. Efficiency metrics (Steps, Total ammo, Shots per target, Latent mismatch, Overkill) should ideally be low; Quality metrics (Match quality, Targets neutralized) should be high. Collisions and Net damage are diagnostic indicators. Percentage columns show MF performance relative to each baseline, for efficiency metrics, negative values indicate improvement (lower is better); for quality metrics, positive values indicate improvement (higher is better).</em></p>
         
         <p>
             In this configuration, the MF policy recovers most of the efficiency gap between random and oracle, reducing the step and ammo counts from 126 / 1,134 (random) to 67 / 603 (MF), compared with the oracle's 62 / 558. This places the learned policy within 8% of the oracle on both efficiency metrics. Average match quality improves from 0.308 (random) to 0.550 (MF), closing 70% of the gap to the oracle value of 0.654. Total latent mismatch is reduced by 62.5% relative to random, from 628.7 HP to 235.9 HP, though a substantial residual gap to the oracle (145.2 HP) remains.
@@ -1141,7 +1146,7 @@
         </p>
         
         <p>
-            <strong>Note on reward versus damage.</strong> The MF policy optimizes angular alignment between drone and target latent vectors (cosine reward), not physical damage directly. The efficiency gains reported above — reduced steps, improved match quality — are downstream consequences of better angular alignment, not of an objective that explicitly minimizes engagement time or damage waste. This distinction is central to interpreting the results: the policy learns <em>which targets suit which drones</em>, and faster task completion follows as a consequence, rather than being optimized for directly.
+            <strong>Note on reward versus damage.</strong> The MF policy optimizes angular alignment between drone and target latent vectors (cosine reward), not physical damage directly. The efficiency gains reported above, reduced steps, improved match quality, are downstream consequences of better angular alignment, not of an objective that explicitly minimizes engagement time or damage waste. This distinction is central to interpreting the results: the policy learns <em>which targets suit which drones</em>, and faster task completion follows as a consequence, rather than being optimized for directly.
         </p>
         
         <p>
@@ -1168,7 +1173,7 @@
                 </tr>
             </table>
             <figcaption>
-                <em>Figure 1. Engagement profiles by policy — Total HP (blue) and Active Targets (orange) as a percentage of initial values, plotted over episode timesteps.</em>
+                <em>Figure 1. Engagement profiles by policy: Total HP (blue) and Active Targets (orange) as a percentage of initial values, plotted over episode timesteps.</em>
             </figcaption>
         </figure>
         
@@ -1179,7 +1184,7 @@
         </p>
         
         <p>
-            <strong>Matrix-factorization policy (68 steps).</strong> The MF profile shows a substantially reduced HP-Active Targets gap. Target eliminations begin noticeably earlier — within approximately the first seven to eight steps — and the Active Targets curve descends in a more regular staircase pattern throughout the episode rather than clustering at the end. The two curves track each other more closely than in the random case, and the episode concludes in 68 steps. The gap is not eliminated, however: the HP curve consistently leads the Active Targets curve, indicating that damage is still partially distributed across multiple targets before each elimination occurs. This reflects the learned but imperfect focus-fire behavior of the policy: having inferred the dominant latent compatibility structure, it concentrates fire on high-affinity targets, but without access to remaining HP values it cannot schedule shots to eliminate targets sequentially in the way an HP-aware planner would.
+            <strong>Matrix-factorization policy (68 steps).</strong> The MF profile shows a substantially reduced HP-Active Targets gap. Target eliminations begin noticeably earlier, within approximately the first seven to eight steps, and the Active Targets curve descends in a more regular staircase pattern throughout the episode rather than clustering at the end. The two curves track each other more closely than in the random case, and the episode concludes in 68 steps. The gap is not eliminated, however: the HP curve consistently leads the Active Targets curve, indicating that damage is still partially distributed across multiple targets before each elimination occurs. This reflects the learned but imperfect focus-fire behavior of the policy: having inferred the dominant latent compatibility structure, it concentrates fire on high-affinity targets, but without access to remaining HP values it cannot schedule shots to eliminate targets sequentially in the way an HP-aware planner would.
         </p>
         
         <p>
@@ -1225,15 +1230,15 @@
         <p><em>Table 2. Selected episodes illustrating the three learning phases of the matrix-factorization policy. Bold values mark the best step count (episode 32) and best match quality (episode 35). All episodes achieved full target neutralization (27/27).</em></p>
         
         <p>
-            <strong>Phase 1 — Rapid Convergence (episodes 1–9).</strong> Steps drop 40% (184 → 111) and match quality nearly doubles (0.205 → 0.372) as the integration matrix rapidly fills — by episode 3, all drone-target pairs have been explored at least once.
+            <strong>Phase 1: Rapid Convergence (episodes 1–9).</strong> Steps drop 40% (184 → 111) and match quality nearly doubles (0.205 → 0.372) as the integration matrix rapidly fills, by episode 3, all drone-target pairs have been explored at least once.
         </p>
         
         <p>
-            <strong>Phase 2 — Mid-Training Plateau with Crowding (episodes 9–21).</strong> Improvement slows as steps stabilize near 75 and match quality oscillates around 0.50–0.53. Collision counts peak in this phase (reaching 579 at episode 12 among the selected episodes in Table 2): as predictions improve, agents converge on the same few high-affinity targets. Because the policy is decentralized, agents cannot divide targets — they independently arrive at similar greedy choices, producing emergent contention that temporarily limits further gains.
+            <strong>Phase 2: Mid-Training Plateau with Crowding (episodes 9–21).</strong> Improvement slows as steps stabilize near 75 and match quality oscillates around 0.50–0.53. Collision counts peak in this phase (reaching 579 at episode 12 among the selected episodes in Table 2): as predictions improve, agents converge on the same few high-affinity targets. Because the policy is decentralized, agents cannot divide targets, they independently arrive at similar greedy choices, producing emergent contention that temporarily limits further gains.
         </p>
         
         <p>
-            <strong>Phase 3 — Slow Late Refinement (episodes 21–35).</strong> Efficiency resumes a gradual improvement — steps fall to 67 and match quality reaches its training peak of 0.587 at episode 35. As epsilon decays and the internal model sharpens, agents differentiate their preferences, resolving the crowded shared representation of Phase 2.
+            <strong>Phase 3: Slow Late Refinement (episodes 21–35).</strong> Efficiency resumes a gradual improvement, steps fall to 67 and match quality reaches its training peak of 0.587 at episode 35. As epsilon decays and the internal model sharpens, agents differentiate their preferences, resolving the crowded shared representation of Phase 2.
         </p>
         
         <h2>7.5 Latent Structure Recovery</h2>
@@ -1247,7 +1252,7 @@
         </p>
         
         <p>
-            <strong>Integration matrix agreement gap.</strong> The agreement gap, defined as the mean absolute discrepancy between the policy's predicted utilities and the entries of the integration matrix, is computed from the per-episode learning state logs and declines monotonically across three checkpoints: 0.348 at episode 1, 0.227 at episode 18, and 0.105 at episode 35. This threefold reduction confirms that the policy's internal model is progressively converging toward the accumulated empirical interaction estimates. The parallel rise in mean top-1 predicted reward — from 0.0006 at episode 1 to 0.737 at episode 18 and 0.927 at episode 35 — further supports this interpretation: the policy's predicted utility for its most-preferred target has converged to a high-confidence value, indicating that embedding representations have stabilized around the dominant compatibility signals in the interaction history.
+            <strong>Integration matrix agreement gap.</strong> The agreement gap, defined as the mean absolute discrepancy between the policy's predicted utilities and the entries of the integration matrix, is computed from the per-episode learning state logs and declines monotonically across three checkpoints: 0.348 at episode 1, 0.227 at episode 18, and 0.105 at episode 35. This threefold reduction confirms that the policy's internal model is progressively converging toward the accumulated empirical interaction estimates. The parallel rise in mean top-1 predicted reward, from 0.0006 at episode 1 to 0.737 at episode 18 and 0.927 at episode 35, further supports this interpretation: the policy's predicted utility for its most-preferred target has converged to a high-confidence value, indicating that embedding representations have stabilized around the dominant compatibility signals in the interaction history.
         </p>
         
         <p>
@@ -1276,11 +1281,11 @@
         <h2>7.6 Coordination Dynamics</h2>
         
         <p>
-            <strong>Collision trajectory.</strong> Total collisions per episode follow a non-monotonic trajectory that closely mirrors the learning curve. In episode 1, 318 collisions occur — a moderate baseline consistent with partially random target selection. Collisions rise sharply through episodes 6–10, peaking at 629 in episode 10, as the policy rapidly improves match quality but has not yet differentiated individual drone preferences. Following the crowding peak, collisions gradually decline, reaching 294 in the final episode. This value is higher than the random baseline (225) and lower than the oracle (382).
+            <strong>Collision trajectory.</strong> Total collisions per episode follow a non-monotonic trajectory that closely mirrors the learning curve. In episode 1, 318 collisions occur, a moderate baseline consistent with partially random target selection. Collisions rise sharply through episodes 6–10, peaking at 629 in episode 10, as the policy rapidly improves match quality but has not yet differentiated individual drone preferences. Following the crowding peak, collisions gradually decline, reaching 294 in the final episode. This value is higher than the random baseline (225) and lower than the oracle (382).
         </p>
         
         <p>
-            The oracle's higher collision count (382) reflects deliberate multi-drone focus-fire: the oracle explicitly assigns multiple agents to the same target when doing so minimizes total steps. MF collisions (294 at episode 35, 296 at episode 32) are not strategically allocated — they are a byproduct of independent agents converging on similar greedy choices, producing contention rather than planned cooperation. The collision metric alone does not distinguish these two causes; the distinction rests on the policy mechanism, as discussed in §3.8.2.
+            The oracle's higher collision count (382) reflects deliberate multi-drone focus-fire: the oracle explicitly assigns multiple agents to the same target when doing so minimizes total steps. MF collisions (294 at episode 35, 296 at episode 32) are not strategically allocated, they are a byproduct of independent agents converging on similar greedy choices, producing contention rather than planned cooperation. The collision metric alone does not distinguish these two causes; the distinction rests on the policy mechanism, as discussed in §3.8.2.
         </p>
         
         <p>
@@ -1288,7 +1293,7 @@
         </p>
         
         <p>
-            The oracle's overkill is exceptionally low (3.65 HP) precisely because it incorporates remaining HP into its marginal-allocation scoring. The MF policy lacks both HP awareness and explicit coordination, and this produces persistent overkill that worsens as learning improves — a genuine limitation of the ZK-constrained, decentralized design rather than a transient artifact. While the underlying cause (better latent matching leading to coordinated focus-fire) is a sign of learning progress, the resulting waste is real and would need additional mechanisms — such as HP estimation or implicit turn-taking — to mitigate.
+            The oracle's overkill is exceptionally low (3.65 HP) precisely because it incorporates remaining HP into its marginal-allocation scoring. The MF policy lacks both HP awareness and explicit coordination, and this produces persistent overkill that worsens as learning improves, a genuine limitation of the ZK-constrained, decentralized design rather than a transient artifact. While the underlying cause (better latent matching leading to coordinated focus-fire) is a sign of learning progress, the resulting waste is real and would need additional mechanisms, such as HP estimation or implicit turn-taking, to mitigate.
         </p>
         
         <h2>7.7 Limitations of the Current Evaluation</h2>
@@ -1320,10 +1325,10 @@
         </p>
         
         <p>
-            These observations suggest that extending the training horizon would likely yield further efficiency gains, particularly in match quality and latent mismatch. The policy has not saturated, and the structural dynamics — declining agreement gap, recovering preference diversity — indicate that learning is ongoing. Convergence behavior under extended training is identified as a primary question for future investigation.
+            These observations suggest that extending the training horizon would likely yield further efficiency gains, particularly in match quality and latent mismatch. The policy has not saturated, and the structural dynamics, declining agreement gap, recovering preference diversity, indicate that learning is ongoing. Convergence behavior under extended training is identified as a primary question for future investigation.
         </p>
 
-<h1>Next Steps — Toward a Publishable Experimental Evaluation</h1>
+<h1>Next Steps, Toward a Publishable Experimental Evaluation</h1>
         
         <p class="intro-text">
             This document outlines a phased roadmap for turning the current single-configuration preliminary result into a statistically interpretable and publishable experimental evaluation. The first phase establishes reproducibility across scenario seeds; later phases test whether the method's design choices, capacity assumptions, noise robustness, and scaling behavior hold beyond the initial configuration.
@@ -1348,7 +1353,7 @@
         
         <hr>
         
-        <h3>Phase 1 — Multi-Seed Paired Benchmark Evaluation</h3>
+        <h3>Phase 1: Multi-Seed Paired Benchmark Evaluation</h3>
         
         <p>
             Run the current benchmark configuration across a shared set of scenario seeds for random, oracle, and MF, so each policy is compared on the same latent worlds.
@@ -1358,7 +1363,7 @@
             <strong>Tests:</strong> Whether the current seed-42 result is reproducible across problem instances and how much variance exists across latent scenarios.
         </p>
         
-        <h3>Phase 2 — Supervision Mode Ablation</h3>
+        <h3>Phase 2: Supervision Mode Ablation</h3>
         
         <p>
             Compare direct supervision against integration-matrix supervision using the same benchmark configuration and seed set, with random and oracle retained as reference policies.
@@ -1368,7 +1373,7 @@
             <strong>Tests:</strong> Whether smoothing interaction evidence through the integration matrix improves latent-structure recovery and task efficiency.
         </p>
         
-        <h3>Phase 3 — Latent-Dimension Sensitivity</h3>
+        <h3>Phase 3: Latent-Dimension Sensitivity</h3>
         
         <p>
             Hold the environment latent dimension fixed at $d = 3$ and vary the policy factorization dimension $d_f$ to test under- and over-specified learner capacity.
@@ -1378,7 +1383,7 @@
             <strong>Tests:</strong> Whether the method depends on correctly matching the true latent dimension, and how robust it is to factorization-capacity choices.
         </p>
         
-        <h3>Phase 4 — Noise Sensitivity</h3>
+        <h3>Phase 4: Noise Sensitivity</h3>
         
         <p>
             Run separate sweeps for shared-observation noise and reward noise, changing one noise source at a time while holding the rest of the benchmark fixed.
@@ -1388,7 +1393,7 @@
             <strong>Tests:</strong> Whether MF remains effective when the interaction identity signal or scalar reward signal is corrupted.
         </p>
         
-        <h3>Phase 5 — Swarm-Scale Sensitivity</h3>
+        <h3>Phase 5: Swarm-Scale Sensitivity</h3>
         
         <p>
             Increase the number of drones and targets while preserving the 3:1 target-to-drone ratio, using the same benchmark assumptions and seed protocol where feasible.
@@ -1396,6 +1401,19 @@
         
         <p>
             <strong>Tests:</strong> Whether compatibility learning and coordination quality remain stable as the allocation problem grows.
+        </p>
+
+
+        <h2>Author Contributions</h2>
+        <p>
+            <strong>Yigal Meshulam:</strong> Conceptualization, Methodology, Software, Formal Analysis, Investigation, Writing — Original Draft Preparation.<br>
+            <strong>Yehudit Aperstein:</strong> Conceptualization, Writing — Review and Editing, Supervision.<br>
+            <strong>Alexander Apartsin:</strong> Supervision, Writing — Review and Editing, Project Administration.
+        </p>
+
+        <h2>Declaration of Generative AI Use</h2>
+        <p>
+            The authors used AI-assisted writing tools (Claude by Anthropic) during the preparation of this manuscript to assist with drafting, editing, and literature organization. All scientific claims, experimental design, data analysis, and conclusions represent the authors' own work and intellectual judgment. The authors take full responsibility for the integrity of the work.
         </p>
 
 <h1>Bibliography</h1>
@@ -1422,7 +1440,7 @@
         
         <p>[11] A. Prorok, M. A. Hsieh, and V. Kumar, "The impact of diversity on optimal control policies for heterogeneous robot swarms," IEEE Transactions on Robotics, vol. 33, no. 2, pp. 346–358, 2017.</p>
         
-        <p>[12] L. Busoniu, R. Babuska, and B. De Schutter, "A comprehensive survey of multi-agent reinforcement learning," IEEE Transactions on Systems, Man, and Cybernetics—Part C: Applications and Reviews, vol. 38, no. 2, pp. 156–172, 2008.</p>
+        <p>[12] L. Busoniu, R. Babuska, and B. De Schutter, "A comprehensive survey of multi-agent reinforcement learning," IEEE Transactions on Systems, Man, and Cybernetics,Part C: Applications and Reviews, vol. 38, no. 2, pp. 156–172, 2008.</p>
         
         <p>[13] H. Wu, Q. Peng, M. Shi, and L. Xing, "A survey of UAV swarm task allocation based on the perspective of coalition formation," International Journal of Swarm Intelligence Research (IJSIR), vol. 13, no. 1, pp. 1–22, 2022.</p>
         
@@ -1444,7 +1462,7 @@
         
         <p>[22] Y. Koren, R. Bell, and C. Volinsky, "Matrix factorization techniques for recommender systems," Computer, vol. 42, no. 8, pp. 30–37, 2009.</p>
         
-        <p>[23] B. Sarwar, G. Karypis, J. Konstan, and J. Riedl, "Application of dimensionality reduction in recommender system—a case study," Minnesota Univ. Minneapolis, Dept. of Computer Science, 2000.</p>
+        <p>[23] B. Sarwar, G. Karypis, J. Konstan, and J. Riedl, "Application of dimensionality reduction in recommender system,a case study," Minnesota Univ. Minneapolis, Dept. of Computer Science, 2000.</p>
         
         <p>[24] A. Mnih and R. Salakhutdinov, "Probabilistic matrix factorization," in Advances in Neural Information Processing Systems, 2007, pp. 1257–1264.</p>
         
@@ -1467,7 +1485,7 @@
         <h1>8. Conclusion</h1>
 
         <p>
-            This paper introduced Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA), a problem setting that removes three assumptions routinely made in multi-robot coordination research: prior knowledge of task attributes, knowledge of agent capabilities, and direct inter-agent communication. The resulting formulation occupies a distinct position in the MRTA landscape — stricter than standard Dec-POMDP formulations in its informational constraints, and more structured than independent multi-armed bandit settings in its assumption that a hidden latent compatibility geometry governs agent-task effectiveness.
+            This paper introduced Zero-Knowledge Multi-Robot Task Allocation (ZK-MRTA), a problem setting that removes three assumptions routinely made in multi-robot coordination research: prior knowledge of task attributes, knowledge of agent capabilities, and direct inter-agent communication. The resulting formulation occupies a distinct position in the MRTA landscape, stricter than standard Dec-POMDP formulations in its informational constraints, and more structured than independent multi-armed bandit settings in its assumption that a hidden latent compatibility geometry governs agent-task effectiveness.
         </p>
 
         <p>
@@ -1475,7 +1493,7 @@
         </p>
 
         <p>
-            The preliminary results are encouraging. On a 9-drone, 27-target scenario with three hidden compatibility modes and moderate noise, the MF policy closed approximately 92% of the efficiency gap between a random baseline and a privileged greedy oracle after 35 training episodes, and the learned embeddings organized into clusters broadly aligned with the ground-truth latent modes — structure never provided to the policy. These findings suggest that the public interaction stream, despite carrying no explicit capability information, contains enough signal for agents to infer a usable approximation of the hidden compatibility geometry.
+            The preliminary results are encouraging. On a 9-drone, 27-target scenario with three hidden compatibility modes and moderate noise, the MF policy closed approximately 92% of the efficiency gap between a random baseline and a privileged greedy oracle after 35 training episodes, and the learned embeddings organized into clusters broadly aligned with the ground-truth latent modes, structure never provided to the policy. These findings suggest that the public interaction stream, despite carrying no explicit capability information, contains enough signal for agents to infer a usable approximation of the hidden compatibility geometry.
         </p>
 
         <p>
@@ -1487,7 +1505,7 @@
         </p>
 
         <p>
-            More broadly, ZK-MRTA opens a line of inquiry into whether and how useful coordination can emerge in the complete absence of shared models, capability disclosures, or communication infrastructure. The preliminary evidence suggests the answer is yes, at least in the latent-compatibility setting studied here, and that matrix-factorization-based latent-utility learning is a viable mechanism for achieving it. How far that answer extends — across noise regimes, swarm compositions, and task dynamics — is the central question for future work.
+            More broadly, ZK-MRTA opens a line of inquiry into whether and how useful coordination can emerge in the complete absence of shared models, capability disclosures, or communication infrastructure. The preliminary evidence suggests the answer is yes, at least in the latent-compatibility setting studied here, and that matrix-factorization-based latent-utility learning is a viable mechanism for achieving it. How far that answer extends, across noise regimes, swarm compositions, and task dynamics, is the central question for future work.
         </p>
 
     </div>
