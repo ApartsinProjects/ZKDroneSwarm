@@ -162,4 +162,33 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.94]); fig.savefig(f"{OUT}/F7_channels.png", dpi=150); plt.close(fig)
     print("F7_channels.png  <-", os.path.basename(f))
 
+# ---- F8: E12 persistent vs iid masking (Theorem 4) ----
+f = latest("results/pilots/e12_iid_masking_*.json")
+if f:
+    d = json.load(open(f)); A = d["rawA"]; B = d["rawB"]
+    rhos = d["meta"]["rhos"]; Tgrid = d["meta"]["Tgrid"]
+    fig, ax = plt.subplots(1, 3, figsize=(13, 3.7))
+    # (a) unseen vs rho, (b) anytime vs rho: persistent (solid) vs iid (dashed)
+    for col, metric in enumerate(["unseen", "anytime"]):
+        for nm, color in [("RewardCF", "C0"), ("HybridCF", "C6"), ("PTF", "C3")]:
+            for mode, ls, mk in [("persistent", "-", "o"), ("iid", "--", "x")]:
+                if nm in A[mode][str(rhos[0])]:
+                    mu = [np.mean(A[mode][str(r)][nm][metric]) for r in rhos]
+                    ax[col].plot(rhos, mu, ls=ls, marker=mk, color=color, markersize=4,
+                                 label="%s %s" % (nm, mode[:4]))
+        ax[col].invert_xaxis(); ax[col].set_xlabel("rho"); ax[col].grid(alpha=0.25)
+        ax[col].set_title("%s skill: persistent vs iid" % metric, fontsize=10)
+    ax[0].set_ylabel("skill"); ax[0].legend(fontsize=6, ncol=1, loc="lower left")
+    # (c) state-uniqueness vs T (RewardCF, rho=0.25)
+    for mode, ls, mk, col in [("persistent", "-", "o", "C0"), ("iid", "--", "x", "C3")]:
+        mu = [np.nanmean(B[mode][str(T)]["uniq"]) for T in Tgrid]
+        ax[2].plot(Tgrid, mu, ls=ls, marker=mk, color=col, label="%s" % mode)
+    ax[2].set_xlabel("horizon T"); ax[2].set_ylabel("state-uniqueness"); ax[2].grid(alpha=0.25)
+    ax[2].set_title("decentralization durability (rho=0.25)\npersistent durable, iid transient", fontsize=9)
+    ax[2].legend(fontsize=8)
+    fig.suptitle("Theorem 4: unseen/anytime invariant to masking model; "
+                 "state-uniqueness durable (persistent) vs transient (iid)", fontsize=10)
+    fig.tight_layout(rect=[0, 0, 1, 0.93]); fig.savefig(f"{OUT}/F8_iid_vs_persistent.png", dpi=150); plt.close(fig)
+    print("F8_iid_vs_persistent.png  <-", os.path.basename(f))
+
 print("figures written to", OUT)
