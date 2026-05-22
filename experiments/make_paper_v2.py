@@ -16,6 +16,48 @@ def img(name, alt):
             'style="max-width:88%%;height:auto;border:1px solid #d7dde3;border-radius:6px">' % (alt, b))
 
 
+def _bold(s):
+    while "**" in s:
+        s = s.replace("**", "<b>", 1).replace("**", "</b>", 1)
+    return s.strip()
+
+
+def md_tables(path, drop_h1=True):
+    """Render the SUBSET of markdown our experiments emit (## headers, | tables |,
+    **bold**, inline <br/>/<sub> kept) as HTML, so the paper draws headline/ablation/
+    contention tables from the SAME committed .md files (one source of truth)."""
+    if not path or not os.path.exists(path):
+        return "<p><em>[%s not generated yet]</em></p>" % os.path.basename(str(path))
+    out = []; rows = []
+
+    def flush():
+        if not rows:
+            return
+        cells = [[c.strip() for c in r.strip().strip("|").split("|")] for r in rows]
+        h = "".join("<th>%s</th>" % _bold(c) for c in cells[0])
+        body = "".join("<tr>%s</tr>" % "".join(
+            "<td class='l'>%s</td>" % _bold(c) if k == 0 else "<td>%s</td>" % _bold(c)
+            for k, c in enumerate(r)) for r in cells[1:])
+        out.append("<table><tr>%s</tr>%s</table>" % (h, body)); rows.clear()
+
+    for ln in open(path, encoding="utf-8").read().splitlines():
+        s = ln.rstrip()
+        if s.startswith("|") and set(s.replace("|", "").replace("-", "").strip()) == set():
+            continue                       # separator row |---|
+        if s.startswith("|"):
+            rows.append(s); continue
+        flush()
+        if s.startswith("## "):
+            out.append("<h3>%s</h3>" % _bold(s[3:]))
+        elif s.startswith("# "):
+            if not drop_h1:
+                out.append("<h3>%s</h3>" % _bold(s[2:]))
+        elif s.strip():
+            out.append("<p class='small'>%s</p>" % _bold(s.strip()))
+    flush()
+    return "\n".join(out)
+
+
 CSS = """
 body{margin:0;color:#16191d;background:#fff;font:16px/1.66 Georgia,'Times New Roman',serif}
 .wrap{max-width:820px;margin:0 auto;padding:34px 22px 80px}
@@ -150,11 +192,16 @@ A("<p><b>Versus the field.</b> The categorical unseen win is shared by all low-r
 A("<figure>%s<figcaption><b>Fig. 4.</b> Pareto frontier (anytime vs unseen): our methods dominate; "
   "PTF trades all anytime for unseen and is dominated under masking.</figcaption></figure>"
   % img("F11_pareto.png", "F11"))
-A("<table><tr><th class='l'>Method</th><th>class</th><th>unseen @rho=1</th><th>anytime @rho=1</th></tr>"
-  "<tr><td class='l'>UCBIndep</td><td>no-struct</td><td>0.00</td><td>-0.01</td></tr>"
-  "<tr><td class='l'>PTF</td><td>low-rank</td><td>0.51</td><td>0.27</td></tr>"
-  "<tr><td class='l ours'>HybridCFconv (ours)</td><td>low-rank</td><td>0.49</td><td>0.35</td></tr>"
-  "<tr><td class='l ours'>ActiveCFconv (ours)</td><td>low-rank</td><td>0.49</td><td>0.44</td></tr></table>")
+A("<p><b>Headline numbers (20 seeds, bootstrap 95%% CI).</b> The unseen-pair and anytime "
+  "skill of the no-structure floor (UCBIndep), the strongest competitor (PTF), and our "
+  "methods, at full broadcast (rho=1) and heavy masking (rho=0.25):</p>")
+A(md_tables("docs/HEADLINE_TABLE.md"))
+A("<h3>Method ablation</h3>")
+A("<p>We foreground ONE recommended method (ActiveCFconv) and present the rest as "
+  "ablations rather than a method zoo. The table below isolates each design choice "
+  "(online vs batch, precision weighting, SVD warm-start, active vs eps-greedy exploration) "
+  "and the robustness to a guessed rank, under one identical config (12 seeds, 95%% CI):</p>")
+A(md_tables("docs/ABLATION_TABLE.md"))
 
 A("<h2>6. Related work</h2>")
 A("<p>Matrix completion (Candes-Recht; Keshavan-Montanari-Oh; Recht) gives centralized estimation "
@@ -166,12 +213,21 @@ A("<p>Matrix completion (Candes-Recht; Keshavan-Montanari-Oh; Recht) gives centr
   "stream.</p>")
 
 A("<h2>7. Limitations and conclusion</h2>")
-A("<p>We study the non-contention setting (no target depletion); contention turns the allocation into "
-  "matching, where coordination value may appear, a natural next step. Under minimal assumptions, "
-  "collaborative filtering over the public broadcast lets a swarm act on the unseen, onboard new "
-  "tasks and agents, and earn from the first round, with a categorical, theory-backed advantage over "
-  "structure-free learning and dominance over prior-art low-rank methods in the limited-observability "
-  "regime.</p>")
+A("<p><b>Contention.</b> Our formal results assume non-contention (a target may be engaged "
+  "by more than one drone). Hard contention turns allocation into matching, where explicit "
+  "coordination may add value beyond preference quality. We test this directly with a "
+  "capacity-1 matching variant (each engaged target is awarded to one drone; collisions earn "
+  "nothing; earned reward is normalized by the per-round Hungarian optimum). Two things hold: "
+  "the CATEGORICAL preference quality (unseen-pair skill, evaluated contention-free) is "
+  "contention-invariant because it is a property of the learned model; and on EARNED reward "
+  "our methods still lead, because diverse, accurate preferences spread drones across targets "
+  "and reduce collisions, though the operational gap narrows as collisions, not preferences, "
+  "become the bottleneck.</p>")
+A(md_tables("docs/CONTENTION.md"))
+A("<p>Under minimal assumptions, collaborative filtering over the public broadcast lets a "
+  "swarm act on the unseen, onboard new tasks and agents, and earn from the first round, with "
+  "a categorical, theory-backed advantage over structure-free learning and dominance over "
+  "prior-art low-rank methods in the limited-observability regime.</p>")
 A("<p class='small'>Reproducibility: complete per-seed data in <code>results/pilots/</code>; figures "
   "via <code>experiments/make_figures.py</code>; proofs in <code>docs/THEORY_FORMAL.md</code>; ZK "
   "audit in <code>docs/ZK_COMPLIANCE.md</code>; full v1 draft in <code>docs/PAPER_DRAFT.md</code>.</p>")

@@ -11,12 +11,22 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 OUT = "docs/figures"
+PDF_OUT = "docs/figures/pdf"
 os.makedirs(OUT, exist_ok=True)
+os.makedirs(PDF_OUT, exist_ok=True)
 
 
 def latest(pattern):
     fs = sorted(glob.glob(pattern))
     return fs[-1] if fs else None
+
+
+def save_fig(stem):
+    """Save the current figure as BOTH a raster PNG (for the HTML tutorial/paper)
+    and a vector PDF (for the LaTeX camera-ready), then close it."""
+    plt.savefig(f"{OUT}/{stem}.png", dpi=150, bbox_inches="tight")
+    plt.savefig(f"{PDF_OUT}/{stem}.pdf", bbox_inches="tight")
+    plt.close("all")
 
 
 def ms(xs):
@@ -39,8 +49,8 @@ if f:
     plt.xlabel("observation density  rho  (fraction of broadcast seen)")
     plt.ylabel("UNSEEN-pair skill")
     plt.title("Acting on never-observed pairs under heterogeneous masking")
-    plt.legend(); plt.tight_layout(); plt.savefig(f"{OUT}/F2_unseen_masking.png", dpi=150); plt.close()
-    print("F2_unseen_masking.png  <-", os.path.basename(f))
+    plt.legend(); plt.tight_layout(); save_fig("F2_unseen_masking")
+    print("F2_unseen_masking  <-", os.path.basename(f))
 
 # ---- F3: C12 onboarding ----
 f = latest("results/pilots/c12_onboard_*.json")
@@ -56,8 +66,8 @@ if f:
     plt.xlabel("# shared probes per NEW target")
     plt.ylabel("skill on new targets")
     plt.title("Dynamic target onboarding:  Theta(d) vs Theta(m)")
-    plt.legend(fontsize=8); plt.tight_layout(); plt.savefig(f"{OUT}/F3_onboard.png", dpi=150); plt.close()
-    print("F3_onboard.png  <-", os.path.basename(f))
+    plt.legend(fontsize=8); plt.tight_layout(); save_fig("F3_onboard")
+    print("F3_onboard  <-", os.path.basename(f))
 
 # ---- F4: C13 unseen vs true rank ----
 f = latest("results/pilots/c13_rank_unseen_*.json")
@@ -71,8 +81,8 @@ if f:
     plt.xlabel("true rank  d")
     plt.ylabel("UNSEEN-pair skill")
     plt.title("CF unseen-pair skill scales with low-rankness (Tabular at floor)")
-    plt.legend(); plt.tight_layout(); plt.savefig(f"{OUT}/F4_rank.png", dpi=150); plt.close()
-    print("F4_rank.png  <-", os.path.basename(f))
+    plt.legend(); plt.tight_layout(); save_fig("F4_rank")
+    print("F4_rank  <-", os.path.basename(f))
 
 # ---- F5: C15 masking-robustness crossover (unseen skill vs rho) ----
 f = latest("results/pilots/c15_crossover_*.json")
@@ -101,8 +111,8 @@ if f:
     plt.ylabel("UNSEEN-pair skill")
     plt.title("Masking-robustness (unseen-pair skill): our online-ALS methods stay\nflat as the broadcast is masked; batch-SVD hybrids (PTF/ESTR/BPMF) decay", fontsize=10)
     plt.legend(fontsize=7, loc="lower left"); plt.tight_layout()
-    plt.savefig(f"{OUT}/F5_crossover.png", dpi=150); plt.close()
-    print("F5_crossover.png  <-", os.path.basename(f))
+    save_fig("F5_crossover")
+    print("F5_crossover  <-", os.path.basename(f))
 
 # ---- F6: C16 anytime cumulative-reward trajectory (rho=0.25) ----
 f = latest("results/pilots/c16_anytime_*.json")
@@ -135,8 +145,8 @@ if f:
     plt.title("Anytime reward (rho=0.25): online CF earns from round 1;\n"
               "explore-then-commit pays a probe phase; UCBIndep stuck (n>>T)", fontsize=10)
     plt.legend(fontsize=7, loc="lower right"); plt.tight_layout()
-    plt.savefig(f"{OUT}/F6_anytime.png", dpi=150); plt.close()
-    print("F6_anytime.png  <-", os.path.basename(f))
+    save_fig("F6_anytime")
+    print("F6_anytime  <-", os.path.basename(f))
 
 # ---- F7: E3 channel grid (overall skill vs sigma_obs, panel per rho) ----
 f = latest("results/pilots/e3_channels_*.json")
@@ -159,8 +169,8 @@ if f:
     axes[-1].legend(fontsize=7, loc="lower left")
     fig.suptitle("Two observability channels: clean CHOICES (ChoiceCF, flat) overtake noisy "
                  "REWARDS (RewardCF, decays) as sigma_obs rises; BothCF tracks the best", fontsize=10)
-    fig.tight_layout(rect=[0, 0, 1, 0.94]); fig.savefig(f"{OUT}/F7_channels.png", dpi=150); plt.close(fig)
-    print("F7_channels.png  <-", os.path.basename(f))
+    fig.tight_layout(rect=[0, 0, 1, 0.94]); save_fig("F7_channels")
+    print("F7_channels  <-", os.path.basename(f))
 
 # ---- F8: E12 persistent vs iid masking (Theorem 4) ----
 f = latest("results/pilots/e12_iid_masking_*.json")
@@ -188,8 +198,8 @@ if f:
     ax[2].legend(fontsize=8)
     fig.suptitle("Theorem 4: unseen/anytime invariant to masking model; "
                  "state-uniqueness durable (persistent) vs transient (iid)", fontsize=10)
-    fig.tight_layout(rect=[0, 0, 1, 0.93]); fig.savefig(f"{OUT}/F8_iid_vs_persistent.png", dpi=150); plt.close(fig)
-    print("F8_iid_vs_persistent.png  <-", os.path.basename(f))
+    fig.tight_layout(rect=[0, 0, 1, 0.93]); save_fig("F8_iid_vs_persistent")
+    print("F8_iid_vs_persistent  <-", os.path.basename(f))
 
 # ---- F9: E2/E4/E6 scaling sweeps (unseen & anytime vs d, T, n, d_hat) ----
 f = latest("results/pilots/e246_scaling_*.json")
@@ -220,8 +230,8 @@ if f:
     axes[0][0].legend(fontsize=6, loc="best")
     fig.suptitle("Scaling: unseen (top) and anytime (bottom) skill vs rank d, horizon T, "
                  "targets n, guessed rank d_hat (rho=0.5)", fontsize=10)
-    fig.tight_layout(rect=[0, 0, 1, 0.95]); fig.savefig(f"{OUT}/F9_scaling.png", dpi=150); plt.close(fig)
-    print("F9_scaling.png  <-", os.path.basename(f))
+    fig.tight_layout(rect=[0, 0, 1, 0.95]); save_fig("F9_scaling")
+    print("F9_scaling  <-", os.path.basename(f))
 
 # ---- F10: E7 newcomer cold-start (skill vs own probes) ----
 f = latest("results/pilots/e7_newcomer_*.json")
@@ -241,8 +251,8 @@ if f:
     plt.ylabel("newcomer skill on UNSEEN targets")
     plt.title("Newcomer cold-start: acts from the broadcast at zero history;\n"
               "tabular newcomer at the floor (Theta(d) vs Theta(n))", fontsize=9)
-    plt.legend(fontsize=7); plt.tight_layout(); plt.savefig(f"{OUT}/F10_newcomer.png", dpi=150); plt.close()
-    print("F10_newcomer.png  <-", os.path.basename(f))
+    plt.legend(fontsize=7); plt.tight_layout(); save_fig("F10_newcomer")
+    print("F10_newcomer  <-", os.path.basename(f))
 
 # ---- F11: Pareto frontier (anytime vs unseen) showing competitors dominated ----
 f = latest("results/pilots/e8_active_*.json")
@@ -267,8 +277,8 @@ if f:
     fig.suptitle("Pareto frontier (up-right = better): our methods dominate or match PTF on both "
                  "axes;\nPTF sacrifices all anytime for unseen (dominated under masking, rho=0.25)",
                  fontsize=9)
-    fig.tight_layout(rect=[0, 0, 1, 0.94]); fig.savefig(f"{OUT}/F11_pareto.png", dpi=150); plt.close(fig)
-    print("F11_pareto.png  <-", os.path.basename(f))
+    fig.tight_layout(rect=[0, 0, 1, 0.94]); save_fig("F11_pareto")
+    print("F11_pareto  <-", os.path.basename(f))
 
 # ---- F12: more low-rank/structured baselines (E15) ----
 f = latest("results/pilots/e15_morebase_*.json")
@@ -295,8 +305,8 @@ if f:
     fig.suptitle("More fair baselines: SoftImpute (convex), kNN-CF (memory), BiasModel (additive) "
                  "vs ours.\nOurs dominate under masking and on anytime; SoftImpute leads only "
                  "dense-rho unseen.", fontsize=9)
-    fig.tight_layout(rect=[0, 0, 1, 0.92]); fig.savefig(f"{OUT}/F12_morebaselines.png", dpi=150); plt.close(fig)
-    print("F12_morebaselines.png  <-", os.path.basename(f))
+    fig.tight_layout(rect=[0, 0, 1, 0.92]); save_fig("F12_morebaselines")
+    print("F12_morebaselines  <-", os.path.basename(f))
 
 # ---- F13: real tabula_drone simulator validation ----
 f = "results/pilots/tabula_bench_real.json"
@@ -324,8 +334,8 @@ if os.path.exists(f):
     ax[1].set_title("Learning curves", fontsize=10); ax[1].grid(alpha=0.25); ax[1].legend(fontsize=7)
     fig.suptitle("Validation in the real tabula_drone simulator (spatial, HP-depletion, episodic): "
                  "ours beats the env's SGD-MF and UCBIndep, approaching the oracle", fontsize=9)
-    fig.tight_layout(rect=[0, 0, 1, 0.93]); fig.savefig(f"{OUT}/F13_realsim.png", dpi=150); plt.close(fig)
-    print("F13_realsim.png  <- tabula_bench_real.json")
+    fig.tight_layout(rect=[0, 0, 1, 0.93]); save_fig("F13_realsim")
+    print("F13_realsim  <- tabula_bench_real.json")
 
 # ---- F14: assumption-stress (approx low-rank + nonlinear link) ----
 f = latest("results/pilots/stress_assump_*.json")
@@ -354,7 +364,7 @@ if f:
     axes[0][0].legend(fontsize=7, loc="best")
     fig.suptitle("Assumption stress: graceful degradation as the world leaves exact low-rank "
                  "(er = realized effective rank); ours stay best", fontsize=10)
-    fig.tight_layout(rect=[0, 0, 1, 0.95]); fig.savefig(f"{OUT}/F14_stress.png", dpi=150); plt.close(fig)
-    print("F14_stress.png  <-", os.path.basename(f))
+    fig.tight_layout(rect=[0, 0, 1, 0.95]); save_fig("F14_stress")
+    print("F14_stress  <-", os.path.basename(f))
 
 print("figures written to", OUT)

@@ -86,11 +86,30 @@ P2 (polish):
   class for portability, with a note to switch to the AAMAS/acmart class; figures
   reference ../figures PNGs, swap to vector PDFs for camera-ready). Not compiled here
   (no TeX distribution on this machine); compile with any TeX install.
-- P1-4 (20-seed CIs on headline panels): IN PROGRESS.
+- P1-4 (20-seed CIs on headline panels): RUNNING. pilot_headline.py fixed (cwd-
+  independent output path) and re-launched; writes docs/HEADLINE_TABLE.md (+ saved
+  JSON). The HTML paper/tutorial now render that table directly from the .md (one
+  source of truth) via a small markdown-to-HTML helper.
+- P1-5 (vector-PDF figures): DONE. make_figures.py emits PNG (HTML) AND vector PDF
+  (docs/figures/pdf/) for all F2-F14; main.tex now \includegraphics the PDFs.
+- P1-6 (one method-ablation table): WRITTEN + smoke-tested (pilot_ablation.py); runs
+  after the headline (avoids CPU contention). Foregrounds ActiveCFconv and isolates
+  each design knob (online-vs-batch, precision weighting, warm-start, active-vs-eps,
+  d_hat sensitivity) under one identical 12-seed config; writes docs/ABLATION_TABLE.md.
+- P1-7 (theorem tightening): DONE in main.tex: T2 now states the incoherence
+  assumption + Õ(d(m+n)) completion rate and the noisy fold-in error; T3 states the
+  starved regime cT<<n where the closed form bites and leans on the exact untried-arm
+  mechanism. (THEORY_FORMAL.md already carried this; the LaTeX now matches.)
+- P1-8 (contention): scope note STRENGTHENED in main.tex (leans on the tabula_drone
+  HP-depletion result as preliminary partial-contention evidence). Controlled
+  experiment WRITTEN (pilot_contention.py, capacity-1 matching, Hungarian-normalized
+  earned reward + contention-free unseen quality + collision rate); runs after the
+  ablation; writes docs/CONTENTION.md.
 - Real-simulator validation and assumption-stress (reviewer "is low-rank realistic?"
   and "does it transfer?"): DONE (Figs F13, F14).
-REMAINING: vector-PDF figures, method consolidation into one ablation table, theorem
-tightening, a short contention experiment or crisp scope note.
+REMAINING: run the three queued experiments (headline -> ablation -> contention),
+fold the auto-rendered tables into the published artifacts, and (P2) the explicit
+reproducibility/limitations sections + hyperparameter appendix.
 
 ## Status of evidence already in hand (what the fixes can draw on)
 - Real-env validation: tabula_bench (ours skill ~0.83 vs SGD-MF ~0.35, UCBIndep

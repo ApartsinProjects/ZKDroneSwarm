@@ -385,3 +385,35 @@ dense-rho unseen (0.449 vs 0.502), so that residual is an ESTIMATOR nuance
 pays for it heavily on anytime (0.273). Confirms: no single config dominates both
 metrics; the Pareto frontier among OUR methods (RewardCF/BothCF anytime-optimal,
 HybridCF final-policy-optimal) is real and is the honest framing. WAVE-1 E9 DONE.
+
+## CYCLE 40: WAVE-c PAPER TIGHTENING toward AAMAS/JAAMAS (2026-05-22)
+(Cycles 28-39 catalogued in DATA_CATALOGUE.md; this resumes detailed logging.)
+Executing PAPER_REVIEW.md P1 items.
+
+P1-4 (20-seed headline bootstrap CIs, results/pilots/headline20_*.json -> docs/
+HEADLINE_TABLE.md). Confirms the headline at 20 seeds, 95% CI:
+  method        UNSEEN rho=1.0 / rho=0.25     ANYTIME rho=1.0 / rho=0.25
+  UCBIndep         0.000 / -0.001                0.002 / -0.004    (floor, T1/T3)
+  PTF              0.490 /  0.272                0.273 /  0.226
+  RewardCF         0.377 /  0.326                0.383 /  0.342
+  HybridCFconv     0.488 /  0.379                0.340 /  0.300
+  ActiveCFconv     0.476 /  0.339                0.436 /  0.341
+READ: UCBIndep at the floor on BOTH metrics (categorical). On UNSEEN, ours TIES PTF
+at full broadcast (HybridCFconv 0.488 CI [0.468,0.509] vs PTF 0.490 [0.458,0.517])
+and BEATS it under masking (0.379 vs 0.272, non-overlapping). On ANYTIME, ActiveCFconv
+wins everywhere (0.436 vs PTF 0.273 at rho=1, non-overlapping). ActiveCFconv = best
+balanced; the published "~0.49 unseen / ~0.44 anytime" claims are confirmed.
+
+Also this cycle (deterministic tightening, no new runs):
+- P1-5 vector figures: make_figures.py now emits PNG + vector PDF (docs/figures/pdf/)
+  for F2-F14; main.tex includes the PDFs.
+- P1-7 theorem tightening in main.tex: T2 incoherence + Otilde(d(m+n)) rate + noisy
+  fold-in error; T3 starved-regime cT<<n + exact untried-arm mechanism.
+- P1-8 contention scope note strengthened (leans on tabula_drone HP-depletion as
+  preliminary partial-contention evidence).
+- Data-driven tables: make_paper_v2.py + make_tutorial.py render headline/ablation/
+  contention tables from the committed .md files (one source of truth) via a small
+  markdown->HTML helper. Estimator gained a `precision` on/off toggle; pilot_anytime
+  exposes run_anytime_clshp(Cls,hp,...) so ablation variants reuse the same loops.
+NEXT (cycles 41-42): pilot_ablation.py (P1-6, RUNNING) -> docs/ABLATION_TABLE.md;
+pilot_contention.py (P1-8) -> docs/CONTENTION.md; regenerate HTML; push.

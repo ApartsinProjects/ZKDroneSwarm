@@ -66,9 +66,11 @@ class Tabular(_EpsBase):
 
 
 class WeightedMF(_EpsBase):
-    def __init__(self, *a, prior_prec=1.0, init_scale=0.1, als_sweeps=5, refit_every=3, **hp):
+    def __init__(self, *a, prior_prec=1.0, init_scale=0.1, als_sweeps=5, refit_every=3,
+                 precision=True, **hp):
         super().__init__(*a, **hp)
         self.prior_prec = prior_prec; self.als_sweeps = als_sweeps; self.refit_every = refit_every
+        self.precision = precision    # weight obs by 1/sigma^2 (True) or uniformly (ablation)
         self.P = self.rng.normal(0, init_scale, (self.m, self.d))
         self.U = self.rng.normal(0, init_scale, (self.n, self.d))
         self.rk = []; self.rj = []; self.rv = []; self.rw = []   # reward obs
@@ -112,7 +114,8 @@ class RewardCF(WeightedMF):
             r = revealed[k]
             if not np.isnan(r):
                 self.rk.append(k); self.rj.append(int(choices[k]))
-                self.rv.append(float(r)); self.rw.append(1.0 / max(rvar[k], 1e-6))
+                self.rv.append(float(r))
+                self.rw.append((1.0 / max(rvar[k], 1e-6)) if self.precision else 1.0)
         self._decay()
         if (t + 1) % self.refit_every == 0:
             self._refit()

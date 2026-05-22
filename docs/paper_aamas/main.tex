@@ -2,7 +2,7 @@
 % NOTE: written with the standard `article` class so it compiles anywhere.
 % For submission, switch to the AAMAS class, e.g. \documentclass[sigconf]{acmart}
 % (or the IFAAMAS template), and move the abstract/author block accordingly.
-% Figures are the PNGs in ../figures/ (replace with vector PDFs for camera-ready).
+% Figures are vector PDFs in ../figures/pdf/ (raster PNGs also in ../figures/).
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb,amsthm}
@@ -112,12 +112,21 @@ to it. Pooling recovers only the rank-1 popularity term.
 \begin{theorem}[CF row completion]\label{t2}
 If the target factors $U$ (rank $d$) are known and drone $i$ observes $\ge d$ rewards
 whose factors span $\mathbb{R}^d$, its entire row is recovered exactly by a least-squares
-fold-in. Per-agent $\Theta(d)$ vs tabular $\Theta(n)$: categorical on unseen pairs.
+fold-in (with i.i.d.\ noise of variance $\sigma^2$, the per-target prediction error is
+$O(\sigma^2 d / \lambda_{\min}(U_\Omega^\top U_\Omega))$). $U$ itself is identified from
+the pooled broadcast by standard \emph{incoherent} low-rank matrix completion from
+$\tilde O(d(m+n))$ entries \cite{candes2009exact,keshavan2010matrix,recht2011simpler};
+the fold-in is the per-agent step. Per-agent $\Theta(d)$ vs tabular $\Theta(n)$:
+categorical on unseen pairs.
 \end{theorem}
 \begin{theorem}[Anytime separation]\label{t3}
 For $n\gg T$, any structure-free learner's anytime skill is $\le g(cT/n)\to 0$ (even
 with full broadcast), where $g$ is the expected-order-statistic gap; a CF learner
-reaches near-oracle in $O(d)$ rounds.
+reaches near-oracle in $O(d)$ rounds. The closed-form ceiling is informative in the
+\emph{starved} regime $cT \ll n$; at any operating point the sharper, exact mechanism
+is that a never-tried target carries an unbounded exploration bonus, so a per-arm
+learner pulls an untried target whenever its offer contains one (probability $\to 1$
+while the number of distinct pulls $\ll n$) and earns $\approx$ random throughout.
 \end{theorem}
 \begin{theorem}[Masking dichotomy]\label{t4}
 Under i.i.d.\ loss every agent eventually senses everything (Borel--Cantelli) so
@@ -147,11 +156,11 @@ gracefully as the world leaves exact low-rank; the advantage transfers to the
 realistic tabula\_drone simulator (skill $\approx 0.81$, beating the env's SGD-MF and
 UCB-Indep, approaching the oracle).
 
-\begin{figure}[t]\centering\includegraphics[width=0.7\linewidth]{../figures/F2_unseen_masking.png}
+\begin{figure}[t]\centering\includegraphics[width=0.7\linewidth]{../figures/pdf/F2_unseen_masking.pdf}
 \caption{Unseen-pair skill vs observation density (categorical separation).}\label{fig:unseen}\end{figure}
-\begin{figure}[t]\centering\includegraphics[width=0.7\linewidth]{../figures/F6_anytime.png}
+\begin{figure}[t]\centering\includegraphics[width=0.7\linewidth]{../figures/pdf/F6_anytime.pdf}
 \caption{Anytime cumulative reward: online CF earns from round one.}\label{fig:anytime}\end{figure}
-\begin{figure}[t]\centering\includegraphics[width=0.8\linewidth]{../figures/F11_pareto.png}
+\begin{figure}[t]\centering\includegraphics[width=0.8\linewidth]{../figures/pdf/F11_pareto.pdf}
 \caption{Pareto frontier (anytime vs unseen): our methods dominate.}\label{fig:pareto}\end{figure}
 
 \section{Related work}
@@ -166,12 +175,22 @@ channel. We connect to the MRTA taxonomy \cite{gerkey2004formal} and decentraliz
 MARL, but remove communication, priors, and shared state.
 
 \section{Limitations and conclusion}
-We study the non-contention setting; contention turns the allocation into matching,
-where coordination value may appear (a natural next step; the simulator's HP
-depletion previews it). Under minimal assumptions, CF over the public broadcast lets
-a swarm act on the unseen, onboard new tasks and agents, and earn from the first
-round, with a categorical, theory-backed advantage and dominance over prior-art
-low-rank methods in the limited-observability regime.
+\textbf{Scope: contention.} Our formal results assume non-contention (a target can be
+engaged by more than one drone). Hard contention turns allocation into matching, where
+explicit coordination may add value beyond preference quality. We expect the
+\emph{categorical} unseen-pair and onboarding results to persist, because they concern
+the quality of each agent's preference estimate (which contention does not change),
+while the operational gap may narrow as collisions, not preferences, become the
+bottleneck. Preliminary evidence: the realistic tabula\_drone validation already runs
+\emph{with} HP depletion, a soft contention in which engaged targets are drawn down, and
+our method still leads (skill $\approx 0.81$, beating SGD-MF and UCB-Indep). A
+controlled hard-contention study (capacity-limited targets, with and without a
+broadcast-only de-confliction rule) is the natural next step.
+
+Under minimal assumptions, CF over the public broadcast lets a swarm act on the unseen,
+onboard new tasks and agents, and earn from the first round, with a categorical,
+theory-backed advantage and dominance over prior-art low-rank methods in the
+limited-observability regime.
 
 \paragraph{Reproducibility.} All numbers derive from complete per-seed data; figures
 and this paper are regenerable. Code, data, proofs, and the tutorial:

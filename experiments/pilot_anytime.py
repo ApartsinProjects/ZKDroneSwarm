@@ -36,16 +36,17 @@ RHOS = [1.0, 0.25]
 SEEDS = list(range(8))
 
 
-def run_anytime(args):
-    """One (method, rho, seed) -> (name, rho, seed, cumulative-normalized traj[T])."""
-    name, rho, seed = args
-    Cls, hp = pc.REGISTRY[name]
+def run_anytime_clshp(Cls, hp, rho, seed, d_hat=None):
+    """Core anytime loop driven by an explicit (Cls, hp) -- so ablation variants not
+    in pc.REGISTRY can be evaluated through the SAME loop. Returns the cumulative-
+    normalized skill trajectory traj[T] (traj[-1] = whole-episode anytime skill)."""
+    d_hat = pc.D_HAT if d_hat is None else d_hat
     w = make_world(pc.M, pc.N, pc.D, pc.K, pc.K, within=0.15, seed=seed, signed=True)
     P, U, R = w[:3]; m, n = R.shape
     T, cand, so, sb = pc.T, pc.CAND, pc.SO, pc.SB
     rng = np.random.RandomState(seed + 999)
     Mask = rng.rand(m, m) < rho; np.fill_diagonal(Mask, True)
-    learners = [Cls(m, n, pc.D_HAT, i, seed + 7 * i + 1, **hp) for i in range(m)]
+    learners = [Cls(m, n, d_hat, i, seed + 7 * i + 1, **hp) for i in range(m)]
     real = np.zeros(T); orac = np.zeros(T); rnd = np.zeros(T)
     for t in range(T):
         cand_sets = [rng.choice(n, size=cand, replace=False) for _ in range(m)]
@@ -63,7 +64,14 @@ def run_anytime(args):
             learners[i].observe(t, choices, revealed, cand_sets, rvar)
     cr = np.cumsum(real); co = np.cumsum(orac); cd = np.cumsum(rnd)
     traj = (cr - cd) / np.maximum(co - cd, 1e-9)
-    return name, rho, seed, traj.tolist()
+    return traj.tolist()
+
+
+def run_anytime(args):
+    """One (method, rho, seed) -> (name, rho, seed, cumulative-normalized traj[T])."""
+    name, rho, seed = args
+    Cls, hp = pc.REGISTRY[name]
+    return name, rho, seed, run_anytime_clshp(Cls, hp, rho, seed)
 
 
 def main():

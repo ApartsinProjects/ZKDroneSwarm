@@ -20,6 +20,48 @@ def img(name, alt, w="100%"):
             'style="max-width:%s;height:auto;border:1px solid #d7dde3;border-radius:8px;">' % (alt, b, w))
 
 
+def _bold(s):
+    while "**" in s:
+        s = s.replace("**", "<b>", 1).replace("**", "</b>", 1)
+    return s.strip()
+
+
+def md_tables(path, drop_h1=True):
+    """Render the markdown subset our experiments emit (## headers, | tables |,
+    **bold**, inline html kept) as HTML, so the tutorial draws the headline/ablation/
+    contention tables from the SAME committed .md files (single source of truth)."""
+    if not path or not os.path.exists(path):
+        return "<p><em>[%s not generated yet]</em></p>" % os.path.basename(str(path))
+    out = []; rows = []
+
+    def flush():
+        if not rows:
+            return
+        cells = [[c.strip() for c in r.strip().strip("|").split("|")] for r in rows]
+        h = "".join("<th>%s</th>" % _bold(c) for c in cells[0])
+        body = "".join("<tr>%s</tr>" % "".join(
+            "<td class='l'>%s</td>" % _bold(c) if k == 0 else "<td>%s</td>" % _bold(c)
+            for k, c in enumerate(r)) for r in cells[1:])
+        out.append("<table><tr>%s</tr>%s</table>" % (h, body)); rows.clear()
+
+    for ln in open(path, encoding="utf-8").read().splitlines():
+        s = ln.rstrip()
+        if s.startswith("|") and set(s.replace("|", "").replace("-", "").strip()) == set():
+            continue
+        if s.startswith("|"):
+            rows.append(s); continue
+        flush()
+        if s.startswith("## "):
+            out.append("<h4>%s</h4>" % _bold(s[3:]))
+        elif s.startswith("# "):
+            if not drop_h1:
+                out.append("<h4>%s</h4>" % _bold(s[2:]))
+        elif s.strip():
+            out.append("<p class='small'>%s</p>" % _bold(s.strip()))
+    flush()
+    return "\n".join(out)
+
+
 CSS = """
 :root{--ink:#16191d;--mut:#5b6570;--acc:#1f5fa8;--ok:#0a7d4d;--warn:#b23;--bg:#fff;--box:#f5f8fb;--ln:#e2e8ee;}
 *{box-sizing:border-box}
@@ -512,6 +554,11 @@ for nm, cl, un, an in rows:
     o = " class='ours'" if "ours" in nm else ""
     A("<tr><td class='l'%s>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (o, nm, cl, un, an))
 A("</table>")
+A("<p>For the camera-ready, the headline panels are confirmed at <b>20 seeds with bootstrap "
+  "95%% confidence intervals</b> (a CI is a range we are 95%% confident the true mean lies in; "
+  "non-overlapping intervals mean a real difference, not noise). Skill: 0 = random, 1 = oracle; "
+  "ours in bold.</p>")
+A(md_tables("docs/HEADLINE_TABLE.md"))
 
 # 9 NOVELTY
 A("<h3>8.9 Even more competitors (a broader, fair bake-off)</h3>")
@@ -558,6 +605,34 @@ A("<p><b>Takeaway.</b> The advantage degrades GRACEFULLY, not off a cliff: as th
   "the best the whole way, only meeting the floor when there is essentially no low-rank structure "
   "left to exploit. So the result does not hinge on the world being perfectly low-rank, only on there "
   "being SOME usable structure, which real problems have.</p>")
+
+A("<h3>8.12 Which ingredient matters? (one honest ablation)</h3>")
+A("<p>Our recommended method, ActiveCFconv, has four design choices stacked together. To avoid a "
+  "confusing 'zoo' of methods, we turn each one OFF in turn and measure the cost, all under one "
+  "identical setup (12 seeds, 95%% CIs). This shows what each piece actually buys.</p>")
+A(md_tables("docs/ABLATION_TABLE.md"))
+A("<p><b>Takeaway.</b> (i) Learning ONLINE (updating every round) beats batch 'probe-then-commit' "
+  "methods (PTF, ESTR) under masking and on earned reward; (ii) weighting each observation by its "
+  "PRECISION (trust clean data more) helps when the broadcast is noisy; (iii) the SVD warm-start "
+  "mostly helps when the broadcast is full; (iv) ACTIVE exploration (chase the most uncertain target) "
+  "beats plain random exploration; and (v) the method is robust to a wrong guessed rank (anything "
+  "from 2 to 20 works, though the truth is 5), so you do not need to know the rank in advance.</p>")
+
+A("<h3>8.13 Does it survive contention? (when targets cannot be shared)</h3>")
+A("<p>Our main results assume two drones CAN engage the same target. What if they cannot, so engaging "
+  "a target uses it up (a 'matching' problem)? We test this directly: all drones see the same small "
+  "pool of targets, each target goes to ONE random drone that wanted it, and the losers earn nothing "
+  "that round. We shrink the pool to crank up the competition, and we normalize earned reward by the "
+  "best possible assignment (the Hungarian matching optimum).</p>")
+A(md_tables("docs/CONTENTION.md"))
+A("<p><b>Takeaway.</b> Two different things happen, and the distinction matters. The CATEGORICAL "
+  "result, the QUALITY of each drone's learned preferences (unseen-pair skill, measured without "
+  "contention afterward), is unaffected by contention, because preference quality is a property of the "
+  "learned model, not of how the rewards were collected. The OPERATIONAL result, total earned reward, "
+  "still favors our method, because accurate and DIVERSE preferences naturally spread the drones "
+  "across different targets and cause fewer collisions; the margin shrinks as collisions (not "
+  "preference quality) become the bottleneck, which is exactly what you would expect, and points to "
+  "explicit coordination as the natural next ingredient.</p>")
 
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
