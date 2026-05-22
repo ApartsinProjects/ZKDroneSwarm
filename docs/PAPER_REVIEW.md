@@ -76,6 +76,22 @@ P2 (polish):
   9. Explicit reproducibility + limitations sections.
   10. Consolidated method-ablation table and hyperparameter appendix.
 
+## Progress on the fix list
+- P0-1 (cited related work): DONE in docs/paper_aamas/references.bib (real entries;
+  one decentralized-MARL survey marked PLACEHOLDER to replace).
+- P0-2 (formal problem statement + metric definitions): DONE as the Problem-statement
+  section of docs/paper_aamas/main.tex (notation, model, observation, baselines,
+  formal skill/unseen/anytime definitions).
+- P0-3 (AAMAS LaTeX skeleton): DONE (docs/paper_aamas/main.tex; standard article
+  class for portability, with a note to switch to the AAMAS/acmart class; figures
+  reference ../figures PNGs, swap to vector PDFs for camera-ready). Not compiled here
+  (no TeX distribution on this machine); compile with any TeX install.
+- P1-4 (20-seed CIs on headline panels): IN PROGRESS.
+- Real-simulator validation and assumption-stress (reviewer "is low-rank realistic?"
+  and "does it transfer?"): DONE (Figs F13, F14).
+REMAINING: vector-PDF figures, method consolidation into one ablation table, theorem
+tightening, a short contention experiment or crisp scope note.
+
 ## Status of evidence already in hand (what the fixes can draw on)
 - Real-env validation: tabula_bench (ours skill ~0.83 vs SGD-MF ~0.35, UCBIndep
   ~0.68, approaching oracle).
