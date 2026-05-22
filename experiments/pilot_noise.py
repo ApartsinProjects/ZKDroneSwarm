@@ -136,6 +136,8 @@ class ChoiceCF(WeightedMF):
             self.rv.append(float(r)); self.rw.append(1.0 / max(rvar[self.idx], 1e-6))
         for k in range(self.m):
             c = int(choices[k])
+            if c < 0:                # masked: teammate k's choice not observed (rho)
+                continue
             self.ck.append(k); self.cc.append(c); self.coff.append(cand_sets[k]); self.cstep.append(t)
             if k in self.last_vec:
                 v0 = self.last_vec[k]; v1 = self.U[c]
@@ -183,6 +185,8 @@ class BothCF(ChoiceCF):
                 self.rv.append(float(r)); self.rw.append(1.0 / max(rvar[k], 1e-6))
         for k in range(self.m):
             c = int(choices[k])
+            if c < 0:                # masked: teammate k's choice not observed (rho)
+                continue
             self.ck.append(k); self.cc.append(c); self.coff.append(cand_sets[k]); self.cstep.append(t)
             if k in self.last_vec:
                 v0 = self.last_vec[k]; v1 = self.U[c]

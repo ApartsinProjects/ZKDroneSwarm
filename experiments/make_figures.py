@@ -138,4 +138,28 @@ if f:
     plt.savefig(f"{OUT}/F6_anytime.png", dpi=150); plt.close()
     print("F6_anytime.png  <-", os.path.basename(f))
 
+# ---- F7: E3 channel grid (overall skill vs sigma_obs, panel per rho) ----
+f = latest("results/pilots/e3_channels_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; rhos = d["meta"]["rhos"]
+    sigs = d["meta"]["sigmas"]; methods = d["meta"]["methods"]
+    st = {"Tabular": dict(color="gray", ls=":", marker="."),
+          "RewardCF": dict(color="C0", marker="o", lw=2), "ChoiceCF": dict(color="C2", marker="s", lw=2),
+          "BothCF": dict(color="C1", marker="D", lw=2), "PTF": dict(color="C3", ls="--", marker="^")}
+    fig, axes = plt.subplots(1, len(rhos), figsize=(12, 3.6), sharey=True)
+    for ax, rho in zip(axes, rhos):
+        for nm in methods:
+            mu = [np.mean(raw[str(rho)][str(s)][nm]["overall"]) for s in sigs]
+            sd = [np.std(raw[str(rho)][str(s)][nm]["overall"]) for s in sigs]
+            ax.errorbar(sigs, mu, yerr=sd, capsize=2, markersize=4,
+                        label=nm + (" (ours)" if nm in ("RewardCF", "ChoiceCF", "BothCF") else ""), **st.get(nm, {}))
+        ax.set_title("rho = %.2f" % rho, fontsize=10)
+        ax.set_xlabel("reward-obs noise  sigma_obs"); ax.grid(alpha=0.25)
+    axes[0].set_ylabel("overall skill")
+    axes[-1].legend(fontsize=7, loc="lower left")
+    fig.suptitle("Two observability channels: clean CHOICES (ChoiceCF, flat) overtake noisy "
+                 "REWARDS (RewardCF, decays) as sigma_obs rises; BothCF tracks the best", fontsize=10)
+    fig.tight_layout(rect=[0, 0, 1, 0.94]); fig.savefig(f"{OUT}/F7_channels.png", dpi=150); plt.close(fig)
+    print("F7_channels.png  <-", os.path.basename(f))
+
 print("figures written to", OUT)

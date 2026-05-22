@@ -28,6 +28,7 @@ re-analyzed without re-running. Connected to PROJECT_LOG.md by cycle number.
 | 26 | C16 anytime cumulative-reward AUC | results/pilots/c16_anytime_20260522_134648.json | per-seed cumulative-normalized skill TRAJECTORY (per round) for 10 methods x rho{1.0,0.25}; operational metric -> docs/figures/F6_anytime.png | 8 | 2026-05-22 |
 | 27 | E9 crossover + HybridCF | results/pilots/c15_crossover_20260522_145626.json | unseen+overall skill, 8 methods incl HybridCF x 8 rho; -> F5_crossover.png (supersedes cycle-25) | 8 | 2026-05-22 |
 | 27 | E9 anytime + HybridCF/ChoiceCF | results/pilots/c16_anytime_20260522_145857.json | anytime trajectories, 12 methods incl HybridCF/ChoiceCF x rho{1.0,0.25}; -> F6_anytime.png (supersedes cycle-26) | 8 | 2026-05-22 |
+| 28 | E3 two-channel grid (rho x sigma_obs) | results/pilots/e3_channels_20260522_153527.json | overall/unseen/anytime skill, 5 methods x 3 rho x 5 sigma_obs; both channels masked consistently; -> F7_channels.png | 8 | 2026-05-22 |
 
 NOTE: cycles 1-17 predate structured saving; their SUMMARY tables are in
 PROJECT_LOG.md and full stdout is in the (ephemeral) task-output files. Complete
