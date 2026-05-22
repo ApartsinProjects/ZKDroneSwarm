@@ -230,3 +230,21 @@ explore_knob. C1 + C8 DONE (below). Method work (C6/C10/C3/C2) demoted to P1
   demoted to P1 (strengthens, not categorical alone). Added: continuous
   explore-knob + ORACLE baseline (infra, core.py), D6 contention/assignment axis,
   D7 hierarchical priors. All discussed ideas now captured.
+- 2026-05-22 COMPARISON DONE (cycles 23-26): full method bake-off vs UCBIndep/
+  UCBHomo/Tabular/MFSGD/ESTR/PTF/BPMF on three metrics (final-policy unseen,
+  masking-robustness, anytime/AUC). Findings: (1) unseen-pair categorical win is
+  ESTIMATOR-INDEPENDENT (all 5 low-rank methods clear the no-structure floor);
+  (2) our online weighted-ALS is masking-robust + anytime-optimal -> dominates
+  cumulative reward at every horizon and every rho<1; (3) PTF (probe-then-fit)
+  beats us on FINAL policy only at rho=1 (no-limit case). Figures F5,F6 + Table 1.
+- 2026-05-22 PLAN + REVIVE (user review): wrote docs/EXPERIMENT_PLAN.md (parameter
+  taxonomy, 11 suites E1-E11, ablations A1-A6, stats protocol, 3-wave schedule).
+  REVIVED (moved toward P0/P1): E9 probe-then-online-ALS HYBRID (close the only
+  rho=1 gap -> dominate everywhere); E8=C10 active uncertainty-reducing exploration
+  (collective via broadcast; amplifies anytime+onboarding); E7=M2 newcomer
+  cold-start (2nd categorical result); E10 precision-gated fusion (fix the count-
+  based gate); E11=C3d dual-source calibrated exploration; D7 hierarchical priors.
+  NEW P0 = E1 (CIs/20 seeds) + E3 (rho x sigma_obs grid, fills the channel gap +
+  ChoiceCF) + E9 (hybrid) + E2/E4/E6 (rank, starvation, d_hat scaling). KEPT
+  PARKED: D1 Byzantine (out of scope), D5 RANSAC (subsumed by precision weights),
+  D6 contention (future paper). Tutorial: docs/tutorial.html.
