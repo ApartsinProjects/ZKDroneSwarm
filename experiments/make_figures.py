@@ -191,4 +191,36 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.93]); fig.savefig(f"{OUT}/F8_iid_vs_persistent.png", dpi=150); plt.close(fig)
     print("F8_iid_vs_persistent.png  <-", os.path.basename(f))
 
+# ---- F9: E2/E4/E6 scaling sweeps (unseen & anytime vs d, T, n, d_hat) ----
+f = latest("results/pilots/e246_scaling_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; sweeps = d["meta"]["sweeps"]; methods = d["meta"]["methods"]
+    order = [s for s in ["d", "T", "n", "dhat"] if s in sweeps]
+    xlabels = {"d": "true rank d", "T": "horizon T", "n": "targets n", "dhat": "guessed rank d_hat"}
+    st = {"Tabular": dict(color="gray", ls=":", marker="."),
+          "UCBIndep": dict(color="C7", ls=":", marker="x"),
+          "PTF": dict(color="C3", ls="--", marker="s"),
+          "RewardCF": dict(color="C0", marker="o", lw=2),
+          "HybridCF": dict(color="C6", marker="D", lw=2)}
+    fig, axes = plt.subplots(2, len(order), figsize=(3.1 * len(order), 6.4), sharex="col")
+    for col, sw in enumerate(order):
+        vals = sweeps[sw]
+        for row, metric in enumerate(["unseen", "anytime"]):
+            ax = axes[row][col]
+            for nm in methods:
+                mu = [np.mean(raw[sw][str(v)][nm][metric]) for v in vals]
+                ax.plot(vals, mu, markersize=4, label=nm, **st.get(nm, {}))
+            ax.axhline(0, color="black", lw=0.6, ls=":"); ax.grid(alpha=0.2)
+            if row == 1:
+                ax.set_xlabel(xlabels.get(sw, sw))
+            if col == 0:
+                ax.set_ylabel("%s skill" % metric)
+            if sw in ("n",):
+                ax.set_xscale("log")
+    axes[0][0].legend(fontsize=6, loc="best")
+    fig.suptitle("Scaling: unseen (top) and anytime (bottom) skill vs rank d, horizon T, "
+                 "targets n, guessed rank d_hat (rho=0.5)", fontsize=10)
+    fig.tight_layout(rect=[0, 0, 1, 0.95]); fig.savefig(f"{OUT}/F9_scaling.png", dpi=150); plt.close(fig)
+    print("F9_scaling.png  <-", os.path.basename(f))
+
 print("figures written to", OUT)

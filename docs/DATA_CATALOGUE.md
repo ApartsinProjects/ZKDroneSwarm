@@ -31,6 +31,7 @@ re-analyzed without re-running. Connected to PROJECT_LOG.md by cycle number.
 | 28 | E3 two-channel grid (rho x sigma_obs) | results/pilots/e3_channels_20260522_153527.json | overall/unseen/anytime skill, 5 methods x 3 rho x 5 sigma_obs; both channels masked consistently; -> F7_channels.png | 8 | 2026-05-22 |
 | 29 | E12 persistent vs iid masking (Theorem 4) | results/pilots/e12_iid_masking_20260522_154506.json | rawA: unseen/anytime/uniq vs rho for 6 methods x 2 modes; rawB: uniq vs T (RewardCF); -> F8_iid_vs_persistent.png | 8 | 2026-05-22 |
 | 30 | E13 choice-only ablation + strict-ZK | results/pilots/e13_choice_20260522_155023.json | unseen+anytime vs rho for Tabular/ChoiceCF/ChoiceZK/RewardCF/BothCF; choice-channel value + strict-ZK robustness | 8 | 2026-05-22 |
+| 31 | E2/E4/E6 scaling sweeps | results/pilots/e246_scaling_20260522_160250.json | unseen+anytime vs true d / horizon T / targets n / guessed d_hat, 5 methods; -> F9_scaling.png | 8 | 2026-05-22 |
 
 NOTE: cycles 1-17 predate structured saving; their SUMMARY tables are in
 PROJECT_LOG.md and full stdout is in the (ephemeral) task-output files. Complete
