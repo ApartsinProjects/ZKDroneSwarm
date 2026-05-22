@@ -305,3 +305,118 @@ class BPMF(_Base):
         muP = np.linalg.solve(self.LP[self.idx], self.eP[self.idx])
         muU = np.linalg.solve(self.LU, self.eU[..., None])[..., 0]
         return muU @ muP
+
+
+class _AccBase(_Base):
+    """Helper: accumulate the per-drone observed empirical reward matrix from the
+    (masked) broadcast. ZK: only observed (k, choice, reward) events."""
+    def __init__(self, *a, eps=0.2, **hp):
+        super().__init__(*a, **hp); self.eps = eps
+        self.sum = np.zeros((self.m, self.n)); self.cnt = np.zeros((self.m, self.n))
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):
+            r = revealed[k]
+            if not np.isnan(r):
+                j = int(choices[k]); self.sum[k, j] += r; self.cnt[k, j] += 1
+
+
+class BiasModel(_AccBase):
+    """Additive baseline predictor r_ij ~ mu + b_i + c_j (drone bias + target bias),
+    NO low-rank interaction (the prediction matrix has rank <= 2). Isolates the value
+    of the personalized interaction term: it captures additive/popularity effects but
+    cannot personalize beyond them. (Generalizes the rank-1 pooling baseline.)"""
+    def _fit(self):
+        obs = self.cnt > 0
+        if not obs.any():
+            return 0.0, np.zeros(self.m), np.zeros(self.n)
+        vals = np.where(obs, self.sum / np.maximum(self.cnt, 1), np.nan)
+        mu = float(np.nanmean(vals))
+        with np.errstate(invalid="ignore"):
+            b = np.nanmean(np.where(obs, vals - mu, np.nan), axis=1)
+            resid = vals - mu - np.nan_to_num(b)[:, None]
+            c = np.nanmean(np.where(obs, resid, np.nan), axis=0)
+        return mu, np.nan_to_num(b), np.nan_to_num(c)
+
+    def predict_scores(self):
+        mu, b, c = self._fit(); return mu + b[self.idx] + c
+
+    def select(self, t, cand):
+        if self.rng.rand() < self.eps:
+            a = int(cand[self.rng.randint(len(cand))])
+        else:
+            a = int(cand[int(np.argmax(self.predict_scores()[cand]))])
+        self.pulled[a] = True; return a
+
+
+class KNNCF(_AccBase):
+    """Memory-based collaborative filtering (user-user): predict drone i's reward on
+    target j as a similarity-weighted average of OTHER drones' observed rewards on j,
+    similarity = mean-centered cosine over co-observed targets. Model-FREE CF (no
+    factorization, no rank): tests whether explicit low-rank factorization is needed.
+    Generalizes to unseen j (for i) via similar drones who DID observe j."""
+    def predict_scores(self):
+        obs = (self.cnt > 0).astype(float)
+        vals = np.where(self.cnt > 0, self.sum / np.maximum(self.cnt, 1), 0.0)
+        rc = obs.sum(1)
+        rowmean = np.where(rc > 0, (vals * obs).sum(1) / np.maximum(rc, 1), 0.0)
+        V = (vals - rowmean[:, None]) * obs                 # centered, 0 where unobserved
+        i = self.idx; vi = V[i]
+        num = V @ vi
+        den = np.sqrt((V ** 2).sum(1) * (vi ** 2).sum()) + 1e-9
+        sim = num / den; sim[i] = 0.0
+        w = np.clip(sim, 0, None)[:, None] * obs            # (m,n) weight where observed
+        pred = (w * (vals - rowmean[:, None])).sum(0) / np.maximum(w.sum(0), 1e-9) + rowmean[i]
+        return pred
+
+    def select(self, t, cand):
+        if self.rng.rand() < self.eps:
+            a = int(cand[self.rng.randint(len(cand))])
+        else:
+            a = int(cand[int(np.argmax(self.predict_scores()[cand]))])
+        self.pulled[a] = True; return a
+
+
+class SoftImpute(_AccBase):
+    """Nuclear-norm matrix completion (Mazumder-Hastie-Tibshirani): iterate
+    fill-observed -> SVD -> SOFT-threshold singular values, to about rank d_hat. A
+    CONVEX-relaxation completion alternative to non-convex ALS / hard-SVD (ESTR/PTF)."""
+    def __init__(self, *a, eps=0.15, sweeps=20, refit_every=5, **hp):
+        super().__init__(*a, eps=eps, **hp)
+        self.sweeps = sweeps; self.refit_every = refit_every
+        self.M = np.zeros((self.m, self.n)); self.step = 0
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        super().observe(t, choices, revealed, cand_sets, rvar)
+        self.step += 1
+        if self.step % self.refit_every == 0:
+            self._impute()
+
+    def _impute(self):
+        obs = self.cnt > 0
+        if not obs.any():
+            return
+        R = np.where(obs, self.sum / np.maximum(self.cnt, 1), 0.0)
+        X = self.M.copy()
+        lam = None
+        for _ in range(self.sweeps):
+            Z = np.where(obs, R, X)
+            try:
+                U, S, Vt = np.linalg.svd(Z, full_matrices=False)
+            except np.linalg.LinAlgError:
+                return
+            if lam is None:                                  # threshold ~ keep about d_hat comps
+                lam = S[self.d] if len(S) > self.d else 0.0
+            S2 = np.maximum(S - lam, 0.0)
+            X = (U * S2) @ Vt
+        self.M = X
+
+    def predict_scores(self):
+        return self.M[self.idx]
+
+    def select(self, t, cand):
+        if self.rng.rand() < self.eps:
+            a = int(cand[self.rng.randint(len(cand))])
+        else:
+            a = int(cand[int(np.argmax(self.M[self.idx][np.asarray(cand)]))])
+        self.pulled[a] = True; return a

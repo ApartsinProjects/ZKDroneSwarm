@@ -117,6 +117,21 @@ A("<div class='box key'><strong>The central question (generalization).</strong> 
   "point.</div>")
 
 # 2 BACKGROUND
+A("<div class='box'><strong>The idea in everyday terms (the Netflix analogy).</strong> Streaming "
+  "services guess whether YOU will like a movie you have never watched. They do not need to know what "
+  "the movie is about; they just notice that people who liked the same things as you also liked some "
+  "movie you have not seen, and recommend it. Our drones do the exact same trick: a drone learns "
+  "which OTHER drones tend to succeed where it succeeds, and borrows their successes to guess how it "
+  "would do against a target it has NEVER engaged. Nobody is told anything about the targets; the "
+  "pattern of who-succeeded-where is enough. That trick is called <em>collaborative filtering</em>, "
+  "and it is the heart of this project.</div>")
+A("<div class='box'><strong>What 'low-rank' means, simply.</strong> Imagine every drone and every "
+  "target each gets a short list of a few hidden 'traits' (say 5 numbers). How well a drone does "
+  "against a target is just how well their trait-lists line up. Because only a few traits matter, the "
+  "giant table of all drone-vs-target outcomes is actually simple underneath ('low-rank'). That "
+  "simplicity is what lets a drone fill in the blanks for pairs it never tried, the same way knowing "
+  "your taste in a few genres predicts many movies.</div>")
+
 A("<h2 id='bg'>2. Background: the tools we build on</h2>")
 A("<dl>"
   "<dt>Collaborative filtering (CF) / matrix completion</dt><dd>Predict the unknown entries of a "
@@ -219,19 +234,55 @@ A("<p class='small'>Explored but not recommended (honest negatives): precision-g
   "agreement) deadlocks at cold-start.</p>")
 
 # 6 METRICS
-A("<h2 id='metrics'>6. Metrics</h2>")
-A("<p>All skills are normalized: <code>skill = (method - random) / (oracle - random)</code>, so 0 "
-  "is random and 1 is the centralized complete-information ceiling.</p>")
-A("<dl>"
-  "<dt>Overall skill</dt><dd>final-policy quality on random offers.</dd>"
-  "<dt>Unseen-pair skill</dt><dd>restricted to targets the drone NEVER pulled: the categorical "
-  "metric (tabular is ~0 here by construction).</dd>"
-  "<dt>Anytime / AUC skill</dt><dd>reward actually EARNED over the rounds (targets destroyed by round "
-  "K), the operational metric that charges any probe/explore cost.</dd>"
-  "<dt>State-uniqueness</dt><dd>how much drones' learned models differ; rises with masking, "
-  "evidencing real decentralization.</dd>"
-  "<dt>Onboarding/newcomer skill vs probes</dt><dd>skill on a new target or new drone as a function "
-  "of how many probes it received.</dd></dl>")
+A("<h2 id='metrics'>6. Metrics (and why each one matters)</h2>")
+A("<p>To compare methods fairly we put every score on the same 0-to-1 ruler, called <b>skill</b>:</p>")
+A("<pre>skill = (what the method got - what RANDOM gets) / (what the ORACLE gets - what RANDOM gets)</pre>")
+A("<p>So <b>skill = 0</b> means 'no better than guessing', and <b>skill = 1</b> means 'as good as a "
+  "cheating oracle that knows everything and coordinates everyone'. A method at 0.4 has closed 40% of "
+  "the gap between guessing and perfect. We report it as a mean over many random worlds (seeds) with "
+  "error bars, so a difference only counts if the bars do not overlap.</p>")
+A("<p>We use five flavors of skill, each answering a different question:</p>")
+
+def metric(name, what, why, look):
+    A("<div class='step'><h3>%s</h3>" % name)
+    A("<p><b>What it is.</b> %s</p>" % what)
+    A("<p><b>Why it matters.</b> %s</p>" % why)
+    A("<p><b>What to look for.</b> %s</p></div>" % look)
+
+metric("Overall skill",
+       "How good the final learned policy is when offered a random handful of targets.",
+       "It is the all-round 'did you learn the task' score.",
+       "Higher is better; but it can be flattered by methods that explored a lot 'for free' (see "
+       "anytime).")
+metric("Unseen-pair skill (the categorical one)",
+       "The same score, but ONLY on targets the drone never tried itself, the 'unseen' pairs.",
+       "This is the make-or-break test of GENERALIZATION. A learner with no shared structure literally "
+       "cannot do better than guessing here (it has no information), so it scores ~0 by construction. "
+       "Any score clearly above 0 means the method is genuinely transferring knowledge to things it "
+       "never experienced.",
+       "We want our methods well above 0 and the structure-free baselines stuck at 0. The GAP between "
+       "them is the headline result.")
+metric("Anytime / AUC skill (the operational one)",
+       "The reward actually EARNED while learning, summed over the rounds ('how many targets did you "
+       "destroy by round K'), not just the quality of the policy at the end.",
+       "In the real world you care about results DURING the mission, not only after. This metric "
+       "CHARGES a method for any time it spends just exploring or probing. It is the most honest, "
+       "practical score.",
+       "Methods that explore politely while still exploiting (ours) win; methods that pause to probe, "
+       "or that never stop exploring, lose here even if their final policy looks fine.")
+metric("State-uniqueness",
+       "How DIFFERENT the drones' learned internal models are from each other.",
+       "It checks that decentralization is REAL: if every drone ended up with the same model, 'no "
+       "communication' would be meaningless. It is also the quantity that distinguishes the two "
+       "masking models in the theory.",
+       "It should rise as observation gets more limited (drones see different things), and stay high "
+       "over time under persistent masking (durable) but fade under i.i.d. masking (transient).")
+metric("Onboarding / newcomer skill vs number of probes",
+       "How good the prediction for a brand-new target (or a brand-new drone) gets, as a function of "
+       "how many trial engagements ('probes') it has received.",
+       "It measures sample efficiency for cold-start: how cheaply can the swarm absorb something new?",
+       "Our methods should reach high skill after only about d probes (the number of hidden traits), "
+       "while a structure-free learner needs roughly one probe per drone or per target.")
 
 # 7 THEORY
 A("<h2 id='thy'>7. Theory, step by step (why the win is categorical)</h2>")
@@ -339,6 +390,10 @@ A("<p>Statically, CF reaches unseen-pair skill 0.496 vs tabular 0.006. Under the
 A("<figure>%s<figcaption><strong>F2.</strong> Unseen-pair skill vs observation density. CF acts on "
   "never-observed pairs at every density; tabular is pinned at the floor.</figcaption></figure>"
   % img("F2_unseen_masking.png", "F2"))
+A("<p><b>Takeaway.</b> This is the core result in one picture: the blue CF line stays well above zero "
+  "everywhere (it acts intelligently on things it never tried), while the tabular line hugs zero (it "
+  "is helpless on the unseen, by mathematical necessity). The size of that gap, not a few percent, is "
+  "what we mean by a CATEGORICAL win.</p>")
 
 A("<h3>8.3 Dynamic onboarding and newcomers</h3>")
 A("<p>A brand-new TARGET is onboarded for the whole swarm from about <code>d</code> shared probes "
@@ -351,6 +406,10 @@ A("<figure>%s<figcaption><strong>F3.</strong> Target onboarding: CF onboards fro
 A("<figure>%s<figcaption><strong>F10.</strong> Newcomer cold-start: a new drone acts from the "
   "broadcast at zero history; the tabular newcomer is at the floor.</figcaption></figure>"
   % img("F10_newcomer.png", "F10"))
+A("<p><b>Takeaway.</b> New tasks and new teammates are absorbed cheaply: a few trial runs (about d, "
+  "the number of hidden traits) are enough for the whole swarm to predict a new target, and a brand-new "
+  "drone is useful from its very first moment by riding on what the swarm already learned. A "
+  "structure-free swarm would need to re-try everything from scratch.</p>")
 
 A("<h3>8.4 The gap scales with low-rankness</h3>")
 A("<p>As the true rank rises there is more to complete from the same data, so CF unseen skill "
@@ -372,6 +431,11 @@ A("<figure>%s<figcaption><strong>F5.</strong> Masking-robustness: online ALS sta
 A("<figure>%s<figcaption><strong>F6.</strong> Anytime reward trajectory: online CF earns from round "
   "one; explore-then-commit pays a probe phase; UCBIndep is stuck.</figcaption></figure>"
   % img("F6_anytime.png", "F6"))
+A("<p><b>Takeaway.</b> If you count reward as it is actually earned (the honest, operational view), "
+  "our online methods (top curves) pull ahead from the very first rounds and stay ahead. The "
+  "explore-then-commit competitors are flat near zero until they stop probing, and the per-target "
+  "bandit never recovers because, with far more targets than rounds, every menu still contains "
+  "something it has not tried. This is where 'acting on the unseen' turns into real, early reward.</p>")
 
 A("<h3>8.6 Both observability channels</h3>")
 A("<p>Crossing masking with reward noise (Figure F7): the reward channel (RewardCF) degrades as "
@@ -394,6 +458,11 @@ A("<p>Re-running everything under i.i.d. per-round loss (Figure F8) leaves unsee
 A("<figure>%s<figcaption><strong>F8.</strong> Persistent vs i.i.d. masking: results invariant; "
   "decentralization durable (persistent) vs transient (i.i.d.).</figcaption></figure>"
   % img("F8_iid_vs_persistent.png", "F8"))
+A("<p><b>Takeaway.</b> It does not matter whether the missing observations are a fixed blind spot "
+  "(persistent) or random dropouts (i.i.d., like lost radio packets): the headline results are the "
+  "same (left/middle panels overlap). The only thing that changes is whether the drones STAY "
+  "different over time (right panel): they do under a fixed blind spot, but slowly converge under "
+  "random dropouts. So our modeling choice is principled, not a cheat.</p>")
 A("<figure>%s<figcaption><strong>F9.</strong> Scaling: unseen (top) and anytime (bottom) vs rank, "
   "horizon, targets, and guessed rank.</figcaption></figure>" % img("F9_scaling.png", "F9"))
 
@@ -407,6 +476,11 @@ A("<p>The strongest competitor (PTF) once led on one metric (final-policy unseen
 A("<figure>%s<figcaption><strong>F11.</strong> Pareto frontier (anytime vs unseen): our methods "
   "dominate; PTF trades all anytime for unseen and is dominated under masking.</figcaption></figure>"
   % img("F11_pareto.png", "F11"))
+A("<p><b>Takeaway.</b> 'Up and to the right' is best (good on both axes). Our methods (green/blue) sit "
+  "in that corner; the strongest competitor (PTF, red) is pushed to the edge, buying a sliver of "
+  "final-policy quality by giving up almost all earned reward, and it falls behind entirely once "
+  "observation is limited. There is no metric left on which a competitor beats us in the regime that "
+  "matters.</p>")
 A("<p>Summary numbers (skill ~0 = random; ours in green):</p>")
 rows = [("Random", "no-struct", "0.01", "0.00"), ("UCBIndep", "no-struct", "0.00", "-0.01"),
         ("Tabular", "no-struct", "0.00", "0.25"), ("PTF", "low-rank", "0.51", "0.27"),
