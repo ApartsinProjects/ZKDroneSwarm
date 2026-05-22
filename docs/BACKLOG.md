@@ -76,6 +76,17 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
   sigma_obs noise.)
 
 ## P0 -- do next (within scope)
+- [TODO] C10. *** GROUNDBREAKING CANDIDATE *** COLLECTIVE UNCERTAINTY-REDUCING
+  EXPLORATION. Decouple ESTIMATION (posterior over latents -> mu, Sigma) from
+  DECISION (policy). Exploration probes the target with highest predictive
+  variance / info-gain on the FACTOR posterior (active learning / optimal design
+  in latent space), not eps-random. Every probe is BROADCAST -> collective
+  benefit (one drone's uncertainty-reducing probe improves ALL estimates), no
+  communication. Should beat passive eps-greedy on SAMPLE EFFICIENCY (where CF's
+  edge lives) -> categorical-win candidate. Needs the posterior-tracking
+  (Bayesian/RLS-with-Sigma) estimator (C6). Subsumes/elevates old B14
+  (info-directed sampling). Diversify across drones via the broadcast (avoid
+  re-probing what was just probed) to keep it decentralized.
 - [TODO] C8. *** GROUNDBREAKING CANDIDATE *** Generalization / cold-start
   NEWCOMER (K1/K2 + M1/M2): in a decentralized swarm with NO communication, can
   a CF agent generalize to UNSEEN targets, and can a NEWCOMER act well from the
