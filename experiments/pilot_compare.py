@@ -34,7 +34,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 from pilot_c11_masking import run_masked
 from pilot_noise import Tabular, RewardCF, BothCF
-from pilot_baselines import Random, UCBIndep, UCBHomo, MFSGD, ESTR
+from pilot_baselines import Random, UCBIndep, UCBHomo, MFSGD, ESTR, PTF, BPMF
 from core import make_world
 from _results_io import save_results
 
@@ -55,14 +55,19 @@ REGISTRY = {
     "UCBHomo":  (UCBHomo,  dict(c=2.0)),
     "MFSGD":    (MFSGD,    dict(lr=0.2, reg=1e-3, eps=0.15, init_scale=0.3)),
     "ESTR":     (ESTR,     dict(T_total=T, explore_frac=0.4, eps_floor=0.05)),
+    "PTF":      (PTF,      dict(T_total=T, probe_frac=0.4, c=2.0, lr=0.2, reg=1e-3,
+                               eps=0.15, init_scale=0.3)),
+    "BPMF":     (BPMF,     dict(prior_var=1.0, init_scale=0.1)),
     "Tabular":  (Tabular,  dict(**_EPS)),
     "RewardCF": (RewardCF, dict(**_ALS)),
     "BothCF":   (BothCF,   dict(comp=True, s2c=0.2, n_neg=1, within=True,
                                 warm_frac=0.3, T_total=T, **_ALS)),
 }
-ORDER = ["Random", "UCBIndep", "UCBHomo", "Tabular", "MFSGD", "ESTR", "RewardCF", "BothCF"]
+ORDER = ["Random", "UCBIndep", "UCBHomo", "Tabular",
+         "MFSGD", "ESTR", "PTF", "BPMF", "RewardCF", "BothCF"]
 GROUP = {"Random": "no-struct", "UCBIndep": "no-struct", "UCBHomo": "no-struct",
          "Tabular": "no-struct", "MFSGD": "low-rank", "ESTR": "low-rank",
+         "PTF": "low-rank", "BPMF": "low-rank",
          "RewardCF": "low-rank(ours)", "BothCF": "low-rank(ours)"}
 
 

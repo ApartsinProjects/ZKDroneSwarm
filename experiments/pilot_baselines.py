@@ -176,3 +176,130 @@ class ESTR(_Base):
         if self.U_hat is None:
             return np.zeros(self.n)
         return self.U_hat @ self.P_hat[self.idx]
+
+
+class PTF(_Base):
+    """Probe-Then-Fit hybrid: probe with per-(drone,target) UCB to fill an
+    empirical R_hat, SVD warm-start rank-d factors, then ONLINE SGD-MF fine-tune.
+    Stronger low-rank baseline than MFSGD (warm start) and than ESTR (UCB-targeted
+    probe + online adaptation rather than uniform-explore-then-COMMIT). NOTE: UCB
+    probing exploits high-reward arms, so R_hat coverage is BIASED vs ESTR's
+    uniform random probe -- a genuine matrix-completion trade-off."""
+    def __init__(self, *a, T_total=50, probe_frac=0.4, c=2.0, lr=0.2, reg=1e-3,
+                 eps=0.15, init_scale=0.3, **hp):
+        super().__init__(*a, **hp)
+        self.probe_steps = int(probe_frac * T_total); self.c = c
+        self.lr = lr; self.reg = reg; self.eps = eps; self.init_scale = init_scale
+        self.counts = np.zeros((self.m, self.n)); self.sums = np.zeros((self.m, self.n))
+        self.tot = np.zeros(self.m); self.step = 0; self.trans = False
+        self.P = None; self.U = None
+
+    def select(self, t, cand):
+        if not self.trans:                       # PROBE phase: own-row UCB1
+            i = self.idx; cnt = self.counts[i]; tot = max(self.tot[i], 1)
+            sc = np.full(len(cand), -np.inf)
+            for q, j in enumerate(cand):
+                if cnt[j] == 0:
+                    sc[q] = np.inf
+                else:
+                    sc[q] = self.sums[i, j] / cnt[j] + self.c * np.sqrt(np.log(tot) / cnt[j])
+            if np.isinf(sc.max()):
+                a = int(self.rng.choice([cand[q] for q in range(len(cand)) if np.isinf(sc[q])]))
+            else:
+                a = int(cand[int(np.argmax(sc))])
+        else:                                    # FIT phase: eps-greedy on low-rank
+            if self.rng.rand() < self.eps:
+                a = int(cand[self.rng.randint(len(cand))])
+            else:
+                a = int(cand[int(np.argmax(self.U[cand] @ self.P[self.idx]))])
+        self.pulled[a] = True; return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):
+            r = revealed[k]
+            if not np.isnan(r):
+                j = int(choices[k]); self.counts[k, j] += 1; self.sums[k, j] += r; self.tot[k] += 1
+        self.step += 1
+        if (not self.trans) and self.step >= self.probe_steps:
+            self._warm(); self.trans = True
+        elif self.trans:                          # online SGD fine-tune
+            for k in range(self.m):
+                r = revealed[k]
+                if not np.isnan(r):
+                    j = int(choices[k]); err = self.P[k] @ self.U[j] - float(r)
+                    gP = err * self.U[j] + self.reg * self.P[k]
+                    gU = err * self.P[k] + self.reg * self.U[j]
+                    self.P[k] -= self.lr * gP; self.U[j] -= self.lr * gU
+
+    def _warm(self):
+        R_hat = np.where(self.counts > 0, self.sums / np.maximum(self.counts, 1), 0.0)
+        try:
+            Us, S, Vt = np.linalg.svd(R_hat, full_matrices=False)
+            r = min(self.d, len(S)); sq = np.sqrt(np.maximum(S[:r], 0))
+            self.P = Us[:, :r] * sq[None, :]; self.U = (Vt[:r, :].T * sq[None, :])
+            if r < self.d:
+                self.P = np.hstack([self.P, self.rng.normal(0, 0.01, (self.m, self.d - r))])
+                self.U = np.hstack([self.U, self.rng.normal(0, 0.01, (self.n, self.d - r))])
+        except np.linalg.LinAlgError:
+            self.P = self.rng.normal(0, self.init_scale, (self.m, self.d))
+            self.U = self.rng.normal(0, self.init_scale, (self.n, self.d))
+
+    def predict_scores(self):
+        if (not self.trans) or self.U is None:
+            i = self.idx; c = self.counts[i]
+            return np.where(c > 0, self.sums[i] / np.maximum(c, 1), 0.0)   # floor on unseen
+        return self.U @ self.P[self.idx]
+
+
+class BPMF(_Base):
+    """Bayesian Probabilistic Matrix Factorization (Salakhutdinov-Mnih 2008 style):
+    per-drone private posterior over rank-d factors P (m,d) and U (n,d), in natural
+    parameters (precision Lambda + precision-weighted mean eta). Closed-form
+    conjugate (MAP plug-in) updates that consume the per-observation noise rvar as
+    the likelihood variance (principled, like our RewardCF). Thompson-sampling
+    selection: precision shrinks the posterior over time -> exploration without
+    epsilon. Generalizes to unseen pairs via the low-rank posterior MEAN."""
+    def __init__(self, *a, prior_var=1.0, init_scale=0.1, **hp):
+        super().__init__(*a, **hp)
+        d = self.d
+        self.LP = np.tile(np.eye(d) / prior_var, (self.m, 1, 1)).astype(float)
+        self.LU = np.tile(np.eye(d) / prior_var, (self.n, 1, 1)).astype(float)
+        ir = np.random.RandomState((self.idx + 1) * 7919 + 13)
+        muP0 = ir.normal(0, init_scale, (self.m, d)); muU0 = ir.normal(0, init_scale, (self.n, d))
+        self.eP = np.einsum('idk,ik->id', self.LP, muP0)
+        self.eU = np.einsum('jdk,jk->jd', self.LU, muU0)
+
+    def select(self, t, cand):
+        d = self.d; i = self.idx
+        muPi = np.linalg.solve(self.LP[i], self.eP[i]); SPi = np.linalg.inv(self.LP[i])
+        try:
+            p_t = muPi + np.linalg.cholesky(SPi + 1e-9 * np.eye(d)) @ self.rng.randn(d)
+        except np.linalg.LinAlgError:
+            p_t = muPi + np.sqrt(np.abs(np.diag(SPi))) * self.rng.randn(d)
+        Lc = self.LU[cand]; ec = self.eU[cand]
+        muUc = np.linalg.solve(Lc, ec[..., None])[..., 0]; SUc = np.linalg.inv(Lc)
+        z = self.rng.randn(len(cand), d)
+        try:
+            Lch = np.linalg.cholesky(SUc + 1e-9 * np.eye(d)[None, :, :])
+            u_t = muUc + np.einsum('qde,qe->qd', Lch, z)
+        except np.linalg.LinAlgError:
+            u_t = muUc + np.sqrt(np.abs(np.diagonal(SUc, axis1=1, axis2=2))) * z
+        a = int(cand[int(np.argmax(u_t @ p_t))])
+        self.pulled[a] = True; return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        muP = np.linalg.solve(self.LP, self.eP[..., None])[..., 0]   # (m,d) pre-update snapshot
+        muU = np.linalg.solve(self.LU, self.eU[..., None])[..., 0]   # (n,d)
+        for k in range(self.m):
+            r = revealed[k]
+            if np.isnan(r):
+                continue
+            j = int(choices[k]); s2 = max(rvar[k], 1e-6)
+            mk = muP[k]; uj = muU[j]
+            self.LP[k] += np.outer(uj, uj) / s2; self.eP[k] += (r * uj) / s2
+            self.LU[j] += np.outer(mk, mk) / s2; self.eU[j] += (r * mk) / s2
+
+    def predict_scores(self):
+        muP = np.linalg.solve(self.LP[self.idx], self.eP[self.idx])
+        muU = np.linalg.solve(self.LU, self.eU[..., None])[..., 0]
+        return muU @ muP
