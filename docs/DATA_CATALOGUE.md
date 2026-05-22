@@ -34,6 +34,7 @@ re-analyzed without re-running. Connected to PROJECT_LOG.md by cycle number.
 | 31 | E2/E4/E6 scaling sweeps | results/pilots/e246_scaling_20260522_160250.json | unseen+anytime vs true d / horizon T / targets n / guessed d_hat, 5 methods; -> F9_scaling.png | 8 | 2026-05-22 |
 | 32 | E7 newcomer cold-start | results/pilots/e7_newcomer_20260522_160904.json | newcomer skill on unseen vs #own probes; CF foldin (shrunk to pop prior) vs Tabular vs popularity; -> F10_newcomer.png | 10 | 2026-05-22 |
 | 33 | E10 fusion (precision-gated + stacked) | results/pilots/e10_precgate_20260522_162536.json | overall skill vs sigma_obs for RewardCF/ChoiceCF/BothCF/BothCFPrec (+StackCF smoke); fusion-dominance attempts | 8 | 2026-05-22 |
+| 34 | Converged config dominance vs PTF | results/pilots/conv_confirm_20260522_172716.json | unseen+anytime for RewardCF/HybridCF/HybridCFconv/PTF x 3 rho; paired HybridCFconv-PTF bootstrap CIs (ties rho=1 unseen, wins else) | 10 | 2026-05-22 |
 
 NOTE: cycles 1-17 predate structured saving; their SUMMARY tables are in
 PROJECT_LOG.md and full stdout is in the (ephemeral) task-output files. Complete

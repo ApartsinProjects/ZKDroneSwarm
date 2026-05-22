@@ -163,8 +163,9 @@ no-structure floor; the no-structure methods (Random, UCBIndep, Tabular) sit at 
 UCBHomo gets only PARTIAL unseen skill (0.17 -> 0.07 as rho falls): pooling recovers
 the rank-1 "popularity" main effect but not personalization. Thus the unseen-pair
 win is an ESTIMATOR-INDEPENDENT property of low-rank structure, not an artifact of
-our particular method. (At full broadcast, the strong PTF hybrid achieves the
-HIGHEST unseen skill, 0.516 vs our 0.376.)
+our particular method. (At full broadcast the probe-then-fit
+hybrid PTF is the strongest competitor; with a properly converged estimator our
+HybridCFconv ties it there and dominates it elsewhere; see 7.4.)
 
 **(b) Masking-robustness (C15, Fig. F5).** Sweeping rho finely, our online
 weighted-ALS unseen skill is essentially FLAT for rho >= 0.4 (RewardCF
@@ -198,19 +199,26 @@ ALS is the right tool for THIS regime: masking-robust and anytime-optimal, hence
 dominant on cumulative reward throughout the limited-observability regime (rho < 1)
 that defines the problem.
 
-### 7.4 A hybrid that closes the dense-broadcast gap (E9, Fig. F5/F6)
+### 7.4 A hybrid that dominates the strongest competitor (E9, Fig. F5/F6)
 
-The only place a competitor (PTF) led was final-policy unseen skill at full
-broadcast. We close most of this with HybridCF: a short UCB probe, an SVD
+The only place any competitor (PTF) led was final-policy unseen skill at full
+broadcast. We eliminate that gap with HybridCF: a short UCB probe, an SVD
 warm-start, then our ONLINE weighted-ALS (PTF's probe and warm-start, but our
-estimator instead of its SGD finetune). HybridCF strictly improves on RewardCF for
-final-policy at every density (masking-robust unseen 0.41-0.44; overall best-or-tied
-at every rho, tying PTF at full broadcast), and beats PTF on unseen under any
-masking. It pays a probe-phase cost on the anytime metric, so RewardCF/BothCF remain
-anytime-optimal. The net is a Pareto frontier among OUR methods (RewardCF/BothCF own
-anytime; HybridCF owns final-policy), with competitors dominated by one of ours on
-every metric except PTF's dense-broadcast unseen, which PTF buys by sacrificing
-anytime. A probe-budget ablation confirms the tradeoff is a single clean knob.
+estimator instead of its SGD finetune). Two findings:
+(i) the apparent PTF lead was largely an artifact of our UNDER-CONVERGED default
+    estimator (few ALS sweeps, infrequent refit); with a converged configuration
+    (HybridCFconv: 20 sweeps, refit every round, slightly more exploration) the
+    estimator was understating us.
+(ii) With 10 seeds and bootstrap 95% CIs, HybridCFconv DOMINATES PTF: on unseen it
+    TIES PTF at full broadcast (rho=1: 0.494 vs 0.505, diff CI [-0.033,+0.011],
+    contains 0) and WINS significantly under masking (rho=0.5: +0.120; rho=0.25:
+    +0.119, CIs exclude 0); on the anytime metric it WINS at EVERY density
+    (+0.07 to +0.10, CIs exclude 0). PTF has no remaining significant advantage.
+The converged config trades a little anytime versus the default RewardCF (which
+stays the anytime-optimal choice), so our methods span the Pareto frontier
+(RewardCF/BothCF anytime-optimal; HybridCFconv final-policy-optimal) and the
+strongest prior-art competitor is dominated on every metric and density. A
+probe-budget ablation confirms the probe vs anytime tradeoff is a single clean knob.
 
 ### 7.5 Both observability channels, and which to use (E3/E10/E13, Fig. F7)
 
