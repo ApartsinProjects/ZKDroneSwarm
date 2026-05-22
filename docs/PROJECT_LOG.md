@@ -47,6 +47,7 @@ simple option works. Updated after every cycle. Commit per cycle (revertible).
 | 17 | CF VARIANT BAKE-OFF (n=120, 3 seeds) | BothCF (fuse reward+choice channels) is the SIMPLE DOMINANT variant: best-or-tied in ALL 6 (structure x observability) cells. RewardCF wins only reward-clean (collapses under noise/decision-only); ChoiceCF only decision-only. ~1% reward-clean penalty from un-gated fusion -> motivates CONFIDENCE-GATED fusion (dual-source confidence) |
 | 18 | C8 unseen-pair generalization (FAIR, d_hat=8 guessed != true 5; 5 seeds; data saved) | CATEGORICAL WIN holds fairly: RewardCF UNSEEN-pair skill 0.496 vs Tabular 0.006 (~80x); tabular at floor BY CONSTRUCTION (no estimate for never-observed pairs). Overall 0.717 vs 0.397. Robust to guessed rank -> not an oracle-rank artifact. THE result for the groundbreaking bar (novel-in-setting + categorical). |
 | 19 | C12 dynamic TARGET ONBOARDING (block-model core, fair d_hat=8, 5 seeds, data saved) | CLEAN Theta(d) vs Theta(m): CF (ridge fold-in given P) onboards a new target for ALL drones from ~d shared probes (0.93 skill @ 8 probes, ~0.98 saturated); Tabular rises ~linearly, only catching up at probes=m=30. At 3 probes: CF 0.797 vs Tabular 0.243 (3.3x). Operational categorical win = the two-phase idea validated. |
+| 20 | C11 unseen-pair win under HETEROGENEOUS MASKING (block-model core, fair d_hat=8, 5 seeds, data saved) | CATEGORICAL WIN HOLDS in the NATURAL masked regime: CF unseen-pair skill 0.16-0.41 vs Tabular ~0 (floor) at EVERY rho (1.0->0.10); CF overall 0.50-0.65 vs Tabular 0.42 (graceful degradation). BUG (sanity): stateUniq metric measures per-drone p_i differences not data-induced U-divergence (~0.95 at all rho, misleading) -> fix to across-drone U_hat divergence. Core result unaffected. |
 
 ### Headline result tables
 **Cycle 5 (phase diagram, CF/Tab greedy ratio, 5 seeds):**
@@ -94,9 +95,30 @@ across the range; clearer-outlier faulty rewards to make reward-trust test fair.
 5. **Per-teammate trust (choice side) works**: competence weighting is robust to
    faulty teammates; advantage grows with faulty fraction.
 
-## Current standing & next (the groundbreaking bet)
-THESIS: naive collaboration is fragile (worse than solo past a threshold of
-unreliable peers); inferring per-agent, per-decision CONFIDENCE makes
-collaboration SAFE and robust. See docs/EXPERIMENT_PROGRAM.md (P1-P6).
-- P1 (running): collaboration-harm threshold. P2: latent-confidence EM/VB. P3:
-  adversarial + theory. P4-P6: noise channel, fusion, cold-start.
+## 10,000-FT REVIEW (after ~20 cycles, 2026-05-22)
+THE SPINE (all multi-seed, fair guessed rank, complete data saved):
+- C8 static unseen-pair: CF 0.496 vs Tabular 0.006. Categorical.
+- C11 natural masked regime: CF unseen 0.16-0.41 vs Tabular ~0 at EVERY rho;
+  CF overall 0.50-0.65 vs Tabular 0.42.
+- C12 dynamic onboarding: Theta(d) vs Theta(m) (CF 0.93 @ ~d probes; Tabular @ m).
+- D3 theory grounded (MC O(d(m+n)) vs mn; block/cluster structure lowers it).
+- Reward-observable characterization (cycles 1-17): CF wins iff low-rank-
+  personalised + sample-starved + reward-shared; BothCF dominates the grid.
+
+THE CLAIM: in a decentralized swarm with limited/heterogeneous observability and
+NO communication, CF over the public broadcast lets agents act well on agent-task
+pairs they NEVER observed and onboard NEW targets with O(d) shared probes vs O(m)
+-- categorically beating independent/tabular learning (at the floor BY
+CONSTRUCTION on unseen pairs), with matrix-completion theory behind it.
+
+WENT WELL: floor-by-construction framing -> DEFINITE (categorical) wins not %;
+clean block-model core; fairness (guessed rank) closed; data saved + catalogued.
+STRANGE / TO FIX: (a) C11 stateUniq metric flawed (measures p_i, not U
+divergence) -> fix to evidence 'unique states'; (b) BothCF ~1% reward-clean
+penalty (un-gated fusion) -> confidence-gating (C3); (c) lit sub-agents
+API-blocked -> direct web search works.
+NEXT (re-ranked): spine empirics DONE. 1) FIX stateUniq + re-run C11 (validity:
+decentralization is real). 2) D3 formal theorem. 3) (polish) confidence-gated
+BothCF + C6 Bayesian. 4) Begin PAPER assembly (spine + theory ready). Method
+refinements (confidence, active exploration) are POLISH, not needed for the core
+categorical claim. PARKED (drift): Byzantine/faulty robustness, RANSAC.
