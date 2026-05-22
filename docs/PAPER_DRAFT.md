@@ -264,6 +264,23 @@ debiasing, and the choice-only ablation (E13) verifies their benefit survives a
 strict-ZK relaxation that needs only the observed action (global negative sampling),
 so it is not an artifact of menu observation.
 
+### 7.7 Collective active exploration (E8)
+
+Replacing eps-greedy with a latent-space UCB (predicted reward plus a count-based
+uncertainty bonus, where counts are accumulated from the public broadcast) yields
+ActiveCF: each agent probes the targets it is most uncertain about, and because one
+agent's probe is broadcast it lowers EVERY agent's uncertainty (collective active
+learning, still no communication). With a converged estimator (ActiveCFconv) this
+strictly improves on eps-greedy RewardCF (12 seeds, bootstrap CIs): unseen wins at
+rho=1 (+0.097) and rho=0.5 (+0.045), ties at rho=0.25; anytime wins at rho=1
+(+0.040) and ties otherwise (never worse). It attains the best anytime of any method
+at full broadcast (0.440) while reaching near-top unseen, because it explores WHILE
+exploiting (no separate probe phase). This is the principled "confidence drives
+exploration" idea; the per-observation confidence GATE (model agreement) deadlocks
+at cold-start and is not used. Recommended methods: ActiveCFconv (best balanced),
+HybridCFconv (best final-policy unseen under masking), RewardCF (simplest, anytime);
+all dominate the prior-art competitors.
+
 ## 8. Theory (per-agent sample complexity)
 
 Full statements and proof sketches in `docs/THEORY.md`.
