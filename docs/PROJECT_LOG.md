@@ -357,3 +357,19 @@ SYNTHESIS OF THE COMPARISON (cycles 23-26): against the full relevant method set
     competitor (PTF) wins is final-policy quality at dense rho>=0.7, which is
     operationally irrelevant. NEXT: fold C14/C15/C16 into PAPER_OUTLINE related-
     work + results, then write the draft.
+
+## CYCLE 27 ADDENDUM: HybridCF probe-budget tradeoff (E9, 2026-05-22)
+Ablation (6 seeds) of HybridCF probe_frac, final-policy unseen vs anytime:
+  config        uns@rho1  any@rho1  uns@rho.25  any@rho.25
+  Hyb probe0.3    0.423     0.365      0.368       0.334
+  Hyb probe0.5    0.449     0.304      0.380       0.268
+  RewardCF        0.383     0.405      0.339       0.344
+  PTF             0.502     0.273      0.282       0.228
+READ: probe budget is a clean knob trading FINAL-POLICY unseen (up) for ANYTIME
+(down). probe0.3 is the balanced default (unseen well above RewardCF, anytime
+close to it). NOTE: even probe0.5 (more than PTF's 0.4) does NOT reach PTF's
+dense-rho unseen (0.449 vs 0.502), so that residual is an ESTIMATOR nuance
+(PTF's SGD-from-SVD vs our ridge-ALS-from-SVD), not just probe budget; and PTF
+pays for it heavily on anytime (0.273). Confirms: no single config dominates both
+metrics; the Pareto frontier among OUR methods (RewardCF/BothCF anytime-optimal,
+HybridCF final-policy-optimal) is real and is the honest framing. WAVE-1 E9 DONE.
