@@ -1,69 +1,79 @@
 # Experiment Backlog (not-yet-explored / in-progress ideas)
 
-Living list. Priorities (P0 highest) re-ranked whenever a finding lands. Goal:
-CLEAR, SIMPLE framing/method that beats all baselines and is groundbreaking;
-complex extensions only if the simple option can't carry it.
+Living list. Priorities (P0 highest) re-ranked whenever a finding lands.
 
-How to read: [status] id. idea -- why/impact (depends-on).
-status: TODO / IN-PROGRESS / DONE (moved to PROJECT_LOG) / PARKED.
+## SCOPE ANCHOR (do not drift)
+SETTING: a swarm of drones + targets with an UNKNOWN but existing LATENT
+STRUCTURE; LIMITED + NOISY OBSERVABILITY; NO COMMUNICATION. Agents are HONEST
+LEARNERS (cold-start = not-yet-learned, NOT malicious).
+METHOD: collaborative filtering via latent-space MATRIX DECOMPOSITION (+ variants).
+DESIGN SPACE = two axes:
+  (a) LATENT STRUCTURE: true rank, #clusters, cluster tightness, sharpness /
+      effective rank, anisotropy, approximate low-rank, spread.
+  (b) OBSERVABILITY TYPE & NOISE: what is broadcast (rewards / decisions / both),
+      reward-sharing fraction p, observation noise (effect vs per-observer),
+      sample-starvation / changing availability.
+METHOD VARIANTS to compare: SGD-MF, ALS, closed-form/RLS, BPMF (Bayesian),
+  BPR / implicit-feedback, dual-likelihood (rewards+choices), confidence-weighted.
+METRICS: skill (converged), AUC / cumulative (anytime), targets-destroyed@K,
+  regret. GOAL: the CLEAR, SIMPLE CF variant that dominates the design space.
 
-## P0 -- do next (highest groundbreaking x probability)
-- [IN-PROGRESS] B1. Extended faulty fraction 50->80%: is competence-weighted
-  CHOICE pooling MAJORITY-robust? Per-teammate consistency is an absolute signal
-  (not majority consensus) -> may tolerate arbitrary faulty fraction = RANSAC-level
-  robustness WITHOUT RANSAC machinery. If holds -> simple+groundbreaking. (staged
-  in pilot_trust.py faulty up to 0.8)
-- [TODO] B3. Trust-weighted HYBRID fusion: each drone fuses own rewards + others'
-  reward (reward-trust weighted) + others' choices (competence weighted) in ONE
-  weighted ALS. Should DOMINATE across faulty%: rewards when teammates reliable,
-  choices when not. The "one method that wins everywhere."
-- [TODO] B6. BETTER METRICS (user): AUC / cumulative reward (anytime), normalized
-  cumulative regret, anytime reward-vs-round curves; and targets-destroyed@K
-  (needs a depletion task model). Highlights CF's transient advantage and the
-  naive-collaboration-degrades-over-time effect. Quick win for AUC; depletion is
-  a task-model change.
-- [TODO] B5. Adversarial / Byzantine teammates (coordinated, inverted-preference,
-  consistent-but-wrong) + THEORY (influence bound O(eps/(1-eps)); breakdown
-  point; collaboration-safety lemma trust-weighted >= solo). Top-venue elevator.
+## TWO CENTRAL METHOD MOTIFS (in-scope; honest agents, limited observability)
+MOTIF A -- CONFIDENCE: (i) confidence of an ESTIMATE = posterior precision over
+  factors (Bayesian PMF) -> exploration + self-trust; (ii) confidence of a
+  DECISION = choice sharpness (latent inverse-temperature beta). Decision-
+  confidence is the OBSERVABLE proxy for a teammate's estimate-confidence.
+MOTIF B -- WEIGHTING teammates' observations by informativeness/reliability
+  (driven by A, or behavioural consistency / recency / residual fit). HKV
+  confidence-weighted implicit feedback.
+KEY QUESTION: unify A+B in one EM/VB (weight = posterior responsibility, derived
+  from confidence) OR keep them as two mechanisms? Prior signal: model-agreement
+  EM FAILS (cycle 9, deadlock); BEHAVIOURAL weighting WORKS. So test: a
+  BEHAVIOURAL-confidence EM unification vs the two-mechanism heuristic.
 
-## P1
-- [TODO] B2. RANSAC / seed-grow CONSENSUS robust factorization (anchored on self
-  or on choice-consensus; absolute residual threshold) -- the COMPLEX extension
-  for >50% faulty, ONLY if B1 shows the simple method breaks past 50%.
-- [TODO] B4. Latent-confidence EM/VB model: continuous beta_{k,t} (HKV
-  preference/confidence split + posterior precision + consistency). Principled
-  method that powers robustness; ablate which confidence source matters. (NOTE:
-  model-agreement EM failed cycle 9; use BEHAVIOURAL inference.)
-- [TODO] B7. Posterior-precision-driven confidence: Bayesian drones (BPMF /
-  Thompson); confidence = own posterior precision; observers infer it. Ties
-  exploration to uncertainty; elegant beta source.
-- [TODO] B9. Detectability formalization: reliability is inferable from CHOICES
-  (random = inconsistent) but NOT from in-range garbage REWARDS. "Decisions make
-  trust inferable" -- a second reason decisions beat outcomes.
-- [TODO] B10. Reward-side robustness with clearer-outlier faults so reward-trust
-  is a fair test (current in-range garbage is hard to detect).
+## P0 -- do next (within scope)
+- [TODO] C1. CF VARIANT BAKE-OFF across the (structure x observability) grid:
+  which matrix-decomposition variant wins where; find the simple dominant method.
+  Baselines: random, tabular/independent (UCB-Indep), homogeneous.
+- [TODO] C2. METRICS upgrade: AUC / cumulative reward (anytime, highlights the
+  transient CF advantage) + targets-destroyed@K (needs a depletion task model).
+- [TODO] C3a. MOTIF A: latent-confidence beta model -- confidence of decisions
+  (sharpness) and estimates (posterior precision); Bayesian PMF + Thompson.
+- [TODO] C3b. MOTIF B: teammate-observation weighting (behavioural consistency,
+  recency, residual). 
+- [TODO] C3c. UNIFY vs SEPARATE: behavioural-confidence EM/VB (weight derived
+  from confidence) vs two-mechanism heuristic -- which wins, and is unification
+  worth it? (model-agreement EM already known to fail -> use behavioural signal.)
 
-## P2
-- [TODO] B8. Cold-start warm-start from broadcast-derived U + convergence
-  dynamics (late-joining drones; consensus expands as agents converge).
-- [TODO] B12. Connect to REAL ZK-MRTA env + real policies (BPMF, IQL-ZK,
-  UCB-Indep, MF-CF) -- ecological validity; port the pilot characterization.
-- [TODO] B11. Theory pack: collaboration-safety, influence/breakdown bounds,
-  Theta(d) vs Theta(n) per-drone separation (correct-regime version).
-- [TODO] B13. Hierarchical priors / borrowing strength (cold-start shrinkage to
-  population prior).
-- [TODO] B16. Re-run literature research agents (all 3 failed on API 529/ECONNRESET).
+## P1 -- structure & observability nuances
+- [TODO] C4. Latent-structure nuances: anisotropy (skewed singular values),
+  approximate / soft low-rank, continuous vs clustered, spread; effect on the
+  CF advantage and on the right rank d_hat.
+- [TODO] C5. Observability nuances: partial reward-sharing p in [0,1] sweep;
+  asymmetric observation (see choices but not outcomes); two-stage noise (single
+  effect noise + per-observer noise); availability/starvation sweeps.
+- [TODO] C6. BPMF + posterior-uncertainty exploration (Thompson) within the core
+  -- principled CF variant; uncertainty drives exploration and confidence.
+- [TODO] C7. Rank selection / ARD (unknown d) -- the structure is UNKNOWN, so
+  inferring rank is squarely in scope.
 
-## P3 -- parked (revisit if a thread needs it)
-- [TODO] B14. Information-directed sampling / active probing for the explore phase.
-- [TODO] B15. ARD / automatic rank selection (robustness to unknown d).
-- [TODO] B17. Two-stage noise theory (effect vs observation).
-- [TODO] B18. Heavy-tailed (Student-t) likelihood for robustness.
-- [TODO] B19. Non-stationary latent drift (fatigue/weather).
-- [TODO] B20. Target churn / cold-start TARGETS.
+## P2 / PARKED (drift or later)
+- [PARKED] D1. Byzantine / FAULTY-teammate robustness (cycles 12-16). DRIFT:
+  introduces malicious agent-reliability heterogeneity, NOT the core setting
+  (honest agents under limited observability). Keep as at most a one-line
+  robustness remark; do not headline. The competence-weighting MECHANISM it
+  produced is salvaged for C3 (cold-start of honest learners).
+- [TODO] D2. Connect to real ZK-MRTA env + real policies (BPMF, IQL-ZK, etc.).
+- [TODO] D3. Theory pack (separation, sample complexity) for the core claims.
+- [TODO] D4. Cold-start warm-start from broadcast U; convergence dynamics.
+- [PARKED] D5. RANSAC/consensus robust factorization (only if a robustness
+  extension is pursued; tied to D1).
 
 ## Priority log (re-rank events)
-- 2026-05-22 init: P0 = B1, B3, B6, B5 (robustness spine + metrics). B2/B4 to P1
-  (complex; only if simple breaks). Reward-observable characterization + decision
-  parity + noise-immunity + collaboration-harm threshold already DONE (see
-  PROJECT_LOG cycles 1-13).
+- 2026-05-22 init: P0 = B1,B3,B6,B5 (robustness spine).
+- 2026-05-22 RE-ANCHOR (user): research had drifted to Byzantine/faulty
+  robustness (D1). Re-centered on the CORE setting (latent structure x
+  observability/noise, honest agents, CF via matrix decomposition). New P0 =
+  C1 (variant bake-off), C2 (metrics), C3 (decision-only cold-start, in-scope).
+  Faulty/Byzantine (D1) and RANSAC (D5) PARKED. Done (on-target): cycles 1-11
+  (characterization, structure, rank, noise) in PROJECT_LOG.
