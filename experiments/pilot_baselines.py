@@ -331,8 +331,8 @@ class BiasModel(_AccBase):
         if not obs.any():
             return 0.0, np.zeros(self.m), np.zeros(self.n)
         vals = np.where(obs, self.sum / np.maximum(self.cnt, 1), np.nan)
-        mu = float(np.nanmean(vals))
-        with np.errstate(invalid="ignore"):
+        with np.errstate(invalid="ignore", divide="ignore"):
+            mu = float(np.nanmean(vals))
             b = np.nanmean(np.where(obs, vals - mu, np.nan), axis=1)
             resid = vals - mu - np.nan_to_num(b)[:, None]
             c = np.nanmean(np.where(obs, resid, np.nan), axis=0)

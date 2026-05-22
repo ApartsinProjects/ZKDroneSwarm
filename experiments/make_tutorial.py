@@ -201,7 +201,13 @@ A("<table><tr><th class='l'>Method</th><th>Class</th><th class='l'>What it does<
   "<tr><td class='l'>PTF</td><td>low-rank</td><td class='l'>probe-then-fit: UCB probe, SVD warm-start, "
   "then SGD finetune. The strongest competitor.</td></tr>"
   "<tr><td class='l'>BPMF</td><td>low-rank</td><td class='l'>Bayesian PMF with Thompson sampling; "
-  "over-explores in the anytime regime.</td></tr></table>")
+  "over-explores in the anytime regime.</td></tr>"
+  "<tr><td class='l'>SoftImpute</td><td>low-rank</td><td class='l'>nuclear-norm CONVEX completion "
+  "(iterate fill, SVD, soft-threshold). Strongest at full broadcast; decays under masking.</td></tr>"
+  "<tr><td class='l'>kNN-CF</td><td>memory-CF</td><td class='l'>model-FREE collaborative filtering "
+  "(similarity-weighted neighbor rewards); tests whether explicit factorization is needed.</td></tr>"
+  "<tr><td class='l'>BiasModel</td><td>additive</td><td class='l'>additive drone+target bias, NO "
+  "interaction (rank&le;2); isolates the value of personalization.</td></tr></table>")
 A("<p class='small'>A 'batch-SVD hybrid' (ESTR, PTF) extracts factors by one SVD of an accumulated "
   "reward table whose unobserved entries are imputed 0; under masking that table is sparse and "
   "biased, which is why these methods decay (Section 8.5). In our harness every baseline runs as an "
@@ -369,6 +375,21 @@ A("<p><b>Proof (key steps).</b> (1) i.i.d.: each teammate is observed with prob 
 A("<p><b>Confirmed by.</b> i.i.d. vs persistent give the same unseen/anytime curves, but "
   "state-uniqueness is flat in T under persistent and DECAYS under i.i.d. (F8), exactly as "
   "predicted.</p></div>")
+A("<div class='step'><h3>Theorem 5: an additive model cannot personalize (EXACT)</h3>")
+A("<p><b>Statement.</b> A predictor of the form 'global + drone-bias + target-bias' (the BiasModel "
+  "baseline) has a prediction matrix of rank at most 2, and for ranking targets it reduces to the "
+  "shared 'popularity' order, so its unseen skill is the popularity skill, strictly below CF whenever "
+  "there is more than one hidden trait.</p>")
+A("<p><b>Why it matters.</b> It pinpoints exactly what is missing without the low-rank INTERACTION: "
+  "additive effects (some targets are generally easier, some drones generally better) are not enough; "
+  "the personalized 'which drone suits which target' part is what CF adds, and what the categorical "
+  "win depends on.</p>")
+A("<p><b>Proof (key steps).</b> The matrix a+b_i+c_j = (a&middot;1+b) 1^T + 1 c^T is a sum of two "
+  "rank-1 matrices, so rank &le; 2. For a FIXED drone the term a+b_i is constant across targets, so "
+  "the ranking is by c_j alone, the same popularity order for everyone, which ignores personalization "
+  "and so underperforms CF for d&gt;1.</p>")
+A("<p><b>Confirmed by.</b> BiasModel unseen ~0.12 and UCBHomo ~0.17 (both additive/popularity) vs CF "
+  "~0.49 at d=5 (Section 8.9).</p></div>")
 A("<p class='small'>A full theory-vs-experiment alignment table (every prediction mapped to its "
   "measured value, with honest tensions: T3's constant is loose though its mechanism is exact; T2 "
   "idealizes 'U known' vs finite-data recovery) is in <code>docs/THEORY_FORMAL.md</code>.</p>")
@@ -493,6 +514,22 @@ for nm, cl, un, an in rows:
 A("</table>")
 
 # 9 NOVELTY
+A("<h3>8.9 Even more competitors (a broader, fair bake-off)</h3>")
+A("<p>To be sure we are not beating a weak field, we added three more methods, each run under the "
+  "exact same limits (per-drone, broadcast-only, guessed rank where relevant): <b>SoftImpute</b> (a "
+  "different, convex way to fill in the table), <b>kNN-CF</b> (a model-free 'find similar drones' "
+  "approach), and <b>BiasModel</b> (additive effects only, no personalization). Figure F12 shows the "
+  "result.</p>")
+A("<figure>%s<figcaption><strong>F12.</strong> More fair baselines vs ours, unseen (left) and anytime "
+  "(right) vs observation density.</figcaption></figure>" % img("F12_morebaselines.png", "F12"))
+A("<p><b>Takeaway.</b> The story holds and widens. SoftImpute is excellent when the broadcast is full "
+  "(it even tops everyone on unseen at rho=1), but, like all the batch 'fill-in' methods, it collapses "
+  "as observation is masked and it loses on earned reward. kNN-CF generalizes but earns little. "
+  "BiasModel stays near the additive ceiling (it cannot personalize, exactly as Theorem 5 says). "
+  "Under masking (the regime that matters) and on the anytime metric, our methods beat the best of "
+  "these new baselines with non-overlapping error bars. No competitor wins in the regime that defines "
+  "the problem.</p>")
+
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "

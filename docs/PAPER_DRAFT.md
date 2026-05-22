@@ -303,6 +303,20 @@ at cold-start and is not used. Recommended methods: ActiveCFconv (best balanced)
 HybridCFconv (best final-policy unseen under masking), RewardCF (simplest, anytime);
 all dominate the prior-art competitors.
 
+### 7.8 A broader, fair bake-off (E15, Fig. F12)
+
+To rule out a weak field, we add three more methods under the same limits:
+SoftImpute (nuclear-norm convex completion), kNN-CF (memory-based, model-free CF),
+and BiasModel (additive drone+target bias, no interaction). Findings (8 seeds, CIs):
+SoftImpute is the strongest at full broadcast (unseen 0.583 at rho=1, topping even
+PTF and our methods) but, like all batch fill-in methods, decays under masking
+(0.305 at rho=0.25) and loses on anytime; kNN-CF generalizes (unseen ~0.48 at rho=1)
+but earns little (weak anytime); BiasModel sits at the additive ceiling (unseen
+~0.12), confirming Theorem 5. Under masking (rho=0.25) our best beats the best new
+baseline on unseen (+0.096, CI [+0.067,+0.123]) and on anytime (+0.054,
+[+0.040,+0.067]). So across a broad low-rank / structured field, no competitor wins
+in the limited-observability regime that defines the problem.
+
 ## 8. Theory (per-agent sample complexity)
 
 Full statements and proof sketches in `docs/THEORY.md`.

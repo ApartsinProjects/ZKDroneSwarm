@@ -270,4 +270,32 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.94]); fig.savefig(f"{OUT}/F11_pareto.png", dpi=150); plt.close(fig)
     print("F11_pareto.png  <-", os.path.basename(f))
 
+# ---- F12: more low-rank/structured baselines (E15) ----
+f = latest("results/pilots/e15_morebase_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; rhos = d["meta"]["rhos"]
+    st = {"BiasModel": dict(color="gray", ls=":", marker="."),
+          "KNNCF": dict(color="C5", ls="--", marker="v"),
+          "SoftImpute": dict(color="C3", ls="--", marker="s"),
+          "PTF": dict(color="C4", ls="--", marker="^"),
+          "HybridCFconv": dict(color="C6", marker="D", lw=2),
+          "ActiveCFconv": dict(color="C2", marker="*", lw=2)}
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+    for ax, metric in zip(axes, ["unseen", "anytime"]):
+        for nm, s in st.items():
+            if nm in raw[metric][str(rhos[0])]:
+                mu = [np.mean(raw[metric][str(r)][nm]) for r in rhos]
+                sd = [np.std(raw[metric][str(r)][nm]) for r in rhos]
+                ax.errorbar(rhos, mu, yerr=sd, capsize=2, markersize=5,
+                            label=nm + (" (ours)" if "conv" in nm else ""), **s)
+        ax.invert_xaxis(); ax.axhline(0, color="black", lw=0.7, ls=":")
+        ax.set_xlabel("observation density rho"); ax.set_ylabel("%s skill" % metric)
+        ax.set_title("%s skill vs rho" % metric, fontsize=10); ax.grid(alpha=0.25)
+    axes[0].legend(fontsize=7, loc="upper right")
+    fig.suptitle("More fair baselines: SoftImpute (convex), kNN-CF (memory), BiasModel (additive) "
+                 "vs ours.\nOurs dominate under masking and on anytime; SoftImpute leads only "
+                 "dense-rho unseen.", fontsize=9)
+    fig.tight_layout(rect=[0, 0, 1, 0.92]); fig.savefig(f"{OUT}/F12_morebaselines.png", dpi=150); plt.close(fig)
+    print("F12_morebaselines.png  <-", os.path.basename(f))
+
 print("figures written to", OUT)

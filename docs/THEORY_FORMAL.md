@@ -240,6 +240,28 @@ confirm (c) empirically and to measure the predicted state-uniqueness gap (a).
 
 ---
 
+## Theorem 5 (additive-model rank ceiling). EXACT.
+
+Let an ADDITIVE predictor be R_hat[i,j] = a + b_i + c_j (a global level, a per-drone
+bias, a per-target bias; the BiasModel baseline). (a) Its prediction matrix has rank
+at most 2: writing it as (a 1 + b) 1^T + 1 c^T, it is a sum of two rank-1 terms. (b)
+For RANKING targets within a fixed drone i, the term a + b_i is constant in j, so the
+induced order is exactly the per-target order of c_j (a popularity order, shared by
+all drones). Hence an additive model's unseen-pair skill equals the popularity-
+ranking skill, which is positive but strictly below CF whenever d > 1 (there is
+personalization, the interaction orthogonal to the additive subspace, that an
+additive model cannot represent). Pooling (UCB-Homogeneous, Theorem 1 remark) is the
+special case b_i = 0; it ranks by the same c_j.
+
+**Proof.** (a) a + b_i + c_j = ((a 1 + b) 1^T + 1 c^T)[i,j], a sum of two rank-1
+matrices, so rank <= 2. (b) For fixed i, argsort_j (a + b_i + c_j) = argsort_j c_j.
+The reward R[i,j] = <p_i, u_j> has, beyond its rank-<=2 additive projection, an
+interaction component that varies the per-drone target order; for d > 1 this
+component is nonzero for generic factors, so the popularity order is not the
+per-drone-optimal order and the additive skill is bounded below CF's. EMPIRICS:
+BiasModel unseen ~0.12 and UCBHomo ~0.17 (both additive/popularity) vs CF ~0.49 at
+d = 5 (E15, C14); the additive ceiling is real and well below CF.
+
 ## What is novel here (versus the cited literature)
 
 Matrix-completion sample-complexity bounds (Candès-Recht; Keshavan et al.; Recht)

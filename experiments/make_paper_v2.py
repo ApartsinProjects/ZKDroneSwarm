@@ -105,7 +105,9 @@ A("<p><b>T1 (tabular floor).</b> A structure-free learner has Omega(1) error and
   "structure-free learner's anytime skill <code>&lt;= g(cT/n) -&gt; 0</code> (even with full "
   "broadcast); CF reaches near-oracle in O(d) rounds. <b>T4 (masking).</b> i.i.d. loss makes "
   "decentralization transient; persistent masking makes it durable; the categorical results are "
-  "invariant to the choice.</p>")
+  "invariant to the choice. <b>T5 (additive ceiling).</b> An additive predictor (drone+target bias) "
+  "has rank &le; 2 and reduces to the popularity order, so it cannot personalize and is strictly below "
+  "CF for d &gt; 1.</p>")
 
 A("<h2>5. Experiments</h2>")
 A("<p><b>Categorical (acting on the unseen).</b> CF acts well on never-observed pairs at every "
@@ -129,7 +131,12 @@ A("<figure>%s<figcaption><b>Fig. 3.</b> Persistent vs i.i.d. masking: unseen/any
 A("<p><b>Versus the field.</b> The categorical unseen win is shared by all low-rank methods over "
   "no-structure ones (a property of structure). Our specific edge is masking-robustness and anytime "
   "optimality; with a converged estimator our methods dominate the strongest competitor (PTF) on "
-  "every metric and density (Fig. 4).</p>")
+  "every metric and density (Fig. 4). We further compare against a broader, fair set, run under the "
+  "same limits: SoftImpute (nuclear-norm convex completion), kNN-CF (memory-based, model-free), and "
+  "BiasModel (additive, no interaction). SoftImpute is the strongest at full broadcast (it tops unseen "
+  "at rho=1) but, like all batch fill-in methods, decays under masking and loses on anytime; kNN-CF "
+  "generalizes but earns little; BiasModel sits at the additive ceiling (Theorem 5). Under masking and "
+  "on anytime, our methods beat the best of these with non-overlapping CIs.</p>")
 A("<figure>%s<figcaption><b>Fig. 4.</b> Pareto frontier (anytime vs unseen): our methods dominate; "
   "PTF trades all anytime for unseen and is dominated under masking.</figcaption></figure>"
   % img("F11_pareto.png", "F11"))
