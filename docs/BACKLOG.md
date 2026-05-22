@@ -6,6 +6,17 @@ Living list. Priorities (P0 highest) re-ranked whenever a finding lands.
 SETTING: a swarm of drones + targets with an UNKNOWN but existing LATENT
 STRUCTURE; LIMITED + NOISY OBSERVABILITY; NO COMMUNICATION. Agents are HONEST
 LEARNERS (cold-start = not-yet-learned, NOT malicious).
+
+VALIDITY FIX (critical): FULL broadcast -> every drone sees the same stream ->
+identical models -> decentralization is COSMETIC (one centralized learner x m).
+"No communication" is vacuous under full observability. FIX: observability must
+be LIMITED + HETEROGENEOUS so each drone has a UNIQUE state. Canonical model =
+SPATIAL proximity sensing (observe neighbors within range R; own always).
+Different neighborhoods -> different sparse sub-blocks of the global matrix ->
+unique states; each drone must COMPLETE unseen sub-blocks -> CF is THE tool,
+tabular at floor outside its neighborhood. Makes decentralization real AND is
+the strongest CF motivation. (Random masking K6 = simplified abstraction.)
+
 METHOD: collaborative filtering via latent-space MATRIX DECOMPOSITION (+ variants).
 DESIGN SPACE = two axes:
   (a) LATENT STRUCTURE: true rank, #clusters, cluster tightness, sharpness /
@@ -87,6 +98,13 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
   (Bayesian/RLS-with-Sigma) estimator (C6). Subsumes/elevates old B14
   (info-directed sampling). Diversify across drones via the broadcast (avoid
   re-probing what was just probed) to keep it decentralized.
+- [TODO] C11. *** CORE VALIDITY + GROUNDBREAKING *** SPATIAL / HETEROGENEOUS
+  OBSERVABILITY: each drone observes only neighbors within sensing range R (own
+  always) -> UNIQUE per-drone states (decentralization REAL), and each sees only
+  a sparse sub-block of the global matrix -> must COMPLETE it (CF essential;
+  tabular at floor on pairs outside its neighborhood). Sweep R (or mask rho).
+  Fixes the "broadcast = shared knowledge" hole AND is the strongest CF
+  motivation; composes with C8 (unseen pairs are now structurally forced).
 - [TODO] C8. *** GROUNDBREAKING CANDIDATE *** Generalization / cold-start
   NEWCOMER (K1/K2 + M1/M2): in a decentralized swarm with NO communication, can
   a CF agent generalize to UNSEEN targets, and can a NEWCOMER act well from the
