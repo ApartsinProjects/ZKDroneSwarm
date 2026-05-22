@@ -244,4 +244,30 @@ if f:
     plt.legend(fontsize=7); plt.tight_layout(); plt.savefig(f"{OUT}/F10_newcomer.png", dpi=150); plt.close()
     print("F10_newcomer.png  <-", os.path.basename(f))
 
+# ---- F11: Pareto frontier (anytime vs unseen) showing competitors dominated ----
+f = latest("results/pilots/e8_active_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; rhos = d["meta"]["rhos"]; methods = d["meta"]["methods"]
+    panels = [r for r in (1.0, 0.25) if str(r) in raw["unseen"]]
+    mk = {"RewardCF": ("o", "C0"), "HybridCFconv": ("D", "C6"), "ActiveCFconv": ("*", "C2"),
+          "PTF": ("s", "C3"), "HybridCF": ("v", "C1")}
+    fig, axes = plt.subplots(1, len(panels), figsize=(5.4 * len(panels), 4.0))
+    if len(panels) == 1:
+        axes = [axes]
+    for ax, rho in zip(axes, panels):
+        for nm in methods:
+            x = np.mean(raw["anytime"][str(rho)][nm]); y = np.mean(raw["unseen"][str(rho)][nm])
+            m_, c_ = mk.get(nm, ("o", "gray"))
+            ours = nm in ("RewardCF", "HybridCFconv", "ActiveCFconv", "HybridCF")
+            ax.scatter([x], [y], marker=m_, color=c_, s=170 if nm == "ActiveCFconv" else 90,
+                       edgecolor="k" if ours else "none", zorder=3)
+            ax.annotate(nm, (x, y), fontsize=7, xytext=(4, 4), textcoords="offset points")
+        ax.set_xlabel("anytime cumulative-reward skill"); ax.set_ylabel("final-policy UNSEEN skill")
+        ax.set_title("rho = %.2f" % rho, fontsize=10); ax.grid(alpha=0.25)
+    fig.suptitle("Pareto frontier (up-right = better): our methods dominate or match PTF on both "
+                 "axes;\nPTF sacrifices all anytime for unseen (dominated under masking, rho=0.25)",
+                 fontsize=9)
+    fig.tight_layout(rect=[0, 0, 1, 0.94]); fig.savefig(f"{OUT}/F11_pareto.png", dpi=150); plt.close(fig)
+    print("F11_pareto.png  <-", os.path.basename(f))
+
 print("figures written to", OUT)
