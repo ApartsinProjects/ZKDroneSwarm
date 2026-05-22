@@ -41,7 +41,9 @@ simple option works. Updated after every cycle. Commit per cycle (revertible).
 | 10 | 5-seed confirmation | reward-observable ROCK-SOLID (CF/Tab 1.44-1.89). decision-only "win" EVAPORATES to parity (was a 3-seed fluke) |
 | 11 | apples-to-apples channel (clean choices vs noisy rewards) | choice channel FLAT 0.423 vs noise; reward channel 0.728->0.368 (drops BELOW solo at sigma_obs=2). decisions NOISE-IMMUNE; crossover at high noise |
 | 12 | per-teammate trust w/ faulty teammates | CHOICE-trust WORKS: Ch_comp robust, gap grows w/ faulty% (+0.159->+0.180). REWARD-trust = BUG (override bypassed). |
-| 13 | P1 collaboration-harm threshold (RUNNING) | fixed reward-trust + solo baseline + faulty% to 0.5 |
+| 13 | P1 collaboration-harm threshold | naive pooling drops BELOW solo (reward@50%, choice always); competence-weighted CHOICE pooling robust to 50% faulty, stays ABOVE solo (0.435->0.419). reward-trust fix works (gain grows w/ faulty%) but only parity at 50% |
+| 14 | MF approximation audit (RUNNING) | convergence/regularization check: are CF results understated by under-converged ALS? |
+| 15 | RANSAC/consensus robust factorization (planned) | seed-grow consensus anchored on self, absolute residual threshold -> push robustness past 50% faulty; + trust-weighted hybrid |
 
 ### Headline result tables
 **Cycle 5 (phase diagram, CF/Tab greedy ratio, 5 seeds):**
@@ -55,6 +57,24 @@ d=1:0.04, d=2:0.29, d=3:0.33, d=5:0.32, d=8:0.09, d=15:0.14, d=30:0.01.
 
 **Cycle 12 (faulty%, skill):** Ch_naive 0.276/0.251/0.225; Ch_comp 0.435/0.424/0.405
 (faulty 0/20/40%). C-gain +0.159/+0.173/+0.180.
+
+**Cycle 13 = P1 (collaboration-harm threshold, 5 seeds, SOLO=0.405-0.414):**
+| faulty% | RewardCF | RewRobust | Ch_naive | Ch_comp |
+|---|---|---|---|---|
+| 0  | 0.636 | 0.653 | 0.276< | 0.435 |
+| 20 | 0.527 | 0.545 | 0.251< | 0.424 |
+| 35 | 0.451 | 0.490 | 0.230< | 0.423 |
+| 50 | 0.335< | 0.404< | 0.265< | 0.419 |
+(< = below solo). SANITY: solo flat (ignores teammates) OK; Ch_naive low even at
+0% faulty because cold-start exploratory choices corrupt unweighted pooling
+(consistent with bootstrap finding); RewRobust now > RewardCF (bug fixed),
+gain grows with faulty% (+0.017->+0.069). FINDINGS: (1) naive collaboration is
+HARMFUL (below solo); (2) competence-weighted CHOICE pooling robust to 50%
+faulty, stays ABOVE solo, best method at 50%; (3) reward-trust limited at 50%
+(in-range garbage hard to detect) -> decisions make unreliability more
+DETECTABLE than outcomes. TO IMPROVE: RANSAC/consensus to push past 50%;
+trust-weighted HYBRID (rewards when reliable, choices when not) to dominate
+across the range; clearer-outlier faulty rewards to make reward-trust test fair.
 
 ## Key findings (consolidated)
 1. **Reward-observable CF beats tabular** (+44-89%, robust) IFF: reward is
