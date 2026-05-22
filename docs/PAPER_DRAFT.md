@@ -198,6 +198,53 @@ ALS is the right tool for THIS regime: masking-robust and anytime-optimal, hence
 dominant on cumulative reward throughout the limited-observability regime (rho < 1)
 that defines the problem.
 
+### 7.4 A hybrid that closes the dense-broadcast gap (E9, Fig. F5/F6)
+
+The only place a competitor (PTF) led was final-policy unseen skill at full
+broadcast. We close most of this with HybridCF: a short UCB probe, an SVD
+warm-start, then our ONLINE weighted-ALS (PTF's probe and warm-start, but our
+estimator instead of its SGD finetune). HybridCF strictly improves on RewardCF for
+final-policy at every density (masking-robust unseen 0.41-0.44; overall best-or-tied
+at every rho, tying PTF at full broadcast), and beats PTF on unseen under any
+masking. It pays a probe-phase cost on the anytime metric, so RewardCF/BothCF remain
+anytime-optimal. The net is a Pareto frontier among OUR methods (RewardCF/BothCF own
+anytime; HybridCF owns final-policy), with competitors dominated by one of ours on
+every metric except PTF's dense-broadcast unseen, which PTF buys by sacrificing
+anytime. A probe-budget ablation confirms the tradeoff is a single clean knob.
+
+### 7.5 Both observability channels (E3, Fig. F7)
+
+Crossing the two channels (action masking rho x reward noise sigma_obs), the
+reward-channel method (RewardCF) degrades as sigma_obs rises while the
+action-channel method (ChoiceCF) is flat (clean choices are noise-invariant), so
+the clean CHOICE channel overtakes the noisy REWARD channel at high sigma_obs and
+BothCF tracks the better channel. A choice-only ablation (E13) shows the action
+channel ALONE lifts unseen skill above the floor (teammates' choices carry
+recoverable low-rank structure), though it is much weaker than the reward channel.
+
+### 7.6 Robustness to the masking model, and zero-knowledge compliance (E12, E13)
+
+Masking model (Theorem 4, Fig. F8): re-running every headline metric under i.i.d.
+per-round loss instead of the persistent mask leaves unseen and anytime skill
+essentially unchanged (within ~0.04 at every rho), so the categorical results do
+not depend on the modeling choice. The two models differ only in the durability of
+decentralization: state-uniqueness is flat in the horizon under persistent masking
+but decreases under i.i.d. (drones converge as they each eventually sample
+everything), matching the theory. We adopt persistent masking precisely because it
+makes "no communication implies durably different per-agent knowledge" a structural
+property; i.i.d. (packet-loss-style) loss is equally admissible for the main claims.
+
+Zero-knowledge compliance (audit in the supplement): every method uses a guessed
+rank and random initialization (no ground-truth factors, types, or labels); each
+agent runs an independent estimator with no parameter sharing and no coordinator;
+the broadcast is passive sensing of public outcomes (masking models limited
+detection, not radio transmission), so the setting is genuinely communication-free.
+The headline methods RewardCF and HybridCF observe only teammates' action and
+outcome; the choice-channel methods additionally use the offered menu for exposure
+debiasing, and the choice-only ablation (E13) verifies their benefit survives a
+strict-ZK relaxation that needs only the observed action (global negative sampling),
+so it is not an artifact of menu observation.
+
 ## 8. Theory (per-agent sample complexity)
 
 Full statements and proof sketches in `docs/THEORY.md`.
