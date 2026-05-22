@@ -19,10 +19,21 @@ METRICS: skill (converged), AUC / cumulative (anytime), targets-destroyed@K,
   regret. GOAL: the CLEAR, SIMPLE CF variant that dominates the design space.
 
 ## TWO CENTRAL METHOD MOTIFS (in-scope; honest agents, limited observability)
-MOTIF A -- CONFIDENCE: (i) confidence of an ESTIMATE = posterior precision over
-  factors (Bayesian PMF) -> exploration + self-trust; (ii) confidence of a
-  DECISION = choice sharpness (latent inverse-temperature beta). Decision-
-  confidence is the OBSERVABLE proxy for a teammate's estimate-confidence.
+MOTIF A -- CONFIDENCE, from TWO sources (combine, they catch each other's
+  failures):
+  (a) FACTORIZATION confidence = posterior precision over p_i,u_j (Bayesian PMF).
+      Internal certainty; high with plentiful consistent data.
+  (b) DECISION-ALIGNMENT confidence = do OTHER drones' observed choices match my
+      model's prediction argmax<p_k,u_hat>? External corroboration / decentralized
+      SELF-VALIDATION against swarm behaviour (no ground truth, no comms).
+  Combined confidence = f(precision, alignment): precise-but-wrong (overfit) ->
+  alignment flags it; aligned-by-luck -> precision flags it.
+  USE (b) as an AGGREGATE model-quality signal (exploration vs exploitation;
+  trust unseen-pair predictions; per-teammate trust) -- NOT as a per-observation
+  learning gate (that is the cycle-9 deadlock: half-trained model down-weights
+  good choices it does not yet agree with).
+  (Also: confidence of a DECISION = choice sharpness/consistency = observable
+  proxy for a teammate's own certainty.)
 MOTIF B -- WEIGHTING teammates' observations by informativeness/reliability
   (driven by A, or behavioural consistency / recency / residual fit). HKV
   confidence-weighted implicit feedback.
@@ -55,6 +66,12 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
 - K4. REWARD BINARIZATION & BROADCAST SPARSITY: lower info/obs -> amplifies CF
   pooling advantage.
 - K5. ANISOTROPY / effective-rank decay (spectral knob).
+- K6. CHOICE-OBSERVATION MASKING (rho): each observer sees only a fraction rho of
+  others' CHOICES, with a HETEROGENEOUS mask per drone (partial, decentralized
+  view of the decision channel). The realistic decision-channel noise model
+  (discrete: a choice is seen-cleanly or missed, not value-corrupted). Pairs with
+  Motif A: low rho -> lower factorization (a) AND alignment (b) confidence ->
+  calibrated exploration. RecSys analog: exposure / MAR.
 - (have: rank d, #clusters, tightness, sharpness, n/T starvation, p reward-share,
   sigma_obs noise.)
 
@@ -77,6 +94,11 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
 - [TODO] C3c. UNIFY vs SEPARATE: behavioural-confidence EM/VB (weight derived
   from confidence) vs two-mechanism heuristic -- which wins, and is unification
   worth it? (model-agreement EM already known to fail -> use behavioural signal.)
+- [TODO] C3d. DUAL-SOURCE confidence (factorization precision + decision-
+  alignment) driving exploration, under CHOICE MASKING (K6): does
+  confidence-calibrated exploration beat fixed-eps when only a fraction rho of
+  choices are observed (heterogeneous masks)? Tests Motif A's two sources + the
+  masking knob together; the calibrated-exploration story.
 
 ## P1 -- structure & observability nuances
 - [TODO] C4. Latent-structure nuances: anisotropy (skewed singular values),
