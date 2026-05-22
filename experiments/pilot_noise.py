@@ -171,6 +171,29 @@ class ChoiceCF(WeightedMF):
         self._als(K, J, V, W)
 
 
+class BothCF(ChoiceCF):
+    """Fuse BOTH channels in one weighted ALS: own + others' rewards (noise-
+    weighted) AND competence-weighted choices. The 'use all available signals'
+    variant -- candidate to dominate the design space."""
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):
+            r = revealed[k]
+            if not np.isnan(r):
+                self.rk.append(k); self.rj.append(int(choices[k]))
+                self.rv.append(float(r)); self.rw.append(1.0 / max(rvar[k], 1e-6))
+        for k in range(self.m):
+            c = int(choices[k])
+            self.ck.append(k); self.cc.append(c); self.coff.append(cand_sets[k]); self.cstep.append(t)
+            if k in self.last_vec:
+                v0 = self.last_vec[k]; v1 = self.U[c]
+                cs = float(v0 @ v1 / (np.linalg.norm(v0) * np.linalg.norm(v1) + 1e-9))
+                self.consist[k] = 0.9 * self.consist[k] + 0.1 * max(cs, 0.0)
+            self.last_vec[k] = self.U[c].copy()
+        self._decay()
+        if (t + 1) % self.refit_every == 0:
+            self._refit()
+
+
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
     P, U, R = world; m, n = R.shape; d = P.shape[1]
     rng = np.random.RandomState(seed + 999)

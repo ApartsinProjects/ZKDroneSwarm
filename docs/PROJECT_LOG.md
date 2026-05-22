@@ -42,8 +42,9 @@ simple option works. Updated after every cycle. Commit per cycle (revertible).
 | 11 | apples-to-apples channel (clean choices vs noisy rewards) | choice channel FLAT 0.423 vs noise; reward channel 0.728->0.368 (drops BELOW solo at sigma_obs=2). decisions NOISE-IMMUNE; crossover at high noise |
 | 12 | per-teammate trust w/ faulty teammates | CHOICE-trust WORKS: Ch_comp robust, gap grows w/ faulty% (+0.159->+0.180). REWARD-trust = BUG (override bypassed). |
 | 13 | P1 collaboration-harm threshold | naive pooling drops BELOW solo (reward@50%, choice always); competence-weighted CHOICE pooling robust to 50% faulty, stays ABOVE solo (0.435->0.419). reward-trust fix works (gain grows w/ faulty%) but only parity at 50% |
-| 14 | MF approximation audit (RUNNING) | convergence/regularization check: are CF results understated by under-converged ALS? |
-| 15 | RANSAC/consensus robust factorization (planned) | seed-grow consensus anchored on self, absolute residual threshold -> push robustness past 50% faulty; + trust-weighted hybrid |
+| 14 | MF approximation audit | CF skill near-flat across als_sweeps (n=240: 0.731@5,3 -> 0.769@40,1); defaults near-converged. CF results are slightly UNDERSTATED (conservative), NOT inflated -> answers "do approximations interfere": no, they handicap CF. Use als_sweeps=10,refit_every=2; prior_prec 1-3 OK, 0.1 hurts |
+| 16 | extended faulty breakdown to 80% (greedy+AUC) | competence-weighted CHOICE pooling robust to ~50% faulty (>= solo), BREAKS past 50% (65-80% below solo); ~50% breakdown matches robust-stats theory. CLOSES the parked faulty/Byzantine thread (drift) |
+| 17 | CF VARIANT BAKE-OFF (running) | which matrix-decomposition variant dominates the (structure x observability) design space; Tabular vs RewardCF vs ChoiceCF vs BothCF |
 
 ### Headline result tables
 **Cycle 5 (phase diagram, CF/Tab greedy ratio, 5 seeds):**

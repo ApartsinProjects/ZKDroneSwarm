@@ -69,6 +69,8 @@ def run_episode_faulty(Cls, hp, world, T, seed, sigma_own, sigma_obs, cand, faul
     lo, hi = float(R.min()), float(R.max())
     rng = np.random.RandomState(seed + 999)
     faulty = set(faulty)
+    reliable_set = [i for i in range(m) if i not in faulty]
+    online_r = []
     learners = []
     for i in range(m):
         if i in faulty:
@@ -79,6 +81,7 @@ def run_episode_faulty(Cls, hp, world, T, seed, sigma_own, sigma_obs, cand, faul
         cand_sets = [rng.choice(n, size=cand, replace=False) for _ in range(m)]
         choices = np.array([learners[i].select(t, cand_sets[i]) for i in range(m)])
         true_r = np.array([R[i, choices[i]] for i in range(m)])
+        online_r.append(float(np.mean([true_r[i] for i in reliable_set])))
         for i in range(m):
             if i in faulty:
                 continue
@@ -102,17 +105,21 @@ def run_episode_faulty(Cls, hp, world, T, seed, sigma_own, sigma_obs, cand, faul
             got.append(R[k, off[int(np.argmax(preds[k][off]))]])
             oc.append(R[k, off].max()); rd.append(R[k, off].mean())
     gm, ocm, rdm = np.mean(got), np.mean(oc), np.mean(rd)
-    return (gm - rdm) / max(ocm - rdm, 1e-6)
+    denom = max(ocm - rdm, 1e-6)
+    greedy_skill = (gm - rdm) / denom                       # converged model quality
+    auc_skill = (np.mean(online_r) - rdm) / denom           # anytime / cumulative
+    return greedy_skill, auc_skill
 
 
 def skill_ms(Cls, hp, cfg, m, n, d, T, cand, so, sb, frac, seeds):
-    sk = []
+    gs, aucs = [], []
     for s in seeds:
         w = make_world_struct(m, n, d, cfg["structure"], cfg["eps"], cfg["n_clusters"], cfg["sharp"], s)
         nf = int(round(frac * m))
         faulty = np.random.RandomState(1000 + s).choice(m, size=nf, replace=False) if nf > 0 else []
-        sk.append(run_episode_faulty(Cls, hp, w, T, s, so, sb, cand, faulty))
-    return float(np.mean(sk)), float(np.std(sk))
+        g, a = run_episode_faulty(Cls, hp, w, T, s, so, sb, cand, faulty)
+        gs.append(g); aucs.append(a)
+    return float(np.mean(gs)), float(np.mean(aucs))
 
 
 def main():
@@ -127,29 +134,37 @@ def main():
     ch_n = dict(comp=False, s2c=0.2, n_neg=1, within=True, T_total=T, **base)
     ch_c = dict(comp=True, s2c=0.2, n_neg=1, within=True, warm_frac=0.3, T_total=T, **base)
 
-    print("=" * 116)
-    print("P1: COLLABORATION-HARM THRESHOLD. naive pooling vs trust-aware vs SOLO, faulty teammates.")
+    print("=" * 118)
+    print("P1: COLLABORATION-HARM THRESHOLD (faulty to 80%). naive vs trust-aware vs SOLO.")
     print("m=%d n=%d d=%d T=%d cand=%d sigma_own=%.2f sigma_obs=%.2f %d seeds. clustG nc15"
           % (m, n, d, T, cand, sigma_own, sigma_obs, len(seeds)))
     print("skill of RELIABLE drones. faulty = random choices + garbage rewards. '<' = BELOW solo (harmful).")
-    print("=" * 116)
-    print(f"{'faulty%':>7s} | {'SOLO':>8s} | {'RewardCF':>10s} {'RewRobust':>10s} | "
-          f"{'Ch_naive':>10s} {'Ch_comp':>10s}")
-    print("-" * 116)
-    for frac in [0.0, 0.2, 0.35, 0.5]:
-        so, _ = skill_ms(Solo, tab, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds)
-        rm, _ = skill_ms(RewardCF, rew, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds)
-        rrm, _ = skill_ms(RewardCFRobust, rewR, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds)
-        nm, _ = skill_ms(ChoiceCF, ch_n, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds)
-        cm, _ = skill_ms(ChoiceCF, ch_c, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds)
-        def mark(x):
-            return f"{x:6.3f}{'<' if x < so - 1e-9 else ' '}"
-        print(f"{frac*100:6.0f}% | {so:8.3f} | {mark(rm):>10s} {mark(rrm):>10s} | "
-              f"{mark(nm):>10s} {mark(cm):>10s}")
-    print("-" * 116)
-    print("GROUNDBREAKING if: naive (RewardCF/Ch_naive) drops BELOW solo as faulty% rises ('<'),")
-    print("while trust-aware (RewRobust/Ch_comp) stays >= solo. => naive collaboration is HARMFUL;")
-    print("inferring whom to trust makes collaboration SAFE. Both channels.")
+    print("=" * 118)
+    rows = {}
+    for frac in [0.0, 0.3, 0.5, 0.65, 0.8]:
+        rows[frac] = {
+            "solo": skill_ms(Solo, tab, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds),
+            "RewardCF": skill_ms(RewardCF, rew, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds),
+            "RewRobust": skill_ms(RewardCFRobust, rewR, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds),
+            "Ch_naive": skill_ms(ChoiceCF, ch_n, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds),
+            "Ch_comp": skill_ms(ChoiceCF, ch_c, cfg, m, n, d, T, cand, sigma_own, sigma_obs, frac, seeds),
+        }
+    cols = ["RewardCF", "RewRobust", "Ch_naive", "Ch_comp"]
+    for mi, mlabel in [(0, "GREEDY (converged model quality)"), (1, "AUC (anytime / cumulative)")]:
+        print(f"\n--- {mlabel} ---")
+        print(f"{'faulty%':>7s} | {'SOLO':>7s} | " + " ".join(f"{c:>10s}" for c in cols))
+        print("-" * 70)
+        for frac in [0.0, 0.3, 0.5, 0.65, 0.8]:
+            so = rows[frac]["solo"][mi]
+            cells = []
+            for c in cols:
+                x = rows[frac][c][mi]
+                cells.append(f"{x:6.3f}{'<' if x < so - 1e-9 else ' '}")
+            print(f"{frac*100:6.0f}% | {so:7.3f} | " + " ".join(f"{c:>10s}" for c in cells))
+    print("-" * 70)
+    print("GROUNDBREAKING if Ch_comp stays >= solo at ALL faulty% (incl 80%) while naive drops")
+    print("below ('<'). Then competence-weighted DECISION pooling is majority-robust -- RANSAC-level")
+    print("robustness via per-teammate consistency, no consensus search needed (simple framing).")
 
 
 if __name__ == "__main__":
