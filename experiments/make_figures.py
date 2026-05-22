@@ -80,6 +80,7 @@ if f:
     d = json.load(open(f)); rhos = d["meta"]["rhos"]; raw = d["raw"]
     # group: ours (online weighted-ALS) vs batch-SVD hybrids vs no-structure floor
     styles = {
+        "HybridCF": dict(marker="D", color="C6", lw=2.4, label="HybridCF (ours: probe->SVD->online ALS)"),
         "RewardCF": dict(marker="o", color="C0", lw=2.2, label="RewardCF (ours, online ALS)"),
         "BothCF":   dict(marker="o", color="C1", lw=2.2, label="BothCF (ours, online ALS)"),
         "PTF":      dict(marker="s", color="C3", ls="--", label="PTF (probe->SVD->finetune)"),
@@ -98,7 +99,7 @@ if f:
     plt.gca().invert_xaxis()  # left = full broadcast, right = heavy masking
     plt.xlabel("observation density  rho  (fraction of broadcast seen)")
     plt.ylabel("UNSEEN-pair skill")
-    plt.title("Masking-robustness: online ALS flat;\nbatch-SVD hybrids decay (PTF wins only at rho=1)", fontsize=10)
+    plt.title("Masking-robustness (unseen-pair skill): our online-ALS methods stay\nflat as the broadcast is masked; batch-SVD hybrids (PTF/ESTR/BPMF) decay", fontsize=10)
     plt.legend(fontsize=7, loc="lower left"); plt.tight_layout()
     plt.savefig(f"{OUT}/F5_crossover.png", dpi=150); plt.close()
     print("F5_crossover.png  <-", os.path.basename(f))

@@ -21,7 +21,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 import pilot_compare as pc
 from _results_io import save_results
 
-METHODS = ["UCBIndep", "MFSGD", "ESTR", "BPMF", "PTF", "RewardCF", "BothCF"]
+METHODS = ["UCBIndep", "MFSGD", "ESTR", "BPMF", "PTF", "RewardCF", "BothCF", "HybridCF"]
 RHOS = [1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.15, 0.1]
 SEEDS = list(range(8))
 
@@ -39,7 +39,7 @@ def main():
     jobs = [(nm, r, s) for r in RHOS for nm in METHODS for s in SEEDS]
     raw = {str(r): {nm: {"overall": [], "unseen": [], "uniq": []} for nm in METHODS}
            for r in RHOS}
-    with ProcessPoolExecutor(max_workers=6) as ex:
+    with ProcessPoolExecutor(max_workers=4) as ex:
         futs = {ex.submit(pc._run_cell, j): j for j in jobs}
         done = 0
         for fut in as_completed(futs):

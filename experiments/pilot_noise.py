@@ -194,6 +194,63 @@ class BothCF(ChoiceCF):
             self._refit()
 
 
+class HybridCF(RewardCF):
+    """Probe-then-online-ALS (the synthesis that aims to dominate EVERYWHERE):
+    a short UCB probe (informative early coverage, like PTF) -> ONE SVD warm-start
+    of the empirical R_hat (global structure) -> then our ONLINE weighted-ALS keeps
+    refining (handles missing entries natively; no commit, anytime). vs PTF this
+    swaps PTF's weak SGD finetune for weighted-ALS; vs RewardCF it adds UCB-probe +
+    SVD warm-start. Hypothesis: matches PTF at dense rho while keeping RewardCF's
+    masking-robustness and anytime lead."""
+    def __init__(self, *a, T_total=50, probe_frac=0.3, probe_mode="ucb", c=2.0, **hp):
+        super().__init__(*a, **hp)
+        self.probe_steps = int(probe_frac * T_total); self.probe_mode = probe_mode; self.c = c
+        self.pc = np.zeros((self.m, self.n)); self.ps = np.zeros((self.m, self.n))
+        self.ptot = np.zeros(self.m); self.step = 0; self.warmed = False
+
+    def select(self, t, cand):
+        if self.warmed:
+            return super().select(t, cand)            # eps-greedy on learned P,U
+        if self.probe_mode == "random":
+            a = int(cand[self.rng.randint(len(cand))])
+        else:                                          # UCB1 on own empirical row
+            i = self.idx; cnt = self.pc[i]; tot = max(self.ptot[i], 1)
+            sc = np.full(len(cand), -np.inf)
+            for q, j in enumerate(cand):
+                if cnt[j] == 0:
+                    sc[q] = np.inf
+                else:
+                    sc[q] = self.ps[i, j] / cnt[j] + self.c * np.sqrt(np.log(tot) / cnt[j])
+            if np.isinf(sc.max()):
+                a = int(self.rng.choice([cand[q] for q in range(len(cand)) if np.isinf(sc[q])]))
+            else:
+                a = int(cand[int(np.argmax(sc))])
+        self.pulled[a] = True; return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):                         # accumulate empirical R_hat for SVD
+            r = revealed[k]
+            if not np.isnan(r):
+                j = int(choices[k]); self.pc[k, j] += 1; self.ps[k, j] += r; self.ptot[k] += 1
+        super().observe(t, choices, revealed, cand_sets, rvar)   # buffer + online ALS refit
+        self.step += 1
+        if (not self.warmed) and self.step >= self.probe_steps:
+            self._warm(); self.warmed = True
+
+    def _warm(self):
+        R_hat = np.where(self.pc > 0, self.ps / np.maximum(self.pc, 1), 0.0)
+        try:
+            Us, S, Vt = np.linalg.svd(R_hat, full_matrices=False)
+            r = min(self.d, len(S)); sq = np.sqrt(np.maximum(S[:r], 0))
+            P = Us[:, :r] * sq[None, :]; U = (Vt[:r, :].T * sq[None, :])
+            if r < self.d:
+                P = np.hstack([P, self.rng.normal(0, 0.01, (self.m, self.d - r))])
+                U = np.hstack([U, self.rng.normal(0, 0.01, (self.n, self.d - r))])
+            self.P = P; self.U = U                       # warm-start; next ALS refits from here
+        except np.linalg.LinAlgError:
+            pass
+
+
 class BothCFGated(BothCF):
     """Confidence-GATED fusion: down-weight the CHOICE channel for a target that
     already has enough REWARD data (per-target reward count). Erases the
