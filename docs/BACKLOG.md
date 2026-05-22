@@ -31,7 +31,40 @@ KEY QUESTION: unify A+B in one EM/VB (weight = posterior responsibility, derived
   EM FAILS (cycle 9, deadlock); BEHAVIOURAL weighting WORKS. So test: a
   BEHAVIOURAL-confidence EM unification vs the two-mechanism heuristic.
 
+## GROUNDBREAKING BAR: novel AND DEFINITELY outperforming (categorical, not %).
+Aim metrics/knobs at regimes where the trivial baseline is at the FLOOR BY
+CONSTRUCTION -> any CF win is decisive. The categorical edge of matrix
+decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
+
+## CREATIVE METRICS (relevant to our setting; highlight the structural edge)
+- M1. UNSEEN-PAIR reward: restrict to targets a drone NEVER pulled. Tabular ~
+  floor by construction; CF predicts. CATEGORICAL.
+- M2. COLD-START NEWCOMER reward: late-joining drone, zero own history -> act
+  from the broadcast alone. Tabular ~ random; CF warm-starts from swarm latent.
+- M3. ROUNDS-TO-X%-oracle (sample efficiency).
+- M4. COLLABORATIVE GAIN = (CF-with-broadcast - CF-solo)/(oracle - solo).
+- M5. CONFIDENCE CALIBRATION (Bayesian variants; Motif A): predicted uncertainty
+  vs actual error.
+- (have: skill [converged], AUC [anytime], Urec [factor recovery].)
+
+## CREATIVE KNOBS (dials that CREATE the categorical-win regime)
+- K1. FORCED-NOVELTY rate: offer only never-pulled targets -> forces
+  generalization -> tabular fails.
+- K2. NEWCOMER INJECTION: agents join over time -> cold-start from broadcast.
+- K3. TARGET CHURN / LATENT DRIFT: constant novelty / non-stationarity.
+- K4. REWARD BINARIZATION & BROADCAST SPARSITY: lower info/obs -> amplifies CF
+  pooling advantage.
+- K5. ANISOTROPY / effective-rank decay (spectral knob).
+- (have: rank d, #clusters, tightness, sharpness, n/T starvation, p reward-share,
+  sigma_obs noise.)
+
 ## P0 -- do next (within scope)
+- [TODO] C8. *** GROUNDBREAKING CANDIDATE *** Generalization / cold-start
+  NEWCOMER (K1/K2 + M1/M2): in a decentralized swarm with NO communication, can
+  a CF agent generalize to UNSEEN targets, and can a NEWCOMER act well from the
+  broadcast alone, CATEGORICALLY beating independent learning (at floor on unseen
+  pairs)? Novel framing + definite outperformance. Cheapest gate: forced-novelty
+  subsets; measure unseen-pair reward CF vs tabular.
 - [TODO] C1. CF VARIANT BAKE-OFF across the (structure x observability) grid:
   which matrix-decomposition variant wins where; find the simple dominant method.
   Baselines: random, tabular/independent (UCB-Indep), homogeneous.
