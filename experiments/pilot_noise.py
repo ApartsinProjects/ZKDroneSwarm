@@ -194,6 +194,37 @@ class BothCF(ChoiceCF):
             self._refit()
 
 
+class BothCFGated(BothCF):
+    """Confidence-GATED fusion: down-weight the CHOICE channel for a target that
+    already has enough REWARD data (per-target reward count). Erases the
+    reward-clean penalty (choices contribute ~0 when rewards suffice) while
+    keeping the choice benefit where reward data is sparse/noisy -> aims to be
+    STRICTLY dominant across the design space."""
+    def __init__(self, *a, gate_alpha=0.5, **hp):
+        super().__init__(*a, **hp)
+        self.gate_alpha = gate_alpha
+
+    def _refit(self):
+        own_r = [v for k, v in zip(self.rk, self.rv) if k == self.idx]
+        pos = float(np.percentile(own_r, 75)) if len(own_r) >= 4 else 0.55
+        neg = float(np.percentile(own_r, 25)) if len(own_r) >= 4 else 0.15
+        rcount = (np.bincount(np.asarray(self.rj), minlength=self.n)
+                  if self.rj else np.zeros(self.n))
+        K = list(self.rk); J = list(self.rj); V = list(self.rv); W = list(self.rw)
+        for k, c, off, ts in zip(self.ck, self.cc, self.coff, self.cstep):
+            g = self._gamma(k, ts)
+            if g <= 1e-3:
+                continue
+            gate_c = 1.0 / (1.0 + self.gate_alpha * rcount[c])   # reward-sufficiency gate
+            K.append(k); J.append(c); V.append(pos); W.append(g * gate_c / self.s2c)
+            for _ in range(self.n_neg):
+                o = int(self.rng.choice(off)) if self.within else self.rng.randint(self.n)
+                if o != c:
+                    gate_o = 1.0 / (1.0 + self.gate_alpha * rcount[o])
+                    K.append(k); J.append(o); V.append(neg); W.append(g * gate_o / self.s2c)
+        self._als(K, J, V, W)
+
+
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
     P, U, R = world; m, n = R.shape; d = P.shape[1]
     rng = np.random.RandomState(seed + 999)

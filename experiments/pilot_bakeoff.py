@@ -23,8 +23,8 @@ import numpy as np
 import sys
 sys.stdout.reconfigure(encoding="utf-8")
 
-from pilot_noise import (Tabular, RewardCF, ChoiceCF, BothCF, run_episode,
-                         make_world_struct, oracle_rand)
+from pilot_noise import (Tabular, RewardCF, ChoiceCF, BothCF, BothCFGated,
+                         run_episode, make_world_struct, oracle_rand)
 
 
 def skill(Cls, hp, cfg, p, so, sb, m, n, d, T, cand, seeds):
@@ -47,6 +47,8 @@ def main():
         "RewardCF": (RewardCF, dict(**base)),
         "ChoiceCF": (ChoiceCF, dict(comp=True, s2c=0.2, n_neg=1, within=True, warm_frac=0.3, T_total=T, **base)),
         "BothCF":   (BothCF,   dict(comp=True, s2c=0.2, n_neg=1, within=True, warm_frac=0.3, T_total=T, **base)),
+        "BothGated": (BothCFGated, dict(comp=True, s2c=0.2, n_neg=1, within=True, warm_frac=0.3,
+                                        T_total=T, gate_alpha=0.5, **base)),
     }
     structures = [
         ("clustG nc15", dict(structure="cluster_gauss", eps=0.10, n_clusters=15, sharp=1.0)),
