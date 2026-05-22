@@ -95,6 +95,8 @@ across the range; clearer-outlier faulty rewards to make reward-trust test fair.
 5. **Per-teammate trust (choice side) works**: competence weighting is robust to
    faulty teammates; advantage grows with faulty fraction.
 
+| 21 | C13 unseen-pair skill vs TRUE RANK d (D3 empirical support; reward-observable; fair d_hat=10; 5 seeds; data saved) | EXACTLY as D3 predicts: CF unseen-pair skill DECREASES monotonically with rank (d=2:0.671, 3:0.578, 5:0.381, 8:0.270); Tabular ~0 (floor) at ALL d. CF-Tab gap +0.67->+0.27 (scales with low-rankness). Confirms Prop 2 (O(d) completion) + the corollary. Spine + theory (docs/THEORY.md) now MUTUALLY VALIDATED. |
+
 ## 10,000-FT REVIEW (after ~20 cycles, 2026-05-22)
 THE SPINE (all multi-seed, fair guessed rank, complete data saved):
 - C8 static unseen-pair: CF 0.496 vs Tabular 0.006. Categorical.
