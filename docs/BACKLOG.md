@@ -171,7 +171,7 @@ explore_knob. C1 + C8 DONE (below). Method work (C6/C10/C3/C2) demoted to P1
   robustness remark; do not headline. The competence-weighting MECHANISM it
   produced is salvaged for C3 (cold-start of honest learners).
 - [TODO] D2. Connect to real ZK-MRTA env + real policies (BPMF, IQL-ZK, etc.).
-- [TODO] D3. THEORY pack (elevated toward the spine): the unseen-pair /
+- [DRAFTED docs/THEORY.md] D3. THEORY pack (elevated toward the spine): the unseen-pair /
   Theta(d)-per-drone vs Theta(n)-tabular separation. Basis: MC needs O(d(m+n))
   obs (Candes-Recht/Keshavan) vs mn; block structure lowers it further (arXiv
   1912.04099). NOVELTY = adapt to the DECENTRALIZED broadcast + per-drone masking,
