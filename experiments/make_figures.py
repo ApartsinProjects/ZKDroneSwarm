@@ -103,4 +103,38 @@ if f:
     plt.savefig(f"{OUT}/F5_crossover.png", dpi=150); plt.close()
     print("F5_crossover.png  <-", os.path.basename(f))
 
+# ---- F6: C16 anytime cumulative-reward trajectory (rho=0.25) ----
+f = latest("results/pilots/c16_anytime_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; T = d["meta"]["T"]
+    rho_key = "0.25" if "0.25" in raw else list(raw.keys())[-1]
+    rounds = np.arange(1, T + 1)
+    styles = {
+        "RewardCF": dict(color="C0", lw=2.3, label="RewardCF (ours, online ALS)"),
+        "BothCF":   dict(color="C1", lw=2.3, label="BothCF (ours, online ALS)"),
+        "PTF":      dict(color="C3", ls="--", label="PTF (probe-then-fit)"),
+        "ESTR":     dict(color="C4", ls="--", label="ESTR (explore-then-commit)"),
+        "Tabular":  dict(color="C2", ls="-.", label="Tabular (eps-greedy own-row)"),
+        "UCBIndep": dict(color="gray", ls=":", label="UCBIndep (n>>T: stuck exploring)"),
+    }
+    plt.figure(figsize=(6, 4))
+    for nm, st in styles.items():
+        if nm not in raw[rho_key]:
+            continue
+        A = np.array(raw[rho_key][nm])           # (seeds, T)
+        mu = A.mean(0); sd = A.std(0)
+        plt.plot(rounds, mu, **st)
+        plt.fill_between(rounds, mu - sd, mu + sd, color=st.get("color"), alpha=0.12)
+    plt.axhline(0, color="black", lw=0.8, ls=":")
+    plt.axvline(int(0.4 * T), color="red", lw=0.8, ls=":", alpha=0.6)
+    plt.text(int(0.4 * T) + 0.5, plt.ylim()[0] + 0.02, "probe-phase end\n(ESTR/PTF)",
+             fontsize=6, color="red")
+    plt.xlabel("round  t")
+    plt.ylabel("cumulative-normalized skill (reward earned)")
+    plt.title("Anytime reward (rho=0.25): online CF earns from round 1;\n"
+              "explore-then-commit pays a probe phase; UCBIndep stuck (n>>T)", fontsize=10)
+    plt.legend(fontsize=7, loc="lower right"); plt.tight_layout()
+    plt.savefig(f"{OUT}/F6_anytime.png", dpi=150); plt.close()
+    print("F6_anytime.png  <-", os.path.basename(f))
+
 print("figures written to", OUT)
