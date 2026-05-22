@@ -327,4 +327,34 @@ if os.path.exists(f):
     fig.tight_layout(rect=[0, 0, 1, 0.93]); fig.savefig(f"{OUT}/F13_realsim.png", dpi=150); plt.close(fig)
     print("F13_realsim.png  <- tabula_bench_real.json")
 
+# ---- F14: assumption-stress (approx low-rank + nonlinear link) ----
+f = latest("results/pilots/stress_assump_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; sweeps = d["meta"]["sweeps"]; methods = d["meta"]["methods"]
+    st = {"UCBIndep": dict(color="gray", ls=":", marker="x"), "PTF": dict(color="C3", ls="--", marker="^"),
+          "RewardCF": dict(color="C0", marker="o"), "HybridCFconv": dict(color="C6", marker="D", lw=2),
+          "ActiveCFconv": dict(color="C2", marker="*", lw=2)}
+    knobs = [k for k in ("approx", "nonlin") if k in sweeps]
+    fig, axes = plt.subplots(2, len(knobs), figsize=(5.4 * len(knobs), 7))
+    title = {"approx": "approximate low-rank (entrywise noise)", "nonlin": "nonlinear reward link"}
+    for col, kn in enumerate(knobs):
+        vals = sweeps[kn]
+        ers = [int(round(np.mean(raw[kn][str(v)][methods[0]]["er"]))) for v in vals]
+        xt = ["%s\n(er=%d)" % (v, e) for v, e in zip(vals, ers)]
+        for row, metric in enumerate(["unseen", "anytime"]):
+            ax = axes[row][col]
+            for nm in methods:
+                mu = [np.mean(raw[kn][str(v)][nm][metric]) for v in vals]
+                ax.plot(range(len(vals)), mu, markersize=5, label=nm + (" (ours)" if "conv" in nm else ""), **st.get(nm, {}))
+            ax.axhline(0, color="black", lw=0.6, ls=":"); ax.grid(alpha=0.25)
+            ax.set_xticks(range(len(vals))); ax.set_xticklabels(xt, fontsize=8)
+            ax.set_ylabel("%s skill" % metric)
+            if row == 0:
+                ax.set_title(title[kn], fontsize=10)
+    axes[0][0].legend(fontsize=7, loc="best")
+    fig.suptitle("Assumption stress: graceful degradation as the world leaves exact low-rank "
+                 "(er = realized effective rank); ours stay best", fontsize=10)
+    fig.tight_layout(rect=[0, 0, 1, 0.95]); fig.savefig(f"{OUT}/F14_stress.png", dpi=150); plt.close(fig)
+    print("F14_stress.png  <-", os.path.basename(f))
+
 print("figures written to", OUT)

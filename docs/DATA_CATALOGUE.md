@@ -39,6 +39,7 @@ re-analyzed without re-running. Connected to PROJECT_LOG.md by cycle number.
 | 36 | E14 generality (m, K, within) | results/pilots/e14_robust_20260522_184041.json | unseen+anytime vs drones m / clusters K / latent spread within; confirms conclusions general (incl K=m no-clustering) | 8 | 2026-05-22 |
 | 37 | E15 broader baselines (SoftImpute/kNN-CF/BiasModel) | results/pilots/e15_morebase_20260522_191327.json | unseen+anytime vs rho for 3 new fair baselines + PTF + ours; paired CIs; -> F12_morebaselines.png | 8 | 2026-05-22 |
 | 38 | Real tabula_drone simulator validation | results/pilots/tabula_bench_real.json | per-seed skill + per-episode learning curves for random/oracle/ucb_indep/mf/weighted_als in the real PettingZoo env; -> F13_realsim.png | 3 | 2026-05-22 |
+| 39 | Assumption stress (approx low-rank + nonlinear) | results/pilots/stress_assump_20260522_200547.json | unseen+anytime+effective-rank vs nonlin/approx for 5 methods; graceful degradation; -> F14_stress.png | 8 | 2026-05-22 |
 
 NOTE: cycles 1-17 predate structured saving; their SUMMARY tables are in
 PROJECT_LOG.md and full stdout is in the (ephemeral) task-output files. Complete

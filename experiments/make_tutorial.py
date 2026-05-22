@@ -543,6 +543,22 @@ A("<p><b>Takeaway.</b> The story holds in the real simulator: our method reaches
   "per-arm bandit UCBIndep (~0.72), and approaching the centralized oracle. So the advantage is not "
   "an artifact of our clean generative model; it transfers to spatial, depleting, episodic dynamics.</p>")
 
+A("<h3>8.11 Stress-testing the low-rank assumption</h3>")
+A("<p>A fair worry: what if the world is not exactly low-rank? We deliberately break the assumption "
+  "two ways and watch what happens (Figure F14). First, a nonlinear reward link (a power curve) that "
+  "raises the effective rank; here our methods actually do a touch BETTER, because the curve sharpens "
+  "the differences between targets. Second, and more importantly, we add random noise to every entry "
+  "of the reward table, which drives the effective rank from 5 up toward 29 (nearly full-rank, i.e. "
+  "almost no structure left).</p>")
+A("<figure>%s<figcaption><strong>F14.</strong> Skill as we leave exact low-rank (er = realized "
+  "effective rank): nonlinear link (right) and entrywise-noise approximate rank (left).</figcaption></figure>"
+  % img("F14_stress.png", "F14"))
+A("<p><b>Takeaway.</b> The advantage degrades GRACEFULLY, not off a cliff: as the structure is "
+  "progressively destroyed (effective rank 5 to 29), skill slides down smoothly and our methods stay "
+  "the best the whole way, only meeting the floor when there is essentially no low-rank structure "
+  "left to exploit. So the result does not hinge on the world being perfectly low-rank, only on there "
+  "being SOME usable structure, which real problems have.</p>")
+
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "
