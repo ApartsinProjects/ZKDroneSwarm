@@ -64,6 +64,10 @@ REGISTRY = {
                                 warm_frac=0.3, T_total=T, **_ALS)),
     "ChoiceCF": (ChoiceCF, dict(comp=True, s2c=0.2, n_neg=1, within=True,
                                 warm_frac=0.3, T_total=T, **_ALS)),
+    # strict-ZK choice variant: GLOBAL negatives (within=False) -> needs only the
+    # observed chosen action, not the teammate's offered menu (ZK audit, E13).
+    "ChoiceZK": (ChoiceCF, dict(comp=True, s2c=0.2, n_neg=1, within=False,
+                                warm_frac=0.3, T_total=T, **_ALS)),
     "HybridCF": (HybridCF, dict(T_total=T, probe_frac=0.3, probe_mode="ucb", c=2.0, **_ALS)),
 }
 ORDER = ["Random", "UCBIndep", "UCBHomo", "Tabular",
