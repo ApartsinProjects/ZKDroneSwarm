@@ -3,6 +3,11 @@
 The empirical spine (C8, C11, C12, C13) is matched by a clean separation. Proof
 SKETCHES below; each maps to an experiment.
 
+NOTE: rigorous statements with detailed proofs (Theorem 1 tabular floor; Theorem 2
+CF row recovery; Theorem 3 ANYTIME separation under starvation, matching C16;
+Theorem 4 persistent-vs-iid masking dichotomy, answering "why persistent masking")
+are in docs/THEORY_FORMAL.md. The sketches below remain as the intuition.
+
 ## Setup
 - m drones, n targets. True reward R = P Uᵀ, rank d: R[i,j] = ⟨p_i, u_j⟩, with
   p_i, u_j unit vectors (cosine compatibility). The factors are UNKNOWN.

@@ -248,3 +248,12 @@ explore_knob. C1 + C8 DONE (below). Method work (C6/C10/C3/C2) demoted to P1
   ChoiceCF) + E9 (hybrid) + E2/E4/E6 (rank, starvation, d_hat scaling). KEPT
   PARKED: D1 Byzantine (out of scope), D5 RANSAC (subsumed by precision weights),
   D6 contention (future paper). Tutorial: docs/tutorial.html.
+- 2026-05-22 THEORY + MASKING-MODEL (user): wrote docs/THEORY_FORMAL.md with detailed
+  proofs: T1 tabular unseen floor (exact), T2 CF row recovery O(d) given U (exact),
+  T3 ANYTIME separation under starvation (structure-free skill <= g(cT/n) -> 0; CF
+  >= 1-O(d/T); matches C16), T4 persistent-vs-iid masking dichotomy (iid -> state-
+  uniqueness -> 0 transient; persistent -> durable; categorical results invariant).
+  NEW EXPERIMENT E12 [P1]: re-run headline panels (unseen, anytime, state-uniqueness
+  vs rho) under IID per-round masking to confirm T4(c) empirically and measure the
+  durable-vs-transient state-uniqueness gap. Motivation: iid (packet loss) is equally
+  realistic; persistent (fixed topology/sensor) chosen for DURABLE decentralization.
