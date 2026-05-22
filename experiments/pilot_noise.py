@@ -371,6 +371,35 @@ class StackCF(_EpsBase):
         return self.pulled
 
 
+class ActiveCF(RewardCF):
+    """Active (uncertainty-reducing) exploration in LATENT space. Replace eps-greedy
+    with a UCB on the predicted reward plus a count-based uncertainty bonus:
+        score_j = <p_i, u_j> + c_active / sqrt(global_count_j + 1).
+    The global count per target is accumulated from the BROADCAST, so one drone's
+    probe of an under-observed target lowers EVERYONE'S uncertainty about it
+    (collective active learning with no communication). Anneals automatically as
+    counts grow. The principled 'confidence drives exploration' idea (Motif A),
+    here via a cheap count proxy for the factor-posterior uncertainty."""
+    def __init__(self, *a, c_active=0.5, **hp):
+        super().__init__(*a, **hp)
+        self.c_active = c_active
+        self.gcount = np.zeros(self.n)
+
+    def select(self, t, cand):
+        cand = np.asarray(cand)
+        pred = self.U[cand] @ self.P[self.idx]
+        bonus = self.c_active / np.sqrt(self.gcount[cand] + 1.0)
+        jitter = 1e-6 * self.rng.randn(len(cand))
+        a = int(cand[int(np.argmax(pred + bonus + jitter))])
+        self.pulled[a] = True; self._decay(); return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):
+            if not np.isnan(revealed[k]):
+                self.gcount[int(choices[k])] += 1     # collective broadcast counts
+        super().observe(t, choices, revealed, cand_sets, rvar)
+
+
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
     P, U, R = world; m, n = R.shape; d = P.shape[1]
     rng = np.random.RandomState(seed + 999)

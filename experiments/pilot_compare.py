@@ -33,7 +33,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 sys.stdout.reconfigure(encoding="utf-8")
 
 from pilot_c11_masking import run_masked
-from pilot_noise import Tabular, RewardCF, BothCF, ChoiceCF, HybridCF, BothCFPrec, StackCF
+from pilot_noise import (Tabular, RewardCF, BothCF, ChoiceCF, HybridCF, BothCFPrec,
+                         StackCF, ActiveCF)
 from pilot_baselines import Random, UCBIndep, UCBHomo, MFSGD, ESTR, PTF, BPMF
 from core import make_world
 from _results_io import save_results
@@ -69,10 +70,18 @@ REGISTRY = {
     "ChoiceZK": (ChoiceCF, dict(comp=True, s2c=0.2, n_neg=1, within=False,
                                 warm_frac=0.3, T_total=T, **_ALS)),
     "HybridCF": (HybridCF, dict(T_total=T, probe_frac=0.3, probe_mode="ucb", c=2.0, **_ALS)),
+    # CONVERGED config: more ALS sweeps + refit every round + slower eps decay.
+    # Closes the PTF dense-rho unseen gap (final-policy quality) at a small anytime cost.
+    "HybridCFconv": (HybridCF, dict(T_total=T, probe_frac=0.3, probe_mode="ucb", c=2.0,
+                                    eps0=0.5, eps_min=0.05, eps_decay=0.97,
+                                    als_sweeps=20, refit_every=1)),
     "BothCFPrec": (BothCFPrec, dict(comp=True, s2c=0.2, n_neg=1, within=True, gate_alpha=0.05,
                                     warm_frac=0.3, T_total=T, **_ALS)),
     "StackCF": (StackCF, dict(comp=True, s2c=0.2, n_neg=1, val_frac=0.3,
                               warm_frac=0.3, T_total=T, **_ALS)),
+    "ActiveCF": (ActiveCF, dict(c_active=0.5, **_ALS)),
+    "ActiveCFconv": (ActiveCF, dict(c_active=0.5, eps0=0.5, eps_min=0.05, eps_decay=0.97,
+                                    als_sweeps=20, refit_every=1)),
 }
 ORDER = ["Random", "UCBIndep", "UCBHomo", "Tabular",
          "MFSGD", "ESTR", "PTF", "BPMF", "RewardCF", "BothCF", "HybridCF"]
