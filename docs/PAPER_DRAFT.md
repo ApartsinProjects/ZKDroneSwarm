@@ -212,15 +212,26 @@ anytime; HybridCF owns final-policy), with competitors dominated by one of ours 
 every metric except PTF's dense-broadcast unseen, which PTF buys by sacrificing
 anytime. A probe-budget ablation confirms the tradeoff is a single clean knob.
 
-### 7.5 Both observability channels (E3, Fig. F7)
+### 7.5 Both observability channels, and which to use (E3/E10/E13, Fig. F7)
 
 Crossing the two channels (action masking rho x reward noise sigma_obs), the
 reward-channel method (RewardCF) degrades as sigma_obs rises while the
-action-channel method (ChoiceCF) is flat (clean choices are noise-invariant), so
-the clean CHOICE channel overtakes the noisy REWARD channel at high sigma_obs and
-BothCF tracks the better channel. A choice-only ablation (E13) shows the action
-channel ALONE lifts unseen skill above the floor (teammates' choices carry
-recoverable low-rank structure), though it is much weaker than the reward channel.
+action-channel method (ChoiceCF) is flat (clean choices are noise-invariant). The
+crossover is at sigma_obs ~= 1, i.e. when the reward-observation noise std reaches
+HALF the full signal range [-1,1]: for sigma_obs < 1 (the realistic regime) the
+REWARD channel dominates; only under SEVERE noise (sigma_obs >= 1) does the clean
+CHOICE channel win. A choice-only ablation (E13) shows the action channel ALONE
+still lifts unseen skill above the floor (teammates' choices carry recoverable
+low-rank structure), confirming it as a genuine fallback signal, though weaker than
+rewards. We therefore recommend the simple reward channel (RewardCF/HybridCF) as
+the default and the choice channel (ChoiceZK) as severe-noise insurance. We also
+tested learned fusions (precision-gated BothCFPrec; validation-stacked StackCF):
+precision-gating erases the reward-clean penalty to within ~0.01 in the realistic
+regime but no learned fusion strictly dominates both channels at severe noise (the
+fusion still carries down-weighted noisy rewards that the pure choice channel
+discards), and in this sample-starved regime stacking is too data-expensive. The
+practical takeaway is clean: a dominant fusion is unnecessary because the reward
+channel already wins throughout the realistic regime.
 
 ### 7.6 Robustness to the masking model, and zero-knowledge compliance (E12, E13)
 
@@ -310,8 +321,15 @@ simulator remain.
 
 All results derive from complete per-seed JSON in `results/pilots/` (registry:
 `docs/DATA_CATALOGUE.md`; chronology + per-cycle reviews: `docs/PROJECT_LOG.md`).
-Figures: `python experiments/make_figures.py`. Table 1: `python
-experiments/make_table1.py`. Comparison harness: `experiments/pilot_compare.py`
-(bake-off), `pilot_crossover.py` (masking-robustness), `pilot_anytime.py` (anytime);
-competitor ports in `experiments/pilot_baselines.py`; core world/reward/oracle in
-`experiments/core.py`. All learners use a guessed rank, broadcast-only inputs.
+Figures (`python experiments/make_figures.py`): F2 unseen-masking, F3 onboarding,
+F4 rank, F5 masking-robustness crossover, F6 anytime trajectory, F7 two-channel
+grid, F8 persistent-vs-iid (Theorem 4), F9 scaling sweeps, F10 newcomer cold-start.
+Table 1: `python experiments/make_table1.py`. Bootstrap CIs:
+`experiments/ci_report.py` (`docs/CI_REPORT.md`). Harnesses: `pilot_compare.py`
+(bake-off), `pilot_crossover.py` (masking-robustness), `pilot_anytime.py` (anytime),
+`pilot_e3_channels.py` (channels), `pilot_iid.py` (E12), `pilot_e13_choice.py`
+(choice ablation), `pilot_scaling.py` (E2/E4/E6), `pilot_e7_newcomer.py` (newcomer);
+competitor ports in `pilot_baselines.py`; core world/reward/oracle in `core.py`.
+Supporting docs: `docs/THEORY_FORMAL.md` (proofs), `docs/ZK_COMPLIANCE.md` (audit),
+`docs/EXPERIMENT_PLAN.md` (protocol), `docs/tutorial.html` (graduate-level
+walkthrough). All learners use a guessed rank and broadcast-only inputs.

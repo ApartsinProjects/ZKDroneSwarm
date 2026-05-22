@@ -286,6 +286,91 @@ class BothCFGated(BothCF):
         self._als(K, J, V, W)
 
 
+class BothCFPrec(BothCF):
+    """Precision-gated fusion (the FIX to BothCFGated): gate the CHOICE channel by
+    the per-target reward PRECISION (sum of 1/sigma^2), not the raw count. A target
+    with abundant CLEAN reward data suppresses the choice channel (rewards suffice);
+    a target with sparse or NOISY reward data keeps it. This is the scale-correct
+    confidence gate -> aims to be >= max(RewardCF, ChoiceCF) across the noise grid
+    (the count-based gate mis-fired under noise: many noisy obs != high precision)."""
+    def __init__(self, *a, gate_alpha=0.05, **hp):
+        super().__init__(*a, **hp)
+        self.gate_alpha = gate_alpha
+
+    def _refit(self):
+        own_r = [v for k, v in zip(self.rk, self.rv) if k == self.idx]
+        pos = float(np.percentile(own_r, 75)) if len(own_r) >= 4 else 0.55
+        neg = float(np.percentile(own_r, 25)) if len(own_r) >= 4 else 0.15
+        rprec = np.zeros(self.n)                       # per-target REWARD precision
+        if self.rj:
+            np.add.at(rprec, np.asarray(self.rj), np.asarray(self.rw))
+        K = list(self.rk); J = list(self.rj); V = list(self.rv); W = list(self.rw)
+        for k, c, off, ts in zip(self.ck, self.cc, self.coff, self.cstep):
+            g = self._gamma(k, ts)
+            if g <= 1e-3:
+                continue
+            gate_c = 1.0 / (1.0 + self.gate_alpha * rprec[c])    # suppress where reward-precise
+            K.append(k); J.append(c); V.append(pos); W.append(g * gate_c / self.s2c)
+            for _ in range(self.n_neg):
+                o = int(self.rng.choice(off)) if self.within else self.rng.randint(self.n)
+                if o != c:
+                    gate_o = 1.0 / (1.0 + self.gate_alpha * rprec[o])
+                    K.append(k); J.append(o); V.append(neg); W.append(g * gate_o / self.s2c)
+        self._als(K, J, V, W)
+
+
+class StackCF(_EpsBase):
+    """Validation-stacked fusion that ADAPTS to the cross-agent reward noise without
+    knowing it (ZK). Maintain a RewardCF (own + others' rewards) and a ChoiceCF
+    (own reward + others' CHOICES, GLOBAL negatives = strict-ZK public-active-set).
+    Hold out a fraction of the drone's OWN clean pulls; select, per drone, whichever
+    channel better PREDICTS those held-out own rewards (both channels are blind to
+    the held-out pulls). Picks the reward channel when others' rewards are reliable
+    and the choice channel when they are noisy -> aims to dominate BOTH channels at
+    every noise level. Selection is decentralized self-validation (own clean rewards
+    are the drone's private ground truth)."""
+    def __init__(self, *a, val_frac=0.3, **hp):
+        super().__init__(*a, **hp)
+        chp = dict(hp); chp["within"] = False              # strict-ZK global negatives
+        self.rew = RewardCF(*a, **hp)
+        self.cho = ChoiceCF(*a, **chp)
+        self.val_frac = val_frac
+        self.vj = []; self.vr = []                          # held-out own (target, reward)
+        self.use_rew = True
+
+    def select(self, t, cand):
+        if self.rng.rand() < self.eps:
+            a = int(cand[self.rng.randint(len(cand))])
+        else:
+            pred = self.predict_scores()
+            a = int(cand[int(np.argmax(pred[cand]))])
+        self.pulled[a] = True; self._decay(); return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        r_own = revealed[self.idx]
+        held = (not np.isnan(r_own)) and (self.rng.rand() < self.val_frac)
+        if held:                                            # hide this own pull from BOTH channels
+            self.vj.append(int(choices[self.idx])); self.vr.append(float(r_own))
+            ch2 = choices.copy(); ch2[self.idx] = -1
+            rev2 = revealed.copy(); rev2[self.idx] = np.nan
+            self.rew.observe(t, ch2, rev2, cand_sets, rvar)
+            self.cho.observe(t, ch2, rev2, cand_sets, rvar)
+        else:
+            self.rew.observe(t, choices, revealed, cand_sets, rvar)
+            self.cho.observe(t, choices, revealed, cand_sets, rvar)
+        if len(self.vj) >= 3:                               # decentralized self-validation
+            vj = np.asarray(self.vj); vr = np.asarray(self.vr)
+            er = float(np.mean((self.rew.predict_scores()[vj] - vr) ** 2))
+            ec = float(np.mean((self.cho.predict_scores()[vj] - vr) ** 2))
+            self.use_rew = (er <= ec)
+
+    def predict_scores(self):
+        return self.rew.predict_scores() if self.use_rew else self.cho.predict_scores()
+
+    def pulled_mask(self):
+        return self.pulled
+
+
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
     P, U, R = world; m, n = R.shape; d = P.shape[1]
     rng = np.random.RandomState(seed + 999)

@@ -75,30 +75,31 @@ experimenter's metric, never inside any learner. Oracle is a CEILING baseline
 (centralized + complete information); it is reported for normalisation, never used
 as a method. PASS.
 
-## The one item: ChoiceCF / BothCF observe the offered menu
+## The offered menu: RESOLVED (every drone may choose any active target)
 
-ChoiceCF and BothCF use teammates' OFFERED candidate set (cand_sets[k]) to sample
-"implicit negatives" (targets a teammate could have engaged but did not), the
-standard exposure/MNL debiasing of implicit feedback. This requires observing not
-just what teammate k did, but what k could have done. Two clean ways to keep this
-strictly inside the setting:
+Earlier we worried that ChoiceCF/BothCF read teammates' per-drone offered menus
+(cand_sets[k]) for exposure-debiased negative sampling. We RESOLVE this by adopting
+the natural model: there is NO per-drone private menu. Every drone may choose ANY
+currently ACTIVE target, and the active-target set is PUBLIC (everyone sees which
+targets exist). Consequences:
+- The "menu" a teammate chose from is the public active set, so observing it is
+  passive public observation, not communication. The exposure debiasing samples
+  negatives from this public set. ZK holds.
+- Equivalently, the choice channel can sample negatives GLOBALLY from all targets
+  using only the observed chosen action a_k (within=False). This is the canonical
+  choice channel we now use (ChoiceZK; StackCF's choice sub-estimator). It observes
+  NOTHING beyond teammates' actions, identical to RewardCF's footprint.
 
-(a) PUBLIC-ACTIVE-SET convention: treat the offered menu as the set of currently
-    ACTIVE targets, which is publicly observable (everyone can see which targets
-    exist / are alive). Under this convention the menu is part of passive
-    observation and ChoiceCF/BothCF are ZK. (Our pilot draws per-drone random
-    offers as a stand-in for per-drone availability; the convention treats the
-    union/active set as public.)
-(b) STRICT-ZK relaxation: sample negatives GLOBALLY from all n targets
-    (within=False) using ONLY the observed chosen target a_k. Then ChoiceCF/BothCF
-    observe nothing beyond teammates' actions, identical to RewardCF's observation
-    footprint. This drops the exposure-debiasing refinement.
+EVIDENCE it costs nothing: the choice-only ablation (E13) shows ChoiceZK (global
+negatives, no per-drone menu) matches ChoiceCF (per-drone menu) on every metric at
+every rho (gap <= 0.03, within noise). So the choice channel's value is NOT an
+artifact of menu observation. (The pilot still draws per-round size-c offers as a
+stand-in for limited per-round availability; a drone always knows its OWN offer,
+which is unproblematic, and never needs a teammate's private menu.)
 
-RECOMMENDATION: report RewardCF and HybridCF (strictly ZK, no menu needed) as the
-headline methods; present ChoiceCF/BothCF as the choice-channel variant under
-convention (a), and VERIFY in the choice-only ablation (E13) that their benefit
-survives the strict-ZK relaxation (b). If it does, the choice channel's value is
-not an artifact of menu observation.
+CANONICAL METHODS are therefore all strictly ZK with an action+outcome observation
+footprint: RewardCF, HybridCF (rewards only), ChoiceZK (actions only), StackCF
+(adaptively selects between them by self-validation; global negatives).
 
 ## Conclusion
 
@@ -108,11 +109,12 @@ not an artifact of menu observation.
   not message passing or parameter sharing; each agent decides independently with
   no coordinator. PASS, under the masking-as-sensing convention (assumption 3).
 - PARTIAL + NOISY OBSERVATION: satisfied by masking rho and noise sigma. PASS.
-- The only assumption beyond pure action+outcome observation is the OFFERED MENU
-  used by ChoiceCF/BothCF; the headline methods (RewardCF, HybridCF) do not need
-  it, and E13 tests that the choice channel's value holds under the strict-ZK
-  global-negative relaxation.
+- OFFERED MENU: RESOLVED. Every drone may choose any active target; the active set
+  is public; the canonical choice channel (ChoiceZK / StackCF) uses global negatives
+  and observes only teammates' actions. E13 confirms this costs nothing (ChoiceZK ~=
+  ChoiceCF). No method needs a teammate's private menu. PASS.
 
-ACTION ITEMS (tracked): (1) standardise the wording "limited/noisy SENSING of
-public outcomes" (not "lossy radio") across docs so zero-communication is airtight;
-(2) E13 choice-only ablation including the strict-ZK ChoiceCF variant.
+CONCLUSION: all canonical methods (RewardCF, HybridCF, ChoiceZK, StackCF) are
+strictly ZK and communication-free: guessed rank, random init, independent per-drone
+estimators, no parameter sharing, no coordinator, and an action+outcome observation
+footprint over a passively-sensed public outcome stream.
