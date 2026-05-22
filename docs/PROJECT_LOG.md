@@ -98,6 +98,7 @@ across the range; clearer-outlier faulty rewards to make reward-trust test fair.
 | 21 | C13 unseen-pair skill vs TRUE RANK d (D3 empirical support; reward-observable; fair d_hat=10; 5 seeds; data saved) | EXACTLY as D3 predicts: CF unseen-pair skill DECREASES monotonically with rank (d=2:0.671, 3:0.578, 5:0.381, 8:0.270); Tabular ~0 (floor) at ALL d. CF-Tab gap +0.67->+0.27 (scales with low-rankness). Confirms Prop 2 (O(d) completion) + the corollary. Spine + theory (docs/THEORY.md) now MUTUALLY VALIDATED. |
 
 | 22 | Confidence-gated BothCF capstone (bake-off, 3 seeds; stdout summary) | PARTIAL/instructive: BothGated erases the reward-clean penalty on clustG (0.866 ~ RewardCF 0.869) and wins decision-only clustG (0.603), but HURTS under reward-NOISE (0.672 vs BothCF 0.691): the gate uses reward COUNT not PRECISION (count/sigma^2) -> mis-gates noisy rewards. NOT strictly dominant. CONCLUSION: un-gated BothCF is the recommended simple near-dominant method (the ~1% reward-clean penalty is benign); precision-aware gating = future polish. Core spine unaffected. |
+| 23 | C14 METHOD BAKE-OFF: ALL relevant competitors in ONE masked harness (Random, UCBIndep, UCBHomo, Tabular, MFSGD, ESTR, RewardCF, BothCF); block model, fair d_hat=8; 5 seeds; data saved | LADDER on UNSEEN-pair skill (rho=1): RewardCF 0.376 ~ BothCF 0.372 > ESTR 0.232 > UCBHomo 0.167 > MFSGD 0.042 > UCBIndep 0.004 ~ Tabular ~0 ~ Random. Categorical low-rank-vs-no-structure split CONFIRMED across a full method set. KEY POSITIONING: ESTR (centralized explore-then-COMMIT, Kang-Hsieh-Lee'22 style) COLLAPSES under masking (unseen 0.232->0.058 as rho 1->0.25) while ours HOLD (0.376->0.336); gap WIDENS with masking. ESTIMATOR matters within low-rank: weighted-ALS (ours) > batch-SVD explore-then-commit (ESTR) > under-converged online SGD (MFSGD ~floor). UCBHomo captures only rank-1 popularity (partial unseen 0.17->0.07). stateUniq (CF) rises 0.54->0.83 as rho falls. |
 
 ## STATUS: EXPERIMENT LOOP CONVERGED (2026-05-22)
 The groundbreaking spine is empirically validated + theory-backed + paper-outlined.
@@ -134,3 +135,63 @@ decentralization is real). 2) D3 formal theorem. 3) (polish) confidence-gated
 BothCF + C6 Bayesian. 4) Begin PAPER assembly (spine + theory ready). Method
 refinements (confidence, active exploration) are POLISH, not needed for the core
 categorical claim. PARKED (drift): Byzantine/faulty robustness, RANSAC.
+
+## CYCLE 23: METHOD BAKE-OFF vs RELEVANT COMPETITORS (C14, 2026-05-22)
+Motivation (user): "scout for relevant other methods to compare against,
+including methods with low-rank assumption ... make sure all relevant are
+covered." Built experiments/pilot_compare.py: ALL competitors in the SAME C11
+masked harness (own clean reward + persistent per-drone broadcast mask rho),
+block-model world, FAIR guessed rank d_hat=8, 5 seeds, parallel across CPU cores.
+Competitor ports live in experiments/pilot_baselines.py.
+
+METHOD SET (by structural assumption):
+  no-structure : Random (floor), UCBIndep (per-(drone,target) UCB1),
+                 UCBHomo (single shared arm table = naive pooling),
+                 Tabular (eps-greedy own-reward empirical mean).
+  low-rank     : MFSGD (online SGD matrix-factorization),
+                 ESTR (explore-then-spectral-refit: random explore -> SVD of
+                       R_hat -> exploit; centralized, explore-then-COMMIT),
+                 RewardCF (OURS: online weighted-ALS, own+others' noisy rewards),
+                 BothCF   (OURS: online weighted-ALS fusing rewards + choices).
+
+RESULTS (skill = (greedy-random)/(oracle-random); mean over 5 seeds):
+  rho=1.00  overall / UNSEEN
+    Random   -0.00 / 0.01   UCBIndep 0.59 / 0.00   UCBHomo 0.24 / 0.17
+    Tabular   0.42 /-0.00   MFSGD    0.25 / 0.04   ESTR    0.39 / 0.23
+    RewardCF  0.65 / 0.38   BothCF   0.64 / 0.37
+  rho=0.25  overall / UNSEEN
+    Random    0.00 / 0.00   UCBIndep 0.58 / 0.00   UCBHomo 0.23 / 0.07
+    Tabular   0.42 / 0.00   MFSGD    0.20 /-0.02   ESTR    0.33 / 0.06
+    RewardCF  0.61 / 0.34   BothCF   0.62 / 0.35
+
+FINDINGS:
+1. CATEGORICAL low-rank vs no-structure split holds across a FULL method set:
+   every no-structure learner (UCBIndep, Tabular, Random) sits at the UNSEEN
+   floor (~0) by construction; low-rank methods lift above it. UCBIndep has the
+   STRONGEST overall (0.59, exploits its own row) yet ZERO unseen -- the cleanest
+   demonstration of "high in-distribution skill, no generalization."
+2. UCBHomo (naive pooling) gets PARTIAL unseen (0.17->0.07): pooling recovers the
+   rank-1 target "popularity" main-effect but NOT personalization; the
+   CF-minus-UCBHomo gap isolates the value of personalization beyond popularity.
+3. AMONG low-rank, the ESTIMATOR is decisive in the sample-starved regime:
+   weighted-ALS (ours) > batch-SVD explore-then-commit (ESTR) > under-converged
+   online SGD (MFSGD, ~floor). Naive low-rank is NOT enough.
+4. POSITIONING vs ESTR (the closest centralized low-rank bandit): ESTR works when
+   the broadcast is dense (rho=1, unseen 0.23) but COLLAPSES under masking
+   (unseen 0.06 at rho=0.25) because its single batch SVD cannot complete a
+   sparse R_hat and it never adapts after committing. OUR online weighted-ALS
+   handles missingness natively and HOLDS (0.38->0.34). The advantage WIDENS as
+   observation gets sparser -> masking-robust online decentralized CF is the
+   novel contribution among low-rank methods (not the unseen win itself, which
+   all low-rank methods share over no-structure).
+5. stateUniq (per-drone learned R_hat divergence) rises 0.54->0.83 as rho falls
+   for RewardCF -> decentralization is genuine.
+
+SANITY / CODE REVIEW: Random ~0 on both metrics (normalization calibrated);
+single-cell smoke test before parallel run; ProcessPoolExecutor(6 workers), one
+process per (method, rho, seed); world via core.make_world(...)[:3]. CAVEAT to
+address next cycle: MFSGD looks weak (vanilla SGD-MF underfits at T=50) and we
+have NOT yet included PTF (probe-then-fit, SVD-warm-started MF) or BPMF
+(Bayesian PMF), both already in tabula_drone/. Add them for full low-rank
+coverage so the comparison cannot be called a strawman. Data:
+results/pilots/c14_compare_20260522_131827.json.

@@ -26,6 +26,17 @@ class _Base:
         return self.pulled
 
 
+class Random(_Base):
+    """Uniform-random selection; learns nothing. Sanity floor: skill ~= 0,
+    unseen skill ~= 0 (predict_scores is noise -> argmax is a random offer)."""
+    def select(self, t, cand):
+        a = int(cand[self.rng.randint(len(cand))]); self.pulled[a] = True; return a
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        pass
+    def predict_scores(self):
+        return self.rng.rand(self.n)
+
+
 class UCBIndep(_Base):
     """Per-(drone,target) UCB1; updates all arms from the observed broadcast,
     selects on its OWN row. No cross-arm generalization -> floor on unseen."""

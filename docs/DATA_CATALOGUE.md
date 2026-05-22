@@ -22,6 +22,7 @@ re-analyzed without re-running. Connected to PROJECT_LOG.md by cycle number.
 | 20 | C11 unseen-pair under masking (FIXED stateUniq) | results/pilots/c11_masking_20260522_111142.json | per-seed overall/unseen skill + corrected stateUniq vs rho | 5 | 2026-05-22 |
 | 20 | C11 (superseded; buggy stateUniq) | results/pilots/c11_masking_20260522_110703.json | overall/unseen skill VALID; stateUniq buggy -> superseded | 5 | 2026-05-22 |
 | 21 | C13 unseen-pair vs true rank | results/pilots/c13_rank_unseen_20260522_111736.json | per-seed Tabular/CF unseen + CF overall vs true d (D3 support) | 5 | 2026-05-22 |
+| 23 | C14 method bake-off vs competitors (masked regime) | results/pilots/c14_compare_20260522_131827.json | per-seed overall+unseen skill + stateUniq for 8 methods x 3 rho (Random, UCBIndep, UCBHomo, Tabular, MFSGD, ESTR, RewardCF, BothCF); fair d_hat=8 | 5 | 2026-05-22 |
 
 NOTE: cycles 1-17 predate structured saving; their SUMMARY tables are in
 PROJECT_LOG.md and full stdout is in the (ephemeral) task-output files. Complete
