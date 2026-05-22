@@ -57,13 +57,19 @@ def run_masked(Cls, hp, world, T, seed, so, sb, cand, d_hat, rho):
     def sk(gg, oo, rr):
         gm, om, rm = np.mean(gg), np.mean(oo), np.mean(rr)
         return (gm - rm) / max(om - rm, 1e-6)
-    # state-uniqueness: mean pairwise cosine distance of per-drone predicted rows
-    rows_pred = np.array([preds[i] for i in range(m)])
-    rows_pred = rows_pred - rows_pred.mean(1, keepdims=True)
-    nrm = np.linalg.norm(rows_pred, axis=1, keepdims=True) + 1e-9
-    cos = (rows_pred / nrm) @ (rows_pred / nrm).T
-    uniq = 1.0 - cos[np.triu_indices(m, 1)].mean()   # higher = more unique states
-    return sk(ovg, ovo, ovr), sk(ung, uno, unr), float(uniq)
+    # state-uniqueness (FIXED): do drones learn DIFFERENT MODELS? compare each
+    # drone's predicted FULL reward matrix R_hat^(i)=P_i @ U_i.T (frame-invariant,
+    # not the per-drone own-row which trivially differs via p_i). ~0 at rho=1
+    # (same data -> same model); grows as rho falls (genuinely unique states).
+    if hasattr(learners[0], "U") and hasattr(learners[0], "P"):
+        Rh = np.array([(learners[i].P @ learners[i].U.T).ravel() for i in range(m)])
+        Rh = Rh - Rh.mean(1, keepdims=True)
+        nrm = np.linalg.norm(Rh, axis=1, keepdims=True) + 1e-9
+        cos = (Rh / nrm) @ (Rh / nrm).T
+        uniq = 1.0 - float(cos[np.triu_indices(m, 1)].mean())
+    else:
+        uniq = float("nan")
+    return sk(ovg, ovo, ovr), sk(ung, uno, unr), uniq
 
 
 def main():
