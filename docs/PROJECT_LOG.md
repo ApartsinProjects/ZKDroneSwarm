@@ -97,6 +97,16 @@ across the range; clearer-outlier faulty rewards to make reward-trust test fair.
 
 | 21 | C13 unseen-pair skill vs TRUE RANK d (D3 empirical support; reward-observable; fair d_hat=10; 5 seeds; data saved) | EXACTLY as D3 predicts: CF unseen-pair skill DECREASES monotonically with rank (d=2:0.671, 3:0.578, 5:0.381, 8:0.270); Tabular ~0 (floor) at ALL d. CF-Tab gap +0.67->+0.27 (scales with low-rankness). Confirms Prop 2 (O(d) completion) + the corollary. Spine + theory (docs/THEORY.md) now MUTUALLY VALIDATED. |
 
+| 22 | Confidence-gated BothCF capstone (bake-off, 3 seeds; stdout summary) | PARTIAL/instructive: BothGated erases the reward-clean penalty on clustG (0.866 ~ RewardCF 0.869) and wins decision-only clustG (0.603), but HURTS under reward-NOISE (0.672 vs BothCF 0.691): the gate uses reward COUNT not PRECISION (count/sigma^2) -> mis-gates noisy rewards. NOT strictly dominant. CONCLUSION: un-gated BothCF is the recommended simple near-dominant method (the ~1% reward-clean penalty is benign); precision-aware gating = future polish. Core spine unaffected. |
+
+## STATUS: EXPERIMENT LOOP CONVERGED (2026-05-22)
+The groundbreaking spine is empirically validated + theory-backed + paper-outlined.
+Recommended method = BothCF (fuse reward+choice; near-dominant). Remaining before
+submission is WRITING, not experiments: generate the 5 headline figures from the
+saved results/pilots/*.json, write prose, final 5-seed confirmations at paper
+settings. See docs/PAPER_OUTLINE.md. Polish backlog (precision-gated fusion, C6
+Bayesian, C10 active exploration) is OPTIONAL, not needed for the core claim.
+
 ## 10,000-FT REVIEW (after ~20 cycles, 2026-05-22)
 THE SPINE (all multi-seed, fair guessed rank, complete data saved):
 - C8 static unseen-pair: CF 0.496 vs Tabular 0.006. Categorical.
