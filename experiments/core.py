@@ -63,6 +63,40 @@ def choice_visible(rho_i, rng):
     return rng.rand() < rho_i
 
 
+class OraclePolicy:
+    """CEILING baseline: CENTRALIZED decision + COMPLETE information. Knows the
+    true R; for each drone picks the best target in its offered subset. In the
+    non-contention setting (targets do not deplete; drones may overlap) this IS
+    the centralized optimum and equals the per-round best-in-subset used to
+    normalize 'skill'. Under an ASSIGNMENT CONSTRAINT (each target once /
+    depletion) the centralized optimum becomes bipartite matching (Hungarian) and
+    centralized DECISION/coordination starts to matter -- a separate (future) axis.
+    Report it EXPLICITLY as a baseline row (skill of oracle = 1.0 by definition;
+    methods report their fraction of it)."""
+    def __init__(self, R, **hp):
+        self.R = R
+
+    def best(self, k, cand):
+        return cand[int(np.argmax(self.R[k, cand]))]
+
+
+def explore_knob(t, T, eps0=1.0, eps_min=0.05, mode="decay", confidence=None):
+    """Single continuous explore<->exploit control in [0,1] (unifies the two
+    'phases'): high -> learn/explore, low -> exploit.
+      mode='decay'    : scheduled linear decay eps0 -> eps_min over horizon T.
+      mode='adaptive' : eps = 1 - confidence (explore when unsure; pairs with the
+                        dual-source confidence -- factorization precision +
+                        decision-alignment).
+      mode='const'    : fixed eps0.
+    """
+    if mode == "adaptive" and confidence is not None:
+        return float(np.clip(1.0 - confidence, eps_min, 1.0))
+    if mode == "const":
+        return float(eps0)
+    frac = t / max(T - 1, 1)
+    return float(max(eps_min, eps0 * (1.0 - frac) + eps_min * frac))
+
+
 def _oracle_rand(R, seed, cand=20, rounds=80):
     m, n = R.shape
     rng = np.random.RandomState(seed + 7)

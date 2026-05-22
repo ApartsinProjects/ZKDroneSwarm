@@ -93,8 +93,18 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
 - (have: rank d, #clusters, tightness, sharpness, n/T starvation, p reward-share,
   sigma_obs noise.)
 
-## P0 -- do next (within scope)
-- [TODO] C10. *** GROUNDBREAKING CANDIDATE *** COLLECTIVE UNCERTAINTY-REDUCING
+## P0 -- GROUNDBREAKING SPINE (reprioritized 2026-05-22 for best categorical-win odds)
+ORDER: (1) C11 = run the C8 unseen-pair CATEGORICAL win UNDER heterogeneous
+masking -- the NATURAL operating regime (each drone has durable blind spots), so
+the win is everyday behaviour, not a contrived eval, AND it fixes decentralization
+validity. (2) C12 dynamic target onboarding. (3) D3 theory of the separation.
+Report ORACLE (centralized+complete-info ceiling) + RANDOM (floor) explicitly in
+every table; use the continuous EXPLORE-KNOB (schedule/adaptive).
+DONE infra (core.py): signed-cosine reward, K1xK2 block model, OraclePolicy,
+explore_knob. C1 + C8 DONE (below). Method work (C6/C10/C3/C2) demoted to P1
+(strengthens methods but is not a categorical win on its own).
+
+- [P1 -- needs C6] C10. *** GROUNDBREAKING CANDIDATE *** COLLECTIVE UNCERTAINTY-REDUCING
   EXPLORATION. Decouple ESTIMATION (posterior over latents -> mu, Sigma) from
   DECISION (policy). Exploration probes the target with highest predictive
   variance / info-gain on the FACTOR posterior (active learning / optimal design
@@ -122,15 +132,11 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
   broadcast=shared hole AND is the strongest CF motivation; structurally forces
   C8's unseen pairs. (Spatial observability-graph = FUTURE/parked: sensing range
   would couple to attack range -> constrained-assignment confound.)
-- [TODO] C8. *** GROUNDBREAKING CANDIDATE *** Generalization / cold-start
-  NEWCOMER (K1/K2 + M1/M2): in a decentralized swarm with NO communication, can
-  a CF agent generalize to UNSEEN targets, and can a NEWCOMER act well from the
-  broadcast alone, CATEGORICALLY beating independent learning (at floor on unseen
-  pairs)? Novel framing + definite outperformance. Cheapest gate: forced-novelty
-  subsets; measure unseen-pair reward CF vs tabular.
-- [TODO] C1. CF VARIANT BAKE-OFF across the (structure x observability) grid:
-  which matrix-decomposition variant wins where; find the simple dominant method.
-  Baselines: random, tabular/independent (UCB-Indep), homogeneous.
+- [DONE cycle 18] C8 UNSEEN-PAIR generalization: CATEGORICAL win (RewardCF 0.496
+  vs Tabular 0.006, fair guessed rank d_hat=8). => fold into C11 to run it in the
+  NATURAL masking regime (the H1 headline). Newcomer-cold-start variant (M2) TODO.
+- [DONE cycle 17] C1 bake-off: BothCF (fuse reward+choice) dominates the
+  (structure x observability) grid. Confidence-gated BothCF -> C3.
 - [TODO] C2. METRICS upgrade: AUC / cumulative reward (anytime, highlights the
   transient CF advantage) + targets-destroyed@K (needs a depletion task model).
 - [TODO] C3a. MOTIF A: latent-confidence beta model -- confidence of decisions
@@ -167,6 +173,12 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
 - [TODO] D2. Connect to real ZK-MRTA env + real policies (BPMF, IQL-ZK, etc.).
 - [TODO] D3. Theory pack (separation, sample complexity) for the core claims.
 - [TODO] D4. Cold-start warm-start from broadcast U; convergence dynamics.
+- [TODO] D6. CONTENTION / ASSIGNMENT setting (targets deplete / each-once) ->
+  centralized optimum = Hungarian matching; centralized DECISION (coordination)
+  starts to matter (operational-assumption theme; the regime where coordination
+  value appears). Currently NON-contention -> oracle = independent best-in-subset.
+- [TODO] D7. Hierarchical priors / borrowing strength (cold-start shrinkage to a
+  population/type prior; ties to the K1xK2 type structure).
 - [PARKED] D5. RANSAC/consensus robust factorization (only if a robustness
   extension is pursued; tied to D1).
 
@@ -192,3 +204,11 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
   C1 (variant bake-off), C2 (metrics), C3 (decision-only cold-start, in-scope).
   Faulty/Byzantine (D1) and RANSAC (D5) PARKED. Done (on-target): cycles 1-11
   (characterization, structure, rank, noise) in PROJECT_LOG.
+- 2026-05-22 REPRIORITIZE for groundbreaking (user review): SPINE = C11
+  (natural-regime unseen-pair win under masking + validity) > C12 (dynamic target
+  onboarding) > D3 (theory of Theta(d)-vs-Theta(m) / unseen-pair separation). C8
+  + C1 marked DONE (categorical win + bake-off proven). Method work
+  (C6 Bayesian -> C10 active-explore, C3 confidence/weighting, C2 metrics)
+  demoted to P1 (strengthens, not categorical alone). Added: continuous
+  explore-knob + ORACLE baseline (infra, core.py), D6 contention/assignment axis,
+  D7 hierarchical priors. All discussed ideas now captured.
