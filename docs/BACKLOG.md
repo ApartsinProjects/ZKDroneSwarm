@@ -105,6 +105,14 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
   (Bayesian/RLS-with-Sigma) estimator (C6). Subsumes/elevates old B14
   (info-directed sampling). Diversify across drones via the broadcast (avoid
   re-probing what was just probed) to keep it decentralized.
+- [TODO] C12. *** GROUNDBREAKING (reward-observable) *** TWO-PHASE: (1) DRONE-
+  SIMILARITY learning -- all drones learn P (who is similar) from the shared
+  reward broadcast; (2) TARGET ONBOARDING -- a NEW target is probed by a few
+  diverse drones (quick joint sample), u_j fit by d-dim ridge/WALS projection
+  given known P, then ALL drones predict it. Separation: tabular needs EVERY
+  drone to probe EVERY new target (Theta(m)/target); CF needs ~Theta(d) shared
+  probes/target. Grounded in WALS/fold-in item cold-start; novelty = decentral.
+  + online + broadcast-only. Metric: reward on freshly-injected targets vs #probes.
 - [TODO] C11. *** CORE VALIDITY + GROUNDBREAKING *** HETEROGENEOUS OBSERVATION
   CHANNEL (masking / additive noise; NOT spatial -> decoupled from action). Each
   drone perceives a different masked/noisier slice of the broadcast (persistent
@@ -161,6 +169,20 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
 - [TODO] D4. Cold-start warm-start from broadcast U; convergence dynamics.
 - [PARKED] D5. RANSAC/consensus robust factorization (only if a robustness
   extension is pursued; tied to D1).
+
+## Literature notes (web search, 2026-05-22; agents were API-blocked)
+- ITEM COLD-START via WALS/fold-in projection: known user factors -> new item
+  embedding from a few interactions, no retrain. Grounds C12 (target onboarding).
+- CO-CLUSTERING / bipartite MIXED-MEMBERSHIP SBM for CF (VB inference, 2023):
+  grounds the K1xK2 block generative model + type-based cold-start. Caveat:
+  co-clustering trails neural/graph CF on accuracy -> use for generative model +
+  type-assignment, not raw accuracy.
+- DECENTRALIZED/FEDERATED CF (FCMF, DPMF, gossip MF) SHARE item latent vectors /
+  aggregate params. OUR broadcast-only, NO-parameter-sharing setting is stricter
+  = a genuine novelty axis.
+- EXPOSURE BIAS / discrete-choice (MNL) models that use the FULL CHOICE SET are
+  the PRINCIPLED debiasing of implicit feedback -> ChoiceCF observing the offered
+  menu is CORRECT (debiases exposure), not a fairness violation.
 
 ## Priority log (re-rank events)
 - 2026-05-22 init: P0 = B1,B3,B6,B5 (robustness spine).

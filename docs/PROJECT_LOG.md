@@ -45,6 +45,7 @@ simple option works. Updated after every cycle. Commit per cycle (revertible).
 | 14 | MF approximation audit | CF skill near-flat across als_sweeps (n=240: 0.731@5,3 -> 0.769@40,1); defaults near-converged. CF results are slightly UNDERSTATED (conservative), NOT inflated -> answers "do approximations interfere": no, they handicap CF. Use als_sweeps=10,refit_every=2; prior_prec 1-3 OK, 0.1 hurts |
 | 16 | extended faulty breakdown to 80% (greedy+AUC) | competence-weighted CHOICE pooling robust to ~50% faulty (>= solo), BREAKS past 50% (65-80% below solo); ~50% breakdown matches robust-stats theory. CLOSES the parked faulty/Byzantine thread (drift) |
 | 17 | CF VARIANT BAKE-OFF (n=120, 3 seeds) | BothCF (fuse reward+choice channels) is the SIMPLE DOMINANT variant: best-or-tied in ALL 6 (structure x observability) cells. RewardCF wins only reward-clean (collapses under noise/decision-only); ChoiceCF only decision-only. ~1% reward-clean penalty from un-gated fusion -> motivates CONFIDENCE-GATED fusion (dual-source confidence) |
+| 18 | C8 unseen-pair generalization (FAIR, d_hat=8 guessed != true 5; 5 seeds; data saved) | CATEGORICAL WIN holds fairly: RewardCF UNSEEN-pair skill 0.496 vs Tabular 0.006 (~80x); tabular at floor BY CONSTRUCTION (no estimate for never-observed pairs). Overall 0.717 vs 0.397. Robust to guessed rank -> not an oracle-rank artifact. THE result for the groundbreaking bar (novel-in-setting + categorical). |
 
 ### Headline result tables
 **Cycle 5 (phase diagram, CF/Tab greedy ratio, 5 seeds):**
