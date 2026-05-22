@@ -69,6 +69,27 @@ Key points verified in code:
 - RewardCF / HybridCF (our HEADLINE methods) consume ONLY teammates' (action,
   reward) outcomes. They are strictly ZK and strictly communication-free.
 
+### The setting holds UNIFORMLY for ALL methods (apples-to-apples)
+
+The answer to "does the setting hold for our AND all baseline methods?" is YES, by
+construction of the harness, which treats every method identically:
+- ZERO PRIOR KNOWLEDGE: no method receives P, U, R, the true rank d, or type/labels.
+  Structured methods (MFSGD, ESTR, PTF, BPMF, RewardCF, HybridCF) all get the SAME
+  guessed rank d_hat=8; tabular methods (Random, UCBIndep, UCBHomo, Tabular) carry
+  no rank at all. None is warm-started from ground truth.
+- ZERO COMMUNICATION / FULLY DISTRIBUTED: every method (baselines included) is
+  instantiated as one INDEPENDENT per-drone learner; the run loop never shares,
+  averages, or routes one drone's parameters to another, and there is no
+  coordinator. (ESTR's literature default is a single centralized estimator; our
+  port runs it PER DRONE so the comparison is fully distributed and fair.)
+- PARTIAL + NOISY BROADCAST ONLY: every method receives the identical per-drone
+  masked, noisy outcome stream (own clean-ish, teammates masked at rho and noised
+  at sigma); no method gets a privileged or denoised view.
+- The ORACLE is the only centralized/complete-information object, used solely to
+  NORMALISE skill; it is never a competing method.
+So all reported gaps are within one setting: zero prior knowledge, zero
+communication, partial+noisy passive observation, fully distributed.
+
 ### Evaluation
 skill = (method - random)/(oracle - random) uses the true R, but only in the
 experimenter's metric, never inside any learner. Oracle is a CEILING baseline

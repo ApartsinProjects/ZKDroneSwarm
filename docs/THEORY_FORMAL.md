@@ -253,4 +253,32 @@ masking-model dichotomy (Theorem 4) characterizing when decentralization is dura
 versus transient, and showing the main results are invariant to that choice. These
 are decentralized and online, which the centralized completion theory does not
 cover.
+
+## Experimental alignment (theory vs measured)
+
+Each result mapped to its quantitative confirmation; tensions noted honestly.
+
+| theorem | prediction | experiment(s) | measured | aligned? |
+|---|---|---|---|---|
+| T1 tabular floor | unseen error Omega(1), unseen skill = 0, broadcast useless to per-arm tabular | C8, C11, C14, C15, E13, scaling[d] | Tabular/UCBIndep unseen ~0 at EVERY rho, d, sigma (e.g. C8 0.006; scaling[d] ~0 for d=1..20) | YES |
+| pooling lemma | UCBHomo recovers only rank-1 popularity -> partial unseen, < CF | C14, E7 | UCBHomo unseen 0.17->0.07; E7 popularity prior 0.28 < CF | YES |
+| T2 CF row from O(d) given U; skill scales with low-rankness | onboarding/newcomer at ~d probes; unseen falls as true d rises | C12, E7, C13, scaling[d] | C12 knee ~d_hat; E7 personalizes by ~d probes; unseen 0.96@d1 -> 0.10@d20 | YES (trend); finite-data U recovery degrades at large d (idealization is "U known") |
+| T3 anytime: structure-free skill <= g(cT/n) -> 0; CF -> 1 | per-arm bandits stuck ~0 under n>>T; CF earns from round 1 | C16, scaling[T], scaling[n] | UCBIndep anytime ~0 EVEN at T=200 (n=240>T); RewardCF 0.21->0.65 as T grows; structure-free worsens with n | YES (mechanism exact). NOTE: the closed-form bound is an ORDER bound, loose at our params (cT/n~4>1 -> vacuous); it bites for cT<<n, while the UCB "stuck" mechanism is what the data show directly |
+| T4 masking model | unseen/anytime invariant to persistent vs iid; uniq durable (flat in T) vs transient (decays) | E12 | unseen/anytime within ~0.04 across modes; uniq persistent flat 0.86->0.80, iid decays 0.90->0.51 over T=25..200 | YES (quantitative) |
+| T2 fairness corollary | robust to guessed rank d_hat | scaling[d_hat] | RewardCF/HybridCF unseen stable/improving over d_hat=2..20 (true d=5) | YES |
+
+TENSIONS (stated for honesty):
+1. T3's algebraic skill <= g(cT/n) is loose at the default operating point (it is
+   only informative for cT<<n); the EMPIRICAL anytime-0 of UCBIndep is driven by the
+   sharper "untried-arm bonus" mechanism (the T3 remark), which the data confirm
+   exactly. Both point the same way; the closed form is a conservative envelope.
+2. T2 assumes U is known exactly; in experiments U is recovered with finite, masked
+   data, so CF unseen is BELOW the idealized 1.0 and falls with d as U-recovery
+   degrades. The theory's monotone "gap scales with low-rankness" matches; the
+   absolute level reflects finite-sample U recovery (and our ALS was under-converged
+   at default settings, understating CF; see the convergence finding).
+
+Net: every theorem's qualitative prediction is confirmed; T4 and the rank/floor
+results are confirmed quantitatively; T3 is confirmed via its mechanism (the
+order-bound constant is loose by design).
 ```
