@@ -185,12 +185,14 @@ Two masking models, both with marginal observation rate ρ ∈ (0,1):
   teammate k's round-t event iff M^t_{ik} = 1.
 
 Claims:
-(a) [IID heterogeneity is transient] Under IID, as T → ∞ each drone's empirical
-measure over observed events converges almost surely to ρ × (the population event
-measure), the SAME limit for every drone. Hence any estimator that is a continuous
-functional of the observed event measure (in particular the completed model R̂^{(i)})
-satisfies R̂^{(i)} → R̂^{(i')} for all i, i': the per-drone states converge and the
-state-uniqueness metric → 0.
+(a) [IID heterogeneity is transient] Under IID, every teammate k is observed by
+drone i on each round independently with probability ρ > 0, so by Borel-Cantelli
+(divergent independent events) drone i observes k infinitely often almost surely,
+and likewise observes every target pulled. Hence as T → ∞ drone i accumulates
+unboundedly many observations of every row and column and (under the same
+identifiability conditions used for any single estimator) recovers the full true
+model R̂^{(i)} → R. The limit R is common to all drones, so R̂^{(i)} → R̂^{(i')} for
+all i, i': the per-drone states converge and the state-uniqueness metric → 0.
 (b) [Persistent heterogeneity is durable] Under PERSISTENT masking, drone i obtains
 ZERO observations of any teammate k ∈ U_i at every round, so it can never estimate
 the factor p_k for k ∈ U_i (its data are orthogonal to that row). For i ≠ i',

@@ -226,13 +226,15 @@ class PTF(_Base):
             for k in range(self.m):
                 r = revealed[k]
                 if not np.isnan(r):
-                    j = int(choices[k]); err = self.P[k] @ self.U[j] - float(r)
+                    j = int(choices[k]); rj = float(np.clip(r, -1.0, 1.0))   # rewards live in [-1,1]
+                    err = float(np.clip(self.P[k] @ self.U[j] - rj, -5.0, 5.0))
                     gP = err * self.U[j] + self.reg * self.P[k]
                     gU = err * self.P[k] + self.reg * self.U[j]
                     self.P[k] -= self.lr * gP; self.U[j] -= self.lr * gU
 
     def _warm(self):
         R_hat = np.where(self.counts > 0, self.sums / np.maximum(self.counts, 1), 0.0)
+        R_hat = np.clip(R_hat, -1.0, 1.0)            # true means in [-1,1]; clip noise -> stable SVD
         try:
             Us, S, Vt = np.linalg.svd(R_hat, full_matrices=False)
             r = min(self.d, len(S)); sq = np.sqrt(np.maximum(S[:r], 0))
