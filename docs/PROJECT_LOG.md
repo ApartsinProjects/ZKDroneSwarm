@@ -100,6 +100,7 @@ across the range; clearer-outlier faulty rewards to make reward-trust test fair.
 | 22 | Confidence-gated BothCF capstone (bake-off, 3 seeds; stdout summary) | PARTIAL/instructive: BothGated erases the reward-clean penalty on clustG (0.866 ~ RewardCF 0.869) and wins decision-only clustG (0.603), but HURTS under reward-NOISE (0.672 vs BothCF 0.691): the gate uses reward COUNT not PRECISION (count/sigma^2) -> mis-gates noisy rewards. NOT strictly dominant. CONCLUSION: un-gated BothCF is the recommended simple near-dominant method (the ~1% reward-clean penalty is benign); precision-aware gating = future polish. Core spine unaffected. |
 | 23 | C14 METHOD BAKE-OFF: ALL relevant competitors in ONE masked harness (Random, UCBIndep, UCBHomo, Tabular, MFSGD, ESTR, RewardCF, BothCF); block model, fair d_hat=8; 5 seeds; data saved | LADDER on UNSEEN-pair skill (rho=1): RewardCF 0.376 ~ BothCF 0.372 > ESTR 0.232 > UCBHomo 0.167 > MFSGD 0.042 > UCBIndep 0.004 ~ Tabular ~0 ~ Random. Categorical low-rank-vs-no-structure split CONFIRMED across a full method set. KEY POSITIONING: ESTR (centralized explore-then-COMMIT, Kang-Hsieh-Lee'22 style) COLLAPSES under masking (unseen 0.232->0.058 as rho 1->0.25) while ours HOLD (0.376->0.336); gap WIDENS with masking. ESTIMATOR matters within low-rank: weighted-ALS (ours) > batch-SVD explore-then-commit (ESTR) > under-converged online SGD (MFSGD ~floor). UCBHomo captures only rank-1 popularity (partial unseen 0.17->0.07). stateUniq (CF) rises 0.54->0.83 as rho falls. |
 | 24 | C14b EXTENDED bake-off: + PTF (probe-then-fit: UCB-probe -> SVD warm-start -> online SGD finetune) and BPMF (Bayesian PMF, conjugate precision + Thompson) for FULL low-rank coverage; 10 methods; 5 seeds; data saved | IMPORTANT/HONEST: PTF is a VERY strong baseline -- it BEATS ours on unseen at rho=1 (PTF 0.516 vs RewardCF 0.376) and ties overall (PTF 0.661 vs 0.650). BUT PTF (and ESTR, BPMF) all rely on a batch SVD of an empirical R_hat and DEGRADE under masking, while our online weighted-ALS stays ~FLAT. CROSSOVER at rho~1: at ANY masking (rho<=0.5) OURS WINS both overall and unseen (rho=0.5: RewardCF unseen 0.411>PTF 0.373, overall 0.654>0.574; rho=0.25: BothCF overall 0.619>PTF 0.538, unseen 0.349>0.280). Reframed claim: PTF wins ONLY at rho=1 (full broadcast = NO real observability limit, the degenerate case the paper excludes); in the LIMITED-observability regime that DEFINES the problem, ours dominates ALL baselines on BOTH metrics. Categorical low-rank vs no-structure split still holds across all 5 low-rank methods. data: results/pilots/c14_compare_20260522_132640.json (supersedes cycle-23 subset). |
+| 25 | C15 CROSSOVER: finer rho sweep (8 rho x 7 methods x 8 seeds=384 cells) to pin masking-robustness; figure F5_crossover.png; data saved | Crossover PINNED. UNSEEN skill: PTF leads for rho>=0.7 (0.51->0.46), ours (RewardCF) FLAT ~0.39-0.41 and OVERTAKES near rho~0.55 (RewardCF 0.41>PTF 0.38), ours best through rho=0.4; at rho<=0.15 all converge toward floor (noisy parity). Batch-SVD hybrids DECAY monotonically (PTF 0.51->0.18, ESTR 0.23->0.01, BPMF 0.23->0.07); UCBIndep ~0 (floor) at every rho. OVERALL skill: ours wins/ties at every rho among generalizing methods (RewardCF peaks 0.66 @ rho=0.55), though UCBIndep stays ~0.59 (high overall via own-row exploitation, but ZERO unseen). KEY REALIZATION: this skill metric scores only the FINAL policy and so gives PTF/ESTR a FREE 40%-of-rounds probe phase; an ANYTIME/AUC metric (cumulative reward, "targets killed @K") would charge that cost and is the right next test (cycle 26). [Infra: a transient C:-drive fill during the 6-worker run caused a stdout-flush OSError AFTER data saved to E:; recovered on exit, freed 1.7GB, now route analysis to E: files + light stdout.] |
 
 ## STATUS: EXPERIMENT LOOP CONVERGED (2026-05-22)
 The groundbreaking spine is empirically validated + theory-backed + paper-outlined.
@@ -259,3 +260,43 @@ internal consistency. NEXT (cycle 25): finer rho sweep around the crossover
 (rho in {1.0,0.7,0.5,0.35,0.25,0.15,0.1}) for PTF vs RewardCF vs BothCF with more
 seeds to pin the crossover and tighten CIs -> a headline figure
 ("masking-robustness: ours flat, batch-SVD hybrids decay").
+
+## CYCLE 25: MASKING-ROBUSTNESS CROSSOVER (C15, 2026-05-22)
+experiments/pilot_crossover.py reuses pilot_compare._run_cell (identical fair
+config) over a finer rho grid {1.0,0.85,0.7,0.55,0.4,0.25,0.15,0.1} x 7 methods
+x 8 seeds = 384 cells (all complete). Figure: docs/figures/F5_crossover.png.
+
+UNSEEN-pair skill (mean/8 seeds) vs rho:
+  rho       1.00 0.85 0.70 0.55 0.40 0.25 0.15 0.10
+  UCBIndep  0.00 0.00 0.00 0.01 0.00 0.00 0.00 0.01   (no-structure floor)
+  MFSGD     0.04 0.04 0.04 0.03 0.02 0.00 0.01 0.01   (underfit ~floor)
+  ESTR      0.23 0.20 0.20 0.13 0.09 0.05 0.01 0.01   (batch-SVD, steep decay)
+  BPMF      0.23 0.22 0.20 0.19 0.15 0.13 0.10 0.07   (Bayesian, milder decay)
+  PTF       0.51 0.49 0.46 0.38 0.35 0.29 0.25 0.18   (strongest @hi rho, decays)
+  RewardCF  0.39 0.41 0.39 0.41 0.37 0.34 0.23 0.17   (ours, FLAT then declines)
+  BothCF    0.36 0.36 0.32 0.32 0.32 0.32 0.24 0.21   (ours, flattest at extreme)
+OVERALL skill (mean/8 seeds): RewardCF 0.65 0.65 0.65 0.66 0.63 0.61 0.53 0.51;
+  PTF 0.65 0.64 0.62 0.58 0.58 0.55 0.53 0.51; UCBIndep ~0.59 flat (high overall,
+  ZERO unseen); BothCF 0.63..0.53.
+
+INTERPRETATION (honest):
+- CATEGORICAL spine intact: every low-rank method >> no-structure floor on unseen
+  at every rho; UCBIndep/MFSGD pinned at ~0.
+- Crossover on UNSEEN is ~rho=0.55: PTF leads for rho>=0.7 (dense broadcast),
+  ours leads rho in [0.25,0.55]; at rho<=0.15 all decline to noisy parity.
+- MASKING-ROBUSTNESS is the clean differentiator: ours is ~flat for rho>=0.4 while
+  PTF/ESTR/BPMF decay monotonically (each SVDs an R_hat whose unobserved entries
+  are imputed 0 -> sparse+biased under masking; our weighted-ALS handles missing
+  entries natively). On OVERALL skill ours wins/ties at every rho among
+  generalizing methods.
+- LIMITATION of the metric (-> cycle 26): "skill" scores ONLY the final policy,
+  granting explore-then-commit methods (PTF/ESTR) a cost-free 40% probe phase.
+  The operationally-relevant metric is ANYTIME cumulative reward / AUC ("targets
+  destroyed by round K"), which charges the probe cost. Our online method never
+  pauses to probe, so on AUC it should separate more cleanly. RUN NEXT.
+
+INFRA NOTE: during the 384-cell 6-worker run, C: briefly hit 0 free (worker temp
++ harness output spool) -> Python stdout-flush OSError at shutdown, AFTER
+save_results wrote the complete JSON to E:. Recovered on process exit; cleaned
+1.7GB (C: now ~13GB free). Mitigation adopted: write re-analysis to E: text files
+and keep stdout terse; consider max_workers<=4 for big sweeps.

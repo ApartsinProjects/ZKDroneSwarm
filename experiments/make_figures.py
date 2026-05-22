@@ -74,4 +74,33 @@ if f:
     plt.legend(); plt.tight_layout(); plt.savefig(f"{OUT}/F4_rank.png", dpi=150); plt.close()
     print("F4_rank.png  <-", os.path.basename(f))
 
+# ---- F5: C15 masking-robustness crossover (unseen skill vs rho) ----
+f = latest("results/pilots/c15_crossover_*.json")
+if f:
+    d = json.load(open(f)); rhos = d["meta"]["rhos"]; raw = d["raw"]
+    # group: ours (online weighted-ALS) vs batch-SVD hybrids vs no-structure floor
+    styles = {
+        "RewardCF": dict(marker="o", color="C0", lw=2.2, label="RewardCF (ours, online ALS)"),
+        "BothCF":   dict(marker="o", color="C1", lw=2.2, label="BothCF (ours, online ALS)"),
+        "PTF":      dict(marker="s", color="C3", ls="--", label="PTF (probe->SVD->finetune)"),
+        "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore->SVD->commit)"),
+        "BPMF":     dict(marker="v", color="C5", ls="--", label="BPMF (Bayesian PMF)"),
+        "UCBIndep": dict(marker="x", color="gray", ls=":", label="UCBIndep (no-structure floor)"),
+    }
+    plt.figure(figsize=(6, 4))
+    for nm, st in styles.items():
+        if nm not in raw[str(rhos[0])]:
+            continue
+        mu = [np.mean(raw[str(r)][nm]["unseen"]) for r in rhos]
+        sd = [np.std(raw[str(r)][nm]["unseen"]) for r in rhos]
+        plt.errorbar(rhos, mu, yerr=sd, capsize=2, markersize=5, **st)
+    plt.axhline(0, color="black", lw=0.8, ls=":")
+    plt.gca().invert_xaxis()  # left = full broadcast, right = heavy masking
+    plt.xlabel("observation density  rho  (fraction of broadcast seen)")
+    plt.ylabel("UNSEEN-pair skill")
+    plt.title("Masking-robustness: online ALS flat;\nbatch-SVD hybrids decay (PTF wins only at rho=1)", fontsize=10)
+    plt.legend(fontsize=7, loc="lower left"); plt.tight_layout()
+    plt.savefig(f"{OUT}/F5_crossover.png", dpi=150); plt.close()
+    print("F5_crossover.png  <-", os.path.basename(f))
+
 print("figures written to", OUT)

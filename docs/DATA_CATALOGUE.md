@@ -24,6 +24,7 @@ re-analyzed without re-running. Connected to PROJECT_LOG.md by cycle number.
 | 21 | C13 unseen-pair vs true rank | results/pilots/c13_rank_unseen_20260522_111736.json | per-seed Tabular/CF unseen + CF overall vs true d (D3 support) | 5 | 2026-05-22 |
 | 23 | C14 method bake-off vs competitors (masked regime) | results/pilots/c14_compare_20260522_131827.json | per-seed overall+unseen skill + stateUniq for 8 methods x 3 rho (Random, UCBIndep, UCBHomo, Tabular, MFSGD, ESTR, RewardCF, BothCF); fair d_hat=8 | 5 | 2026-05-22 |
 | 24 | C14b EXTENDED bake-off (+PTF +BPMF) | results/pilots/c14_compare_20260522_132640.json | per-seed overall+unseen skill + stateUniq for 10 methods x 3 rho (adds PTF, BPMF); fair d_hat=8; supersedes cycle-23 subset | 5 | 2026-05-22 |
+| 25 | C15 masking-robustness crossover (fine rho) | results/pilots/c15_crossover_20260522_133526.json | per-seed overall+unseen skill + stateUniq, 7 methods x 8 rho {1.0..0.1}; fair d_hat=8; -> docs/figures/F5_crossover.png | 8 | 2026-05-22 |
 
 NOTE: cycles 1-17 predate structured saving; their SUMMARY tables are in
 PROJECT_LOG.md and full stdout is in the (ephemeral) task-output files. Complete
