@@ -5,7 +5,7 @@ via `experiments/make_figures.py` and `experiments/make_table1.py`. Figures in
 `docs/figures/`.*
 
 **Interactive tutorial (self-contained, graduate-level):**
-https://apartsinprojects.github.io/CollabDroneSwarm/tutorial.html
+https://apartsinprojects.github.io/ZKDroneSwarm/tutorial.html
 (a step-by-step walkthrough of motivation, background, model, baselines, method,
 theory, metrics, and every result, with all figures embedded).
 
