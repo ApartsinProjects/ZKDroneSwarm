@@ -223,4 +223,25 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.95]); fig.savefig(f"{OUT}/F9_scaling.png", dpi=150); plt.close(fig)
     print("F9_scaling.png  <-", os.path.basename(f))
 
+# ---- F10: E7 newcomer cold-start (skill vs own probes) ----
+f = latest("results/pilots/e7_newcomer_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; probes = d["meta"]["probes"]; dh = d["meta"]["d_hat"]
+    plt.figure(figsize=(5.2, 3.6))
+    for key, lab, st in [("cf", "CF newcomer (fold-in given broadcast U)", dict(marker="o", color="C0", lw=2)),
+                          ("pop", "popularity prior (rank-1)", dict(marker="^", color="C2", ls="-.")),
+                          ("tab", "Tabular newcomer (own probes only)", dict(marker="s", color="C3", ls="--"))]:
+        mu = [np.mean(raw[key][str(k)]) for k in probes]
+        sd = [np.std(raw[key][str(k)]) for k in probes]
+        plt.errorbar([max(p, 0.5) for p in probes], mu, yerr=sd, capsize=2, markersize=4, label=lab, **st)
+    plt.axhline(0, color="black", lw=0.8, ls=":")
+    plt.axvline(dh, color="green", lw=0.8, ls="--", label="d_hat=%d" % dh)
+    plt.xscale("log")
+    plt.xlabel("# own probes by the newcomer")
+    plt.ylabel("newcomer skill on UNSEEN targets")
+    plt.title("Newcomer cold-start: acts from the broadcast at zero history;\n"
+              "tabular newcomer at the floor (Theta(d) vs Theta(n))", fontsize=9)
+    plt.legend(fontsize=7); plt.tight_layout(); plt.savefig(f"{OUT}/F10_newcomer.png", dpi=150); plt.close()
+    print("F10_newcomer.png  <-", os.path.basename(f))
+
 print("figures written to", OUT)
