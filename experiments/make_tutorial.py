@@ -63,6 +63,20 @@ for p in ["zero prior knowledge", "zero communication", "partial + noisy observa
           "fully distributed", "low-rank latent structure", "online", "anytime"]:
     A("<span class='pill'>%s</span>" % p)
 
+A("<div class='box key'><strong>The setting in one breath: minimal assumptions.</strong> "
+  "A swarm of agents must repeatedly choose which task to take, under the LEAST possible "
+  "information. <b>No prior knowledge</b> (no labels, no task models, no known latent structure, not "
+  "even the true rank). <b>Zero communication</b> (no messages, no parameter sharing, no coordinator, "
+  "no consensus). <b>Only partial, noisy observables</b> (each agent passively senses a masked, noisy "
+  "slice of the public outcomes). <b>Fully distributed decisions</b> (every agent decides alone, from "
+  "its own private state). The question: can such a swarm still act INTELLIGENTLY, in particular on "
+  "tasks it has never tried? This tutorial shows the answer is YES, via collaborative filtering over "
+  "the public outcome stream, and that the advantage is CATEGORICAL (with proofs).</div>")
+
+A("<p class='small'>Companion streamlined paper (v2): "
+  "<a href='paper_v2.html'>paper_v2.html</a>. Full draft: <code>docs/PAPER_DRAFT.md</code>. "
+  "Repository: <a href='https://github.com/ApartsinProjects/ZKDroneSwarm'>ApartsinProjects/ZKDroneSwarm</a>.</p>")
+
 A("<div class='box'><strong>What you will learn.</strong> How a swarm of drones, with no shared "
   "model, no communication, and only a noisy partial view of what its teammates did, can still "
   "act well on targets it has never tried, onboard brand-new targets, and welcome new drones, by "
@@ -220,29 +234,93 @@ A("<dl>"
   "of how many probes it received.</dd></dl>")
 
 # 7 THEORY
-A("<h2 id='thy'>7. Theory (why the win is categorical)</h2>")
-A("<p>Full proofs in <code>docs/THEORY_FORMAL.md</code>. The four results, in words:</p>")
-A("<ol>"
-  "<li><strong>Tabular floor (T1).</strong> On any never-observed pair a structure-free learner's "
-  "error is a constant (the prior variance) and its unseen skill is exactly 0; the broadcast is "
-  "provably useless to a per-arm tabular learner. To be good on all of a drone's targets it needs "
-  "<code>Theta(n)</code> observations. (Pooling, UCBHomo, recovers only the rank-1 popularity term.)"
-  "</li>"
-  "<li><strong>CF completes a row from O(d) (T2).</strong> Given the target factors U, a drone's "
-  "entire row is determined by its d-dim factor, recoverable by a least-squares fold-in from about "
-  "<code>d</code> observations; it then predicts ALL targets. Per-drone <code>Theta(d)</code> vs "
-  "tabular <code>Theta(n)</code>: a categorical gap on unseen pairs (error to 0 vs a constant "
-  "floor).</li>"
-  "<li><strong>Anytime separation (T3).</strong> When <code>n &gt;&gt; T</code>, a per-arm method's "
-  "offer almost always contains an untried target, so it cannot exploit; its anytime skill goes to 0 "
-  "(even with full broadcast). CF reaches near-oracle after about <code>d</code> rounds. This is the "
-  "operational separation.</li>"
-  "<li><strong>Masking dichotomy (T4).</strong> Under i.i.d. loss every drone eventually senses "
-  "everything (Borel-Cantelli) so models converge (heterogeneity is transient); under persistent "
-  "masking each drone has a permanent blind set so models stay distinct (durable). The unseen and "
-  "anytime results are invariant to the choice.</li></ol>")
-A("<p class='small'>A theory-vs-experiment alignment table (each prediction mapped to its measured "
-  "confirmation, with honest tensions) is in <code>docs/THEORY_FORMAL.md</code>.</p>")
+A("<h2 id='thy'>7. Theory, step by step (why the win is categorical)</h2>")
+A("<p>The empirical results are not luck: a short chain of arguments PREDICTS them. We give each "
+  "result as: <em>statement</em>, <em>why it matters</em>, <em>proof (key steps)</em>, and "
+  "<em>confirmed by</em> (which experiment). Full formal proofs: <code>docs/THEORY_FORMAL.md</code>.</p>")
+A("<h4>Setup and notation</h4>")
+A("<p>True reward matrix <code>R = P U^T</code>, rank <code>d</code>, with unit factors so "
+  "<code>R[i,j] = &#10216;p_i, u_j&#10217;</code>. Drone i is offered a uniform size-c set each round; "
+  "<code>mu_i</code> is its mean reward, oracle is the best-in-offer, and "
+  "<code>skill = (earned - random)/(oracle - random)</code>. A learner is STRUCTURE-FREE if its "
+  "estimate of R[i,j] depends only on i's own past pulls of j (per-arm tabular: UCBIndep, Tabular).</p>")
+
+A("<div class='step'><h3>Theorem 1: the tabular floor (EXACT)</h3>")
+A("<p><b>Statement.</b> For a structure-free learner and any target j drone i never pulled, the "
+  "estimate is the prior constant, so its squared error is at least the row variance "
+  "<code>Var_j(R[i,j]) = Omega(1)</code>, and its expected unseen-pair skill is exactly 0.</p>")
+A("<p><b>Why it matters.</b> This is the floor the categorical win is measured against: a "
+  "structure-free swarm is helpless on anything it has not personally tried, no matter how long it or "
+  "its teammates run.</p>")
+A("<p><b>Proof (key steps).</b> (1) By definition the estimate on an unpulled j is a constant b "
+  "chosen before seeing j; for any constant, <code>E[(b - R[i,J])^2] = (b-mu_i)^2 + Var_J &gt;= "
+  "Var_J</code>. (2) The broadcast cannot help: a per-arm estimate of R[i,j] is, by definition, not a "
+  "function of any event (k,&middot;) with k != i, nor of any target j' != j. (3) On an offer of "
+  "never-pulled targets the selection is independent of their rewards, so by exchangeability the "
+  "expected earned reward equals the unseen-set mean, giving skill 0.</p>")
+A("<p><b>Confirmed by.</b> Tabular/UCBIndep unseen ~0 at every density (F2), every rank (F4), every "
+  "world (Section 8.7). <em>Corollary (pooling):</em> a learner that pools all drones (UCBHomo) "
+  "estimates the column mean <code>&#10216;p_bar, u_j&#10217;</code> = the rank-1 'popularity' term, "
+  "so it gets PARTIAL unseen skill (~0.17), not zero and not full, exactly as measured.</p></div>")
+
+A("<div class='step'><h3>Theorem 2: CF completes a whole row from O(d) (EXACT)</h3>")
+A("<p><b>Statement.</b> If the target factors U are known (rank d) and drone i observes its true "
+  "rewards on any set Omega with |Omega| &gt;= d whose factors {u_j} span R^d, then p_i is the unique "
+  "least-squares solution and <code>R[i,j] = &#10216;p_i, u_j&#10217;</code> is recovered EXACTLY for "
+  "ALL j, including never-pulled ones.</p>")
+A("<p><b>Why it matters.</b> This is the engine of generalization and of onboarding/cold-start: a "
+  "few observations plus the shared structure determine the entire row. Per-drone sample complexity "
+  "drops from <code>Theta(n)</code> (tabular) to <code>Theta(d)</code>.</p>")
+A("<p><b>Proof (key steps).</b> (1) Stacking j in Omega gives the linear system "
+  "<code>R[i,Omega] = U_Omega p_i</code>. (2) Spanning means U_Omega has rank d, so "
+  "<code>U_Omega^T U_Omega</code> is invertible and the solution <code>p_i = (U_Omega^T U_Omega)^{-1} "
+  "U_Omega^T R[i,Omega]</code> is unique and equals the true p_i. (3) Then "
+  "<code>&#10216;p_i, u_j&#10217;</code> reproduces R[i,j] for every j. (With noise, the ridge "
+  "estimate has error O(sigma^2 d / lambda_min), vanishing as data grows.) U itself is identified from "
+  "the pooled broadcast by standard matrix completion once about d(m+n) entries are seen.</p>")
+A("<p><b>Confirmed by.</b> Target onboarding at ~d shared probes (F3) and newcomer cold-start at ~d "
+  "own probes (F10), both vs tabular's ~n; and unseen skill rising as the rank falls (F4).</p></div>")
+
+A("<div class='step'><h3>Theorem 3: anytime separation under starvation (ORDER)</h3>")
+A("<p><b>Statement.</b> With n targets, offers of size c, horizon T, ANY structure-free learner has "
+  "anytime (cumulative-reward) skill at most <code>g(cT/n)</code>, which goes to 0 when "
+  "<code>cT = o(n)</code>, EVEN with full broadcast. A CF learner reaches near-oracle after about d "
+  "rounds, so its anytime skill is <code>1 - O(d/T)</code>.</p>")
+A("<p><b>Why it matters.</b> 'Final-policy quality' can flatter a method that explores a lot for "
+  "free. The operationally honest metric is reward EARNED while learning (targets destroyed by round "
+  "K). This theorem says structure-free methods cannot earn under starvation.</p>")
+A("<p><b>Proof (key steps).</b> (1) A structure-free learner only earns above the mean on a round "
+  "whose offer contains an already-pulled target; its pulled set has size &lt;= t-1. (2) Because new "
+  "targets are chosen blind to their reward, the pulled set is reward-blind, so the offered-and-pulled "
+  "rewards are like a few i.i.d. draws; by concavity of expected order statistics (Jensen) the "
+  "per-round surplus is &lt;= g(c(t-1)/n). (3) Summing over t and using g increasing gives "
+  "&lt;= g(cT/n) -&gt; 0 for cT = o(n). The broadcast does not change the pulled set (Theorem 1). "
+  "(UCB is even lower: its infinite untried-arm bonus makes it explore forever while n &gt; t.)</p>")
+A("<p><b>Confirmed by.</b> UCBIndep stuck at ~0 anytime even at T=200 with n=240 (F9); online CF "
+  "earns from round one and dominates at every horizon (F6).</p></div>")
+
+A("<div class='step'><h3>Theorem 4: masking-model dichotomy (EXACT limits)</h3>")
+A("<p><b>Statement.</b> Under i.i.d. per-round loss, every drone eventually senses every teammate "
+  "(Borel-Cantelli), so all drones converge to the same model (heterogeneity is TRANSIENT). Under "
+  "PERSISTENT masking each drone has a permanent blind set, so models stay distinct (DURABLE). The "
+  "unseen and anytime results are INVARIANT to the choice.</p>")
+A("<p><b>Why it matters.</b> It answers 'is persistent masking a cheat?': no. i.i.d. (packet-loss "
+  "style) loss gives the same headline results; persistent masking is chosen only so that "
+  "'no communication implies durably different knowledge' is a structural property, not a vanishing "
+  "transient.</p>")
+A("<p><b>Proof (key steps).</b> (1) i.i.d.: each teammate is observed with prob rho &gt; 0 each "
+  "round; the events are independent and sum diverges, so each is seen infinitely often a.s.; hence "
+  "every drone recovers the full true model, a common limit. (2) Persistent: a blind teammate's rows "
+  "appear in NONE of drone i's observations, so they are non-identifiable for i and stay at the prior "
+  "for all T; distinct blind sets give distinct models, bounded away in distance uniformly in T. "
+  "(3) The categorical results use only own pulls (Theorem 1) and U-identification (Theorem 2), which "
+  "both hold under either mask.</p>")
+A("<p><b>Confirmed by.</b> i.i.d. vs persistent give the same unseen/anytime curves, but "
+  "state-uniqueness is flat in T under persistent and DECAYS under i.i.d. (F8), exactly as "
+  "predicted.</p></div>")
+A("<p class='small'>A full theory-vs-experiment alignment table (every prediction mapped to its "
+  "measured value, with honest tensions: T3's constant is loose though its mechanism is exact; T2 "
+  "idealizes 'U known' vs finite-data recovery) is in <code>docs/THEORY_FORMAL.md</code>.</p>")
 
 # 8 RESULTS
 A("<h2 id='res'>8. Results, step by step</h2>")
@@ -308,9 +386,11 @@ A("<p>Re-running everything under i.i.d. per-round loss (Figure F8) leaves unsee
   "essentially unchanged (the categorical results do not depend on the masking model), while "
   "state-uniqueness is durable under persistent masking but transient under i.i.d., exactly as the "
   "theory predicts. Scaling sweeps over rank, horizon, target count, and guessed rank (Figure F9) "
-  "confirm every trend, including robustness to misguessing the rank. Generality sweeps over "
-  "population size and cluster structure confirm the conclusions are not artifacts of the default "
-  "world.</p>")
+  "confirm every trend, including robustness to misguessing the rank. Generality sweeps confirm the "
+  "conclusions are not artifacts of the default world: they hold across drone count m (10 to 120), "
+  "cluster count K (2 to 30, INCLUDING K=m, i.e. every drone its own type = no clustering = uniform "
+  "latents), and latent spread (tight to diffuse). So the categorical advantage is not an artifact of "
+  "clustered latent sampling.</p>")
 A("<figure>%s<figcaption><strong>F8.</strong> Persistent vs i.i.d. masking: results invariant; "
   "decentralization durable (persistent) vs transient (i.i.d.).</figcaption></figure>"
   % img("F8_iid_vs_persistent.png", "F8"))

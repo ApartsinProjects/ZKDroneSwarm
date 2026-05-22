@@ -291,6 +291,44 @@ for label, sigma_e, sigma_r in NOISE_GRID:
         })
 
 
+# ---------------------------------------------------------------------------
+# Set N: STRUCTURAL ASSUMPTION STRESS TEST (paper reframing, Phase 1.2)
+#
+# Validates the central thesis: the low-rank compatibility assumption is
+# what makes CF methods (MF-CF, PTF, BPMF) beat tabular methods (IQL-ZK,
+# UCB-Indep). Varies the true rank d while keeping m=9, n=27 fixed.
+#
+# Predictions (from REFRAMING_PLAN.md §1.5):
+#   d=1: CF dominates tabular by 25%+ (CF/tab ratio < 0.8)
+#   d=3 (baseline): CF roughly ties tabular (existing finding)
+#   d=8: CF ties tabular (existing finding from §7.15)
+#   d=9 (full rank, "no structure"): CF loses to tabular (ratio > 1.0)
+# ---------------------------------------------------------------------------
+SET_N_CONDITIONS = []
+RANK_GRID = [1, 2, 3, 5, 8]  # d=3 already exists in baseline, will be marked
+POLICIES_FOR_N = ["ucb_indep", "iql_zk", "mf_cf", "ptf_k5", "ts_mf", "bpmf"]
+
+for d in RANK_GRID:
+    for policy in POLICIES_FOR_N:
+        SET_N_CONDITIONS.append({
+            "name": f"struct_d{d}",
+            "policy": policy,
+            "num_targets": 27,
+            "env_latent_dim": d,
+        })
+
+# Full-rank stress: center_mode=random with latent_dim=9 makes the
+# compatibility matrix close to full-rank. CF methods should fail here.
+for policy in POLICIES_FOR_N:
+    SET_N_CONDITIONS.append({
+        "name": "struct_full",
+        "policy": policy,
+        "num_targets": 27,
+        "env_latent_dim": 9,
+        "center_mode": "random",
+    })
+
+
 ALL_SETS = {
     "A": SET_A_CONDITIONS,
     "B": SET_B_CONDITIONS,
@@ -304,6 +342,7 @@ ALL_SETS = {
     "K": SET_K_CONDITIONS,
     "L": SET_L_CONDITIONS,
     "M": SET_M_CONDITIONS,
+    "N": SET_N_CONDITIONS,
 }
 
 
@@ -325,7 +364,7 @@ def build_jobs(conditions, seeds, out_dir, episodes):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sets", nargs="+", default=["A", "B", "C"],
-                        choices=["A", "B", "C", "D", "E", "G", "H", "I", "J", "K", "L", "M"], metavar="SET",
+                        choices=["A", "B", "C", "D", "E", "G", "H", "I", "J", "K", "L", "M", "N"], metavar="SET",
                         help="Which experiment sets to run (default: A B C; K = ESTR + TS-MF; L = no-bcast long horizon)")
     parser.add_argument("--seeds", nargs="+", type=int, default=SEEDS)
     parser.add_argument("--episodes", type=int, default=EPISODES)

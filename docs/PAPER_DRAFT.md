@@ -9,12 +9,24 @@ https://apartsinprojects.github.io/ZKDroneSwarm/tutorial.html
 (a step-by-step walkthrough of motivation, background, model, baselines, method,
 theory, metrics, and every result, with all figures embedded).
 
+## The setting in one breath: minimal assumptions
+
+A swarm must repeatedly choose which task to take, under the LEAST possible
+information: NO prior knowledge (no labels, no task models, no known latent
+structure, not even the true rank); ZERO communication (no messages, no parameter
+sharing, no coordinator); ONLY partial, noisy observation of a public outcome
+stream; and fully DISTRIBUTED decisions (each agent decides alone, from its own
+private state). The question this paper answers: can such a swarm still act
+intelligently, in particular on tasks it has never tried? Yes, via collaborative
+filtering over the public broadcast, with a categorical, theory-backed advantage.
+
 ## Abstract
 
-We study decentralized multi-robot task allocation (MRTA) in a swarm where
-agent-task compatibility has unknown low-rank structure, each agent observes only
-a limited and noisy slice of a public broadcast, and there is NO communication or
-coordination. We show that having each agent run collaborative filtering (CF;
+We study decentralized multi-robot task allocation (MRTA) under minimal
+assumptions: a swarm with no prior knowledge (not even the problem's rank), zero
+communication, only partial and noisy observation of a public outcome stream, and
+fully distributed decisions, where agent-task compatibility has unknown low-rank
+structure. We show that having each agent run collaborative filtering (CF;
 online low-rank matrix decomposition) over the public broadcast lets it act well
 on agent-task pairs it has NEVER personally observed, and onboard brand-new tasks
 for the whole swarm from O(d) shared probes rather than O(m). Against an
@@ -246,9 +258,14 @@ discards), and in this sample-starved regime stacking is too data-expensive. The
 practical takeaway is clean: a dominant fusion is unnecessary because the reward
 channel already wins throughout the realistic regime.
 
-### 7.6 Robustness to the masking model, and zero-knowledge compliance (E12, E13)
+### 7.6 Robustness to the masking model, generality, and zero-knowledge compliance (E12, E13, E14)
 
-Masking model (Theorem 4, Fig. F8): re-running every headline metric under i.i.d.
+Generality (E14): the categorical CF-vs-floor unseen advantage and our anytime
+dominance hold across drone count m (10 to 120), cluster count K (2 to 30,
+INCLUDING K=m, i.e. every drone its own type = no clustering = uniform latents),
+and latent spread (tight to diffuse), so the result is not an artifact of the
+clustered latent sampling. Masking model (Theorem 4, Fig. F8): re-running every
+headline metric under i.i.d.
 per-round loss instead of the persistent mask leaves unseen and anytime skill
 essentially unchanged (within ~0.04 at every rho), so the categorical results do
 not depend on the modeling choice. The two models differ only in the durability of

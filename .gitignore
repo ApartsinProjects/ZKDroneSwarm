@@ -229,3 +229,6 @@ tabula_server/.env
 tabula_viewer/.sass-cache/
 tabula_viewer/coverage/
 tabula_viewer/.editorconfig
+
+# Local Claude Code session config (do not commit)
+.claude/

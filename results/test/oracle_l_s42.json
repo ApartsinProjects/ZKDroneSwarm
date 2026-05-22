@@ -1,0 +1,32 @@
+{
+  "policy": "oracle_l",
+  "seed": 42,
+  "num_episodes": 1,
+  "episodes": [
+    {
+      "episode": 1,
+      "steps": 68,
+      "done_reason": "all_targets_neutralized",
+      "targets_neutralized": 27,
+      "total_ammo_used": 612,
+      "total_overkill": 9.4945,
+      "total_net_damage": 270.0,
+      "total_gross_damage": 291.8324,
+      "total_collisions": 297,
+      "total_reward": 471.582975,
+      "avg_latent_match_quality": 0.77056,
+      "shots_per_target": 22.6667
+    }
+  ],
+  "summary": {
+    "avg_steps": 68.0,
+    "avg_targets": 27.0,
+    "avg_ammo": 612.0,
+    "avg_overkill": 9.4945,
+    "avg_reward": 471.582975,
+    "avg_net_damage": 270.0,
+    "avg_gross_damage": 291.8324,
+    "success_count": 1,
+    "success_rate": 100.0
+  }
+}

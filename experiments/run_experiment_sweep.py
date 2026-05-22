@@ -176,6 +176,12 @@ def apply_overrides(config, overrides, extra):
         new_targets = dataclasses.replace(config.targets, count=int(overrides["num_targets"]))
         config = dataclasses.replace(config, targets=new_targets)
 
+    if "target_hp" in overrides:
+        # Large target_hp -> targets effectively never deplete, turning the
+        # episodic neutralisation task into a repeated-assignment bandit.
+        new_targets = dataclasses.replace(config.targets, target_hp=float(overrides["target_hp"]))
+        config = dataclasses.replace(config, targets=new_targets)
+
     if "num_drones" in overrides:
         new_drones = dataclasses.replace(config.drones, count=int(overrides["num_drones"]))
         config = dataclasses.replace(config, drones=new_drones)
@@ -223,6 +229,7 @@ def build_policy(policy_name, config, num_agents, num_targets, extra):
     from tabula_drone.policies.iql_zk_policy import IQLZKPolicy
     from tabula_drone.policies.estr_policy import ESTRPolicy
     from tabula_drone.policies.thompson_mf_policy import ThompsonMFPolicy
+    from tabula_drone.policies.bayesian_pmf_policy import BayesianPMFPolicy
 
     allow_noop = config.policy.allow_noop
     seed = config.seed
@@ -295,6 +302,37 @@ def build_policy(policy_name, config, num_agents, num_targets, extra):
             explore_steps=explore_steps,
             seed=seed, allow_noop=allow_noop,
         )
+    elif policy_name in ("bpmf", "bpmf_ts", "bpmf_ucb", "bpmf_vb"):
+        # Bayesian Probabilistic Matrix Factorization (Salakhutdinov-Mnih
+        # 2008-style). Closed-form conjugate updates; Thompson or UCB
+        # exploration via posterior uncertainty. Per-drone instances.
+        mf_cfg = config.collaborative_filtering.matrix_factorization_cf
+        exploration_mode = "ucb" if policy_name == "bpmf_ucb" else "thompson"
+        update_mode = "vb" if policy_name == "bpmf_vb" else "map"
+        cf = config.collaborative_filtering
+        sigma_e = float(getattr(cf, "effect_noise", 0.0))
+        sigma_r = float(cf.reward_noise)
+        likelihood_var = float(extra.get("bpmf_likelihood_var",
+                                         max(sigma_e**2 + sigma_r**2, 1e-4)))
+        prior_var_P = float(extra.get("bpmf_prior_var_P", 1.0))
+        prior_var_U = float(extra.get("bpmf_prior_var_U", 1.0))
+        ucb_c = float(extra.get("bpmf_ucb_c", 1.0))
+        init_scale = float(extra.get("bpmf_init_scale", 0.1))
+        policies = {}
+        for i in range(num_agents):
+            policies[f"drone_{i}"] = BayesianPMFPolicy(
+                num_agents=num_agents, num_targets=num_targets,
+                agent_idx=i, latent_dim=mf_cfg.latent_dim,
+                prior_var_P=prior_var_P, prior_var_U=prior_var_U,
+                likelihood_var=likelihood_var,
+                exploration_mode=exploration_mode,
+                ucb_c=ucb_c,
+                update_mode=update_mode,
+                init_scale=init_scale,
+                seed=seed + i if seed is not None else None,
+                allow_noop=allow_noop,
+            )
+        return MultiAgentPolicy(policies)
     elif policy_name == "ts_mf":
         # Thompson-sampling variant of MF-CF.
         mf_cfg = config.collaborative_filtering.matrix_factorization_cf

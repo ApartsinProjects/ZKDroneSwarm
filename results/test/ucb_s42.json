@@ -1,0 +1,60 @@
+{
+  "policy": "ucb_indep",
+  "seed": 42,
+  "num_episodes": 3,
+  "episodes": [
+    {
+      "episode": 1,
+      "steps": 97,
+      "done_reason": "all_targets_neutralized",
+      "targets_neutralized": 27,
+      "total_ammo_used": 873,
+      "total_overkill": 8.5019,
+      "total_net_damage": 270.0,
+      "total_gross_damage": 284.0987,
+      "total_collisions": 180,
+      "total_reward": 468.51154,
+      "avg_latent_match_quality": 0.536668,
+      "shots_per_target": 32.3333
+    },
+    {
+      "episode": 2,
+      "steps": 83,
+      "done_reason": "all_targets_neutralized",
+      "targets_neutralized": 27,
+      "total_ammo_used": 747,
+      "total_overkill": 10.6674,
+      "total_net_damage": 270.0,
+      "total_gross_damage": 286.1778,
+      "total_collisions": 232,
+      "total_reward": 467.500362,
+      "avg_latent_match_quality": 0.625837,
+      "shots_per_target": 27.6667
+    },
+    {
+      "episode": 3,
+      "steps": 79,
+      "done_reason": "all_targets_neutralized",
+      "targets_neutralized": 27,
+      "total_ammo_used": 711,
+      "total_overkill": 9.1961,
+      "total_net_damage": 270.0,
+      "total_gross_damage": 288.2132,
+      "total_collisions": 257,
+      "total_reward": 469.386539,
+      "avg_latent_match_quality": 0.660178,
+      "shots_per_target": 26.3333
+    }
+  ],
+  "summary": {
+    "avg_steps": 86.33,
+    "avg_targets": 27.0,
+    "avg_ammo": 777.0,
+    "avg_overkill": 9.4551,
+    "avg_reward": 468.466147,
+    "avg_net_damage": 270.0,
+    "avg_gross_damage": 286.1633,
+    "success_count": 3,
+    "success_rate": 100.0
+  }
+}

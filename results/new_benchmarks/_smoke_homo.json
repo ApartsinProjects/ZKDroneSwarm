@@ -1,0 +1,49 @@
+{
+  "policy": "ucb_homo",
+  "seed": 42,
+  "num_episodes": 2,
+  "overrides": {
+    "num_targets": 54
+  },
+  "episodes": [
+    {
+      "episode": 1,
+      "steps": 240,
+      "done_reason": "all_targets_neutralized",
+      "targets_neutralized": 54,
+      "total_ammo_used": 2160,
+      "total_overkill": 15.3651,
+      "total_net_damage": 540.0,
+      "total_gross_damage": 615.9328,
+      "total_collisions": 1872,
+      "total_reward": 956.182241,
+      "avg_latent_match_quality": 0.442677,
+      "shots_per_target": 40.0
+    },
+    {
+      "episode": 2,
+      "steps": 241,
+      "done_reason": "all_targets_neutralized",
+      "targets_neutralized": 54,
+      "total_ammo_used": 2169,
+      "total_overkill": 13.1477,
+      "total_net_damage": 540.0,
+      "total_gross_damage": 615.4752,
+      "total_collisions": 1928,
+      "total_reward": 958.449238,
+      "avg_latent_match_quality": 0.441885,
+      "shots_per_target": 40.1667
+    }
+  ],
+  "summary": {
+    "avg_steps": 240.5,
+    "avg_targets": 54.0,
+    "avg_ammo": 2164.5,
+    "avg_overkill": 14.2564,
+    "avg_reward": 957.31574,
+    "avg_net_damage": 540.0,
+    "avg_gross_damage": 615.704,
+    "success_count": 2,
+    "success_rate": 100.0
+  }
+}
