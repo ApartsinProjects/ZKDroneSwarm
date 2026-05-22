@@ -171,7 +171,11 @@ explore_knob. C1 + C8 DONE (below). Method work (C6/C10/C3/C2) demoted to P1
   robustness remark; do not headline. The competence-weighting MECHANISM it
   produced is salvaged for C3 (cold-start of honest learners).
 - [TODO] D2. Connect to real ZK-MRTA env + real policies (BPMF, IQL-ZK, etc.).
-- [TODO] D3. Theory pack (separation, sample complexity) for the core claims.
+- [TODO] D3. THEORY pack (elevated toward the spine): the unseen-pair /
+  Theta(d)-per-drone vs Theta(n)-tabular separation. Basis: MC needs O(d(m+n))
+  obs (Candes-Recht/Keshavan) vs mn; block structure lowers it further (arXiv
+  1912.04099). NOVELTY = adapt to the DECENTRALIZED broadcast + per-drone masking,
+  no comms (tabular has ZERO info on unobserved pairs -> floor by construction).
 - [TODO] D4. Cold-start warm-start from broadcast U; convergence dynamics.
 - [TODO] D6. CONTENTION / ASSIGNMENT setting (targets deplete / each-once) ->
   centralized optimum = Hungarian matching; centralized DECISION (coordination)
@@ -195,6 +199,20 @@ explore_knob. C1 + C8 DONE (below). Method work (C6/C10/C3/C2) demoted to P1
 - EXPOSURE BIAS / discrete-choice (MNL) models that use the FULL CHOICE SET are
   the PRINCIPLED debiasing of implicit feedback -> ChoiceCF observing the offered
   menu is CORRECT (debiases exposure), not a fairness violation.
+- THEORY -- MC sample complexity: rank-r recoverable from O(r n log n) (Candes-
+  Recht 2009; Recht 2011) or O(rn) (Keshavan OptSpace) vs n^2. Basis for CF's
+  O(d(m+n)) vs tabular O(mn) = the unseen-pair / Theta(d)-vs-Theta(n) separation.
+  Standard bounds are CENTRALIZED; our novelty = decentralized per-drone masked
+  obs, no comms.
+- THEORY -- clustering HELPS: block/community structure PROVABLY lowers MC sample
+  complexity (community detection + MC with similarity-graph side info, arXiv
+  1912.04099; hierarchical similarity graphs 2023; two-sided synergy). Supports
+  K1xK2 block model; grounds D3.
+- COLD-START META-LEARNING: MeLU (2019) -- new user from few items via meta-learn
+  + ACTIVE 'evidence candidate selection' (= which drones probe a new target);
+  M2EU/MWUF/CoMeta warm-embed cold ITEMS. Grounds C12.
+- BANDITS: LinUCB (Li 2010), Thompson (Chapelle-Li 2011, often > UCB), low-rank/
+  sparse contextual bandits. Grounds C6 (Bayesian/Thompson) + C10 (active explore).
 
 ## Priority log (re-rank events)
 - 2026-05-22 init: P0 = B1,B3,B6,B5 (robustness spine).
