@@ -1,0 +1,241 @@
+"""
+DECISION-ONLY, take 2 (APPLES-TO-APPLES): clean choices vs noisy observed rewards
+as the CROSS-AGENT channel, with own information held identical.
+
+Every drone always has its OWN clean reward (sigma_own). Methods differ ONLY in
+the cross-agent channel they consume:
+
+  Tabular   : own reward only (empirical means; NO transfer).        [reward-class]
+  RewardCF  : own reward + others' NOISY rewards (noise-aware MF).    [reward-class, transfer]
+  ChoiceCF  : own reward + others' CLEAN choices (NO others' rewards).[choice-class, transfer]
+              (naive = unweighted; comp = competence-weighted)
+
+So RewardCF vs ChoiceCF differ ONLY in the cross-agent observation type, any gap
+is attributable to choices-vs-noisy-rewards (not to differing own-info). All
+methods share the SAME exploration schedule.
+
+Sweep sigma_obs (others' reward-observation noise). Hypothesis: at low noise
+RewardCF wins; as sigma_obs rises RewardCF -> Tabular while ChoiceCF stays
+robust (choices are noise-free) and OVERTAKES. => decisions beat noisy outcomes.
+"""
+import numpy as np
+import sys
+sys.stdout.reconfigure(encoding="utf-8")
+
+from pilot_structure import make_world_struct, oracle_rand
+
+
+class _EpsBase:
+    def __init__(self, m, n, d, idx, seed, eps0=0.5, eps_min=0.05, eps_decay=0.93, **hp):
+        self.m = m; self.n = n; self.d = d; self.idx = idx
+        self.rng = np.random.RandomState(seed)
+        self.eps0 = eps0; self.eps_min = eps_min; self.eps_decay = eps_decay; self.eps = eps0
+        self.pulled = np.zeros(n, bool)
+
+    def _decay(self):
+        self.eps = max(self.eps_min, self.eps * self.eps_decay)
+
+
+class Tabular(_EpsBase):
+    def __init__(self, *a, **hp):
+        super().__init__(*a, **hp)
+        self.counts = np.zeros(self.n); self.sums = np.zeros(self.n)
+        self.tot_n = 0; self.tot_s = 0.0
+
+    def _est(self):
+        default = (self.tot_s / self.tot_n) if self.tot_n > 0 else 0.5
+        e = np.full(self.n, default); m = self.counts > 0
+        e[m] = self.sums[m] / self.counts[m]; return e
+
+    def select(self, t, cand):
+        a = cand[self.rng.randint(len(cand))] if self.rng.rand() < self.eps \
+            else cand[int(np.argmax(self._est()[cand]))]
+        self.pulled[a] = True; return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        r = revealed[self.idx]
+        if not np.isnan(r):
+            a = int(choices[self.idx]); self.counts[a] += 1; self.sums[a] += r
+            self.tot_n += 1; self.tot_s += r
+        self._decay()
+
+    def predict_scores(self):
+        return self._est()
+    def pulled_mask(self):
+        return self.pulled
+
+
+class WeightedMF(_EpsBase):
+    def __init__(self, *a, prior_prec=1.0, init_scale=0.1, als_sweeps=5, refit_every=3, **hp):
+        super().__init__(*a, **hp)
+        self.prior_prec = prior_prec; self.als_sweeps = als_sweeps; self.refit_every = refit_every
+        self.P = self.rng.normal(0, init_scale, (self.m, self.d))
+        self.U = self.rng.normal(0, init_scale, (self.n, self.d))
+        self.rk = []; self.rj = []; self.rv = []; self.rw = []   # reward obs
+        self._I = np.eye(self.d)
+
+    def _als(self, K, J, V, W):
+        if len(K) == 0:
+            return
+        K = np.asarray(K); J = np.asarray(J); V = np.asarray(V); W = np.asarray(W)
+        pri = self.prior_prec * self._I
+        for _ in range(self.als_sweeps):
+            Pk = self.P[K]
+            AU = np.tile(pri, (self.n, 1, 1)).astype(float); bU = np.zeros((self.n, self.d))
+            np.add.at(AU, J, W[:, None, None] * np.einsum('ni,nj->nij', Pk, Pk))
+            np.add.at(bU, J, (W * V)[:, None] * Pk)
+            self.U = np.linalg.solve(AU, bU[..., None])[..., 0]
+            Uj = self.U[J]
+            AP = np.tile(pri, (self.m, 1, 1)).astype(float); bP = np.zeros((self.m, self.d))
+            np.add.at(AP, K, W[:, None, None] * np.einsum('ni,nj->nij', Uj, Uj))
+            np.add.at(bP, K, (W * V)[:, None] * Uj)
+            self.P = np.linalg.solve(AP, bP[..., None])[..., 0]
+
+    def select(self, t, cand):
+        a = cand[self.rng.randint(len(cand))] if self.rng.rand() < self.eps \
+            else cand[int(np.argmax(self.U[cand] @ self.P[self.idx]))]
+        self.pulled[a] = True; return a
+
+    def predict_scores(self):
+        return self.U @ self.P[self.idx]
+    def pulled_mask(self):
+        return self.pulled
+
+
+class RewardCF(WeightedMF):
+    """Cross-agent channel = others' NOISY rewards (noise-aware). No choices."""
+    def _refit(self):
+        self._als(self.rk, self.rj, self.rv, self.rw)
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):
+            r = revealed[k]
+            if not np.isnan(r):
+                self.rk.append(k); self.rj.append(int(choices[k]))
+                self.rv.append(float(r)); self.rw.append(1.0 / max(rvar[k], 1e-6))
+        self._decay()
+        if (t + 1) % self.refit_every == 0:
+            self._refit()
+
+
+class ChoiceCF(WeightedMF):
+    """Cross-agent channel = others' CLEAN choices only. Own reward kept (own row).
+    NO others' rewards. comp=True -> competence-weighted; comp=False -> naive."""
+    def __init__(self, *a, comp=True, s2c=0.2, n_neg=1, within=True,
+                 warm_frac=0.3, T_total=50, **hp):
+        super().__init__(*a, **hp)
+        self.comp = comp; self.s2c = s2c; self.n_neg = n_neg; self.within = within
+        self.warm_frac = warm_frac; self.T_total = T_total
+        self.ck = []; self.cc = []; self.coff = []; self.cstep = []
+        self.last_vec = {}; self.consist = np.full(self.m, 0.3)
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        r = revealed[self.idx]                              # OWN reward only
+        if not np.isnan(r):
+            self.rk.append(self.idx); self.rj.append(int(choices[self.idx]))
+            self.rv.append(float(r)); self.rw.append(1.0 / max(rvar[self.idx], 1e-6))
+        for k in range(self.m):
+            c = int(choices[k])
+            self.ck.append(k); self.cc.append(c); self.coff.append(cand_sets[k]); self.cstep.append(t)
+            if k in self.last_vec:
+                v0 = self.last_vec[k]; v1 = self.U[c]
+                cs = float(v0 @ v1 / (np.linalg.norm(v0) * np.linalg.norm(v1) + 1e-9))
+                self.consist[k] = 0.9 * self.consist[k] + 0.1 * max(cs, 0.0)
+            self.last_vec[k] = self.U[c].copy()
+        self._decay()
+        if (t + 1) % self.refit_every == 0:
+            self._refit()
+
+    def _gamma(self, k, tmade):
+        if not self.comp:
+            return 1.0
+        w0 = self.warm_frac * self.T_total
+        ramp = np.clip((tmade - w0) / max(self.T_total - w0, 1.0), 0.0, 1.0)
+        return ramp * np.clip(self.consist[k], 0.0, 1.0)
+
+    def _refit(self):
+        own_r = [v for k, v in zip(self.rk, self.rv) if k == self.idx]
+        pos = float(np.percentile(own_r, 75)) if len(own_r) >= 4 else 0.55
+        neg = float(np.percentile(own_r, 25)) if len(own_r) >= 4 else 0.15
+        K = list(self.rk); J = list(self.rj); V = list(self.rv); W = list(self.rw)
+        for k, c, off, ts in zip(self.ck, self.cc, self.coff, self.cstep):
+            g = self._gamma(k, ts)
+            if g <= 1e-3:
+                continue
+            wc = g / self.s2c
+            K.append(k); J.append(c); V.append(pos); W.append(wc)
+            for _ in range(self.n_neg):
+                o = int(self.rng.choice(off)) if self.within else self.rng.randint(self.n)
+                if o != c:
+                    K.append(k); J.append(o); V.append(neg); W.append(wc)
+        self._als(K, J, V, W)
+
+
+def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
+    P, U, R = world; m, n = R.shape; d = P.shape[1]
+    rng = np.random.RandomState(seed + 999)
+    learners = [Cls(m, n, d, i, seed + 7 * i + 1, **hp) for i in range(m)]
+    for t in range(T):
+        cand_sets = [rng.choice(n, size=cand, replace=False) for _ in range(m)]
+        choices = np.array([learners[i].select(t, cand_sets[i]) for i in range(m)])
+        true_r = np.array([R[i, choices[i]] for i in range(m)])
+        for i in range(m):
+            revealed = np.full(m, np.nan); rvar = np.full(m, np.inf)
+            revealed[i] = true_r[i] + rng.normal(0, sigma_own); rvar[i] = sigma_own ** 2
+            for k in range(m):
+                if k != i and rng.rand() < p_share:
+                    revealed[k] = true_r[k] + rng.normal(0, sigma_obs); rvar[k] = sigma_obs ** 2
+            learners[i].observe(t, choices, revealed, cand_sets, rvar)
+    preds = [learners[i].predict_scores() for i in range(m)]
+    g = np.random.RandomState(seed + 555); got = []
+    for _ in range(100):
+        for k in range(m):
+            off = g.choice(n, size=cand, replace=False)
+            got.append(R[k, off[int(np.argmax(preds[k][off]))]])
+    return float(np.mean(got))
+
+
+def skill_ms(Cls, hp, cfg, m, n, d, T, cand, so, sb, seeds):
+    sk = []
+    for s in seeds:
+        w = make_world_struct(m, n, d, cfg["structure"], cfg["eps"], cfg["n_clusters"], cfg["sharp"], s)
+        g = run_episode(Cls, hp, w, T, 1.0, s, so, sb, cand)
+        oc, rd = oracle_rand(w[2], s, cand)
+        sk.append((g - rd) / max(oc - rd, 1e-6))
+    return float(np.mean(sk)), float(np.std(sk))
+
+
+def main():
+    m, n, d, T, cand = 30, 240, 5, 50, 20
+    sigma_own = 0.10
+    seeds = list(range(5))
+    cfg = dict(structure="cluster_gauss", eps=0.10, n_clusters=15, sharp=1.0)
+    base = dict(eps0=0.5, eps_min=0.05, eps_decay=0.93, als_sweeps=5, refit_every=3)
+    tab = dict(eps0=0.5, eps_min=0.05, eps_decay=0.93)
+    rew = dict(**base)
+    ch_n = dict(comp=False, s2c=0.2, n_neg=1, within=True, T_total=T, **base)
+    ch_c = dict(comp=True, s2c=0.2, n_neg=1, within=True, warm_frac=0.3, T_total=T, **base)
+
+    print("=" * 100)
+    print("APPLES-TO-APPLES: cross-agent channel = noisy rewards vs clean choices (p=1).")
+    print("own reward clean (sigma_own=%.2f) for ALL. m=%d n=%d d=%d T=%d cand=%d %d seeds. clustG nc15"
+          % (sigma_own, m, n, d, T, cand, len(seeds)))
+    print("reward-class: Tabular, RewardCF.  choice-class: ChoiceCF_naive, ChoiceCF_comp.")
+    print("=" * 100)
+    print(f"{'sig_obs':>7s} | {'Tabular':>11s} {'RewardCF':>11s} | {'Ch_naive':>11s} {'Ch_comp':>11s} | "
+          f"{'comp-Rew':>8s}")
+    print("-" * 100)
+    for sb in [0.10, 0.30, 0.60, 1.00, 2.00]:
+        tm, ts = skill_ms(Tabular, tab, cfg, m, n, d, T, cand, sigma_own, sb, seeds)
+        rm, rs = skill_ms(RewardCF, rew, cfg, m, n, d, T, cand, sigma_own, sb, seeds)
+        nm, ns = skill_ms(ChoiceCF, ch_n, cfg, m, n, d, T, cand, sigma_own, sb, seeds)
+        cm, cs = skill_ms(ChoiceCF, ch_c, cfg, m, n, d, T, cand, sigma_own, sb, seeds)
+        print(f"{sb:7.2f} | {tm:6.3f}+-{ts:4.3f} {rm:6.3f}+-{rs:4.3f} | "
+              f"{nm:6.3f}+-{ns:4.3f} {cm:6.3f}+-{cs:4.3f} | {cm-rm:+8.3f}")
+    print("-" * 100)
+    print("HEADLINE = comp-Rew (ChoiceCF_comp minus RewardCF), same own-info, differ only in")
+    print("cross-agent channel. Positive at high sigma_obs => clean choices beat noisy rewards.")
+
+
+if __name__ == "__main__":
+    main()
