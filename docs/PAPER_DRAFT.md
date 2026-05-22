@@ -317,6 +317,20 @@ baseline on unseen (+0.096, CI [+0.067,+0.123]) and on anytime (+0.054,
 [+0.040,+0.067]). So across a broad low-rank / structured field, no competitor wins
 in the limited-observability regime that defines the problem.
 
+### 7.9 Real-simulator validation and assumption stress (Fig. F13)
+
+Beyond the clean generative model, we drop our method into the tabula_drone
+PettingZoo environment (spatial targets, depleting target health, episodic resets)
+as a per-drone policy and benchmark it (3 seeds, learning over episodes) against the
+environment's own policies, scoring efficiency (reward per step) normalized to skill.
+Our weighted-ALS reaches skill 0.806 +- 0.016, beating the environment's SGD
+matrix-factorization (0.251) and UCBIndep (0.721) and approaching the oracle (1.0).
+We additionally stress the assumptions directly (approximate low-rank via entrywise
+noise; a nonlinear power link that raises the effective rank) and observe graceful
+degradation with the method's ranking preserved. So the advantage is not an artifact
+of the synthetic low-rank model; it transfers to spatial, depleting, episodic
+dynamics.
+
 ## 8. Theory (per-agent sample complexity)
 
 Full statements and proof sketches in `docs/THEORY.md`.

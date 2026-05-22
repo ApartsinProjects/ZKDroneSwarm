@@ -298,4 +298,33 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.92]); fig.savefig(f"{OUT}/F12_morebaselines.png", dpi=150); plt.close(fig)
     print("F12_morebaselines.png  <-", os.path.basename(f))
 
+# ---- F13: real tabula_drone simulator validation ----
+f = "results/pilots/tabula_bench_real.json"
+if os.path.exists(f):
+    d = json.load(open(f)); sk = d["skill"]; traj = d["traj"]
+    order = ["random", "mf", "ucb_indep", "weighted_als", "oracle"]
+    lab = {"random": "Random", "mf": "MF (env SGD)", "ucb_indep": "UCBIndep",
+           "weighted_als": "WeightedALS (ours)", "oracle": "Oracle"}
+    col = {"random": "gray", "mf": "C3", "ucb_indep": "C4", "weighted_als": "C2", "oracle": "k"}
+    fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+    present = [p for p in order if p in sk]
+    mu = [np.mean(sk[p]) for p in present]; sd = [np.std(sk[p]) for p in present]
+    ax[0].bar(range(len(present)), mu, yerr=sd, capsize=4,
+              color=[col[p] for p in present])
+    ax[0].set_xticks(range(len(present))); ax[0].set_xticklabels([lab[p] for p in present], rotation=20, ha="right", fontsize=8)
+    ax[0].set_ylabel("skill = (policy - random)/(oracle - random)")
+    ax[0].set_title("Real simulator: converged skill", fontsize=10); ax[0].grid(alpha=0.25, axis="y")
+    for p in ["random", "mf", "ucb_indep", "weighted_als", "oracle"]:
+        if p in traj:
+            arr = np.array(traj[p]); muc = arr.mean(0)
+            ax[1].plot(range(1, len(muc) + 1), muc, label=lab[p], color=col[p],
+                       lw=2 if p == "weighted_als" else 1.3,
+                       ls="-" if p in ("weighted_als", "random", "oracle") else "--")
+    ax[1].set_xlabel("episode"); ax[1].set_ylabel("reward per step")
+    ax[1].set_title("Learning curves", fontsize=10); ax[1].grid(alpha=0.25); ax[1].legend(fontsize=7)
+    fig.suptitle("Validation in the real tabula_drone simulator (spatial, HP-depletion, episodic): "
+                 "ours beats the env's SGD-MF and UCBIndep, approaching the oracle", fontsize=9)
+    fig.tight_layout(rect=[0, 0, 1, 0.93]); fig.savefig(f"{OUT}/F13_realsim.png", dpi=150); plt.close(fig)
+    print("F13_realsim.png  <- tabula_bench_real.json")
+
 print("figures written to", OUT)

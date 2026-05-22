@@ -530,6 +530,19 @@ A("<p><b>Takeaway.</b> The story holds and widens. SoftImpute is excellent when 
   "these new baselines with non-overlapping error bars. No competitor wins in the regime that defines "
   "the problem.</p>")
 
+A("<h3>8.10 Validation in a realistic simulator</h3>")
+A("<p>Everything above is in our clean, controlled world. Does it survive a realistic simulator? We "
+  "dropped our method into the existing tabula_drone PettingZoo environment, which has spatial "
+  "targets, target health that depletes as drones engage (so it is partly a contention setting), and "
+  "episodic resets, and benchmarked it (3 seeds, learning over episodes) against the environment's own "
+  "policies. Score = efficiency (reward per step), normalized to skill (Figure F13).</p>")
+A("<figure>%s<figcaption><strong>F13.</strong> Real tabula_drone simulator: converged skill (left) "
+  "and learning curves (right).</figcaption></figure>" % img("F13_realsim.png", "F13"))
+A("<p><b>Takeaway.</b> The story holds in the real simulator: our method reaches skill ~0.81 (with "
+  "low variance), clearly beating the environment's own SGD matrix-factorization (~0.25) and the "
+  "per-arm bandit UCBIndep (~0.72), and approaching the centralized oracle. So the advantage is not "
+  "an artifact of our clean generative model; it transfers to spatial, depleting, episodic dynamics.</p>")
+
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "

@@ -58,9 +58,14 @@ a per-agent sample-complexity separation of `Theta(d)` (CF) vs `Theta(n)`
   observation masking (batch-SVD hybrids decay); with a converged estimator our
   methods dominate the strongest prior-art competitor (PTF) on every metric and
   density.
-- **Theory (with proofs).** Four results, each matched to an experiment: tabular
+- **Theory (with proofs).** Five results, each matched to an experiment: tabular
   floor; O(d) row completion; anytime separation under starvation; persistent-vs-
-  i.i.d. masking dichotomy.
+  i.i.d. masking dichotomy; additive rank-ceiling.
+- **Validated in a real simulator.** Ported into the tabula_drone PettingZoo env
+  (spatial, depleting HP, episodic), our method reaches skill ~0.81, beating the
+  env's SGD matrix-factorization (~0.25) and UCBIndep (~0.72) and approaching the
+  oracle; the advantage also survives approximate-low-rank and nonlinear-reward
+  stress tests.
 
 ## Methods (all strictly zero-knowledge, fully distributed)
 

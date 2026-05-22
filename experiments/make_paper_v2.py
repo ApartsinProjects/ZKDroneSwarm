@@ -128,6 +128,16 @@ A("<p><b>Robustness.</b> Results are invariant to the masking model (i.i.d. vs p
 A("<figure>%s<figcaption><b>Fig. 3.</b> Persistent vs i.i.d. masking: unseen/anytime invariant; "
   "state-uniqueness durable (persistent) vs transient (i.i.d.).</figcaption></figure>"
   % img("F8_iid_vs_persistent.png", "F8"))
+A("<p><b>Real-simulator validation.</b> Beyond our generative model, we drop the method into the "
+  "tabula_drone PettingZoo environment (spatial targets, depleting target health, episodic resets) "
+  "and benchmark against its own policies (Fig. 3b). On the efficiency metric (reward per step), our "
+  "method reaches skill ~0.81 with low variance, beating the environment's SGD matrix-factorization "
+  "(~0.25) and UCBIndep (~0.72) and approaching the oracle. We also stress the assumptions directly "
+  "(approximate low-rank via entrywise noise; a nonlinear link that raises the effective rank) and "
+  "observe graceful degradation with the ranking preserved.</p>")
+A("<figure>%s<figcaption><b>Fig. 3b.</b> Real tabula_drone simulator: converged skill and learning "
+  "curves; ours beats the env's SGD-MF and UCBIndep, approaching the oracle.</figcaption></figure>"
+  % img("F13_realsim.png", "F13"))
 A("<p><b>Versus the field.</b> The categorical unseen win is shared by all low-rank methods over "
   "no-structure ones (a property of structure). Our specific edge is masking-robustness and anytime "
   "optimality; with a converged estimator our methods dominate the strongest competitor (PTF) on "
