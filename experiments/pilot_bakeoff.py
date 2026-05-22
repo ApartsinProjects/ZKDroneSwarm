@@ -38,10 +38,10 @@ def skill(Cls, hp, cfg, p, so, sb, m, n, d, T, cand, seeds):
 
 
 def main():
-    m, n, d, T, cand = 30, 240, 5, 50, 20
+    m, n, d, T, cand = 30, 120, 5, 50, 20
     so = 0.10
-    seeds = list(range(5))
-    base = dict(eps0=0.5, eps_min=0.05, eps_decay=0.93, als_sweeps=10, refit_every=2)
+    seeds = list(range(3))
+    base = dict(eps0=0.5, eps_min=0.05, eps_decay=0.93, als_sweeps=6, refit_every=3)
     methods = {
         "Tabular":  (Tabular,  dict(eps0=0.5, eps_min=0.05, eps_decay=0.93)),
         "RewardCF": (RewardCF, dict(**base)),
@@ -57,7 +57,8 @@ def main():
     print("=" * 92)
     print("C1: CF VARIANT BAKE-OFF (structure x observability). m=%d n=%d d=%d T=%d cand=%d %d seeds"
           % (m, n, d, T, cand, len(seeds)))
-    print("skill=(greedy-rand)/(oracle-rand). [*]=best in row. als_sweeps=10,refit_every=2.")
+    print("skill=(greedy-rand)/(oracle-rand). [*]=best in row. als_sweeps=%d,refit_every=%d."
+          % (base["als_sweeps"], base["refit_every"]))
     print("=" * 92)
     names = list(methods.keys())
     hdr = f"{'structure':12s} {'observability':14s} | " + " ".join(f"{nm:>9s}" for nm in names)

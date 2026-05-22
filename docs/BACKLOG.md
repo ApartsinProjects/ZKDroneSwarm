@@ -10,12 +10,19 @@ LEARNERS (cold-start = not-yet-learned, NOT malicious).
 VALIDITY FIX (critical): FULL broadcast -> every drone sees the same stream ->
 identical models -> decentralization is COSMETIC (one centralized learner x m).
 "No communication" is vacuous under full observability. FIX: observability must
-be LIMITED + HETEROGENEOUS so each drone has a UNIQUE state. Canonical model =
-SPATIAL proximity sensing (observe neighbors within range R; own always).
-Different neighborhoods -> different sparse sub-blocks of the global matrix ->
-unique states; each drone must COMPLETE unseen sub-blocks -> CF is THE tool,
-tabular at floor outside its neighborhood. Makes decentralization real AND is
-the strongest CF motivation. (Random masking K6 = simplified abstraction.)
+be LIMITED + HETEROGENEOUS so each drone has a UNIQUE state, but DECOUPLED FROM
+ACTION (any drone can still engage any target). Spatial sensing is DEFERRED
+(future) because sensing range would also imply ATTACK range -> constrained-
+assignment confound. PRIMARY mechanism = per-drone HETEROGENEOUS degradation of
+the OBSERVATION CHANNEL:
+  (1) MASKING (preferred): drone i registers only fraction rho_i of broadcast
+      events; PERSISTENT blind spots -> DURABLY unique states; targets i never
+      observes/pulls -> unseen -> must COMPLETE via CF (tabular at floor).
+      Motivation: lossy radios / packet loss / limited bandwidth / detection
+      dropout.
+  (2) ADDITIVE per-drone reward NOISE sigma_i: heterogeneous sensor quality;
+      transiently unique; noisy drones lean on structure (CF denoises).
+Makes decentralization REAL and motivates CF, without action coupling.
 
 METHOD: collaborative filtering via latent-space MATRIX DECOMPOSITION (+ variants).
 DESIGN SPACE = two axes:
@@ -98,13 +105,15 @@ decomposition: it PREDICTS UNSEEN agent-task pairs; tabular cannot.
   (Bayesian/RLS-with-Sigma) estimator (C6). Subsumes/elevates old B14
   (info-directed sampling). Diversify across drones via the broadcast (avoid
   re-probing what was just probed) to keep it decentralized.
-- [TODO] C11. *** CORE VALIDITY + GROUNDBREAKING *** SPATIAL / HETEROGENEOUS
-  OBSERVABILITY: each drone observes only neighbors within sensing range R (own
-  always) -> UNIQUE per-drone states (decentralization REAL), and each sees only
-  a sparse sub-block of the global matrix -> must COMPLETE it (CF essential;
-  tabular at floor on pairs outside its neighborhood). Sweep R (or mask rho).
-  Fixes the "broadcast = shared knowledge" hole AND is the strongest CF
-  motivation; composes with C8 (unseen pairs are now structurally forced).
+- [TODO] C11. *** CORE VALIDITY + GROUNDBREAKING *** HETEROGENEOUS OBSERVATION
+  CHANNEL (masking / additive noise; NOT spatial -> decoupled from action). Each
+  drone perceives a different masked/noisier slice of the broadcast (persistent
+  per-drone mask rho_i and/or sensor noise sigma_i) -> UNIQUE per-drone states
+  (decentralization REAL); cells a drone never observes -> unseen -> must
+  COMPLETE via CF (tabular at floor). Sweep rho_i / sigma_i. Fixes the
+  broadcast=shared hole AND is the strongest CF motivation; structurally forces
+  C8's unseen pairs. (Spatial observability-graph = FUTURE/parked: sensing range
+  would couple to attack range -> constrained-assignment confound.)
 - [TODO] C8. *** GROUNDBREAKING CANDIDATE *** Generalization / cold-start
   NEWCOMER (K1/K2 + M1/M2): in a decentralized swarm with NO communication, can
   a CF agent generalize to UNSEEN targets, and can a NEWCOMER act well from the
