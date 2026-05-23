@@ -19,9 +19,16 @@ hand-waved; where a step relies on an external theorem we name it.
 - Reference values for drone i: random ρ^rand_i = μ_i; oracle
   ρ^orac_i = E_S[ max_{j∈S} R_{ij} ]. For a policy with expected earned reward ρ,
   skill(ρ) = (ρ − μ_i)/(ρ^orac_i − μ_i) ∈ (−∞, 1], with 0 = random, 1 = oracle.
-- Observation channel: a public broadcast of events (k, a, R_{ka}+noise). Drone i
-  observes its own outcome (noise sd σ_own) and, subject to a mask, teammates'
-  outcomes (noise sd σ_obs). Masking models are defined in Section 4.
+- Observation channel: each round drone i privately SENSES a (masked) subset of the
+  round's engagements. Sensing is INDEPENDENT PER OBSERVER: drone i's record of drone
+  k's engagement is r̃^(i)_k = R_{k,a_k} + η^(i)_k, with η^(i)_k ~ N(0, σ²) drawn FRESH
+  per observer i, per observed k, per round (σ = σ_own for k=i, σ = σ_obs for k≠i,
+  subject to the mask M_{ik}). So the SAME action a_k is recorded with INDEPENDENT noise
+  by different observers, η^(i)_k ⟂ η^(i')_k for i≠i'; there is NO single shared
+  broadcast value (that would be a transmitted measurement, i.e. communication). This
+  per-observer independence (together with the per-observer mask) is exactly what yields
+  genuinely distinct per-drone internal states (state-uniqueness; Theorem 4). Masking
+  models are defined in Section 4.
 
 **Definition 1 (structure-free learner).** A learner for drone i is structure-free
 if, for every target j, its estimate R̂_{ij} is a measurable function ONLY of drone

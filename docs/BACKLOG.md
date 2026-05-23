@@ -380,10 +380,14 @@ H4 calibration.
   a COMPOSITIONAL-niche framing. TODO: fold the same cites into paper_v2/literature-review.
 
 ## BENCHMARK CANDIDATES (scouted; ranked) -- non-trivial MRTA/MARL baselines to add
-- [Rank1, BUILD] CBBA-lite (broadcast-bid greedy/market auction): canonical MRTA baseline with the
-  consensus/comms step REMOVED -> each drone bids on the public broadcast using its CF-predicted
-  utility; contention resolved via public info only. Reviewers will expect it; stress-tests our
-  fixed-private-offset de-confliction vs the field's standard primitive under capacity-1 contention.
+- [DONE (cycle 64), WE WIN at severe contention] CBBA-lite (broadcast-bid greedy/market auction):
+  canonical MRTA baseline, consensus/comms step REMOVED. Implemented as CBBALite(RewardCF) in
+  pilot_noise.py (same CF utility; reactive public-loss BACKOFF) + pilot_contention.py 9-method sweep
+  (results row 57). RESULT (pool=15 earned): ours 0.100-0.105 > CBBAlite 0.064 (non-overlapping CIs);
+  CBBAlite competitive at no/low contention (pool=240 0.464, lowest collisions). MusicalChairs
+  (SIC-MMAB re-seating, scout Rank4) also DONE: 0.028 at pool=15 (worst; re-seating adds collisions).
+  Both field primitives beaten by the proactive-static private offset (T7). Folded into paper §5 menu
+  + related-work. (Pure tabular multiplayer-MAB = UCBIndep, already present.)
 - [Rank2] Per-agent CLUB/COFIBA (clustering-of-bandits run LOCALLY on the broadcast, cluster on the
   CF-estimated latent factors since we lack context features): strongest structure-exploiting non-MF
   baseline; tests clustering(discrete) vs factorization(continuous) in our regime.
@@ -396,6 +400,54 @@ H4 calibration.
   bracket (NOT ZK-admissible), shows how much the no-comms constraint costs.
 - INADMISSIBLE (state+dismiss): MAPPO/QMIX/VDN (centralized training), LinUCB/COFIBA-with-features
   (need context features), BanditMF (~= our BPMF), CBBA-with-consensus (needs comms).
+
+## MARL PERSPECTIVE (analysis 2026-05-23; framing + baselines + improvements)
+WHAT THIS IS, in MARL terms: a COOPERATIVE, DECENTRALIZED, COMMUNICATION-FREE multi-agent
+BANDIT with low-rank structure (a "multiplayer matrix / low-rank bandit"), NOT a sequential
+Markov game (reward R[i,j]=<p_i,u_j> is stateless, no transitions). Family = multi-agent MAB +
+matrix factorization, under the Dec-POMDP umbrella but degenerate in the transition dim. State
+this crisply in the paper to preempt "why not MAPPO?".
+- [PAPER FRAMING, TODO] Add a short "MARL view" paragraph: (a) Independent learners (IQL /
+  independent UCB) = our UCBIndep/Tabular = NO shared structure -> provably floor on unseen (Thm 1);
+  so "independent MARL = structure-free = categorical floor". (b) Broadcast-CF = DECENTRALIZED
+  MODEL-BASED MARL whose shared "world model" is the low-rank reward matrix, learned collectively but
+  estimated independently = emergent coordination WITHOUT communication. (c) Our broadcast is PASSIVE
+  OBSERVATION, not learned messaging (contrast CommNet/TarMAC/DIAL). (d) ChoiceEM = decentralized
+  TEAMMATE MODELING ("what do others know?"); held-out gamma = teammate-competence estimator.
+  (e) Fixed-private-offset (T7) = decentralized symmetry-breaking in a congestion/matching game.
+- [BASELINE, Rank4 = TOP MARL] SIC-MMAB / musical-chairs: the MARL-NATIVE no-comms multiplayer-MAB
+  matcher; pairs with CBBA-lite (auction side) to bracket the field's two standard comms-free
+  de-confliction primitives. Build next after CBBA-lite folds in.
+- [BASELINE, BRACKET] CTDE "ceiling": a centralized matcher WITH a shared model, reported like the
+  oracle (NOT a competitor), to quantify the cost of the no-comms constraint from the MARL side.
+  (Overlaps Rank5 Hungarian bracket; can be the same row.)
+- [IMPROVEMENT, MARL-flavored] Coordinated / negative-correlation exploration: down-weight exploring
+  a target you have SEEN teammates already probe in the broadcast, so the swarm DIVIDES exploration
+  without comms. We partly have this (H1 collective-UCB / count-bonus); a cleaner version is a
+  genuinely MARL coordination upgrade. Test vs eps-greedy + count-bonus on anytime + fresh-arrival.
+
+## *** [DONE cycle 64] WIN ACHIEVED *** UnifiedCF+ab best-or-tied EVERYWHERE
+RESULT (8 seeds, results row 56): the ABUNDANCE GATE (abundance_k=4: damp UCB when offer>4m, opt-in)
+CLOSES the only residual. pool=240 earned 0.344 -> 0.425 [0.406,0.444] (ties greedy 0.439 / AdaCF
+0.448, overlapping CIs) WHILE the 4 small-offer regimes are byte-identical (gate fires only at
+offer>120): anytime 0.437, churn active 0.851 / recent 0.347, contention pool=15 0.104. UnifiedCF+ab
+is best-or-statistically-tied in ALL 5 regime-metrics -> the design space collapses to ONE method,
+no per-regime tuning. (The recommended UnifiedCF config sets abundance_k=4; default stays None so the
+pilot_unified ablation keeps a clean with/without column.) TODO: fold this into paper/tutorial.
+Original PLAN (kept for the record):
+The ONLY loss is pool=240 no-contention EARNED reward (UnifiedCF 0.344 vs greedy/ContentionAdaCF
+~0.44). Cause: exploration anneal is gated on LOSS only, so at ~0 loss the UCB bonus never anneals
+and finite-horizon exploration spends earned reward it cannot cash back. PLAN (implement+test in
+pilot_unified.py / UnifiedCF in pilot_noise.py), keep the 4 existing ties:
+- (a) FINITE-HORIZON anneal (recommended, principled): beta_eff *= sqrt(max(T-t,0)/T) so late-episode
+  exploration vanishes (value of information -> 0 near the horizon). Needs T threaded to the learner.
+- (b) SCARCITY gate (P13 envelope): also reduce exploration when offer is abundant (offer >> m); best
+  combined with (a) since scarcity alone cannot separate pool=240 from the anytime-shared regime.
+- (c) CONFIDENCE gate: drop the UCB bonus once the top candidate's EMCF predictive sd < threshold
+  ("explore until confident, then exploit"). Mild unseen-tail risk; test.
+- WIN CONDITION: pool=240 earned -> ~0.44 (matches greedy) WHILE standard anytime ~0.437, churn
+  active ~0.851 / recent ~0.347, contention pool=15 ~0.104 all HOLD (non-overlapping-CI ties). If so,
+  upgrade the H3 claim to "one method, best-or-tied EVERYWHERE" (drop the honest-residual caveat).
 
 ## NEGATIVE / WEAK RESULTS: root cause + fix (2026-05-23 rigor review)
 All results below use >=6 seeds + bootstrap 95% CIs (single-seed numbers were only

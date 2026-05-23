@@ -795,12 +795,21 @@ class UnifiedCF(EMCF):
     the specialist methods in every regime (unseen, anytime, contention, churn). The choice
     channel (Section 5.6) stays a separate optional module: it is a different (no-teammate-
     reward) channel for the extreme-noise / unreliable-teammate niche, not part of this union."""
-    def __init__(self, *a, eps_hi=0.8, lr=0.15, coll_pow=2.0, beta_anneal=0.5, **hp):
+    def __init__(self, *a, eps_hi=0.8, lr=0.15, coll_pow=2.0, beta_anneal=0.5,
+                 horizon=None, abundance_k=None, **hp):
         super().__init__(*a, **hp)
         self.dir = self.rng.randn(self.n)          # fixed private symmetry-breaking direction
         self.eps_hi = eps_hi; self.lr = lr; self.coll_pow = coll_pow
         self.beta_anneal = beta_anneal             # loss at which UCB exploration is fully damped
         self.loss_ema = 0.0                         # 0 until the drone actually loses contests
+        # OPT-IN refinements to close the no-contention earned-reward residual (default None = OFF
+        # so the committed H3 result is unchanged). horizon: finite-horizon exploration anneal
+        # (value of information -> 0 near the end of the episode). abundance_k: damp UCB when the
+        # offer is plentiful (|S| > abundance_k * m) -- nothing to explore-for-coverage there, so
+        # exploit (eps-greedy floor), recovering earned reward at no-contention WITHOUT touching
+        # the small-offer regimes (anytime/churn use CAND << abundance_k*m, so the gate never fires).
+        self.horizon = horizon
+        self.abundance_k = abundance_k
 
     def select(self, t, cand):
         cand = np.asarray(cand)
@@ -809,12 +818,21 @@ class UnifiedCF(EMCF):
         # when targets are plentiful, EXPLOIT + de-conflict when contested (exploration wastes
         # scarce capacity under matching). beta_eff -> 0 as loss_ema -> beta_anneal.
         beta_eff = self.em_beta * max(0.0, 1.0 - self.loss_ema / max(self.beta_anneal, 1e-9))
+        if self.horizon:                                       # finite-horizon: VoI -> 0 near the end
+            beta_eff *= float(np.sqrt(max(self.horizon - t, 0.0) / self.horizon))
+        abundant = bool(self.abundance_k) and len(cand) > self.abundance_k * self.m
+        if abundant:                                          # plentiful offers: exploit, don't explore
+            beta_eff = 0.0
         if beta_eff > 0:                                       # EMCF predictive-variance UCB (annealed)
             var = (self._collvar() if self.coll else self._predvar())[cand]
             s = s + beta_eff * np.sqrt(var)
         scale = self.eps_hi * (self.loss_ema ** self.coll_pow)  # loss-gated de-confliction offset
         if scale > 1e-9:
             s = s + scale * self.dir[cand]
+        if abundant and scale <= 1e-9 and self.rng.rand() < self.eps:
+            a = int(cand[self.rng.randint(len(cand))])         # eps-greedy floor at no-contention
+            self.pulled[a] = True
+            return a
         s = s + 1e-6 * self.rng.randn(len(cand))               # tie-break jitter
         a = int(cand[int(np.argmax(s))])
         self.pulled[a] = True
@@ -823,6 +841,74 @@ class UnifiedCF(EMCF):
     def observe(self, t, choices, revealed, cand_sets, rvar):
         lost = 1.0 if (self.idx < len(choices) and int(choices[self.idx]) == -1) else 0.0
         self.loss_ema = (1.0 - self.lr) * self.loss_ema + self.lr * lost
+        super().observe(t, choices, revealed, cand_sets, rvar)
+
+
+class CBBALite(RewardCF):
+    """BASELINE (field primitive, NOT ours): decentralized greedy market-auction in the
+    spirit of CBBA, with the consensus/communication step REMOVED (pure no-comms). Each
+    drone bids on the public offer pool using its OWN CF-predicted utility (same model
+    class as RewardCF, so the comparison isolates the de-confliction primitive), and
+    resolves contention via PUBLIC INFO ONLY: it backs off targets it RECENTLY LOST
+    (a reactive, history-dependent penalty that decays over rounds). This is the
+    standard auction-with-backoff de-confliction. Contrast with our ContentionCF /
+    ContentionAdaptiveCF, which break symmetry with a fixed PRIVATE per-drone offset
+    (proactive + static, Theorem 7); the experiment asks whether reactive-shared backoff
+    or proactive-private offset spreads drones better under capacity-1 contention."""
+    def __init__(self, *a, backoff=0.6, decay=0.8, **hp):
+        super().__init__(*a, **hp)
+        self.backoff = backoff           # penalty added to a target the drone just lost
+        self.decay = decay               # geometric decay of the penalty per round
+        self.pen = np.zeros(self.n)      # per-target reactive loss penalty (public-info only)
+        self.last = -1                   # the target this drone bid on last round
+
+    def select(self, t, cand):
+        cand = np.asarray(cand)
+        if self.rng.rand() < self.eps:
+            a = int(cand[self.rng.randint(len(cand))])
+        else:
+            score = self.U[cand] @ self.P[self.idx] - self.pen[cand]   # CF utility minus backoff
+            a = int(cand[int(np.argmax(score))])
+        self.last = a; self.pulled[a] = True
+        return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        self.pen *= self.decay                                          # penalties fade
+        if self.idx < len(choices) and int(choices[self.idx]) == -1 and self.last >= 0:
+            self.pen[self.last] += self.backoff                        # lost my bid -> avoid that target
+        super().observe(t, choices, revealed, cand_sets, rvar)
+
+
+class MusicalChairs(RewardCF):
+    """BASELINE (multiplayer-MAB primitive, NOT ours): the no-comms collision response of the
+    musical-chairs / SIC-MMAB family. Uses the SAME CF-predicted utility as RewardCF (so the
+    comparison isolates the DE-CONFLICTION primitive, not the utility model), but resolves
+    contention by RANDOMIZED RE-SEATING: while it keeps WINNING it exploits its CF-argmax
+    ('stays in its chair'); the round AFTER it LOSES a contest it re-samples UNIFORMLY among its
+    top-k CF targets in the current offer (grabs a fresh chair), so colliding drones scatter
+    stochastically. Contrast CBBALite (persistent reactive backoff penalty) and our fixed-PRIVATE
+    -offset ContentionCF (proactive + STATIC symmetry-breaking, Theorem 7). Pure multiplayer-MAB
+    on tabular utility is just UCBIndep (no de-confliction); this isolates the chairs response."""
+    def __init__(self, *a, topk=5, reseat_p=1.0, **hp):
+        super().__init__(*a, **hp)
+        self.topk = topk; self.reseat_p = reseat_p
+        self.seated = True                          # True = exploit; False = re-seat next round
+
+    def select(self, t, cand):
+        cand = np.asarray(cand)
+        util = self.U[cand] @ self.P[self.idx]
+        if self.seated or self.rng.rand() >= self.reseat_p:
+            a = int(cand[int(np.argmax(util))])                        # stay seated: exploit CF-argmax
+        else:
+            k = min(self.topk, len(cand))
+            top = np.argpartition(-util, k - 1)[:k]                    # top-k CF targets in the offer
+            a = int(cand[int(top[self.rng.randint(k)])])              # re-seat: uniform among top-k
+        self.pulled[a] = True
+        return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        if self.idx < len(choices):
+            self.seated = (int(choices[self.idx]) != -1)              # won -> seated; lost -> re-seat
         super().observe(t, choices, revealed, cand_sets, rvar)
 
 

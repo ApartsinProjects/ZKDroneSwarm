@@ -192,3 +192,69 @@ channels add noise, choice channels mask to -1, dual-channel harnesses mask both
 consistently); the `OracleMate` actor in the heterogeneous-teammate sanity is an
 ENVIRONMENT actor (excluded from learning and from all metrics), used only to shape
 the public broadcast. HARNESS SIDE: CLEAN after the E7 fix.
+
+## Baseline-fairness audit (cycle 64): do the COMPETITORS cheat?
+
+Question: is any baseline exposed to information it should not have (true rank,
+ground-truth factors/reward matrix, an unmasked or de-noised broadcast, a centralized
+pool), which would make it UNFAIRLY strong? Audited every class in pilot_baselines.py
+(Random, UCBIndep, UCBHomo, MFSGD, ESTR, PTF, BPMF, BiasModel, KNNCF, SoftImpute) plus
+Tabular (pilot_noise) and the new CBBALite, against how the headline harnesses build
+and feed them.
+
+THE INTERFACE CLOSES THE LEAK BY CONSTRUCTION. Every learner is created as
+`Cls(m, n, d_hat, idx, seed, **hp)` and thereafter receives data ONLY through
+`observe(t, choices, revealed, cand_sets, rvar)`. The true `R`, `P`, `U`, rank `d`, and
+type labels are NEVER passed to any constructor or method. `revealed` is the
+harness-masked, noise-added outcome stream. So a learner structurally CANNOT read the
+ground truth; the only fairness lever is the single scalar `d_hat`.
+
+| baseline | factor dim | learns from | reads true R/P/U? | verdict |
+|---|---|---|---|---|
+| Random | n/a | nothing (rng scores) | no | fair floor |
+| UCBIndep / UCBHomo | n/a (tabular) | observed `revealed` (own + broadcast) | no | fair; floor on unseen by design |
+| Tabular | n/a | own observed reward only | no | fair |
+| MFSGD | d_hat | observed `revealed` (SGD-MF) | no | fair |
+| ESTR | d_hat | SVD of its OWN observed R_hat (=sum/cnt) | no (R_hat is observed, not true) | fair; PER-DRONE (not centralized) |
+| PTF | d_hat | own-row UCB probe -> SVD of observed R_hat -> online SGD | no | fair (see clip note) |
+| BPMF | d_hat | conjugate posterior from `revealed` + `rvar` | no | fair |
+| BiasModel | rank<=2 | observed mu+b_i+c_j | no | fair (additive-only by design) |
+| KNNCF | n/a (memory) | observed user-user similarity | no | fair |
+| SoftImpute | ~d_hat | nuclear-norm completion of observed matrix | no | fair |
+| CBBALite | d_hat | RewardCF utility (observed) + reactive backoff | no | fair (same CF utility as ours) |
+
+Key confirmations:
+- RANK IS d_hat=8 FOR ALL, IN EVERY HEADLINE. run_masked (pilot_c11_masking:32),
+  run_anytime_clshp (pilot_anytime:44,51), pilot_compare (D_HAT=8 -> run_masked),
+  pilot_crossover, and pilot_contention (pc.D_HAT) all pass d_hat, never the true d=5.
+  No structured baseline ever gets the true rank in a reported result.
+- LOW-RANK BASELINES FACTORIZE THEIR OWN OBSERVED MATRIX, not the truth: every SVD/fit
+  is over `R_hat = sum/cnt` accumulated from the masked broadcast (ESTR._svd, PTF._warm,
+  SoftImpute._impute, KNNCF, BiasModel._fit). Grep confirms `R` (the true matrix) is
+  never in scope inside any baseline.
+- SAME MASKED BROADCAST: every baseline's observe loops `if not np.isnan(revealed[k])`,
+  i.e. consumes exactly the harness-masked, noised stream our methods get. No baseline
+  sees an unmasked or de-noised view.
+- ESTR IS DECENTRALIZED HERE: each ESTR instance builds its own R_hat from its own
+  observed broadcast and scores its own row; the "centralized" in its docstring is the
+  literature default, which our per-drone port does NOT use (so our ESTR is, if anything,
+  WEAKER than the canonical one -- conservative for our claims).
+
+Minor, non-cheating notes (flagged for completeness; all are either neutral or GENEROUS
+to the baseline, i.e. conservative for our wins):
+- Exploration schedules are per-method (MFSGD/PTF eps=0.15, BiasModel/KNN/SoftImpute
+  eps=0.2, UCB c=2.0, ours eps0=0.5 decaying). This is hyperparameter heterogeneity, not
+  information access; the earlier "same schedule" wording referred to our own family.
+- PTF/ESTR clip observed R_hat to the known reward range [-1,1] before SVD. This uses the
+  structural bound (cosine reward in [-1,1]), not ground-truth values; it mildly DENOISES
+  the baseline (helps it), so it cannot inflate our advantage.
+- BPMF seeds its factor init from idx only (not the per-run seed), so its init is fixed
+  across seeds. Random (not ground-truth) init; a reproducibility quirk, not a cheat.
+- The true-d run_episode diagnostics give ALL methods (ours + baselines) the true rank;
+  symmetric within those (oracle-rank) diagnostics and NOT used in any headline (see the
+  harness audit above; now documented + d_hat-overridable).
+
+CONCLUSION (baseline side): no competitor is exposed to privileged information. Rank is
+the guessed d_hat for all; low-rank baselines complete their own observed matrix; the
+broadcast is identically masked and noised; ESTR is decentralized. The few asymmetries
+that exist are GENEROUS to the baselines, so our reported gaps are conservative.

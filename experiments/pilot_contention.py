@@ -29,7 +29,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 sys.stdout.reconfigure(encoding="utf-8")
 
 import pilot_compare as pc
-from pilot_noise import RewardCF, ActiveCF, ContentionCF, ContentionAdaptiveCF
+from pilot_noise import RewardCF, ActiveCF, ContentionCF, ContentionAdaptiveCF, CBBALite, MusicalChairs
 from pilot_baselines import Random, UCBIndep, PTF
 from core import make_world
 from _results_io import save_results
@@ -49,11 +49,13 @@ REG = {
     "ContentionCF": (ContentionCF, dict(eps_break=0.1, **_CONV)),  # fixed-offset symmetry breaking
     "ActiveCFconv": (ActiveCF,  dict(c_active=0.5, **_CONV)),
     "RewardCFconv": (RewardCF,  dict(**_CONV)),
+    "CBBAlite":     (CBBALite,  dict(backoff=0.6, decay=0.8, **_CONV)),  # field auction+backoff baseline
+    "MusicalChairs": (MusicalChairs, dict(topk=5, reseat_p=1.0, **_CONV)),  # multiplayer-MAB re-seating
     "UCBIndep":     (UCBIndep,  dict(c=2.0)),
     "PTF":          pc.REGISTRY["PTF"],
     "Random":       (Random,    {}),
 }
-ORDER = ["ContentionAdaCF", "ContentionCF", "ActiveCFconv", "RewardCFconv", "PTF", "UCBIndep", "Random"]
+ORDER = ["ContentionAdaCF", "ContentionCF", "CBBAlite", "MusicalChairs", "ActiveCFconv", "RewardCFconv", "PTF", "UCBIndep", "Random"]
 POOLS = [240, 60, 30, 15]          # n=240 (~no contention) -> 15 (severe; < m=30)
 RHO = 1.0                          # full broadcast: ISOLATE contention from masking
 SEEDS = list(range(8))
@@ -234,6 +236,24 @@ def main():
              "learned model; the OPERATIONAL earned-reward gap narrows as collisions, not "
              "preferences, become the bottleneck, yet CF still leads by spreading drones "
              "across targets via diverse, accurate preferences (lower collision rate).\n")
+    if "CBBAlite" in ORDER and "ContentionAdaCF" in ORDER:
+        p_sev = str(min(POOLS))
+        ada = float(np.mean(raw[p_sev]["ContentionAdaCF"]["anytime"]))
+        cbba = float(np.mean(raw[p_sev]["CBBAlite"]["anytime"]))
+        greedy = float(np.mean(raw[p_sev]["RewardCFconv"]["anytime"]))
+        verdict = ("our proactive private-offset de-confliction BEATS the reactive auction-with-backoff"
+                   if ada > cbba + 1e-6 else
+                   "the reactive auction-with-backoff matches or beats our private offset")
+        L.append("De-confliction primitive (a recognized MRTA baseline). CBBAlite is the canonical "
+                 "consensus-based auction (CBBA) with the comms/consensus step REMOVED: each drone "
+                 "bids its OWN CF-predicted utility on the public pool (identical model class to "
+                 "RewardCF) and de-conflicts by a reactive, public-loss BACKOFF. It isolates the "
+                 "de-confliction primitive against our fixed PRIVATE per-drone offset (Theorem 7). "
+                 "At severe contention (pool=%s): ContentionAdaCF %.3f vs CBBAlite %.3f vs greedy "
+                 "RewardCFconv %.3f earned. Reading: %s -- a proactive STATIC private offset spreads "
+                 "drones once and for all, whereas a reactive SHARED backoff makes all colliders flee "
+                 "the same target together, re-synchronizing them.\n"
+                 % (p_sev, ada, cbba, greedy, verdict))
 
     out_md = os.path.join(ROOT, "docs", "CONTENTION.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)

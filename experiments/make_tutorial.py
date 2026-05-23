@@ -472,6 +472,15 @@ A("<div class='formal'><h4>Observation model (exact)</h4>"
   "\\ \\text{(own, clean)}\\\\[2pt] R_{k,a_k^t} + \\mathcal{N}(0,\\sigma_{\\mathrm{obs}}^2) & k\\neq i,\\ "
   "M_{ik}=1 \\ \\text{(teammate, sensed)}\\\\[2pt] \\text{unobserved} & k\\neq i,\\ M_{ik}=0 \\ "
   "\\text{(masked)} \\end{cases} $$"
+  "<p><b>The noise is independent per observer (the superscript $(i)$ is essential).</b> Each drone "
+  "$i$ draws its OWN noise on each engagement and applies its OWN mask $M_{ik}$, so for two observers "
+  "$i\\neq i'$ the values recorded for the SAME action $a_k^t$ differ: "
+  "$\\tilde r^{(i)}_{k,t}=R_{k,a_k^t}+\\eta^{(i)}_{k,t}$ and $\\tilde r^{(i')}_{k,t}=R_{k,a_k^t}+"
+  "\\eta^{(i')}_{k,t}$ with $\\eta^{(i)}_{k,t}\\perp\\eta^{(i')}_{k,t}$, both $\\sim\\mathcal{N}(0,"
+  "\\sigma_{\\mathrm{obs}}^2)$ and redrawn every round. There is NO single shared 'broadcast number': "
+  "the stream is what each drone privately SENSES, not a value any drone transmits. This independent "
+  "per-drone sensing (plus the per-drone mask) is exactly why no two drones hold the same internal "
+  "state, and why the channel is genuinely passive/communication-free.</p>"
   "<p>The recorded precision of each observation is $\\beta = 1/\\sigma^2$ (so "
   "$\\beta_{\\mathrm{own}} = 1/\\sigma_{\\mathrm{own}}^2$, $\\beta_{\\mathrm{obs}} = "
   "1/\\sigma_{\\mathrm{obs}}^2$). Two masking regimes: PERSISTENT ($M$ drawn once, "
@@ -490,8 +499,12 @@ A(plain("The big curly-brace formula is just three cases for 'what number does d
         "you trust a number': low noise, high precision, trust it; high noise, low precision, take it "
         "with a grain of salt. 'Persistent' masking means each drone is permanently deaf to the same "
         "teammates; 'i.i.d.' means the deafness is re-rolled every round (like dropped radio packets), "
-        "both give the same headline result. Crucially, the tuple has no hidden factors or types in it, "
-        "only who-did-what-and-got-what, which is why the setting is genuinely zero-knowledge."))
+        "both give the same headline result. The little $(i)$ on top matters: each drone hears the same "
+        "event through its OWN imperfect ears, so two drones watching the SAME teammate grab the SAME "
+        "target jot down DIFFERENT numbers (independent noise), and a drone that did not detect it jots "
+        "down nothing. Nobody is broadcasting one agreed value; each just senses for itself, which is "
+        "what makes their internal pictures genuinely differ. Crucially, the tuple has no hidden factors "
+        "or types in it, only who-did-what-and-got-what, which is why the setting is zero-knowledge."))
 A("<div class='box'>Masking is <em>passive sensing of public outcomes</em> (limited detection), NOT "
   "radio transmission, so the setting is genuinely communication-free. Persistent (fixed) per-drone "
   "masks make decentralization durable; i.i.d. per-round masks (packet-loss style) give the same "
@@ -1940,6 +1953,44 @@ A("<p><b>Why this matters.</b> These three conditions are precisely the situatio
   "in (hidden compatibility with a few factors, way more targets than rounds, a public outcome "
   "stream), which is why CF wins here, and they honestly explain the cases where it would NOT, "
   "pre-empting the reasonable question 'is this always better?' with a clear no-and-here-is-when.</p>")
+
+A("<h3>8.16 The menu composes into ONE method (UnifiedCF capstone)</h3>")
+A("<p>Sections 5 and 8.12-8.15 presented a single core estimator plus a MENU of scoped refinements, "
+  "each helping only under a stated condition. A fair question: must a practitioner pick the right "
+  "extension per situation? No. The extensions COMPOSE into one self-tuning policy, <b>UnifiedCF</b>, "
+  "because each one gates itself on a quantity the drone can observe, and switches itself off when its "
+  "condition is absent.</p>")
+A("<ul>"
+  "<li><b>Confidence core (EMCF):</b> predictive-variance exploration + optional ARD rank "
+  "self-determination, always on (it is the core).</li>"
+  "<li><b>De-confliction offset (8.13):</b> a fixed PRIVATE per-target offset whose strength scales "
+  "with the drone's OWN observed loss rate, so it is exactly 0 until the drone actually starts losing "
+  "contests, and engages only under real contention (Theorem 7).</li>"
+  "<li><b>Exploration gate:</b> the same loss signal damps exploration when the drone is losing "
+  "(exploring wastes scarce capacity), and an ABUNDANCE gate also damps it when the offer is plentiful "
+  "($|S|>4m$, nothing left to explore-for-coverage), so it exploits when targets are abundant.</li>"
+  "</ul>")
+A("<p>On the SAME 8 seeds, with ONE configuration and no per-regime tuning, UnifiedCF is "
+  "best-or-statistically-tied in every regime-metric we measure:</p>")
+A("<table><tr><th class='l'>Regime (metric)</th><th>UnifiedCF</th><th>per-regime specialist</th><th>verdict</th></tr>"
+  "<tr><td class='l'>Standard (anytime skill)</td><td>0.437</td><td>EMCF 0.433</td><td>tie</td></tr>"
+  "<tr><td class='l'>Churn (active-set skill)</td><td>0.851</td><td>EMCF 0.842</td><td>tie / edge</td></tr>"
+  "<tr><td class='l'>Churn (recent arrivals)</td><td>0.347</td><td>EMCF 0.371</td><td>tie</td></tr>"
+  "<tr><td class='l'>Contention $|S|{=}15$ (earned)</td><td>0.104</td><td>AdaCF 0.100 / greedy 0.059</td><td>tie / $\\approx2\\times$ greedy</td></tr>"
+  "<tr><td class='l'>Contention $|S|{=}240$ (earned)</td><td>0.425</td><td>greedy 0.439 / AdaCF 0.448</td><td>tie (overlapping CIs)</td></tr>"
+  "</table>")
+A(plain("The last row is the one that took work. Without the abundance gate, UnifiedCF kept exploring "
+        "even when there was no contention and plenty of targets, and that exploration cost earned "
+        "reward it had no time to recoup, so it scored only $0.344$ there while a plain greedy policy "
+        "got $\\sim0.44$. The fix is the abundance gate: when the offer is much larger than the swarm "
+        "($|S|>4m$) there is nothing to spread out over, so the method just exploits its best target. "
+        "Crucially that gate fires ONLY in that no-contention regime (everywhere else the offer is "
+        "small, so the other four rows are byte-for-byte unchanged), which is why we close the one gap "
+        "WITHOUT disturbing the four ties."))
+A("<p><b>Why it matters.</b> The design space does not merely reduce to 'a core plus a menu', it "
+  "collapses to a SINGLE deployable policy that adapts itself to the regime it finds itself in "
+  "(plentiful vs contested targets, stationary vs churning, clean vs noisy), with no knob the operator "
+  "must set per situation. That is the strongest form of the consolidation argument.</p>")
 
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "

@@ -33,6 +33,11 @@ RHO = 1.0
 
 UNI = dict(em_beta=1.5, em_sweeps=8, refit_every=2, eps_hi=0.8, lr=0.15, coll_pow=2.0,
            beta_anneal=0.4, eps0=0.5, eps_min=0.05, eps_decay=0.97)
+# WIN variant: + abundance gate. When the offer is plentiful (|S| > 4*m = 120) there is nothing
+# to explore-for-coverage, so damp UCB and fall back to eps-greedy -> recover earned reward at
+# no-contention (pool=240). The anytime + churn harnesses use cand=20 << 120, so the gate NEVER
+# fires there: the 4 existing ties take the identical code path and must be preserved.
+UNIW = dict(UNI, abundance_k=4.0)
 EM = dict(em_beta=1.5, em_sweeps=8, refit_every=2, eps0=0.5, eps_min=0.05, eps_decay=0.97)
 ADA = pcon.REG["ContentionAdaCF"][1]
 GREEDY = pcon.REG["RewardCFconv"][1]
@@ -42,11 +47,14 @@ RNG = np.random.RandomState(0)
 def _job(seed):
     o = {}
     o["std_any_uni"] = pa.run_anytime_clshp(UnifiedCF, UNI, RHO, seed)[-1]
+    o["std_any_uniw"] = pa.run_anytime_clshp(UnifiedCF, UNIW, RHO, seed)[-1]
     o["std_any_em"] = pa.run_anytime_clshp(EMCF, EM, RHO, seed)[-1]
     o["chu_act_uni"], o["chu_rec_uni"] = pch._run(UnifiedCF, UNI, seed)
+    o["chu_act_uniw"], o["chu_rec_uniw"] = pch._run(UnifiedCF, UNIW, seed)
     o["chu_act_em"], o["chu_rec_em"] = pch._run(EMCF, EM, seed)
     for pool in (15, 240):
         o["con%d_uni" % pool] = pcon.run_contention(UnifiedCF, UNI, RHO, pool, seed)[0]
+        o["con%d_uniw" % pool] = pcon.run_contention(UnifiedCF, UNIW, RHO, pool, seed)[0]
         o["con%d_ada" % pool] = pcon.run_contention(ContentionAdaptiveCF, ADA, RHO, pool, seed)[0]
         o["con%d_grd" % pool] = pcon.run_contention(*pcon.REG["RewardCFconv"], RHO, pool, seed)[0]
     return seed, o
@@ -63,8 +71,10 @@ def cell(vals):
 
 
 def main():
-    keys = ["std_any_uni", "std_any_em", "chu_act_uni", "chu_rec_uni", "chu_act_em", "chu_rec_em",
-            "con15_uni", "con15_ada", "con15_grd", "con240_uni", "con240_ada", "con240_grd"]
+    keys = ["std_any_uni", "std_any_uniw", "std_any_em",
+            "chu_act_uni", "chu_rec_uni", "chu_act_uniw", "chu_rec_uniw", "chu_act_em", "chu_rec_em",
+            "con15_uni", "con15_uniw", "con15_ada", "con15_grd",
+            "con240_uni", "con240_uniw", "con240_ada", "con240_grd"]
     raw = {k: [None] * len(SEEDS) for k in keys}
     with ProcessPoolExecutor(max_workers=4) as ex:
         futs = {ex.submit(_job, s): s for s in SEEDS}
@@ -85,23 +95,41 @@ def main():
     L = ["# H3: UnifiedCF capstone validation (one method, best-or-tied across regimes)\n",
          "UnifiedCF (EMCF + loss-self-gating de-confliction offset + loss-gated exploration anneal) vs "
          "the per-regime specialist, SAME 8 seeds, bootstrap 95%% CI. rho=%.1f.\n" % RHO]
+    L.append("UnifiedCF = the committed H3 method; UnifiedCF+ab = same method with the abundance "
+             "gate ON (abundance_k=4: damp UCB when |offer| > 4m). The gate fires ONLY at no-contention "
+             "pool=240 (offer=240>120); the anytime/churn/pool<=60 regimes use offer=20<120 so they "
+             "take the identical code path (ties must be preserved by construction).\n")
     L.append("## STANDARD (no contention): anytime skill\n")
-    L.append("| UnifiedCF | EMCF (specialist) |\n|---|---|")
-    L.append("| %s | %s |\n" % (cell(raw["std_any_uni"]), cell(raw["std_any_em"])))
+    L.append("| UnifiedCF | UnifiedCF+ab | EMCF (specialist) |\n|---|---|---|")
+    L.append("| %s | %s | %s |\n" % (cell(raw["std_any_uni"]), cell(raw["std_any_uniw"]), cell(raw["std_any_em"])))
     L.append("## CHURN: active-set / recent-arrival skill\n")
-    L.append("| metric | UnifiedCF | EMCF (specialist) |\n|---|---|---|")
-    L.append("| active | %s | %s |" % (cell(raw["chu_act_uni"]), cell(raw["chu_act_em"])))
-    L.append("| recent | %s | %s |\n" % (cell(raw["chu_rec_uni"]), cell(raw["chu_rec_em"])))
+    L.append("| metric | UnifiedCF | UnifiedCF+ab | EMCF (specialist) |\n|---|---|---|---|")
+    L.append("| active | %s | %s | %s |" % (cell(raw["chu_act_uni"]), cell(raw["chu_act_uniw"]), cell(raw["chu_act_em"])))
+    L.append("| recent | %s | %s | %s |\n" % (cell(raw["chu_rec_uni"]), cell(raw["chu_rec_uniw"]), cell(raw["chu_rec_em"])))
     L.append("## CONTENTION: earned-reward skill\n")
-    L.append("| pool | UnifiedCF | ContentionAdaCF (specialist) | greedy RewardCFconv |\n|---|---|---|---|")
+    L.append("| pool | UnifiedCF | UnifiedCF+ab | ContentionAdaCF (specialist) | greedy RewardCFconv |\n|---|---|---|---|---|")
     for pool in (15, 240):
-        L.append("| %d | %s | %s | %s |" % (pool, cell(raw["con%d_uni" % pool]),
-                                            cell(raw["con%d_ada" % pool]), cell(raw["con%d_grd" % pool])))
+        L.append("| %d | %s | %s | %s | %s |" % (pool, cell(raw["con%d_uni" % pool]), cell(raw["con%d_uniw" % pool]),
+                                                 cell(raw["con%d_ada" % pool]), cell(raw["con%d_grd" % pool])))
     L.append("")
-    L.append("Read: UnifiedCF should TIE EMCF on standard+churn (it reduces to EMCF when the drone "
-             "never loses) and TIE-or-beat ContentionAdaCF / greedy under contention (it self-engages "
-             "the offset and anneals exploration when it starts losing). One method, no per-regime "
-             "tuning, best-or-statistically-tied everywhere = the design space collapses to one method.\n")
+    # data-driven verdict on the WIN: did the abundance gate close pool=240 while holding the ties?
+    p240w = float(np.mean([v for v in raw["con240_uniw"] if v is not None]))
+    p240u = float(np.mean([v for v in raw["con240_uni"] if v is not None]))
+    p240g = float(np.mean([v for v in raw["con240_grd"] if v is not None]))
+    p15w = float(np.mean([v for v in raw["con15_uniw"] if v is not None]))
+    p15u = float(np.mean([v for v in raw["con15_uni"] if v is not None]))
+    anyw = float(np.mean([v for v in raw["std_any_uniw"] if v is not None]))
+    anyu = float(np.mean([v for v in raw["std_any_uni"] if v is not None]))
+    closed = p240w >= p240g - 0.02 and p15w >= p15u - 0.02 and anyw >= anyu - 0.02
+    L.append("WIN check (abundance gate): pool=240 earned UnifiedCF %.3f -> UnifiedCF+ab %.3f "
+             "(greedy %.3f); pool=15 %.3f -> %.3f; anytime %.3f -> %.3f. %s\n"
+             % (p240u, p240w, p240g, p15u, p15w, anyu, anyw,
+                ("RESULT: the gate closes the no-contention residual while holding the other regimes "
+                 "-> UnifiedCF+ab is best-or-tied EVERYWHERE." if closed else
+                 "RESULT: gate did not cleanly close+hold; inspect CIs before adopting.")))
+    L.append("Read: the committed UnifiedCF ties the specialists in 4/5 regimes; the abundance gate "
+             "targets the one residual (no-contention earned reward) by exploiting when targets are "
+             "plentiful, without touching the small-offer regimes where exploration earns its keep.\n")
 
     out_md = os.path.join(ROOT, "docs", "UNIFIED.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)
