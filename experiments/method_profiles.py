@@ -97,25 +97,17 @@ def is_reference(name):
 
 # ---- TABLE B: literature paradigms in context ----
 PARADIGMS = [
-    ("Auction / CBBA (consensus bundle)", "known task values/costs", "message-passing (bids)",
+    ("Auction / consensus / DCOP MRTA", "known utilities / costs", "message-passing",
      "decentralized", "full task info", "needs communication AND known utilities"),
-    ("DCOP / consensus MRTA", "known constraints/utilities", "message-passing",
-     "decentralized", "full", "needs communication AND a known objective"),
-    ("Cooperative MARL (CTDE: MAPPO/QMIX/VDN)", "none (learned)", "centralized training",
-     "centralized-train / decentralized-exec", "full (in training)", "central critic; not comms-free"),
-    ("Learned-communication MARL (CommNet/TarMAC)", "none (learned)", "learned messages",
-     "decentralized", "partial + messages", "broadcast is learned message-passing, not passive"),
-    ("No-comms multiplayer bandits (SIC-MMAB, musical chairs)", "none (per-arm)", "none",
+    ("Cooperative MARL (CTDE; learned comms)", "none (learned)", "central training / learned messages",
+     "central-train or decentral-exec", "full (in training)", "central critic or message-passing, not comms-free"),
+    ("No-comms multiplayer bandits", "none (per-arm)", "none",
      "decentralized", "own pulls + collisions", "comms-free but STRUCTURE-FREE (no unseen generalization)"),
-    ("Matrix completion (nuclear norm, spectral)", "low-rank", "centralized (one matrix)",
-     "centralized", "partial (uniform)", "centralized estimation, not online/decision"),
-    ("Low-rank / bilinear bandits (ESTR, etc.)", "low-rank", "centralized",
-     "centralized", "partial", "centralized and/or explore-then-commit"),
-    ("Federated / gossip CF", "low-rank", "broadcast of factors/gradients",
-     "decentralized", "partial", "shares PARAMETERS, not a passive stream"),
-    ("Multi-user RL, low-rank rewards (Nagaraj-Agarwal)", "low-rank", "centralized aggregation",
-     "centralized", "partial", "closest prior; centralizes trajectory aggregation"),
-    ("Trait-based MRTA (Prorok et al.)", "KNOWN traits", "varies",
+    ("Low-rank completion / bandits", "low-rank", "centralized",
+     "centralized", "partial (uniform)", "centralized and/or explore-then-commit; not online-decentralized"),
+    ("Federated / gossip CF", "low-rank", "broadcast of parameters",
+     "decentralized", "partial", "shares PARAMETERS, not a passive outcome stream"),
+    ("Trait-based MRTA", "KNOWN traits", "varies",
      "decentralized", "full", "capability/requirement traits are GIVEN, not learned"),
     ("OURS (broadcast CF for ZK-MRTA)", "low-rank, GUESSED rank only", "none (passive sensing)",
      "decentralized", "masked + noisy", "the hardest cell: no comms, no known utilities/traits, guessed rank"),
@@ -155,11 +147,13 @@ def _legend_html():
             "reference ceiling.</p>")
 
 
-def html_profiles():
+def html_profiles(subset=None):
     rows = ["<table><tr><th class='l'>Method</th><th class='l'>Provenance</th><th>Dist</th>"
             "<th>Comm</th><th>Observability</th><th>Prior</th><th>Compute</th>"
             "<th class='l'>Profile</th></tr>"]
     for n, prov, dist, comm, obs, prior, comp, blurb in PROFILES:
+        if subset is not None and n not in subset:
+            continue
         nm = "<b>%s</b>" % disp(n) if prov.startswith("ours") else disp(n)
         rows.append("<tr><td class='l'>%s</td><td class='l'>%s</td><td>%s</td><td>%s</td><td>%s</td>"
                     "<td>%s</td><td>%s</td><td class='l'><code>%s</code></td></tr>"

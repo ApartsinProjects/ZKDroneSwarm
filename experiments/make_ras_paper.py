@@ -361,9 +361,11 @@ A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a
   "methods. In our harness <b>every</b> method runs decentralized and communication-free (one estimator "
   "per robot); the low-rank methods differ only in the update rule. Table 2 fixes each method's operating "
   "profile.</p>")
-A("<p class='small'><b>Table 2.</b> Operating profiles. Notation [distribution | communication | "
-  "observability | prior | computation].</p>")
-A(mp.html_profiles())
+A("<p class='small'><b>Table 2.</b> Operating profiles of the methods compared (the SwarmCF-family "
+  "refinements are deferred to future work). Notation [distribution | communication | observability | "
+  "prior | computation].</p>")
+A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "SoftImpute",
+                           "UCBIndep", "Tabular", "Random", "CentralClean-ceiling", "CTDE-ceiling", "Oracle"]))
 
 A("<h3>6.1 The categorical win and masking robustness</h3>")
 A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. SwarmCF acts well on "
@@ -377,8 +379,7 @@ A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. 
 A("<figure>%s<figcaption><b>Figure 2.</b> Unseen-pair skill versus broadcast rate $\\rho$. Structure-"
   "free learners are pinned at the floor at every density; SwarmCF acts on the "
   "unseen throughout and is robust under masking, while batch spectral completion decays as observation "
-  "becomes partial. (SwarmCF-RC and SwarmCF-H are deferred SwarmCF-family variants, Section 7; the "
-  "headline method is the core SwarmCF.)</figcaption></figure>" % img("F5_crossover.png", "categorical + masking"))
+  "becomes partial.</figcaption></figure>" % img("F5_crossover.png", "categorical + masking"))
 
 A("<h3>6.2 The operational (anytime) separation</h3>")
 A("<p>Final-policy quality can flatter a method that explores cheaply. The operationally honest measure "
@@ -387,9 +388,8 @@ A("<p>Final-policy quality can flatter a method that explores cheaply. The opera
   "$n\\gg T$, they never stop exploring untried tasks (Theorem 3). Phase-structured low-rank methods pay "
   "an explore-then-commit penalty early.</p>")
 A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill. SwarmCF earns from round one; "
-  "explore-then-commit pays a probe phase; structure-free learners are stuck near random. (SwarmCF-RC is "
-  "a deferred family variant; PTF/ESTR are batch low-rank baselines.)</figcaption></figure>"
-  % img("F6_anytime.png", "anytime"))
+  "explore-then-commit pays a probe phase; structure-free learners are stuck near "
+  "random.</figcaption></figure>" % img("F6_anytime.png", "anytime"))
 
 A("<h3>6.3 Why a swarm: the value of the broadcast and a positive scaling law</h3>")
 A("<p>Two experiments isolate what the team and the broadcast actually buy (Figure 4). "

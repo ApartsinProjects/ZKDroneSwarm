@@ -90,9 +90,7 @@ if f:
     d = json.load(open(f)); rhos = d["meta"]["rhos"]; raw = d["raw"]
     # group: ours (online weighted-ALS) vs batch-SVD hybrids vs no-structure floor
     styles = {
-        "HybridCF": dict(marker="D", color="C6", lw=2.4, label="SwarmCF-H (probe-then-online, ours)"),
-        "RewardCF": dict(marker="o", color="C0", lw=2.2, label="SwarmCF (online ALS, ours)"),
-        "BothCF":   dict(marker="o", color="C1", lw=2.2, label="SwarmCF-RC (reward+choice, ours)"),
+        "RewardCF": dict(marker="o", color="C0", lw=2.4, label="SwarmCF (online ALS, ours)"),
         "PTF":      dict(marker="s", color="C3", ls="--", label="PTF (probe->SVD->finetune)"),
         "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "BPMF":     dict(marker="v", color="C5", ls="--", label="BPMF (Bayesian PMF)"),
@@ -109,7 +107,7 @@ if f:
     plt.gca().invert_xaxis()  # left = full broadcast, right = heavy masking
     plt.xlabel("observation density  rho  (fraction of broadcast seen)")
     plt.ylabel("UNSEEN-pair skill")
-    plt.title("Masking-robustness (unseen-pair skill): our online-ALS methods stay\nflat as the broadcast is masked; batch-SVD hybrids (PTF/ESTR/BPMF) decay", fontsize=10)
+    plt.title("Masking-robustness (unseen-pair skill): our online SwarmCF stays\nflat as the broadcast is masked; batch-SVD hybrids (PTF/ESTR/BPMF) decay", fontsize=10)
     plt.legend(fontsize=7, loc="lower left"); plt.tight_layout()
     save_fig("F5_crossover")
     print("F5_crossover  <-", os.path.basename(f))
@@ -121,8 +119,7 @@ if f:
     rho_key = "0.25" if "0.25" in raw else list(raw.keys())[-1]
     rounds = np.arange(1, T + 1)
     styles = {
-        "RewardCF": dict(color="C0", lw=2.3, label="SwarmCF (online ALS, ours)"),
-        "BothCF":   dict(color="C1", lw=2.3, label="SwarmCF-RC (reward+choice, ours)"),
+        "RewardCF": dict(color="C0", lw=2.6, label="SwarmCF (online ALS, ours)"),
         "PTF":      dict(color="C3", ls="--", label="PTF (probe-then-fit)"),
         "ESTR":     dict(color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "Tabular":  dict(color="C2", ls="-.", label="Tabular (eps-greedy own-row)"),
