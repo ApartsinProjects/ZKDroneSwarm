@@ -295,8 +295,27 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
   outcomes. HYP: handles binarized rewards where linear MF degrades; extends scope.
 - [P2] H8 = TYPE-PRIOR shrinkage (D7): newcomer cold-start shrinks to its TYPE prior
   (not just popularity). HYP: faster newcomer warm-up than popularity shrinkage.
-NEXT EXPERIMENTS (queued): c=n candidate-set independence (running next); H1 C10
-info-directed exploration; H2 adaptive ContentionCF; H4 calibration.
+- [P0/RUNNING] H9 = HELD-OUT choice-informativeness (Prop 9). In-sample ChoiceEM gamma
+  CANNOT down-weight uniform-random teammates (E[r]=gamma fixed point) and overfits a factor
+  to their choices (inflates gamma ~0.70 vs prior 0.1). FIX: predictive responsibility (score
+  each choice once vs the model BEFORE the refit sees it). Smoke PASSES the oracle-vs-random
+  sanity (gamma 0.48 vs 0.11). DONE: ChoiceEM(predictive=True) in pilot_noise; pilot_choicehetero.py
+  (real learners + ORACLE/RANDOM special teammates, gamma-separation diagnostic). 8-seed run in
+  progress. Win condition: predictive beats fixed-ramp ChoiceCF as RANDOM teammates grow + leverages ORACLE ones.
+- [P1] H10 = REWARD-GRADIENT informativeness (user idea; complements H9). Held-out catches
+  RANDOM teammates (unpredictable) but still trusts CONSISTENTLY-WRONG ones (predictable, flat).
+  Track per-teammate trend of choice-value s_k^t=<P_k,U[c_k^t]>; POSITIVE slope = climbing =
+  learning -> boost gamma. Combined rule: trust k iff its choices are predictable AND improving.
+  Realizes "some drones discover structure earlier; estimate that and bootstrap from them."
+- [P1] H11 = SANITY-CHECK SUITE for negatives/weak results (methodology). Construct
+  obvious-expected experiments and assert the output: (a) ChoiceEM oracle>>random gamma (DONE,
+  running); (b) PRECISION weighting under HETEROGENEOUS-noise teammates (half extreme-noise,
+  half clean) MUST beat uniform; (c) ARD on KNOWN true rank d=3 then 8 must track 3->8;
+  (d) EMCF interval CALIBRATION (X% intervals contain truth X%) = H4; (e) contention identical-vs-
+  distinct types isolates de-confliction; (f) d=1 popularity makes CF's unseen edge vanish (Thm 5).
+NEXT EXPERIMENTS (queued): H9 held-out gamma (RUNNING); H10 reward-gradient ChoiceEM-grad;
+H11(b) precision heterogeneous-noise sanity; eps-greedy contention unification (H2 follow-up);
+H4 calibration.
 
 ## NEGATIVE / WEAK RESULTS: root cause + fix (2026-05-23 rigor review)
 All results below use >=6 seeds + bootstrap 95% CIs (single-seed numbers were only

@@ -369,3 +369,35 @@ within-type spread the weakest directions fall below the floor, so the recovered
 pruned), so ARD removes the rank hyperparameter.
 **Confirmed by** §5.7 ARD: recovered effective rank ≈ 3.2 (< generative d=5), IDENTICAL
 at d̂=8 and d̂=20, with no accuracy loss and improved anytime.
+
+### Proposition 9 (choice-informativeness is identifiable only HELD-OUT). EXACT (random fixed point) + REASONED.
+
+Setup (ChoiceEM, §5.6): teammate k's choice a in offer S is a mixture: with prob γ_k a
+Boltzmann-rational pick (softmax on ⟨p_k,u⟩/τ), else uniform. The EM responsibility is
+r = γ·s / (γ·s + (1−γ)/|S|), where s is the model's softmax probability of the OBSERVED
+choice; the M-step sets γ_k ← mean_t r.
+
+(a) Random fixed point (EXACT). If teammate k chooses UNIFORMLY AT RANDOM and the scoring
+model is INDEPENDENT of that choice, then E[s] = (1/|S|)·Σ_j softmax_j = 1/|S| (softmax sums
+to 1), so E[r] = γ·(1/|S|)/(γ/|S| + (1−γ)/|S|) = γ. Thus γ_k is a fixed point at ANY value:
+a uniform-random teammate's informativeness is NOT driven down by the data, it just sits at
+its prior. (This is why a uniform-random chooser, the "almost-random due to low confidence"
+teammate, is the HARDEST case: maximally ambiguous between the two mixture components.)
+
+(b) In-sample INFLATION (the failure mode). If s is computed from a factor p̂_k FIT to k's
+OWN choices (in-sample), the model is positively correlated with the choice it scores, so
+E[s] > 1/|S| and E[r] > γ: the estimator OVERFITS a random teammate's choices and spuriously
+INFLATES γ_k above its prior, wrongly trusting noise. This is the mechanism behind the
+homogeneous-world null (learned γ ties the fixed ramp because neither discriminates).
+
+(c) Held-out IDENTIFIABILITY (the fix). Score each choice ONCE against the model BEFORE the
+refit incorporates it (predictive responsibility: choices added since the last refit are not
+yet in p̂_k). Then s is independent of that choice, so by (a) a uniform-random teammate's γ
+stays at its LOW prior, while a genuinely informative teammate has E[s] > 1/|S| EVEN held-out
+(its choices concentrate on model-preferred targets), driving γ above the prior. With a low
+prior γ_0, informative and uninformative teammates SEPARATE. Caveat: a CONSISTENTLY-WRONG
+(stable but off-objective) teammate is predictable, so held-out γ still trusts it; detecting
+that needs a reward-IMPROVEMENT (choice-value gradient) signal, not just predictability.
+**Confirmed by** §5.6 heterogeneous-teammate SANITY (oracle vs random teammates): predictive
+γ(oracle) ≈ 0.48 ≫ γ(random) ≈ 0.11 (sanity PASSES), vs in-sample γ(oracle) ≈ 0.95 vs
+γ(random) ≈ 0.70 (sanity FAILS, the inflation of (b)); 1-seed smoke, full 8-seed run pending.

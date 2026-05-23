@@ -417,3 +417,37 @@ Also this cycle (deterministic tightening, no new runs):
   exposes run_anytime_clshp(Cls,hp,...) so ablation variants reuse the same loops.
 NEXT (cycles 41-42): pilot_ablation.py (P1-6, RUNNING) -> docs/ABLATION_TABLE.md;
 pilot_contention.py (P1-8) -> docs/CONTENTION.md; regenerate HTML; push.
+
+## Cycles 47-49 (2026-05-23): ChoiceEM rescue, adaptive contention, held-out gamma, tutorial
+- Cycle 47: ChoiceEM full 8-seed re-run (sigma_obs 0.6/1.0/2.0). Naive EM deadlocks
+  (unseen 0.012); rescue (g0=0.1, warm_em=0.3) FIXES the anytime deadlock (0.163->0.217,
+  ties the ramp 0.219), confirming the cold-start root cause, but the learned gate gives
+  no SKILL edge over the fixed ramp. POSITIVE NICHE: at sigma_obs=2.0 the noise-immune
+  ChoiceCF beats RewardCF on BOTH unseen (0.093 vs 0.042) and anytime (0.219 vs 0.179).
+- Cycle 48 (H2): ContentionAdaptiveCF = fixed private DIRECTION (T7) + magnitude scaled
+  by each drone's own loss rate (convex) + a HARD ZK scarcity gate (engage iff offer <=
+  4m). EXTENDS the contention win from pool=15 alone to pool<=60 (beats fixed offset at
+  pool=30 0.153 vs 0.134 and pool=60 0.205 vs 0.178; ties at pool=15). HONEST LIMIT: at
+  no-contention (pool=240) the offset policies trail plain CF (0.25 vs 0.44) because they
+  use pure argmax and DROP eps-exploration; the hard gate confirmed the gap is missing
+  COVERAGE, not the offset. FIX (queued): eps-greedy fallback when the gate is off.
+- Cycle 49 (ChoiceEM, user-driven): KEY INSIGHT (now Proposition 9). In-sample
+  responsibility CANNOT down-weight a uniform-random teammate (E[r]=gamma fixed point) and
+  OVERFITS a factor to its choices, INFLATING gamma (random teammate gamma ~0.70 >> prior
+  0.1). The diagnosis came from a SANITY experiment (pilot_choicehetero.py: real learners
+  + ORACLE choosers vs RANDOM choosers): a working estimator MUST give gamma(oracle) >>
+  gamma(random); in-sample FAILS this (0.95 vs 0.70), so the homogeneous null was a real
+  limitation, not a bug. FIX: HELD-OUT (predictive) responsibility, score each choice once
+  against the model BEFORE the refit incorporates it. Smoke: predictive gamma(oracle) 0.48
+  >> gamma(random) 0.11 (sanity PASSES), and good-drone unseen improves. Full 8-seed run in
+  progress. NEXT: ChoiceEM-grad (reward-improvement gradient, to also catch consistently-
+  WRONG teammates predictive still trusts); precision heterogeneous-noise sanity; eps-greedy
+  contention unification; fold confirmed numbers into tutorial 5.6 + catalogue.
+- Tutorial: full layman-explanation pass (Notation-at-a-glance table + 23 "In plain words"
+  callouts across Sections 1-7 + expanded glossary), making it self-contained for a
+  non-expert; verified KaTeX renders in-browser. Also fixed cwd-relative output-path bugs
+  in make_tutorial.py.
+METHODOLOGY NOTE (adopt going forward): verify every NEGATIVE/weak result with a SANITY
+experiment whose answer is obvious (oracle vs random teammates; known-rank ARD; clean-vs-
+noisy precision sources; identical-vs-distinct types for contention; d=1 popularity for the
+unseen claim). The ChoiceEM sanity already converted a null into a diagnosed-and-fixed result.
