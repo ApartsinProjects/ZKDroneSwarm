@@ -3,8 +3,9 @@ a clean linear narrative (minimal-assumptions framing) from motivation through
 theory and experiments. Key figures base64-embedded. Output: docs/paper_v2.html.
 """
 import base64, os
-FIG = "docs/figures"
-OUT = "docs/paper_v2.html"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FIG = os.path.join(ROOT, "docs", "figures")
+OUT = os.path.join(ROOT, "docs", "paper_v2.html")
 
 
 def img(name, alt):
@@ -26,6 +27,8 @@ def md_tables(path, drop_h1=True):
     """Render the SUBSET of markdown our experiments emit (## headers, | tables |,
     **bold**, inline <br/>/<sub> kept) as HTML, so the paper draws headline/ablation/
     contention tables from the SAME committed .md files (one source of truth)."""
+    if path and not os.path.isabs(path):
+        path = os.path.join(ROOT, path)          # resolve docs/*.md against repo root (cwd-independent)
     if not path or not os.path.exists(path):
         return "<p><em>[%s not generated yet]</em></p>" % os.path.basename(str(path))
     out = []; rows = []
@@ -145,6 +148,13 @@ A("<p>Each agent runs its own ONLINE weighted alternating least squares over the
   "ALS; best final-policy unseen), and <b>ActiveCFconv</b> (latent-space UCB with a broadcast "
   "count-based uncertainty bonus, so one agent's probe lowers everyone's uncertainty; best "
   "balanced).</p>")
+A("<p><b>One core, scoped extensions (read this if nothing else).</b> The hero is a SINGLE estimator, "
+  "online noise-weighted ridge ALS over the public stream, with an $\\epsilon$-greedy policy. "
+  "Everything else, Bayesian confidence (EMCF), directed exploration, rank self-determination (ARD), "
+  "contention de-confliction, and the choice channel, is a SCOPED EXTENSION of that one estimator: each "
+  "is applied only when a stated condition holds and otherwise reduces to the core. We present them as a "
+  "single theorem-backed menu (Section 5) rather than a method zoo, so the whole design space collapses "
+  "to one method plus a short list of conditional add-ons.</p>")
 
 A("<h2>4. Theory</h2>")
 A("<p>(Full proofs in <code>THEORY_FORMAL.md</code>; step-by-step in the tutorial.)</p>")
@@ -216,6 +226,32 @@ A("<p>We foreground ONE recommended method (ActiveCFconv) and present the rest a
   "and the robustness to a guessed rank, under one identical config (12 seeds, 95%% CI):</p>")
 A(md_tables("docs/ABLATION_TABLE.md"))
 
+A("<h3>Scoped refinements: one core, a menu of conditional extensions</h3>")
+A("<p>To avoid a method zoo, every refinement beyond the core estimator is presented as a single "
+  "MENU of scoped, theorem-backed extensions. Each helps ONLY under a stated condition and reduces "
+  "to the core otherwise, so the practitioner adds an extension exactly when its condition holds. "
+  "This is the entire design space in one view.</p>")
+A("<table><tr><th class='l'>Refinement</th><th class='l'>Helps when</th><th class='l'>Result (8-20 seeds, CIs)</th><th>Theory</th></tr>"
+  "<tr><td class='l'>Bayesian confidence (EMCF)</td><td class='l'>directed exploration; coverage-scarce or noisy broadcast</td>"
+  "<td class='l'>predictive uncertainty is DISCRIMINATIVE (actual RMSE rises monotonically Q1$\\to$Q5), and beats uniform when the broadcast is noisy</td><td>P6</td></tr>"
+  "<tr><td class='l'>Bounded precision weighting</td><td class='l'>observation sources DIFFER in noise</td>"
+  "<td class='l'>ratio-capped precision wins under heterogeneous noise ($+0.09$ unseen, non-overlapping CIs); UNBOUNDED $1/\\sigma^2$ over-concentrates and loses everywhere</td><td>P6</td></tr>"
+  "<tr><td class='l'>Collective info-directed exploration</td><td class='l'>anytime sample efficiency</td>"
+  "<td class='l'>one agent's broadcast probe lowers everyone's uncertainty; best FINAL anytime skill</td><td>--</td></tr>"
+  "<tr><td class='l'>ARD rank adaptation</td><td class='l'>rank unknown</td>"
+  "<td class='l'>self-determines the IDENTIFIABLE rank ($\\le d$) and is INVARIANT to the guessed $\\hat d$, which is what removes the rank hyperparameter (the recovered value reflects SNR/coverage, not the raw true rank)</td><td>T8</td></tr>"
+  "<tr><td class='l'>Fixed private offset ($+$ adaptive)</td><td class='l'>capacity-1 contention</td>"
+  "<td class='l'>$\\approx 2\\times$ earned reward at severe contention; the adaptive, scarcity-gated version extends the win across the whole contested range ($|S|\\le m$)</td><td>T7</td></tr>"
+  "<tr><td class='l'>Choice channel $+$ held-out $\\gamma$</td><td class='l'>extreme reward-noise; mixed-reliability teammates</td>"
+  "<td class='l'>noise-immune fallback (overtakes the reward channel at $\\sigma_{\\mathrm{obs}}{=}2$); held-out $\\gamma_k$ correctly ranks teammates (oracle $0.49\\gg$ random $0.10$)</td><td>P9</td></tr>"
+  "</table>")
+A("<p class='small'><b>What does NOT help (honest, diagnosed nulls):</b> UNBOUNDED precision-ALS at "
+  "homogeneous noise (coverage, not noise, binds); a LEARNED per-teammate choice gate vs a simple "
+  "competence schedule when teammates are homogeneous (it ties, and in-sample it over-trusts random "
+  "teammates, the bug held-out $\\gamma$ fixes); confidence-GATED reward$+$choice fusion. Each is a "
+  "documented null with a stated cause, several surfaced by deliberate SANITY experiments whose "
+  "answer is obvious (oracle-vs-random teammates; homogeneous-vs-heterogeneous noise).</p>")
+
 A("<div class='box'><b>Scope: when does CF beat structure-free?</b> The advantage is not "
   "universal. Across a structure-by-observability grid it holds precisely when THREE "
   "conditions co-occur. <b>(1) Low-rank but PERSONALIZED</b> (1 &lt; d &lt;&lt; min(m,n)): "
@@ -249,7 +285,11 @@ A("<p><b>Contention.</b> Our formal results assume non-contention (a target may 
   "contention-invariant because it is a property of the learned model; and on EARNED reward "
   "our methods still lead, because diverse, accurate preferences spread drones across targets "
   "and reduce collisions, though the operational gap narrows as collisions, not preferences, "
-  "become the bottleneck.</p>")
+  "become the bottleneck. And the operational loss is recoverable WITHOUT communication: keeping the "
+  "CF estimate but swapping greedy argmax for a FIXED PRIVATE per-target offset (Theorem 7) "
+  "de-conflicts look-alike drones and roughly DOUBLES earned reward at severe contention; an adaptive, "
+  "scarcity-gated version of that offset extends the win across the contested range and reduces to "
+  "plain CF when targets are plentiful.</p>")
 A(md_tables("docs/CONTENTION.md"))
 A("<p>Under minimal assumptions, collaborative filtering over the public broadcast lets a "
   "swarm act on the unseen, onboard new tasks and agents, and earn from the first round, with "

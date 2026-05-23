@@ -31,6 +31,8 @@ def md_tables(path, drop_h1=True):
     """Render the markdown subset our experiments emit (## headers, | tables |,
     **bold**, inline html kept) as HTML, so the tutorial draws the headline/ablation/
     contention tables from the SAME committed .md files (single source of truth)."""
+    if path and not os.path.isabs(path):
+        path = os.path.join(ROOT, path)          # resolve docs/*.md against repo root (cwd-independent)
     if not path or not os.path.exists(path):
         return "<p><em>[%s not generated yet]</em></p>" % os.path.basename(str(path))
     out = []; rows = []
@@ -675,6 +677,19 @@ A("<div class='box warn'><b>Why not standard MARL baselines (MAPPO, QMIX, IPPO)?
 
 # 5 METHODS
 A("<h2 id='meth'>5. Our methods</h2>")
+A("<div class='box key'><b>The whole section in one map: ONE method, a menu of scoped extensions.</b> "
+  "Do not let the number of named variants below fool you, there is a single core and everything else "
+  "is an optional add-on used only when a stated condition holds. <b>Core:</b> each drone runs online "
+  "noise-weighted ridge ALS (low-rank matrix completion) over the public stream and acts "
+  "$\\epsilon$-greedily on its completed row; an unobserved event gets zero WEIGHT, not a fake zero "
+  "value (5.1-5.2). <b>Scoped extensions, each with a theorem and a 'use it when':</b> "
+  "<i>confidence</i> (EMCF: Bayesian posterior for directed exploration / shrinkage, when the "
+  "broadcast is noisy or coverage is scarce, 5.3-5.5); <i>rank self-determination</i> (ARD: when you "
+  "do not know the rank, 5.7); <i>the choice channel</i> (teammates' actions instead of rewards, when "
+  "reward noise is extreme or teammates differ in reliability, 5.6); and the decision-side extensions "
+  "covered in results, <i>collective info-directed exploration</i> (8.x) and <i>contention "
+  "de-confliction</i> (a fixed private offset, 8.13). Read 5.1-5.2 for the method; treat 5.3-5.7 as the "
+  "menu.</div>")
 A("<p>Each drone runs its own <strong>online weighted alternating least squares</strong> (weighted "
   "ALS) over the events it senses. The crucial trick for masking-robustness: an event the drone did "
   "NOT observe gets zero <em>weight</em>, not an imputed zero <em>value</em>. (Batch 'fill-in' methods "

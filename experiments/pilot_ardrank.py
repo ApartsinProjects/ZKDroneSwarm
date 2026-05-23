@@ -93,10 +93,17 @@ def main():
         mu, lo, hi = ci(raw[str(d)]); means.append(mu)
         L.append("| %d | %.2f [%.2f, %.2f] |" % (d, mu, lo, hi))
     mono = all(means[i] <= means[i + 1] + 1e-9 for i in range(len(means) - 1))
-    L.append("\nMonotone increasing in true rank: %s. Recovered rank tracks the truth (and stays "
-             "<= true d under masking + within-type spread, the identifiable-rank prediction of "
-             "Theorem 8), confirming ARD is reading real structure, not emitting a fixed number.\n"
-             % ("YES" if mono else "NO (investigate)"))
+    L.append("\nMonotone increasing in true rank: %s. HONEST READING: the recovered rank is the "
+             "IDENTIFIABLE rank (<= true d, Theorem 8), NOT the raw true rank. It is NOT monotone in d "
+             "here because of an SNR confound: with unit-norm factors the per-direction signal scales "
+             "like 1/sqrt(d), so at FIXED observation noise and a fixed sample budget a higher true "
+             "rank spreads the signal thinner and FEWER directions clear the identifiability floor. The "
+             "anchor d=2 is fully identified (2.00). So ARD reads real, SNR-limited structure (it does "
+             "not emit a fixed number), but 'recovered rank = true rank' only holds when per-direction "
+             "SNR is held constant; a constant-SNR controlled sweep is logged as future work. The "
+             "USABLE claim, separately confirmed, is that ARD is INVARIANT to the guessed d_hat, which "
+             "is what removes the rank hyperparameter.\n"
+             % ("YES" if mono else "NO"))
 
     out_md = os.path.join(ROOT, "docs", "ARDRANK.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)
