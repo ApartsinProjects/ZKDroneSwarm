@@ -98,6 +98,20 @@ STATUS LINE (update me): cycles 62-65 committed (HEAD a61dfcb). DONE: H3 capston
 best-or-tied everywhere), strict-ZK newcomer, harness+baseline ZK audits, per-observer noise clarified,
 CBBA+MusicalChairs de-confliction baselines (we win T7), CLUB baseline, CoordCF, MARL framing, F15,
 W1, W2, E-C12. REMAINING: W3 LaTeX sync, W4 theory, E-H11types, E-C4. ~113 commits ahead of origin (push is the user's call).
+STALE-TAG RECONCILIATION (cycle 66 -- these older entries below are tagged [TODO]/[P*] but are
+ACTUALLY DONE; treat as COMPLETE):
+- C2 anytime/AUC metric = DONE (catalogue row 26, F6_anytime). C6 BPMF + Thompson = DONE (BPMF
+  baseline, row 24). C7 rank/ARD = DONE (rows 45/50/57). C11 heterogeneous masking = DONE (the
+  HEADLINE, rows 20+). C12 two-phase onboarding = DONE/subsumed (row 19 + E7 rows 32/55). C3a-d
+  confidence motifs = DONE via EMCF + the confidence bake-off (row 46). C5 partial-sharing rho sweep
+  = DONE (crossover rows 25/27/29). D6 contention/assignment = DONE (rows 42/44/48/57).
+- H1 collective exploration = DONE (rows 47/52). H2 adaptive ContentionCF = DONE (rows 48/53).
+  H4 calibration = DONE (row 51). H5 theory = MOSTLY DONE (T7/T8/P16/P10-P15). H11 sanity suite =
+  DONE (H11b row 50, H11c row 52, E-H11types row 61 this cycle).
+- GENUINELY STILL OPEN: E-H11types (running this cycle), E-CTDE/Rank5 ceiling bracket, W3 deeper
+  LaTeX sync, D2 real-env+real-policies (partial via tabula_drone row 38), D4 convergence dynamics,
+  D7/H8 hierarchical type priors, H10 (POSTPONED per user), D1/D5 (PARKED: robustness).
+
 ## ===== END ACTIVE WORKLOG =====
 
 ## SCOPE ANCHOR (do not drift)
