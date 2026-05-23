@@ -483,3 +483,28 @@ unseen claim). The ChoiceEM sanity already converted a null into a diagnosed-and
 LESSON (compute hygiene): do NOT oversubscribe the CPU by launching multiple ProcessPool
 experiments at once; it thrashed the contention run to a stall and it had to be killed and
 re-run cleanly. Run heavy experiments sequentially.
+
+(Cycles 53-62 captured in DATA_CATALOGUE rows 53-54 + git log: H6/H6b churn, H3 UnifiedCF
+capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
+
+- Cycle 63 (STRICT-ZK NEWCOMER + harness audit + path fix): a background agent audited ALL
+  46 experiment harnesses for the "no priors, no communication beyond personalized partial
+  noisy broadcast" setting. It found exactly ONE cross-learner parameter copy: E7's newcomer
+  took U_hat = learners[0].U.copy() and a peer-population p_pop (exact only at rho=1). FIXED:
+  the newcomer is now a PASSIVE RewardCF listener that recovers U from its OWN persistent-
+  masked broadcast and folds in (prior = mean of the teammate factors IT recovered);
+  incumbents masked at the same rho; rho swept {1.0,0.5,0.25}, 10 seeds (catalogue row 55,
+  F10 regenerated). The categorical O(d)-vs-O(n) newcomer gap SURVIVES strict ZK at every rho
+  (Tabular ~0; CF >> Tabular). At rho=1 fold-in personalizes 0.28->0.57 >> popularity 0.27;
+  at rho=0.25 the probe-efficiency SLOPE flattens (CF ~ pop ~ 0.30) because the self-recovered
+  U becomes the bottleneck, but both still categorically beat Tabular. HONEST strengthening.
+- Cycle 63 (audit fixes, no headline impact): the true-d run_episode family (pilot_noise/
+  pilot_refit/pilot_choice_only) handed learners the TRUE rank as factor dim; benign (all
+  paper headlines use the d_hat harnesses run_masked/run_anytime_clshp), now documented as an
+  ORACLE-RANK DIAGNOSTIC and made overridable via an optional d_hat= arg. Harness-side audit
+  written into ZK_COMPLIANCE.md (CLEAN after the E7 fix).
+- Cycle 63 (path BUG FIX): save_results() used a cwd-relative "results/pilots", so an
+  experiment launched from experiments/ silently wrote its JSON to experiments/results/pilots
+  (caught when E7's new file did not appear at the repo root). save_results now ROOT-anchors a
+  relative results_dir; misplaced file moved back. LESSON (again): cwd-relative paths in
+  generators/savers are a recurring footgun -- anchor to ROOT.

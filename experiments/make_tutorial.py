@@ -1339,10 +1339,14 @@ metric("Onboarding / newcomer skill vs number of probes",
        "Our methods should reach high skill after only about d probes (the number of hidden traits), "
        "while a structure-free learner needs roughly one probe per drone or per target.",
        formal="<p>For a new target with factor $u_\\star$ seen via $k$ shared probes "
-       "$\\{(p_{a},r_a)\\}_{a=1}^k$ and a KNOWN basis $U$, the fold-in solves a $d$-dim least squares: "
+       "$\\{(p_{a},r_a)\\}_{a=1}^k$ and a basis $U$, the fold-in solves a $d$-dim least squares: "
        "$\\hat u_\\star=(\\sum_a p_a p_a^\\top+\\lambda I)^{-1}\\sum_a r_a p_a$, exact once $k\\ge d$ and "
        "the $p_a$ span $\\mathbb{R}^d$ (Theorem 2); tabular needs $k\\approx m$ (one probe per drone). "
-       "We plot newcomer skill vs $k$.</p>")
+       "We plot newcomer skill vs $k$. <b>Strict ZK note:</b> for a new DRONE the basis is the "
+       "targets' factors $U$, which the newcomer does NOT receive from any peer; it RECOVERS $\\hat U$ "
+       "itself by running its own factorization on the public broadcast it passively observed (under "
+       "its own mask $\\rho$). So the only thing handed to a newcomer is the same partial, noisy "
+       "broadcast everyone hears.</p>")
 
 A("<h3>6.6 The evaluation procedure (how every number is produced)</h3>")
 A("<p>So the metrics are reproducible, here is the exact protocol used after the $T$-round episode.</p>")
@@ -1571,10 +1575,23 @@ A("<p>A brand-new TARGET is onboarded for the whole swarm from about <code>d</co
   "with zero history acts from the broadcast alone, folding in its own factor from a few probes "
   "(Figure F10), starting at population-average competence while a tabular newcomer is at the floor. "
   "Both are $\\Theta(d)$ vs $\\Theta(n)$ separations.</p>")
+A(plain("<b>Strictly zero-knowledge newcomer (no peer hand-off).</b> A subtle point of fairness: the "
+        "newcomer does not RECEIVE the learned target factors from anyone (that would be a hidden form "
+        "of communication). It is a passive listener that, over the warm-up rounds, hears the same "
+        "public broadcast everyone else does (under its own personal masking $\\rho$) and recovers its "
+        "OWN copy of the target basis $\\hat U$ by running the same factorization the swarm uses. We "
+        "re-ran F10 this way over $\\rho\\in\\{1.0,0.5,0.25\\}$: the categorical gap over tabular "
+        "SURVIVES at every $\\rho$ (tabular stays at the floor). At full visibility the fold-in "
+        "personalizes well above the population average; under heavy masking ($\\rho=0.25$) the "
+        "probe-efficiency curve FLATTENS, because the newcomer's self-recovered $\\hat U$ (built from "
+        "little data) becomes the bottleneck rather than the number of probes. Honest takeaway: the "
+        "$\\Theta(d)$-vs-$\\Theta(n)$ separation is real and ZK-clean, and its slope degrades "
+        "gracefully as the newcomer hears less."))
 A("<figure>%s<figcaption><strong>F3.</strong> Target onboarding: CF onboards from about d probes; "
   "tabular needs about one per drone.</figcaption></figure>" % img("F3_onboard.png", "F3"))
-A("<figure>%s<figcaption><strong>F10.</strong> Newcomer cold-start: a new drone acts from the "
-  "broadcast at zero history; the tabular newcomer is at the floor.</figcaption></figure>"
+A("<figure>%s<figcaption><strong>F10.</strong> Newcomer cold-start (strictly ZK): a new drone "
+  "recovers the target basis from its OWN passively-observed masked broadcast and folds in its "
+  "factor; the tabular newcomer stays at the floor at every masking level &rho;.</figcaption></figure>"
   % img("F10_newcomer.png", "F10"))
 A("<p><b>Takeaway.</b> New tasks and new teammates are absorbed cheaply: a few trial runs (about d, "
   "the number of hidden traits) are enough for the whole swarm to predict a new target, and a brand-new "

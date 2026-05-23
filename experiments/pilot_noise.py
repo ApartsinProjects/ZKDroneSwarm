@@ -826,8 +826,13 @@ class UnifiedCF(EMCF):
         super().observe(t, choices, revealed, cand_sets, rvar)
 
 
-def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
-    P, U, R = world; m, n = R.shape; d = P.shape[1]
+def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand, d_hat=None):
+    # NOTE (ZK fairness): d_hat=None defaults to the TRUE rank P.shape[1] -- this is an
+    # ORACLE-RANK diagnostic path used by the older reward-class pilots; it is NOT the
+    # fair zero-knowledge setting. Pass an explicit d_hat (e.g. pc.D_HAT) for a fair run.
+    # All paper-headline results use the d_hat harnesses (run_masked / run_anytime_clshp).
+    P, U, R = world; m, n = R.shape
+    d = P.shape[1] if d_hat is None else d_hat
     rng = np.random.RandomState(seed + 999)
     learners = [Cls(m, n, d, i, seed + 7 * i + 1, **hp) for i in range(m)]
     for t in range(T):

@@ -114,7 +114,10 @@ A("<p>A swarm repeatedly chooses which target to engage. Compatibility between a
   "dominates when targets outnumber rounds.</p>")
 A("<p><b>Contributions.</b> (1) A minimal-assumption, decentralized, online, broadcast-only "
   "formulation of CF for MRTA. (2) The categorical unseen-pair and onboarding/cold-start results "
-  "(<code>Theta(d)</code> vs <code>Theta(n)</code>). (3) An anytime separation under sample "
+  "(<code>Theta(d)</code> vs <code>Theta(n)</code>); the cold-start holds even for a strictly "
+  "zero-knowledge newcomer that recovers the target basis from its OWN masked broadcast rather than "
+  "receiving any peer's model, with the separation degrading gracefully as its visibility falls. "
+  "(3) An anytime separation under sample "
   "starvation. (4) A masking-model dichotomy (durable vs transient decentralization). (5) A method "
   "family that is masking-robust and anytime-optimal, dominating the prior-art low-rank competitors; "
   "and collective active exploration via the shared broadcast.</p>")

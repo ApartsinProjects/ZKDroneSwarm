@@ -291,12 +291,19 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
   except no-contention earned reward; report honestly. FIX idea (P13 envelope): also gate exploration
   by the scarcity signal (offer<=k*m), not only by loss. TODO: fold UnifiedCF + this honest result
   into paper/tutorial as the single recommended method (choice channel stays a separate module).
-- [QUEUED per user] STRICT-ZK NEWCOMER/ONBOARDING. pilot_e7_newcomer.py hands the newcomer
-  U_hat = learners[0].U.copy() and p_pop = mean of peers' P (exact only at rho=1, the setting it
-  uses); pilot_c12_onboard.py likely symmetric. FIX: have the newcomer RECOVER U from its OWN
-  passively-observed (masked) broadcast (run its own estimator on the stream) instead of copying a
-  peer's factors, then RE-RUN the categorical onboarding result under rho<1. If the O(d)-vs-O(n) gap
-  survives a strictly-ZK newcomer under masking, the claim is airtight; pending the harness audit.
+- [DONE (cycle 63), gap SURVIVES] STRICT-ZK NEWCOMER. The row-32 E7 copied a peer's factors
+  (U_hat = learners[0].U.copy(), p_pop = mean peers' P; exact only at rho=1). FIXED: the newcomer
+  is now a PASSIVE RewardCF listener that recovers U from its OWN persistent-masked broadcast and
+  folds in (population prior = mean of the teammate factors IT recovered). Incumbents masked at the
+  same rho; rho swept {1.0,0.5,0.25}, 10 seeds (results row 55, F10 regenerated). RESULT: the
+  categorical O(d)-vs-O(n) gap SURVIVES strict ZK at every rho -- Tabular ~0 everywhere; CF >>
+  Tabular. rho=1.0 fold-in 0.28->0.57 >> popularity 0.27; rho=0.25 CF ~ pop ~ 0.30 (the
+  probe-efficiency SLOPE flattens because the self-recovered U is the bottleneck under heavy
+  masking) but both still categorically beat Tabular. Harness audit (ZK_COMPLIANCE.md) confirms
+  this was the ONLY cross-learner parameter copy; C12 onboarding already fits from pooled
+  observations (compliant). save_results() ROOT-anchored so future runs don't misplace JSONs.
+  TODO(optional): re-state the E7 claim in paper/tutorial as "recovers U from own broadcast"
+  (not "given U") and note the slope-flattens-under-masking caveat.
 - [P1] H4 = CALIBRATION (M5). Reliability diagram: EMCF predictive intervals vs actual
   error. HYP: EMCF well-calibrated, naive-precision mis-calibrated -> justifies the
   UCB/Thompson use of the posterior.

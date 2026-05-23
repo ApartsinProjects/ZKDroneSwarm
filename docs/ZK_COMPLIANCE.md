@@ -139,3 +139,56 @@ CONCLUSION: all canonical methods (RewardCF, HybridCF, ChoiceZK, StackCF) are
 strictly ZK and communication-free: guessed rank, random init, independent per-drone
 estimators, no parameter sharing, no coordinator, and an action+outcome observation
 footprint over a passively-sensed public outcome stream.
+
+## Harness / evaluation-side audit (cycle 62)
+
+The audit above covers the METHOD classes. We separately audited every EXPERIMENT
+HARNESS: all 46 `experiments/pilot_*.py` plus every shared run loop (`run_episode`
+families, `run_masked`, `run_anytime_clshp`, `run_iid`, `run_contention`, `run_2ch`,
+`run_param`, `run_robust`, `run_stress`, `run_newcomer`, `run_2ch`). The question:
+does the harness ever leak a prior into a learner, or route one learner's parameters
+to another (a back-door for communication)? Method: enumerate every use of P, U, R,
+true rank d, type labels, and every `.copy()` / cross-learner attribute read
+(`learners[i].U/.P`, `muU/muP`, `P_hat/U_hat`).
+
+GENERAL RESULT: across all harnesses, R/P/U are used ONLY to (a) generate observed
+outcomes and (b) compute oracle/random/popularity REFERENCES for the skill metric.
+Learners always select / observe / predict from their own broadcast. The shared
+compliant cores are `run_masked` (per-drone persistent mask), `run_anytime_clshp`,
+`run_iid` (persistent + iid masks, both channels masked consistently), `run_2ch`
+(dual channel), and the `run_episode` families.
+
+Two findings, both now resolved:
+
+1. VIOLATION (cross-learner parameter copy), FIXED this cycle.
+   `pilot_e7_newcomer.py` (old lines 63-64) handed the late-joining newcomer a peer's
+   learned factors directly: `U_hat = learners[0].U.copy()` and `p_pop =
+   mean(learners[0].P)`. That is exact only at full broadcast (rho=1) and is a
+   parameter copy, not passive observation. FIX: the newcomer is now a PASSIVE
+   `RewardCF` listener that hears the public broadcast under its OWN persistent
+   rho-mask and recovers U_hat by its OWN weighted-ALS (its population prior is the
+   mean of the teammate factors IT recovered). Incumbents are masked at the same rho.
+   Re-run sweeps rho in {1.0, 0.5, 0.25}; the categorical CF-vs-Tabular gap is
+   re-stated as holding under masking (it survives; the probe-efficiency slope
+   flattens as rho falls because the self-recovered U becomes the bottleneck).
+   This was the ONLY cross-learner parameter copy in the codebase.
+
+2. IDEALIZATION (oracle rank), DOCUMENTED + made overridable.
+   The true-d `run_episode` family (`pilot_noise.run_episode`, `pilot_refit.run_episode`,
+   `pilot_choice_only.py`) set the learner factor dim to the TRUE rank `d = P.shape[1]`,
+   so the older reward-class diagnostics built on them (pilot_structure, _bootstrap,
+   _confirm, _bakeoff, _em, _rank, _mfaudit, _starvation, _trust, _choice_only) are
+   "fair" only when d_hat = d. This is BENIGN: every paper-headline result uses the
+   d_hat harnesses (`run_masked` / `run_anytime_clshp`), never this path. FIX:
+   `run_episode` now takes an optional `d_hat=` (defaults to true d for backward
+   compatibility) and is documented in-code as an ORACLE-RANK DIAGNOSTIC, not the fair
+   ZK setting. `pilot_rank.py` deliberately uses true d ("oracle rank") and is labeled
+   as such. No re-run needed (no headline depends on it).
+
+No other violations: no learner is ever constructed with or assigned true P/U/R or
+type labels; every other `P_hat/U_hat/.copy()` is a learner reading its OWN state or
+an offline-recovery diagnostic output; channel typing is correct throughout (reward
+channels add noise, choice channels mask to -1, dual-channel harnesses mask both
+consistently); the `OracleMate` actor in the heterogeneous-teammate sanity is an
+ENVIRONMENT actor (excluded from learning and from all metrics), used only to shape
+the public broadcast. HARNESS SIDE: CLEAN after the E7 fix.
