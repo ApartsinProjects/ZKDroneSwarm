@@ -304,3 +304,68 @@ Net: every theorem's qualitative prediction is confirmed; T4 and the rank/floor
 results are confirmed quantitatively; T3 is confirmed via its mechanism (the
 order-bound constant is loose by design).
 ```
+
+---
+
+## Results on the recent findings (confidence, contention, rank)
+
+These formalize the cycle 40-45 empirical results.
+
+### Proposition 6 (confidence: inverse-variance fit-weighting is suboptimal; the Bayesian posterior is the right object). REASONED.
+
+Consider the unseen-pair prediction R̂_{ij} = ⟨p_i, û_j⟩ for a target j drone i never
+pulled, so û_j is identified ONLY from teammates' broadcast observations of j.
+(a) Weighting the FIT by inverse own-noise ("precision", own events weight
+1/σ_own² ≫ teammate events 1/σ_obs²) over-weights drone i's own rewards, which carry
+ZERO information about û_j (i never observed j); relative to uniform weighting it
+shrinks the broadcast's contribution to û_j and thus INFLATES Var(û_j) and the unseen
+prediction error. Hence uniform (coverage-preserving) weighting weakly dominates
+precision weighting for unseen prediction whenever the broadcast is the only source of
+û_j. (b) The variational-Bayes posterior (EMCF) is the consistent full-information
+estimator: each observation enters with its likelihood precision INSIDE the model while
+the prior fixes the data-vs-regularizer scale; the predictive variance
+Var(R̂_{ij}) = p_i^T Σ_{u_j} p_i + u_j^T Σ_{p_i} u_j + tr(Σ_{p_i}Σ_{u_j}) is a valid
+interval, so a UCB on it is optimism under (calibrated) uncertainty.
+**Confirmed by** E15/§8.12 (uniform/EM > precision on unseen at default noise),
+PRECISION_SWEEP (uniform wins unseen at every σ_obs), CONFIDENCE bake-off (EM dominates
+uniform). **Honest caveat (H1):** the FULL predictive-variance UCB OVER-explores early
+(the own-factor term u_j^T Σ_{p_i} u_j is uniformly large for all targets while p_i is
+unknown), so for exploration use only the COLLECTIVE term p_i^T Σ_{u_j} p_i (the shared
+û_j uncertainty), which is target-specific and anneals as the swarm pins down U.
+
+### Theorem 7 (decentralized symmetry-breaking under contention). EXACT.
+
+m drones in K types (within-type spread → same-type drones share the estimate R̂ up to
+o(1)); a SHARED offer pool S each round; capacity-1 matching; NO communication.
+(a) [argmax collides] Deterministic a_i = argmax_{j∈S} R̂_{ij}: every same-type group
+whose top target lies in S has all its members pick that one target, so the expected
+number of lost (collided) engagements is ≥ Σ_{types k} (g_k − 1)·Pr(top_k ∈ S) =
+Θ(m − K) when S covers the type-tops, the matching floor.
+(b) [fixed private offset de-conflicts] Give drone i a FIXED offset h_i ∈ ℝ^n with
+i.i.d. continuous entries and select argmax_{j∈S}(R̂_{ij} + ε h_i[j]). Within a same-type
+group the perturbed argmaxes are a.s. distinct (continuous ties have measure zero), so
+same-type collisions on a g-member group vanish once its top-g targets lie in S; and any
+target with reward margin > 2ε‖h‖_∞ over its runner-up is unchanged, so value is
+preserved up to O(ε).
+(c) [why fixed AND private] A RE-randomized per-round offset gives the same per-round
+collision probability in expectation (no stable assignment); a SHARED-signal offset
+(popularity / collective count) shifts every drone identically and RE-synchronizes.
+Only a FIXED, PRIVATE offset both de-conflicts and is stable.
+**Confirmed by** §8.13: ContentionCF (fixed private offset) earns ~2× at severe
+contention (pool=15: 0.105 vs ~0.05), non-overlapping CIs; per-round-softmax and
+shared-popularity routing both backfire, exactly as (c) predicts.
+
+### Theorem 8 (ARD recovers the identifiable rank). EXACT (identifiability) + REASONED (level).
+
+Under variational PMF with ARD (per-column prior precision α_r, VB update
+α_r = (m+n)/(E‖P_{·r}‖² + E‖U_{·r}‖² + 2b_0)), a latent column r is RETAINED (α_r
+bounded) iff the observed, masked design excites direction r with second-moment energy
+above the prior/noise floor; otherwise α_r → ∞ and column r is pruned. Therefore the
+recovered effective rank equals the number of latent directions IDENTIFIABLE from the
+observed design, which is ≤ the generative rank d, with equality iff every direction is
+both sufficiently excited (factor variance) and sufficiently observed. Under masking +
+within-type spread the weakest directions fall below the floor, so the recovered rank is
+< d. Crucially the retained set does not depend on the guessed d̂ (extra columns are all
+pruned), so ARD removes the rank hyperparameter.
+**Confirmed by** §5.7 ARD: recovered effective rank ≈ 3.2 (< generative d=5), IDENTICAL
+at d̂=8 and d̂=20, with no accuracy loss and improved anytime.

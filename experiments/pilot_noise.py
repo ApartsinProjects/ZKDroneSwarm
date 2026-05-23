@@ -509,10 +509,11 @@ class EMCF(_EpsBase):
     the prior lam (in the model) handles regularization, avoiding the scale confound that
     made naive precision-ALS fail."""
     def __init__(self, *a, lam=1.0, em_sweeps=6, refit_every=4, em_beta=1.0, shrink=0.0,
-                 init_scale=0.1, ard=False, **hp):
+                 init_scale=0.1, ard=False, coll=False, **hp):
         super().__init__(*a, **hp)
         self.lam = lam; self.em_sweeps = em_sweeps; self.refit_every = refit_every
         self.em_beta = em_beta; self.shrink = shrink
+        self.coll = coll      # exploration bonus uses COLLECTIVE latent uncertainty (shared u_j) only
         self.ard = ard                          # automatic relevance determination on factor columns
         self.alpha = np.full(self.d, float(lam))   # per-column prior precision (ARD self-prunes rank)
         self.I = np.eye(self.d)
@@ -571,6 +572,15 @@ class EMCF(_EpsBase):
         t3 = np.einsum('de,jed->j', Si, self.SU)                 # tr(S_i S_j)
         return np.maximum(t1 + t2 + t3, 0.0)
 
+    def _collvar(self):
+        # COLLECTIVE latent uncertainty: variance of the SHARED factor u_j in my own
+        # direction, p_i^T Sigma_{u_j} p_i. Target-specific (high for under-observed targets,
+        # low for well-observed) and ANNEALS as the swarm pins down U -> directs probes to
+        # reduce the swarm's structure uncertainty WITHOUT the uniform over-exploration that
+        # the own-factor term (u_j^T Sigma_{p_i} u_j, large early for every target) causes.
+        mi = self.muP[self.idx]
+        return np.maximum(np.einsum('d,jde,e->j', mi, self.SU, mi), 0.0)
+
     def predict_scores(self):
         s = self.muU @ self.muP[self.idx]
         if self.shrink > 0:                                      # shrink uncertain -> popularity
@@ -583,7 +593,8 @@ class EMCF(_EpsBase):
         cand = np.asarray(cand)
         s = self.predict_scores()[cand]
         if self.em_beta > 0:                                    # confidence-interval UCB
-            s = s + self.em_beta * np.sqrt(self._predvar()[cand]) + 1e-6 * self.rng.randn(len(cand))
+            var = (self._collvar() if self.coll else self._predvar())[cand]
+            s = s + self.em_beta * np.sqrt(var) + 1e-6 * self.rng.randn(len(cand))
             a = int(cand[int(np.argmax(s))])
         elif self.rng.rand() < self.eps:
             a = int(cand[self.rng.randint(len(cand))])

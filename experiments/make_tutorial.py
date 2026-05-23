@@ -771,13 +771,18 @@ A("<div class='box key'><b>The virtuous cycle (why this is the deep structure).<
   "choice channel should dominate. It is the principled justification for ramping the choice weight "
   "with confidence over time, and it suggests the strongest method is one that fuses the reward and "
   "choice channels with weights set by Levels 2 and 3, not by a fixed schedule.</p></div>")
-A("<p class='small'>Status: Level-1 bounded weighting (relcap), Level-2 predictive-variance UCB and "
-  "shrinkage (ActiveCF count-proxy; EMCF exact), and a Level-3 temporal competence ramp (ChoiceCF) "
-  "are implemented and evaluated (Sections 8.6, 8.12). The information-greedy collective exploration "
-  "(L2-b) and the choice-predictability gate (L3 first bullet) are the natural next experiments; we "
-  "expect L2-b to beat the count-based bonus when the explored latent slice is low-dimensional, and "
-  "the L3 gate to lift the choice channel specifically at high broadcast noise where rewards are "
-  "unreliable but choices are not.</p>")
+A("<div class='box'><b>Result: how to use the posterior for exploration (info-directed exploration, "
+  "tested).</b> We compared exploration rules on anytime sample efficiency (rho=0.25, 8 seeds): "
+  "eps-greedy, the count-bonus (ActiveCF), and posterior UCBs on EMCF. <b>Honest finding:</b> a "
+  "FULL-predictive-variance UCB at a big bonus OVER-explores (cumulative skill $\\approx 0$ at round 10 "
+  "vs $0.07$ for the count-bonus) because the own-factor uncertainty term is uniformly large early; "
+  "using only the COLLECTIVE latent term $p_i^\\top\\Sigma_{u_j}p_i$ with a BIG bonus does not fix it. "
+  "But the COLLECTIVE term as a SMALL exploit-bias ($\\beta=0.3$) gives the HIGHEST final anytime skill "
+  "($0.356$ vs count-bonus $0.333$, eps-greedy $0.324$), the informative probes pay off by convergence "
+  "though it rises a touch slower early. So the right way to 'reduce collective latent uncertainty' is "
+  "a gentle tie-break toward shared-structure-informative targets layered on exploitation, not a large "
+  "exploration bonus (which the anytime metric, charging every probe, penalizes). The count-bonus "
+  "remains the fastest EARLY explorer. (Confirms Proposition 6's caveat.)</div>")
 
 A("<h3>5.6 Joint estimation of latent structure and choice-informativeness (an EM framework)</h3>")
 A("<p>Level 3 above raises a real failure of the naive choice channel. When drone $i$ learns from a "
@@ -1136,6 +1141,26 @@ A("<p><b>Confirmed by.</b> BiasModel unseen ~0.12 and UCBHomo ~0.17 (both additi
 A("<p class='small'>A full theory-vs-experiment alignment table (every prediction mapped to its "
   "measured value, with honest tensions: T3's constant is loose though its mechanism is exact; T2 "
   "idealizes 'U known' vs finite-data recovery) is in <code>docs/THEORY_FORMAL.md</code>.</p>")
+A("<div class='step'><h3>Recent findings, formalized (P6, T7, T8)</h3>"
+  "<p>The cycle 40-45 results each have a matching statement (full versions + justifications in "
+  "<code>THEORY_FORMAL.md</code>):</p>"
+  "<p><b>Proposition 6 (confidence).</b> For an UNSEEN pair, $\\hat u_j$ comes only from the broadcast, "
+  "so inverse-own-variance ('precision') fit weighting, which over-weights a drone's own rewards that "
+  "carry no information about $\\hat u_j$, inflates $\\mathrm{Var}(\\hat u_j)$ and is SUBOPTIMAL vs "
+  "uniform; the Bayesian posterior (EMCF) is the consistent full-information estimator with a valid "
+  "predictive interval. Caveat: the FULL predictive-variance UCB over-explores (the own-factor term is "
+  "uniformly large early), so info-directed exploration should use the COLLECTIVE term "
+  "$p_i^\\top\\Sigma_{u_j}p_i$. (Confirms 8.12, the precision sweep, and the EM win.)</p>"
+  "<p><b>Theorem 7 (contention symmetry-breaking).</b> Under a shared pool with no communication, "
+  "deterministic argmax makes each same-type group of size $g$ lose $g-1$ engagements (the matching "
+  "floor); a FIXED private offset $\\hat R_{ij}+\\varepsilon h_i[j]$ makes same-type picks a.s. "
+  "distinct (collisions $\\to 0$) while preserving any target with margin $>2\\varepsilon\\lVert "
+  "h\\rVert_\\infty$, and only a fixed-AND-private offset is stable (per-round-random re-collides, "
+  "shared-signal re-synchronizes). (Confirms the 8.13 contention win and the 4-design meta-finding.)</p>"
+  "<p><b>Theorem 8 (ARD rank).</b> ARD retains a latent column iff the masked design excites it above "
+  "the prior floor, so the recovered effective rank = the data-IDENTIFIABLE rank $\\le d$ (strictly "
+  "$<d$ under masking), and it does not depend on the guessed $\\hat d$, removing the rank "
+  "hyperparameter. (Confirms 5.7: effective rank $\\approx 3.2$ at both $\\hat d=8,20$.)</p></div>")
 
 # 8 RESULTS
 A("<h2 id='res'>8. Results, step by step</h2>")
