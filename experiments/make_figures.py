@@ -107,7 +107,7 @@ if f:
     plt.gca().invert_xaxis()  # left = full broadcast, right = heavy masking
     plt.xlabel("observation density  rho  (fraction of broadcast seen)")
     plt.ylabel("UNSEEN-pair skill")
-    plt.title("Masking-robustness (unseen-pair skill): our online SwarmCF stays\nflat as the broadcast is masked; batch-SVD hybrids (PTF/ESTR/BPMF) decay", fontsize=10)
+    plt.title("Masking-robustness (unseen-pair skill): our online SwarmCF stays\nrobust as the broadcast is masked; batch-SVD hybrids (PTF/ESTR/BPMF) decay", fontsize=10)
     plt.legend(fontsize=7, loc="lower left"); plt.tight_layout()
     save_fig("F5_crossover")
     print("F5_crossover  <-", os.path.basename(f))
@@ -429,10 +429,10 @@ if f:
 f = latest("results/pilots/strike_*.json")
 if f:
     d = json.load(open(f))
-    sk = d.get("skill", {}); rhos = d["meta"]["rhos"]; methods = d["meta"]["methods"]
+    sk = d.get("skill", {}); rhos = d["meta"]["rhos"]
+    methods = [m for m in d["meta"]["methods"] if m != "EMCF"]   # core SwarmCF only (variants deferred)
     if sk and all(str(r) in sk for r in rhos):
         x = np.arange(len(methods)); wbar = 0.8 / max(len(rhos), 1)
-        cls = {"RewardCF": "C0", "EMCF": "C0"}                       # ours = blue; structured = orange; sf = gray
         struct = {"PTF", "ESTR", "BPMF", "SoftImpute", "MFSGD"}
         plt.figure(figsize=(7.2, 3.8))
         for bi, r in enumerate(rhos):
@@ -440,15 +440,15 @@ if f:
             sd = [np.std(sk[str(r)][nm]) for nm in methods]
             plt.bar(x + (bi - (len(rhos) - 1) / 2.0) * wbar, mu, wbar, yerr=sd, capsize=2,
                     label="$\\rho$=%.2f" % r, alpha=0.6 + 0.4 * bi)
-        cols = ["C0" if nm in ("RewardCF", "EMCF") else ("C1" if nm in struct else "C7") for nm in methods]
-        DISPLAY = {"RewardCF": "SwarmCF", "EMCF": "SwarmCF-B"}
+        cols = ["C0" if nm == "RewardCF" else ("C1" if nm in struct else "C7") for nm in methods]
+        DISPLAY = {"RewardCF": "SwarmCF"}
         plt.xticks(x, [DISPLAY.get(nm, nm) for nm in methods], rotation=30, ha="right", fontsize=7.5)
         for tl, c in zip(plt.gca().get_xticklabels(), cols):
             tl.set_color(c)
         plt.ylabel("servicing skill  (0=random dispatch, 1=oracle)")
         plt.axhline(0, color="black", lw=0.6)
-        plt.title("Operational target-servicing mission: our online CF (blue) vs the low-rank field (orange,\n"
-                  "incl. our batch hybrid) vs structure-free (gray); separation opens at $\\rho$=0.25", fontsize=8)
+        plt.title("Operational target-servicing mission: SwarmCF (blue) vs the low-rank field (orange)\n"
+                  "vs structure-free (gray); the separation opens under masking ($\\rho$=0.25)", fontsize=8.5)
         plt.legend(fontsize=8); plt.tight_layout(); save_fig("F17_mission")
         print("F17_mission  <-", os.path.basename(f))
 

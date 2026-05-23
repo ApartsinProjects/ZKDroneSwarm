@@ -412,7 +412,7 @@ A("<h3>6.4 An operational mission and a centralized ceiling</h3>")
 A("<p>Framed as a target-servicing / dispatch mission, latent factors are robot capability traits and "
   "task requirement traits, each robot repeatedly services an offered target under range-limited, "
   "distance-noisy sensing, SwarmCF on the same servicing-skill metric beats the entire low-rank field "
-  "under limited observability ($\\rho=0.25$): $\\approx 0.36$ versus the best of the field "
+  "under limited observability ($\\rho=0.25$): $\\approx 0.35$ versus the best of the field "
   "$\\approx 0.29$ with non-overlapping intervals, while structure-free learners sit at the random-"
   "dispatch floor (Figure 5). To bound the cost of our constraints we add two reference ceilings (not "
   "competitors): a centralized full-communication matcher with Hungarian assignment, and the same with "
