@@ -540,3 +540,20 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   remarks; (7) completed authorless reference [18] (Athira K. A. et al., ACM Comput. Surv.
   2024); (8) condensed a duplicated Section 3 sentence; removed em-dashes. Committed rounds
   16-17, pushed. OPEN (user): fill the placeholder author/affiliation block before submission.
+- Cycle 66 (deep reviewer rounds 18-20: theorems, references, citations, related work):
+  THEOREMS (round 18): the structure-free floor was near-definitional, so it is now
+  Proposition 1; the four substantive results are Theorems 1-4 (row-completion Theta(d) vs
+  Theta(n) separation; anytime separation; decentralized masked recovery, the novel one;
+  collective speedup). All body/appendix cross-refs renumbered. REFERENCES (round 19): a
+  background agent web-verified all 41; only [25] STRATA was wrong (it is a JAAMAS journal
+  article, Autonomous Agents and Multi-Agent Systems 34:38, 2020, not the AAMAS conference) --
+  fixed. Added verified refs: [42] Ammad-ud-din et al. (federated CF), [43] Ling et al.
+  (decentralized matrix completion), [44] McMahan et al. (FedAvg), [45] Auer et al. (UCB1),
+  [46] Bernstein et al. (Dec-POMDP), and (round 20) [47] Kuhn (Hungarian method) + [48]
+  Sarwar et al. (SVD fold-in). 48 refs total; verified programmatically that EVERY ref is
+  cited and no citation is dangling. TABLE 1: every paradigm row now carries citations.
+  RELATED WORK: filled gaps (federated CF/learning, decentralized matrix completion,
+  Dec-POMDP positioning). CITATION AUDIT: cited weighted ALS [28,31], UCB1 [45], Hungarian
+  [47], fold-in [48] where prior-art concepts are used. PROSE: "for example aerial vehicles"
+  (was "say"); "Computational cost" (was "On-board cost", colliding with "Onboarding").
+  Committed rounds 18-20, pushed.

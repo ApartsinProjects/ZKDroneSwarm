@@ -270,7 +270,7 @@ A("<div class='algo'><div class='cap'>Algorithm 1: SwarmCF (run independently by
   "        $\\hat u_j \\leftarrow (\\sum_{(k,j)\\in\\Omega_i} w\\,\\hat p_k\\hat p_k^\\top+\\lambda I)^{-1}"
   "\\sum w\\,\\tilde r\\,\\hat p_k$;   symmetric update for $\\hat p_i$\n"
   "predict full row $\\hat R_{i\\cdot}=\\hat U\\hat p_i$ (defined on EVERY task, seen or not)</div>")
-A("<p><b>Onboarding (fold-in).</b> A new task $j^\\star$ (or a new robot) is absorbed without retraining: "
+A("<p><b>Onboarding (fold-in [48]).</b> A new task $j^\\star$ (or a new robot) is absorbed without retraining: "
   "given the current factor basis, its hidden vector is the ridge least-squares solution of its few "
   "observed engagements against the corresponding known factors, an $O(\\hat d)$ computation. This is the "
   "same operation that lets an existing robot predict an unseen task once the basis is recovered "
@@ -421,7 +421,7 @@ A("<p>Framed as a target-servicing / dispatch mission, latent factors are robot 
   "$\\approx 0.35$ versus the best alternative "
   "$\\approx 0.29$ with non-overlapping intervals, while structure-free learners sit at the random-"
   "dispatch floor (Figure 5). To bound the cost of our constraints we add two reference ceilings (not "
-  "competitors): a centralized full-communication matcher with Hungarian assignment, and the same with "
+  "competitors): a centralized full-communication matcher with Hungarian assignment [47], and the same with"
   "noiseless, unmasked observation. SwarmCF's communication-free de-confliction recovers about 81% of "
   "the full-communication ceiling when targets are plentiful; the residual gap is the genuine price of "
   "within-round coordination under contention. Both ceilings sit below the omniscient oracle, and the "
@@ -609,6 +609,11 @@ A("<ol class='small' style='line-height:1.5'>"
   "<i>Machine Learning</i>, 47(2&ndash;3):235&ndash;256, 2002.</li>"
   "<li>D. S. Bernstein, R. Givan, N. Immerman, S. Zilberstein. The complexity of decentralized control "
   "of Markov decision processes. <i>Mathematics of Operations Research</i>, 27(4):819&ndash;840, 2002.</li>"
+  "<li>H. W. Kuhn. The Hungarian method for the assignment problem. <i>Naval Research Logistics "
+  "Quarterly</i>, 2(1&ndash;2):83&ndash;97, 1955.</li>"
+  "<li>B. Sarwar, G. Karypis, J. Konstan, J. Riedl. Incremental singular value decomposition algorithms "
+  "for highly scalable recommender systems. <i>Proc. 5th Int. Conf. Computer and Information "
+  "Technology</i>, 2002.</li>"
   "</ol>")
 
 A("<h2>Appendix A. Proofs of the main results</h2>")
