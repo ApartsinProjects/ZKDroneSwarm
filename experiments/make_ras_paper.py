@@ -131,6 +131,14 @@ A("<p><b>The gap.</b> To our knowledge no prior method targets this cell. Every 
   "utilities/traits, a coordinator or centralized training, or clean/shared observation (Section 2, "
   "Table 1). The regime is not exotic: it is the default when communication is jammed, bandwidth-limited, "
   "or withheld for stealth, and when task structure must be discovered in the field. We close it.</p>")
+A("<p><b>Relation to collaborative filtering.</b> Low-rank collaborative filtering is itself classical; "
+  "our contribution is not the estimator but the demonstration, with theory, that it works <i>at all</i> "
+  "in this regime, fully decentralized, communication-free, and under a persistent, per-observer-private "
+  "observation mask where standard uniform-sampling completion guarantees do not apply, together with the "
+  "recovery condition that says exactly when it works and the collective-speedup law that says why a "
+  "swarm helps. The categorical floor against structure-free learning, the decentralized recovery "
+  "condition under a structured private mask, and the value-of-broadcast / positive-scaling results are, "
+  "to our knowledge, new.</p>")
 A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "<li>We formalize <b>communication-free MRTA under partial, privately-noisy observation and zero "
   "prior knowledge</b>, a most-restrictive but practically common regime that prior MRTA and "
@@ -210,8 +218,10 @@ A("<p>This channel is the formal counterpart of physical sensing: a robot percei
   "and its effect only when the teammate is within range (partial, persistent) and with a fidelity that "
   "degrades with distance and the robot's own sensor (noisy, private). It is strictly weaker than the "
   "shared, clean broadcast usually assumed, and it makes decentralization <b>real</b>: persistent blind "
-  "spots give every robot a permanently different view, so the robots cannot converge to a common model "
-  "by symmetry. In a grounding experiment (supplementary material) we derive the mask and noise directly "
+  "spots give every robot a permanently different view, and the private per-observer noise means even "
+  "commonly-visible outcomes are read differently by each robot, so there is no shared, clean signal to "
+  "average toward agreement, the robots cannot converge to a common model by symmetry. In a grounding "
+  "experiment (supplementary material) we derive the mask and noise directly "
   "from 2-D sensing geometry, range-limited visibility and read-off noise that grows with distance, and "
   "the categorical result survives once sensing coverage exceeds a modest threshold, so the channel is "
   "physically realizable rather than a convenient abstraction. Figure 1 illustrates the setting.</p>")
