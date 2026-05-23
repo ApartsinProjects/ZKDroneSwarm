@@ -1992,6 +1992,31 @@ A("<p><b>Why it matters.</b> The design space does not merely reduce to 'a core 
   "(plentiful vs contested targets, stationary vs churning, clean vs noisy), with no knob the operator "
   "must set per situation. That is the strongest form of the consolidation argument.</p>")
 
+A("<h3>8.17 Sensing-grounded observability (a robotics check)</h3>")
+A(plain("<b>What are the hidden factors, physically?</b> Think of $p_i$ as robot $i$'s CAPABILITY "
+        "profile (payload, sensors, speed, endurance, skills) and $u_j$ as task $j$'s REQUIREMENT "
+        "profile along the same traits; the reward $\\langle p_i,u_j\\rangle$ is how well that robot "
+        "suits that task. Neither is known in advance, the swarm learns them from outcomes. And the "
+        "'broadcast' is just LIMITED-RANGE SENSING: a robot notices what a teammate did only when that "
+        "engagement happens close enough to see, more fuzzily the farther away. That is where the "
+        "masking and noise come from in reality, not a dial we turn."))
+A("<p>To make sure our results are not an artifact of an abstract mask, we placed the robots and tasks "
+  "in a 2-D arena and DERIVED observability from geometry: a robot senses a teammate's engagement only "
+  "if the task is within its sensing radius $R$, with noise growing with distance "
+  "($\\sigma(d)=\\sigma_0(1+d/R)$). This is a persistent, structured, per-robot visibility, exactly the "
+  "kind a real swarm has, now emerging from physics. Sweeping the sensing radius:</p>")
+A("<table><tr><th>sensing radius $R$</th><th>coverage</th><th>RewardCF unseen</th><th>Tabular unseen</th></tr>"
+  "<tr><td>0.20</td><td>0.11</td><td>0.030</td><td>~0</td></tr>"
+  "<tr><td>0.35</td><td>0.29</td><td>0.147</td><td>~0</td></tr>"
+  "<tr><td>0.50</td><td>0.50</td><td>0.229</td><td>~0</td></tr>"
+  "<tr><td>0.80</td><td>0.86</td><td>0.304</td><td>~0</td></tr></table>")
+A(plain("Read: once a robot can sense more than about a third of the engagements, CF generalizes to "
+        "tasks it never tried (unseen skill $0.15$-$0.30$) while a structure-free learner stays pinned "
+        "at the floor ($\\approx0$) at EVERY radius. The categorical win is real under physically-grounded, "
+        "geometry-limited, distance-noisy sensing, the regime an actual decentralized drone swarm "
+        "operates in. It degrades only when sensing is very sparse (~10% coverage), which is the honest "
+        "and expected limit: with almost no shared observations there is no shared structure to recover."))
+
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "

@@ -53,7 +53,26 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
       (round-10 0.084 highest, rounds-to-half 21.2) -> explicit division-of-labor helps EARLY sample
       efficiency; collective-UCB (EMCF b=0.3) still wins FINAL (0.356 vs 0.336). Honest early-coverage
       win, not a final breakthrough. CoordCF in pilot_noise.py, pilot_explore.py REG.
-- [ ] E-H11types contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type
+- [DONE cycle 66] E-H11types: pilot_h11types.py (k1 sweep) -> docs/H11TYPES.md, catalogue row 61. HYP
+  CONFIRMED: de-confliction value (AdaCF-greedy) +0.112 at K1=1 (identical) -> +0.035 at K1=30 (distinct);
+  AdaCF beats greedy + both field primitives at every K1.
+
+## ===== RAS PUBLISHING TRACK (user pivot cycle 67: target Robotics & Autonomous Systems) =====
+- [DONE cycle 67] RAS grounding #1 -- SENSING-grounded observability: pilot_sensing.py places robots+tasks
+  in a 2-D arena and DERIVES masking+noise from sensing radius R + distance-noise (sigma(d)=sigma0(1+d/R)),
+  so rho/sigma are EMERGENT physics, not parameters. Catalogue row 62, docs/SENSING.md. RESULT: categorical
+  unseen win SURVIVES geometry-limited sensing once coverage>=~0.3 (RewardCF unseen 0.15-0.30, structure-free
+  ~0 at every radius); degrades only at ~10% coverage. Folded into paper (Robotics grounding + Sensing-grounded
+  result) + tutorial (§8.17). This is the single biggest RAS-fit improvement (physical observability).
+- [TODO RAS] Save docs/PUBLICATION_ASSESSMENT.md (T-RO + RAS honest assessments from this session).
+- [TODO RAS] Deeper grounding for a stronger RAS submission: (a) a concrete SCENARIO (search/coverage/
+  inspection) with robot capability vs task requirement semantics in a sim; (b) feature the tabula_drone
+  PettingZoo validation (row 38) as a named environment, maybe add one more; (c) a sensing-grounded FIGURE
+  (unseen skill vs coverage). (d) reformat main.tex to RAS (Elsevier elsarticle) class when submitting.
+- [TODO RAS] (stretch, shared with T-RO) close/bound P15 keystone; small hardware or high-fidelity (Gazebo/
+  Isaac/AirSim) demo would lift toward T-RO too.
+## ===== END RAS TRACK =====
+- [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type
       homogeneity? vary K (clusters) in the contention world; if all drones same type they all want the
       same targets (max contention) -> private offset should matter MORE. Reuse pilot_contention with a
       type-controlled make_world.

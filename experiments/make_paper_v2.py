@@ -127,6 +127,17 @@ A("<p><b>World.</b> $m$ drones, $n$ targets, with $K_1,K_2$ latent types; the re
   "unit latent factors $p_i,u_j\\in\\mathbb{R}^d$,</p>")
 A("<p style='text-align:center'>$R_{ij} = \\langle p_i, u_j\\rangle \\in [-1,1], \\qquad R = PU^\\top, "
   "\\qquad \\operatorname{rank}(R)=\\min(d,K_1,K_2)$ (no nonlinear link).</p>")
+A("<p><b>Robotics grounding.</b> Concretely, $p_i$ is robot $i$'s (hidden) CAPABILITY profile along $d$ "
+  "latent traits (payload, sensor suite, speed, endurance, software skills) and $u_j$ is task $j$'s "
+  "REQUIREMENT profile along the same traits, so $R_{ij}$ is the capability-requirement match (how well "
+  "robot $i$ performs task $j$, e.g. inspection / coverage / pickup quality). Neither profile is known a "
+  "priori, robots learn them only from outcomes. Crucially, the observation channel is LIMITED-RANGE "
+  "SENSING, not radio: a robot perceives a teammate's engagement (which task, with what outcome) only "
+  "when the engagement falls inside its sensing footprint, and more noisily the farther away it is. This "
+  "is what makes the masking $\\rho$ and noise $\\sigma_{\\mathrm{obs}}$ PHYSICAL rather than free "
+  "parameters; we validate this directly by deriving observability from 2-D sensing geometry (range + "
+  "distance-noise) and showing the categorical result survives (Section on sensing-grounded "
+  "observability), the regime a real decentralized swarm operates in.</p>")
 A("<p><b>Observability.</b> A public stream of (action, outcome); each agent senses its own outcome "
   "cleanly (noise $\\sigma_{\\mathrm{own}}$) and a per-agent masked (rate $\\rho$), noisy (noise "
   "$\\sigma_{\\mathrm{obs}}$) slice of teammates' outcomes (passive sensing, not transmission, so "
@@ -290,6 +301,18 @@ A("<div class='box'><b>Capstone: the menu composes into ONE method (UnifiedCF).<
   "overlapping CIs). The abundance gate fires ONLY at $|S|{>}4m$, so the small-offer regimes are "
   "untouched. So the design space does not just reduce to a core plus a menu, it collapses to a single "
   "self-tuning policy that a practitioner can deploy without knowing the regime in advance.</div>")
+
+A("<p><b>Sensing-grounded observability (robotics check).</b> To confirm the masking/noise are not a "
+  "convenient abstraction, we place the $m$ robots and $n$ tasks in a 2-D arena and DERIVE observability "
+  "from sensing geometry: a robot perceives a teammate's engagement only if the task is within its "
+  "sensing radius $R$, with read-off noise growing with distance ($\\sigma(d)=\\sigma_0(1+d/R)$). This "
+  "yields a persistent, structured per-robot visibility (the regime of Theorem 4) emergent from physics. "
+  "Sweeping $R$ (effective coverage $0.11\\to0.86$): the categorical unseen-pair win SURVIVES once "
+  "coverage exceeds $\\approx0.3$, with RewardCF unseen skill $0.15\\to0.30$ versus the structure-free "
+  "floor ($\\approx0$) at EVERY radius, and degrades gracefully only at very sparse sensing (10\\% "
+  "coverage, where there is too little data to recover the shared structure). So the generalization "
+  "result holds under geometry-limited, distance-noisy sensing, the operating regime of a real "
+  "decentralized swarm, not merely under an injected mask.</p>")
 
 A("<div class='box'><b>Scope: when does CF beat structure-free?</b> The advantage is not "
   "universal. Across a structure-by-observability grid it holds precisely when THREE "
