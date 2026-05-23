@@ -420,3 +420,50 @@ class SoftImpute(_AccBase):
         else:
             a = int(cand[int(np.argmax(self.M[self.idx][np.asarray(cand)]))])
         self.pulled[a] = True; return a
+
+
+class CLUB(_AccBase):
+    """Clustering of Bandits (Gentile et al. 2014), decentralized/local variant: each
+    drone maintains per-(drone,target) empirical means from the broadcast, estimates a
+    HARD CLUSTER of drones similar to itself (mean-centered cosine over co-observed
+    targets, thresholded), and pools its cluster-mates' observations per target to
+    predict. Tests DISCRETE clustering vs CONTINUOUS low-rank factorization (RewardCF)
+    and vs soft memory-CF (KNNCF). Generalizes to a target i never pulled iff a
+    cluster-mate observed it. ZK: clusters from observed rewards only, no central
+    coordinator (each drone clusters from its OWN view of the broadcast)."""
+    def __init__(self, *a, eps=0.2, sim_thresh=0.4, min_co=3, **hp):
+        super().__init__(*a, eps=eps, **hp)
+        self.sim_thresh = sim_thresh; self.min_co = min_co
+
+    def _cluster_pred(self):
+        obs = self.cnt > 0
+        vals = np.where(obs, self.sum / np.maximum(self.cnt, 1), 0.0)
+        i = self.idx
+        co = obs[i][None, :] & obs                       # (m,n) targets co-observed with i
+        nco = co.sum(1)
+        cluster = np.zeros(self.m, bool); cluster[i] = True
+        vi_full = vals[i]
+        for k in range(self.m):
+            if k == i or nco[k] < self.min_co:
+                continue
+            mask = co[k]
+            a = vi_full[mask] - vi_full[mask].mean()
+            b = vals[k][mask] - vals[k][mask].mean()
+            den = np.linalg.norm(a) * np.linalg.norm(b) + 1e-9
+            if float(a @ b / den) >= self.sim_thresh:
+                cluster[k] = True
+        cl = np.where(cluster)[0]
+        csum = self.sum[cl].sum(0); ccnt = self.cnt[cl].sum(0)   # pool within cluster
+        # fall back to global popularity where the cluster has no data on a target
+        gmean = float(self.sum.sum() / max(self.cnt.sum(), 1))
+        return np.where(ccnt > 0, csum / np.maximum(ccnt, 1), gmean)
+
+    def predict_scores(self):
+        return self._cluster_pred()
+
+    def select(self, t, cand):
+        if self.rng.rand() < self.eps:
+            a = int(cand[self.rng.randint(len(cand))])
+        else:
+            a = int(cand[int(np.argmax(self._cluster_pred()[np.asarray(cand)]))])
+        self.pulled[a] = True; return a

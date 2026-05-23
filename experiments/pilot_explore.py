@@ -20,7 +20,7 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 import pilot_compare as pc
 import pilot_anytime as pa
-from pilot_noise import RewardCF, ActiveCF, EMCF
+from pilot_noise import RewardCF, ActiveCF, EMCF, CoordCF
 from _results_io import save_results
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,9 +33,10 @@ REG = {
     "posterior-UCB b=1 (EMCF)": (EMCF,    dict(**_EM)),                      # full predictive var (over-explores)
     "collective-UCB b=1 (EMCF)": (EMCF,   dict(coll=True, **_EM)),           # collective uncertainty, big bonus
     "collective b=0.3 (EMCF)":  (EMCF,    dict(**{**_EM, "coll": True, "em_beta": 0.3})),  # small exploit-bias
+    "neg-corr (CoordCF)":       (CoordCF, dict(c_explore=0.5, **_CONV)),    # explicit division-of-labor
 }
 ORDER = ["eps-greedy (RewardCF)", "count-bonus (ActiveCF)", "posterior-UCB b=1 (EMCF)",
-         "collective-UCB b=1 (EMCF)", "collective b=0.3 (EMCF)"]
+         "collective-UCB b=1 (EMCF)", "collective b=0.3 (EMCF)", "neg-corr (CoordCF)"]
 RHO = 0.25
 SEEDS = list(range(8))
 RNG = np.random.RandomState(0)

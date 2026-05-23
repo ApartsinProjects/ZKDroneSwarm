@@ -912,6 +912,36 @@ class MusicalChairs(RewardCF):
         super().observe(t, choices, revealed, cand_sets, rvar)
 
 
+class CoordCF(RewardCF):
+    """MARL coordinated / NEGATIVE-CORRELATION exploration (no comms): a CF learner whose
+    exploration bonus down-weights targets the SWARM has already probed, counted from the
+    public broadcast (own + every sensed teammate engagement). bonus_j = c_explore /
+    sqrt(1 + gcount_j), added to the CF value, so the swarm DIVIDES its exploration: if a
+    teammate already probed j (and broadcast it), j's bonus is low and I probe elsewhere.
+    Contrast eps-greedy (uninformed), ActiveCF (own-count latent-UCB), and collective-UCB
+    (probe where the shared posterior is uncertain): this is the EXPLICIT division-of-labor
+    variant. Coordination is emergent from passive sensing, not communication."""
+    def __init__(self, *a, c_explore=0.5, **hp):
+        super().__init__(*a, **hp)
+        self.c_explore = c_explore
+        self.gcount = np.zeros(self.n)              # visible engagements per target (own + sensed teammates)
+
+    def select(self, t, cand):
+        cand = np.asarray(cand)
+        base = self.U[cand] @ self.P[self.idx]
+        bonus = self.c_explore / np.sqrt(1.0 + self.gcount[cand])   # high where the SWARM probed little
+        a = int(cand[int(np.argmax(base + bonus))])
+        self.pulled[a] = True
+        return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):                     # count engagements the broadcast actually revealed
+            c = int(choices[k]) if k < len(choices) else -1
+            if c >= 0 and (k == self.idx or (k < len(revealed) and not np.isnan(revealed[k]))):
+                self.gcount[c] += 1.0
+        super().observe(t, choices, revealed, cand_sets, rvar)
+
+
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand, d_hat=None):
     # NOTE (ZK fairness): d_hat=None defaults to the TRUE rank P.shape[1] -- this is an
     # ORACLE-RANK diagnostic path used by the older reward-class pilots; it is NOT the

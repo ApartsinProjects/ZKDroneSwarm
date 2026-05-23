@@ -2,6 +2,60 @@
 
 Living list. Priorities (P0 highest) re-ranked whenever a finding lands.
 
+## ===== ACTIVE WORKLOG (RESUME HERE; survives session compaction) =====
+Goal (user, cycle 64+): DO ALL the pending items, parallelize where possible, and
+keep this checklist updated so a fresh/compacted session can continue cold. Mark each
+[TODO]/[BUILDING]/[RUNNING]/[DONE]. Heavy experiments: 8 logical CPUs, each ProcessPool
+uses max_workers=4, so run AT MOST 2 pools at once (3+ thrashes). Python: /c/Python314/python.
+Run generators/experiments from REPO ROOT (E:\Projects\ColabDroneSwarm). After any
+experiment: add a DATA_CATALOGUE row + update this worklog. Recommended commit per item or small batch.
+
+WRITING / non-CPU (do interleaved while experiments run):
+- [DONE cycle 65] W1 MARL framing paragraph: added to paper (after Related-work honest-positioning) +
+  tutorial (§9 novelty, plain callout). Covers indep-MARL=floor, CTDE/comms inadmissible, SIC-MMAB =
+  the de-confliction baselines we beat, broadcast-CF = decentralized model-based MARL, unseen-generalization
+  = the differentiator.
+- [DONE cycle 65] W2 de-confliction FIGURE F15 (make_figures.py) from contention8_155056; embedded in
+  tutorial (§9). Shows ours (private offset) beats CBBA-backoff + MAB re-seating at severe contention.
+- [ ] W1-ORIG MARL framing paragraph -> paper (make_paper_v2.py, after Related work) + tutorial. Content:
+      independent-MARL (IQL/indep-UCB)=our UCBIndep=floor on unseen (Thm1); broadcast-CF=decentralized
+      MODEL-BASED MARL (shared world model = low-rank R, estimated privately); broadcast=passive
+      sensing NOT learned messaging (vs CommNet/TarMAC/DIAL); ChoiceEM=decentralized teammate modeling;
+      T7 offset=symmetry-breaking in a congestion/matching game. (Full notes in "MARL PERSPECTIVE" below.)
+- [ ] W2 De-confliction FIGURE (make_figures.py new F15): earned reward vs pool {240,60,30,15} for
+      ContentionAdaCF/ContentionCF (ours) vs CBBAlite vs MusicalChairs vs greedy RewardCFconv vs PTF,
+      from latest results/pilots/contention8_*.json (the 9-method one, _155056). Embed in paper+tutorial 8.13.
+- [ ] W3 LaTeX main.tex sync with the HTML (docs/paper_aamas/main.tex): the HTML moved ahead -- add the
+      UnifiedCF capstone (best-or-tied everywhere via abundance gate), the CBBA/MusicalChairs
+      de-confliction comparison, the per-observer-independent noise model statement, strict-ZK newcomer.
+      Careful manual sync; verify it still reads.
+- [ ] W4 Theory writeups in THEORY_FORMAL.md (proposed P11-P15 already sketched there, ~line 465+):
+      P13 adaptive-envelope (NOW partly realized by the abundance gate -- formalize: exploration should
+      vanish when offer abundant OR loss high); P11 choice-vs-reward crossover sigma*; P12 churn fold-in
+      latency; P14 calibration/VI; P15 KEYSTONE (decentralized masked low-rank U-recovery -- the central
+      open problem; write the strongest partial result + precise conjecture + cite Nagaraj/Jain).
+
+EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
+- [DONE cycle 65] E-CLUB CLUB baseline: CLUB(_AccBase) in pilot_baselines.py (hard drone clustering),
+      pilot_club.py runner -> docs/CLUB.md, catalogue row 58. FINDING: continuous low-rank (RewardCF) is
+      the MOST masking-robust on unseen (rho=0.25 0.337 > CLUB 0.257, non-overlapping); cluster/memory
+      edge ahead only at full broadcast; all structured >> floor. CLUB credible, not a strawman.
+- [DONE cycle 65] E-COORD CoordCF negative-correlation exploration. Result row 59: FASTEST early
+      (round-10 0.084 highest, rounds-to-half 21.2) -> explicit division-of-labor helps EARLY sample
+      efficiency; collective-UCB (EMCF b=0.3) still wins FINAL (0.356 vs 0.336). Honest early-coverage
+      win, not a final breakthrough. CoordCF in pilot_noise.py, pilot_explore.py REG.
+- [ ] E-H11types contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type
+      homogeneity? vary K (clusters) in the contention world; if all drones same type they all want the
+      same targets (max contention) -> private offset should matter MORE. Reuse pilot_contention with a
+      type-controlled make_world.
+- [ ] E-C4 anisotropy (skewed singular values / heavy-tailed factor spectrum): does the low-rank win
+      survive non-uniform factor importance? Add an anisotropic make_world variant; reuse run_masked.
+- [ ] E-C12 verify C12 two-phase onboarding is SUBSUMED by E7/C12-done (analysis + maybe a tiny run);
+      if subsumed, mark done and note in catalogue; else run.
+
+STATUS LINE (update me): cycle 64 committed (e583410). Next: W1+W2 (cheap, parallel with E-CLUB/E-COORD runs).
+## ===== END ACTIVE WORKLOG =====
+
 ## SCOPE ANCHOR (do not drift)
 SETTING: a swarm of drones + targets with an UNKNOWN but existing LATENT
 STRUCTURE; LIMITED + NOISY OBSERVABILITY; NO COMMUNICATION. Agents are HONEST

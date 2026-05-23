@@ -332,6 +332,20 @@ A("<p class='small'><b>Honest positioning.</b> Every individual ingredient (low-
   "is the open niche, and the genuinely new mechanisms are the masking-robust zero-weight (not "
   "zero-value) estimator, the anytime separation under starvation, the comms-free de-confliction on a "
   "learned preference, and held-out choice-informativeness. We do not claim a new estimator.</p>")
+A("<p class='small'><b>MARL view.</b> In multi-agent-RL terms this is a COOPERATIVE, decentralized, "
+  "communication-free multi-agent BANDIT with low-rank structure (a multiplayer matrix/low-rank "
+  "bandit), not a sequential Markov game (reward is stateless). This locates each MARL family exactly: "
+  "(i) independent learners (IQL / independent-UCB) are our UCBIndep, with no shared structure, hence "
+  "the categorical unseen floor (Thm 1); (ii) CTDE (MAPPO/QMIX/VDN) needs centralized training or "
+  "parameter sharing, and learned-communication methods (CommNet/TarMAC/DIAL) need a message channel, "
+  "both inadmissible here, our broadcast is PASSIVE sensing, not transmission; (iii) the admissible "
+  "no-comms multiplayer-bandit matchers (SIC-MMAB / musical chairs) are exactly the de-confliction "
+  "baselines we beat. Read positively, broadcast-CF is DECENTRALIZED MODEL-BASED MARL whose shared "
+  "world model is the low-rank reward matrix, estimated privately by each agent; the active-exploration "
+  "and de-confliction mechanisms are emergent coordination WITHOUT communication; and the choice "
+  "channel is decentralized teammate modeling. The differentiator over standard MARL is generalization "
+  "to UNSEEN tasks, which independent learners provably cannot do and structured single-agent bandits "
+  "do not address in the no-comms multi-agent regime.</p>")
 
 A("<h2>7. Limitations and conclusion</h2>")
 A("<p><b>Contention.</b> Our formal results assume non-contention (a target may be engaged "

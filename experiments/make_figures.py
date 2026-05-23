@@ -374,4 +374,34 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.95]); save_fig("F14_stress")
     print("F14_stress  <-", os.path.basename(f))
 
+# ---- F15: de-confliction primitives (earned reward vs pool), capacity-1 contention ----
+f = latest("results/pilots/contention8_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; pools = d["meta"]["pools"]
+    cand = ["ContentionAdaCF", "ContentionCF", "CBBAlite", "MusicalChairs", "RewardCFconv", "PTF"]
+    methods = [m for m in cand if m in raw[str(pools[0])]]
+    sty = {"ContentionAdaCF": dict(color="C0", marker="o", lw=2),
+           "ContentionCF": dict(color="C1", marker="o", lw=2, ls="--"),
+           "CBBAlite": dict(color="C2", marker="s"),
+           "MusicalChairs": dict(color="C4", marker="^"),
+           "RewardCFconv": dict(color="C3", marker="x", ls=":"),
+           "PTF": dict(color="C5", marker="d", ls=":")}
+    lab = {"ContentionAdaCF": "ContentionAdaCF (ours, T7)", "ContentionCF": "ContentionCF (ours, T7)",
+           "CBBAlite": "CBBAlite (CBBA auction+backoff)", "MusicalChairs": "MusicalChairs (SIC-MMAB re-seat)",
+           "RewardCFconv": "greedy RewardCF", "PTF": "PTF (batch low-rank)"}
+    x = list(range(len(pools)))
+    plt.figure(figsize=(5.4, 3.8))
+    for nm in methods:
+        mu = [np.mean(raw[str(p)][nm]["anytime"]) for p in pools]
+        sd = [np.std(raw[str(p)][nm]["anytime"]) for p in pools]
+        plt.errorbar(x, mu, yerr=sd, capsize=2, markersize=5, label=lab.get(nm, nm), **sty.get(nm, {}))
+    plt.xticks(x, ["%d" % p for p in pools])
+    plt.xlabel("offer pool size |S| (left = no contention, right = severe; m=30 drones)")
+    plt.ylabel("earned-reward skill (matching-normalized)")
+    plt.title("De-confliction under capacity-1 contention: proactive PRIVATE offset (ours)\n"
+              "beats the auction-backoff and MAB re-seating field primitives at severe contention", fontsize=8)
+    plt.axhline(0, color="black", lw=0.6, ls=":"); plt.grid(alpha=0.25)
+    plt.legend(fontsize=6); plt.tight_layout(); save_fig("F15_deconfliction")
+    print("F15_deconfliction  <-", os.path.basename(f))
+
 print("figures written to", OUT)

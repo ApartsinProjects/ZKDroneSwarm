@@ -1999,6 +1999,23 @@ A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, p
   "error, not online decision reward. (2) The anytime (cumulative-reward) separation under sample "
   "starvation. (3) The masking-model dichotomy (durable vs transient decentralization). (4) Collective "
   "active exploration via the shared broadcast.</p>")
+A(plain("<b>Multi-agent-RL view (where this sits).</b> In MARL language this is a cooperative, "
+        "decentralized, COMMUNICATION-FREE multi-agent bandit with hidden low-rank structure, not a "
+        "sequential Markov game (the reward has no state to transition). That placement is useful: "
+        "INDEPENDENT learners (the classic IQL / independent-UCB) are exactly our tabular baseline and "
+        "sit at the unseen floor (no shared structure to generalize with); CENTRALIZED-training methods "
+        "(MAPPO/QMIX/VDN) and LEARNED-communication methods (CommNet/TarMAC) are not admissible here "
+        "because our broadcast is passive sensing, not message-passing; and the legitimate no-comms "
+        "matchers (SIC-MMAB / musical chairs) are the de-confliction baselines we beat (8.13). Seen "
+        "positively, our method is decentralized MODEL-BASED MARL whose shared 'world model' is the "
+        "low-rank reward matrix, learned collectively but estimated privately, with coordination "
+        "(exploration division-of-labor, contention de-confliction) EMERGING without any messages. The "
+        "thing standard MARL does not give you here is generalization to UNSEEN tasks, which is the "
+        "whole point."))
+A("<figure>%s<figcaption><strong>F15.</strong> De-confliction under capacity-1 contention: our "
+  "proactive private offset (T7) beats the no-comms field primitives (CBBA auction-with-backoff, "
+  "SIC-MMAB/musical-chairs re-seating) and plain greedy at severe contention, while matching them "
+  "when targets are plentiful.</figcaption></figure>" % img("F15_deconfliction.png", "F15"))
 A("<div class='box warn'><strong>Honest positioning.</strong> The categorical unseen win is shared "
   "by all low-rank methods over no-structure ones (it is a property of structure). Our specific "
   "contribution is being masking-robust and anytime-optimal, dominating throughout the limited-"
