@@ -195,7 +195,14 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   profile badge + provenance. Added to paper (end of Experiments) + tutorial (8.21) + docs/METHOD_PROFILES.md
   (table D). Story in one view: our online CF leads masked + operational columns; our batch PTF wins only the
   full-broadcast column; structure-free at the floor everywhere.
-- [TODO] P15 keystone attempt (decentralized masked U-recovery) -- IN PROGRESS next.
+- [DONE cycle 76] P15 KEYSTONE bounded + validated (user "try close/bound"): THEORY_FORMAL.md P15 upgraded
+  from OPEN to BOUNDED. Sufficient+necessary condition: drone i recovers u_j (predicts unseen pair (i,j))
+  EXACTLY iff p_i in rowspan(P[E_i(j)]) (anchor block + per-target spanning coverage); prior floor below;
+  noisy error bounded by the fold-in bound with coverage-degree term; self-achieves in O((nd/(rho m))log n)
+  rounds under non-adaptive exploration (faster as swarm grows). Residual precisely scoped = adaptive
+  finite-time coverage rate. VALIDATED: pilot_p15.py oracle reconstruction on real coverage = error 0.0000
+  for recoverable pairs vs 0.30 floor, threshold EXACTLY the spanning condition (catalogue row 74,
+  docs/P15_VALIDATION.md). Keystone paragraphs in paper + tutorial updated (was "central open problem").
 - [TODO RAS] reformat docs/paper_aamas/main.tex -> Elsevier elsarticle class (do at submission time).
 ## ===== END RAS TRACK =====
 - [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type
