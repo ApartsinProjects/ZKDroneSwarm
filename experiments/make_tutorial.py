@@ -1713,6 +1713,25 @@ A("<p><b>Takeaway.</b> The two choices cross over: when the broadcast is clean, 
   "stops trusting the garbage). So 'weight by precision' is not free wisdom, it is the right call only "
   "in the high-noise regime; the honest default is uniform, switching to precision when you know the "
   "shared signal is noisy.</p>")
+A("<h4>Sanity check: the precision negative, scoped exactly (heterogeneous sources)</h4>"
+  "<p>To pin down WHEN precision is the right call, we ran an obvious-expected sanity test: hold the "
+  "MEAN broadcast noise fixed and vary only its HETEROGENEITY across teammates. <em>homog</em> = every "
+  "teammate equally noisy ($\\sigma_{\\mathrm{obs}}=1.0$); <em>hetero</em> = half the teammates clean "
+  "($\\sigma=0.1$), half garbage ($\\sigma=1.9$), same mean. If precision weighting works, it MUST "
+  "help in hetero (it can down-weight the garbage half) and need not help in homog.</p>")
+A(md_tables("docs/PRECISION_HETERO.md"))
+A("<p><b>Takeaway (a sharper statement of the negative).</b> The sanity passes, with an instructive "
+  "twist (8 seeds, CIs). (i) Under HOMOGENEOUS noise, precision does NOT help (uniform best, the known "
+  "result: coverage, not noise, binds). (ii) Under HETEROGENEOUS noise, BOUNDED precision "
+  "(<code>relcap</code>, ratio-capped) WINS clearly, unseen $0.483$ vs uniform $0.390$ and anytime "
+  "$0.356$ vs $0.267$ (both non-overlapping CIs). (iii) But UNBOUNDED precision (<code>full</code>, "
+  "$1/\\sigma^2$) LOSES even in hetero ($-0.10$ unseen): correctly identifying the clean sources is not "
+  "enough, raw $1/\\sigma^2$ weights pile almost all mass on the few clean rows and the drone's own "
+  "data ($\\sigma=0.1\\Rightarrow$ weight $100$) and STARVE coverage. So the precise scope is: "
+  "noise-aware weighting is the right call exactly when observation sources DIFFER in reliability, "
+  "<em>and only in a ratio-bounded form</em> that stays coverage-friendly. This is the same lesson as "
+  "the confidence bake-off (below): the win comes from confidence that does not let any source dominate "
+  "the broadcast.</p>")
 A("<h4>Can we get the best of both? (the right way to use confidence)</h4>")
 A("<p>Rather than settle for a trade-off, we asked: is there a confidence rule that matches uniform "
   "when the broadcast is clean AND beats it when it is noisy? The diagnosis above is the clue: naive "

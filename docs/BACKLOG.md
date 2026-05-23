@@ -302,11 +302,18 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
   sanity (gamma 0.48 vs 0.11). DONE: ChoiceEM(predictive=True) in pilot_noise; pilot_choicehetero.py
   (real learners + ORACLE/RANDOM special teammates, gamma-separation diagnostic). 8-seed run in
   progress. Win condition: predictive beats fixed-ramp ChoiceCF as RANDOM teammates grow + leverages ORACLE ones.
-- [P1] H10 = REWARD-GRADIENT informativeness (user idea; complements H9). Held-out catches
-  RANDOM teammates (unpredictable) but still trusts CONSISTENTLY-WRONG ones (predictable, flat).
-  Track per-teammate trend of choice-value s_k^t=<P_k,U[c_k^t]>; POSITIVE slope = climbing =
-  learning -> boost gamma. Combined rule: trust k iff its choices are predictable AND improving.
-  Realizes "some drones discover structure earlier; estimate that and bootstrap from them."
+- [P1] H10 = CONSENSUS-GROUNDED informativeness (refined user reward-gradient idea; complements
+  H9). Held-out gamma catches RANDOM teammates (unpredictable) but still trusts CONSISTENTLY-WRONG
+  ones (predictable). KEY INSIGHT: a teammate's "improvement" / value CANNOT be judged from its OWN
+  choices, that is circular (a wrong-objective teammate looks just as consistent under a factor fit
+  to its own choices as a right one). The choice-value trend s_k^t=<P_k,U[c_k^t]> with self-fit P_k
+  is therefore uninformative for right-vs-wrong. To work it must GROUND value in something INDEPENDENT
+  of k's choices: (a) k's reliable TYPE-MATES' reward-grounded factors (consensus: is k picking
+  high-value targets for the type its type-mates reveal?), or (b) k's rewards (but then use RewardCF,
+  already robust). So: estimate k's factor from consensus, score k's choices against it, trust the
+  improving + consensus-consistent ones. Realizes "some drones discover structure earlier; estimate
+  that (via consensus, not self-report) and bootstrap from them." Needs type structure + >=1 reliable
+  type-mate per teammate; out of scope for the pure choice-only no-structure-prior setting.
 - [P1] H11 = SANITY-CHECK SUITE for negatives/weak results (methodology). Construct
   obvious-expected experiments and assert the output: (a) ChoiceEM oracle>>random gamma (DONE,
   running); (b) PRECISION weighting under HETEROGENEOUS-noise teammates (half extreme-noise,
