@@ -79,7 +79,10 @@ def run_ctde(world, seed, pool, so=None):
         revealed = np.full(m, np.nan); rvar = np.full(m, np.inf)
         for i in range(m):
             if picks[i] >= 0:
-                revealed[i] = true_r[i] + rng.normal(0, so); rvar[i] = so ** 2
+                # Decouple OBSERVATION noise (so; 0 for the clean ceiling) from the ALS precision-WEIGHT
+                # scale (held fixed at the standard pc.SO**2 for BOTH ceilings), so CentralClean vs CTDE
+                # is a clean apples-to-apples "price of noise": same estimator config, only obs noise differs.
+                revealed[i] = true_r[i] + rng.normal(0, so); rvar[i] = pc.SO ** 2
         central.observe(t, choices, revealed, [S] * m, rvar)
     return float((cum_real - cum_rand) / max(cum_orac - cum_rand, 1e-9))
 

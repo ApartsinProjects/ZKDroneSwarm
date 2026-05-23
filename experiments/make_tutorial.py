@@ -552,7 +552,16 @@ A("<p><b>Reading the loop.</b> Step 2 is the only place a method's intelligence 
   "literal. The estimator update in step 4 is what differs across methods (next two sections).</p></div>")
 
 # 4 BASELINES
-A("<h2 id='base'>4. Baselines: the field</h2>")
+A("<h2 id='base'>4. The field: structure-free baselines and adapted low-rank estimators</h2>")
+A(plain("As Section 5 explains, this is not a list of rival SYSTEMS but the FIELD we sweep against: the "
+        "one genuinely external paradigm, structure-free learners (Random, UCB, Tabular), and the standard "
+        "low-rank estimators we ADAPT to the setting (MFSGD, ESTR, BPMF, SoftImpute, kNN-CF, BiasModel, the "
+        "algorithms are from the literature; the decentralized, broadcast-only, masked application is part "
+        "of our framework). One entry below, PTF, is actually OURS, a batch-flavored hybrid we built "
+        "(SwarmCF-batch); it is listed here for the low-rank comparison but belongs to the SwarmCF family "
+        "detailed in Section 5. A reminder on rank: every low-rank method here uses a fixed GUESSED rank "
+        "d-hat, but that assumption is itself removable, our ARD variant (SwarmCF-B-ARD) self-determines "
+        "the identifiable rank (Section 5)."))
 A("<table><tr><th class='l'>Method</th><th>Class</th><th class='l'>What it does</th></tr>"
   "<tr><td class='l'>Random</td><td>no-structure</td><td class='l'>uniform pick; the floor.</td></tr>"
   "<tr><td class='l'>UCBIndep</td><td>no-structure</td><td class='l'>a separate UCB1 bandit per "
@@ -565,8 +574,9 @@ A("<table><tr><th class='l'>Method</th><th>Class</th><th class='l'>What it does<
   "underfits when starved.</td></tr>"
   "<tr><td class='l'>ESTR</td><td>low-rank</td><td class='l'>explore-then-spectral-refit: random "
   "explore, one SVD of the empirical matrix, then commit.</td></tr>"
-  "<tr><td class='l'>PTF</td><td>low-rank</td><td class='l'>probe-then-fit: UCB probe, SVD warm-start, "
-  "then SGD finetune. The strongest competitor.</td></tr>"
+  "<tr><td class='l'>PTF <em>(ours: SwarmCF-batch)</em></td><td>low-rank</td><td class='l'>probe-then-fit: "
+  "UCB probe, SVD warm-start, then SGD finetune. OUR strongest BATCH variant (listed here for the "
+  "low-rank comparison); wins only at full broadcast, see Section 5.</td></tr>"
   "<tr><td class='l'>BPMF</td><td>low-rank</td><td class='l'>Bayesian PMF with Thompson sampling; "
   "over-explores in the anytime regime.</td></tr>"
   "<tr><td class='l'>SoftImpute</td><td>low-rank</td><td class='l'>nuclear-norm CONVEX completion "
@@ -587,9 +597,9 @@ A(plain("The recurring acronyms, once: <b>UCB</b> ('upper confidence bound') is 
         "and just averages the rewards of the most similar drones/targets. The split that matters: "
         "<b>no-structure</b> methods learn each cell on its own (cannot generalize to untried targets), "
         "while <b>low-rank</b> methods learn the hidden dials (can). Our methods are in the second camp."))
-A("<p class='small'>A 'batch-SVD hybrid' (ESTR, PTF) extracts factors by one SVD of an accumulated "
-  "reward table whose unobserved entries are imputed 0; under masking that table is sparse and "
-  "biased, which is why these methods decay (Section 8.5). In our harness every baseline runs as an "
+A("<p class='small'>A 'batch-SVD hybrid' (ESTR, and our own PTF / SwarmCF-batch) extracts factors by one "
+  "SVD of an accumulated reward table whose unobserved entries are imputed 0; under masking that table is "
+  "sparse and biased, which is why these methods decay (Section 8.5). In our harness every baseline runs as an "
   "independent per-drone instance (ESTR's literature default is centralized; we run it per drone for "
   "a fair, fully-distributed comparison).</p>")
 A("<h3>4.1 Baseline algorithms in detail (intuition + exact rule + why it fails)</h3>")

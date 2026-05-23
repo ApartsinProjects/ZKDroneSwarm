@@ -209,10 +209,22 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   training). method_profiles dist=C only for the genuine references (CentralClean, CTDE, Oracle).
 - [DONE cycle 77] CLEAN CENTRALIZED CEILING added (user "should we add it?"): CentralClean-ceiling in
   pilot_ctde.py = centralized low-rank model + Hungarian optimal assignment observing ALL effects with NO
-  noise and NO masking (no priors, assumes low-rank; profile [C|full|full|d-hat|online]). The strongest a
-  centralized low-rank system can do without the true factors; brackets just below the Oracle and above the
-  noisy CTDE ceiling. pilot_ctde now reports both ceilings + the "price of observation noise"
-  (CentralClean - CTDE). Added to method_profiles PROFILES (+ CTDE obs corrected to fullsig = full-but-noisy).
+  noise and NO masking (no priors, assumes low-rank; profile [C|full|full|d-hat|online]). Added to
+  method_profiles PROFILES (+ CTDE obs corrected to fullsig = full-but-noisy). IMPORTANT FIX: first runs
+  gave the artifact CentralClean < CTDE because so=0 made rvar=0 -> infinite ALS precision weights; fixed
+  by DECOUPLING observation noise from the precision-weight scale (rvar held at pc.SO**2 for both), a clean
+  apples-to-apples. RESULT (catalogue row 64, ctde_193407): CentralClean 0.520/0.501/0.475/0.275 vs CTDE
+  0.553/0.489/0.434/0.271 (pool 240/60/30/15); price of obs-noise small (-0.032 tie /+0.012/+0.041/+0.004),
+  clean obs helps slightly at contended pools -> coordination, not estimation, is the bottleneck. Both
+  ceilings bracket ours from above and sit below the Oracle.
+- [DONE cycle 78] ADAPTIVE RANK in profiles (user "we have both guessed and learned rank"): added ARD-EMCF
+  (SwarmCF-B-ARD) to method_profiles with prior=ARD (rank self-determined, removes the guessed d-hat); legend
+  notes d-hat is itself removable via ARD. We genuinely have BOTH a guessed-rank family and a learned-rank
+  variant (ARD experiment, effective rank ~3.2 invariant to d-hat).
+- [DONE cycle 78] TUTORIAL section 4 reframed (user "4. Baselines: the field"): retitled "The field:
+  structure-free baselines and adapted low-rank estimators"; intro now states the design-space-sweep framing
+  + provenance; PTF row marked OURS (SwarmCF-batch, listed for the low-rank comparison); rank reminder
+  (guessed d-hat removable via ARD). Consistent with the SwarmCF naming.
 - [DONE cycle 77] THEORY/MASK ALIGNMENT: verified all masking theorems use the persistent per-drone
   drone-pair mask M_{ik}~Bern(rho) (Theorem 4 is the canonical statement; T11/P15 consistent). Updated the
   now-stale audit-section references that still called P15 the "central open problem" -> P15 BOUNDED (cycle 76).

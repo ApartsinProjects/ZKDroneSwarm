@@ -31,7 +31,7 @@ OBS = {"full": "full (every engagement, noiseless)", "fullsig": "full but noisy 
        "rho,sig": "masked + noisy (fraction &rho;, per-observer noise &sigma;)",
        "self": "self-only (isolated)", "-": "n/a"}
 SHORT = {"rho,sig": "&rho;&sigma;", "rho": "&rho;", "full": "full", "fullsig": "full&sigma;", "self": "self", "-": "&ndash;",
-         "dhat": "d&#770;", "none": "&ndash;", "d": "d", "U*": "U*", "0": "0", "B": "B",
+         "dhat": "d&#770;", "ard": "ARD", "none": "&ndash;", "d": "d", "U*": "U*", "0": "0", "B": "B",
          "online": "online", "batch": "batch", "ETC": "ETC", "memory": "mem"}
 PROV = {"ours": "ours", "ours-hybrid": "ours (hybrid)", "standard": "standard, adapted",
         "structfree": "structure-free baseline", "reference": "reference (upper bound)"}
@@ -58,6 +58,7 @@ PROFILES = [
     ("ContentionAdaCF", "ours",        "D", "0",   "rho,sig", "dhat", "online", "scarcity-gated private offset for capacity-1 contention"),
     ("UnifiedCF",       "ours",        "D", "0",   "rho,sig", "dhat", "online", "one method; refinements activate only on their condition"),
     ("HybridCF",        "ours",        "D", "0",   "rho,sig", "dhat", "online", "UCB probe then SVD warm-start then online ALS"),
+    ("ARD-EMCF",        "ours",        "D", "0",   "rho,sig", "ard",  "online", "EMCF + ARD rank self-determination: LEARNS the rank, removing the guessed d-hat"),
     ("PTF",             "ours-hybrid", "D", "0",   "rho,sig", "dhat", "batch",  "probe-then-fit hybrid WE built: SVD warm-start + finetune (batch refit)"),
     ("MFSGD",           "standard",    "D", "0",   "rho,sig", "dhat", "online", "SGD matrix factorization (standard)"),
     ("KNNCF",           "standard",    "D", "0",   "rho,sig", "none", "memory", "neighborhood (memory) CF (standard)"),
@@ -142,7 +143,8 @@ def _legend_html():
     return ("<p class='small'><b>Notation</b> [dist | comm | obs | prior | compute]: "
             "<b>dist</b> D=decentralized, C=centralized; <b>comm</b> 0=none (passive), B=broadcast params, "
             "full=message-passing; <b>obs</b> full / &rho;=masked / &rho;&sigma;=masked+noisy / self; "
-            "<b>prior</b> &ndash;=none, d&#770;=guessed rank, d=true rank, U*=oracle factors; "
+            "<b>prior</b> &ndash;=none, d&#770;=guessed rank (itself removable: the ARD variant learns it), "
+            "ARD=rank self-determined, d=true rank, U*=oracle factors; "
             "<b>compute</b> online / batch / ETC=explore-then-commit / mem. "
             "<b>In-harness every method is decentralized and communication-free</b> (one estimator per "
             "drone on the passive broadcast); the low-rank methods differ in the update rule and "

@@ -17,6 +17,7 @@ Single source of truth (experiments/method_profiles.py). The ZK-MRTA setting is 
 | **SwarmCF-D+ (ContentionAdaCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
 | **SwarmCF-U (UnifiedCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
 | **SwarmCF-H (HybridCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-B-ARD (ARD-EMCF)** | ours | D | 0 | rho,sig | ard | online | `D|0|rho,sig|ard|online` |
 | **SwarmCF-batch (PTF)** | ours (hybrid) | D | 0 | rho,sig | dhat | batch | `D|0|rho,sig|dhat|batch` |
 | MFSGD | standard, adapted | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
 | KNNCF | standard, adapted | D | 0 | rho,sig | none | memory | `D|0|rho,sig|none|memory` |
