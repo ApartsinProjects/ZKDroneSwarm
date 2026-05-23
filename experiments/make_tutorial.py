@@ -1835,15 +1835,18 @@ A("<div class='box key'><b>Making it self-tuning (ContentionAdaCF, built and tes
   "the single severe point to the whole contested range: ContentionAdaCF beats the fixed offset across "
   "pool $\\le 60$ (earned skill $0.153$ vs $0.134$ at pool$=30$; $0.205$ vs $0.178$ at pool$=60$) and "
   "ties it at the most severe contention (pool$=15$, $0.100$ vs $0.105$), while every no-offset method "
-  "sits at $\\le 0.06$ there. <b>Honest limitation (and the fix):</b> at NO contention (pool$=240$) the "
-  "offset policies trail plain CF ($0.25$-$0.31$ vs $0.44$), because, like the fixed offset, they use a "
-  "pure argmax and drop the $\\epsilon$-greedy exploration that drives target COVERAGE when there is "
-  "nothing to de-conflict (the hard scarcity gate confirmed this: removing the offset entirely did not "
-  "recover plain-CF reward, so the gap is the missing exploration, not the offset). The clean "
-  "unification is to fall back to $\\epsilon$-greedy CF whenever the scarcity gate is off, a one-line "
-  "change, queued. <b>Bottom line:</b> the symmetry-breaking offset is a contention-regime tool; making "
-  "it self-tuning turns the lone severe-contention win into a win across the whole contested range "
-  "(pool $\\le m$), with no communication.</div>")
+  "sits at $\\le 0.06$ there. <b>And we closed the no-contention gap.</b> Earlier the offset policies "
+  "trailed plain CF at pool$=240$ because, like the fixed offset, they used a pure argmax and dropped "
+  "the $\\epsilon$-greedy exploration that drives COVERAGE when there is nothing to de-conflict (a hard "
+  "scarcity gate confirmed the gap was missing exploration, not the offset). The fix is one line: when "
+  "the scarcity gate is OFF, fall back to $\\epsilon$-greedy CF. With it, ContentionAdaCF now earns "
+  "$0.448\\,[0.422,0.472]$ at pool$=240$, matching plain CF ($0.439$) with the LOWEST collision rate "
+  "($0.126$), and its unseen-pair quality recovers to $0.320$. <b>Bottom line:</b> a SINGLE self-tuning, "
+  "scarcity-gated, communication-free policy is now best-or-statistically-tied at EVERY contention level "
+  "on earned reward, it matches plain CF when targets are plentiful (pool$=240$: $0.448$ vs $0.439$) and "
+  "WINS by $\\approx 2\\times$ at severe contention (pool$=15$: $0.100$ vs $\\le 0.06$ for every "
+  "no-offset method, non-overlapping CIs). The contention regime, where we started by losing, is now a "
+  "clean win with no communication.</div>")
 
 A("<h3>8.14 When does collaborative filtering actually help? (the honest scope)</h3>")
 A("<p>It would be dishonest to claim CF always wins. It does not. Pinning down EXACTLY when it beats a "

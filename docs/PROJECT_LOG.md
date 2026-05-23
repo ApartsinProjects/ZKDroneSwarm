@@ -451,3 +451,35 @@ METHODOLOGY NOTE (adopt going forward): verify every NEGATIVE/weak result with a
 experiment whose answer is obvious (oracle vs random teammates; known-rank ARD; clean-vs-
 noisy precision sources; identical-vs-distinct types for contention; d=1 popularity for the
 unseen claim). The ChoiceEM sanity already converted a null into a diagnosed-and-fixed result.
+
+## Cycles 50-52 (2026-05-23): sanity-check arc + consolidation + table-regression fix
+- Cycle 50 (H11b): precision under HETEROGENEOUS teammate noise. Matched mean noise, only
+  heterogeneity varies. BOUNDED precision (relcap) WINS in hetero (unseen 0.483 vs uniform
+  0.390; anytime 0.356 vs 0.267, non-overlapping CIs), loses in homog (-0.063); UNBOUNDED
+  full loses both (over-concentrates -> starves coverage). Scopes the 'uniform beats
+  precision' negative: noise-aware weighting helps iff sources DIFFER in reliability, and
+  only ratio-bounded.
+- Cycle 51 (H4): EMCF interval calibration. DISCRIMINATION passes (actual RMSE rises
+  monotonically across predicted-sd quintiles, Q1 0.231 -> Q5 0.492), so the posterior is
+  usable for UCB/shrinkage; CALIBRATION mildly OVER-confident (50%->40%, 95%->92%), typical
+  mean-field VI. Honest: use it for RELATIVE uncertainty, not exact coverage.
+- Cycle 52: CONSOLIDATION (user ask: simpler, theory-aligned). paper_v2 now leads with one
+  core estimator + a "Scoped refinements" MENU table (6 conditional, theorem-backed
+  extensions + a diagnosed-nulls line); tutorial gets a top-of-section-5 map box. Turns the
+  ~15-method zoo into one core + a short conditional add-on list.
+- Cycle 52 BUG FIX (regression): md_tables() used relative docs/*.md paths, so regenerating
+  the HTML from experiments/ silently replaced ALL embedded data tables with
+  '[not generated yet]' placeholders (had degraded committed tutorial.html since cycle 48).
+  md_tables now resolves against ROOT in both generators; make_paper_v2 also got the
+  ROOT-anchored OUT/FIG fix. Tables restored (0 placeholders). LESSON: a cwd-relative path in
+  a generator can silently drop content; always grep the regenerated HTML for placeholders.
+- H11c ARD-known-rank sanity: recovered eff rank NON-monotone in true d (2.00/2.35/2.13/1.73
+  for d=2/3/5/8). Honest diagnosis: recovered = identifiable rank <= d (Thm 8); SNR confound
+  (unit-norm signal ~1/sqrt(d) at fixed noise/budget). Softened the ARD claim to d_hat-
+  invariance (the usable property). Constant-SNR controlled sweep = future work.
+- H2 follow-up: eps-greedy fallback for ContentionAdaCF when the scarcity gate is OFF (so it
+  reduces to plain CF at no-contention instead of under-exploring); clean 8-seed re-run in
+  progress to confirm pool=240 recovers to ~plain-CF while pool<=60 wins hold.
+LESSON (compute hygiene): do NOT oversubscribe the CPU by launching multiple ProcessPool
+experiments at once; it thrashed the contention run to a stall and it had to be killed and
+re-run cleanly. Run heavy experiments sequentially.

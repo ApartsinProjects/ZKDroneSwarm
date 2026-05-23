@@ -757,8 +757,20 @@ class ContentionAdaptiveCF(ContentionCF):
     def select(self, t, cand):
         cand = np.asarray(cand)
         sc = self._scale() * self._scarcity(len(cand))
-        score = self.U[cand] @ self.P[self.idx] + sc * self.dir[cand]
-        a = int(cand[int(np.argmax(score))])
+        if sc <= 0.0:
+            # scarcity gate OFF (targets abundant, nothing to de-conflict): fall back to plain
+            # eps-greedy CF so the swarm keeps EXPLORING for coverage. Without this the inherited
+            # pure-argmax under-explores at no-contention; with it, the method reduces to RewardCF
+            # there (matches plain CF) while still de-conflicting under contention (sc>0 branch).
+            if self.rng.rand() < self.eps:
+                a = int(cand[self.rng.randint(len(cand))])
+            else:
+                a = int(cand[int(np.argmax(self.U[cand] @ self.P[self.idx]))])
+        else:
+            # contention: offset-perturbed argmax for STABLE de-confliction (no eps; the fixed
+            # private offset provides the spread, and eps-random would just re-collide).
+            score = self.U[cand] @ self.P[self.idx] + sc * self.dir[cand]
+            a = int(cand[int(np.argmax(score))])
         self.pulled[a] = True
         return a
 
