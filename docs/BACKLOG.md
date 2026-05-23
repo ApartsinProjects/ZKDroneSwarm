@@ -288,9 +288,17 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
 - [P1] H5 = THEORY for the new wins. (a) fixed-private-offset de-confliction =
   decentralized symmetry-breaking / matching-without-comms mini-result; (b)
   predictive-variance-UCB regret (why EM-confidence helps); (c) ARD rank-recovery.
-- [P2] H6 = NON-STATIONARITY / churn (K3): targets+drones change over time. HYP: CF
-  fold-in re-adapts in O(d) vs tabular O(n) -> categorical under churn (a 3rd
-  categorical result, like unseen + onboarding).
+- [DONE -- HONEST NEGATIVE] H6 = NON-STATIONARITY / churn (K3). HYP was: CF fold-in
+  re-adapts in O(d) -> a 3rd categorical result. TESTED (pilot_churn.py, continuous
+  turnover, n=600 world / 200 active / 8 depart+arrive per 5 rounds, 8 seeds): NOT a clean
+  categorical win. CF beats Tabular on the active set (0.632 vs 0.448) but only TIES the
+  optimistic UCBIndep (0.619); on FRESH arrivals CF TRAILS UCBIndep (0.074 vs 0.132,
+  non-overlapping). Root cause: collective fold-in needs ~d probes to pin a newcomer, a
+  LATENCY that fast churn outpaces, while UCBIndep optimism probes the new targets directly.
+  So CF's categorical edge is a STATIC sample-starved property; rapid non-stationarity erodes
+  it on the newest targets. -> docs/CHURN.md. FUTURE FIX (H6b): layer optimistic / active
+  probing of fresh arrivals onto CF (combine fold-in with directed exploration of newcomers)
+  to recover fast re-adaptation; likely the genuine non-stationarity contribution.
 - [P2] H7 = NON-GAUSSIAN rewards (K4): logistic/GLM-link weighted-ALS for BINARY
   outcomes. HYP: handles binarized rewards where linear MF degrades; extends scope.
 - [P2] H8 = TYPE-PRIOR shrinkage (D7): newcomer cold-start shrinks to its TYPE prior
