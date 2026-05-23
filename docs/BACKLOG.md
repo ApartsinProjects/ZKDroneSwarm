@@ -279,9 +279,18 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
 - [P1] H2 = ADAPTIVE ContentionCF. Scale the fixed-offset eps_break by each drone's
   OBSERVED collision rate -> dominate ALL contention levels (currently regime-dep).
   HYP: single adaptive policy >= max(argmax-CF, fixed-offset) everywhere.
-- [P1] H3 = UNIFIED RECOMMENDED METHOD. Fold EMCF (confidence) + info-directed
-  exploration (H1) + symmetry-breaking decision (contention) into ONE estimator+policy
-  -> kills the "method zoo", one method dominating the whole design space.
+- [BUILT, smoke-validated] H3 = UNIFIED RECOMMENDED METHOD. UnifiedCF (pilot_noise.py):
+  EMCF (confidence + predictive-variance UCB exploration + ARD) UNITED with the loss-
+  self-gating de-confliction offset (offset scale = eps_hi*loss_ema^p; loss_ema=0 until the
+  drone actually loses contests, so it is PURE EMCF in non-contention and de-conflicts only
+  under real contention) AND a loss-gated exploration ANNEAL (explore when targets plentiful,
+  exploit+de-conflict when contested). 1-seed cross-regime smoke: matches EMCF on churn
+  (0.862/0.428) and standard anytime (~0.39); on contention earned-reward ties/beats
+  ContentionAdaCF at pool 60/15 and narrows to 0.365 vs 0.416 at pool=240, WHILE winning the
+  categorical UNSEEN metric everywhere (0.31-0.44). One method, no per-regime tuning,
+  best-or-tied across regimes; residual small earned-reward gap at no-contention = the
+  explore/exploit tension (proposed P13 envelope). TODO: full multi-seed validation + fold into
+  paper/tutorial as the single recommended method (choice channel stays a separate optional module).
 - [P1] H4 = CALIBRATION (M5). Reliability diagram: EMCF predictive intervals vs actual
   error. HYP: EMCF well-calibrated, naive-precision mis-calibrated -> justifies the
   UCB/Thompson use of the posterior.
@@ -317,7 +326,7 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
   sanity (gamma 0.48 vs 0.11). DONE: ChoiceEM(predictive=True) in pilot_noise; pilot_choicehetero.py
   (real learners + ORACLE/RANDOM special teammates, gamma-separation diagnostic). 8-seed run in
   progress. Win condition: predictive beats fixed-ramp ChoiceCF as RANDOM teammates grow + leverages ORACLE ones.
-- [P1] H10 = CONSENSUS-GROUNDED informativeness (refined user reward-gradient idea; complements
+- [POSTPONED 2026-05-23 per user] H10 = CONSENSUS-GROUNDED informativeness (refined user reward-gradient idea; complements
   H9). Held-out gamma catches RANDOM teammates (unpredictable) but still trusts CONSISTENTLY-WRONG
   ones (predictable). KEY INSIGHT: a teammate's "improvement" / value CANNOT be judged from its OWN
   choices, that is circular (a wrong-objective teammate looks just as consistent under a factor fit

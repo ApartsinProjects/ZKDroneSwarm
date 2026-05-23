@@ -780,6 +780,52 @@ class ContentionAdaptiveCF(ContentionCF):
         super().observe(t, choices, revealed, cand_sets, rvar)
 
 
+class UnifiedCF(EMCF):
+    """THE single recommended method (H3): one estimator+policy that embodies the
+    'core + scoped extensions' consolidation, with NO per-regime tuning. It is EMCF
+    (Bayesian variational-PMF: confidence + predictive-variance UCB exploration + optional
+    ARD rank self-determination) UNITED with the de-confliction offset (Theorem 7), and the
+    offset SELF-GATES on the drone's OWN observed loss rate:
+        scale = eps_hi * loss_ema**coll_pow ,   offset = scale * h_i   (h_i fixed, private)
+    loss_ema starts at 0 and only rises when the drone actually LOSES contests
+    (choices[idx] == -1), so in NON-contention settings (the drone never loses) the offset is
+    exactly 0 and the method reduces to plain EMCF, while under genuine contention the offset
+    engages and de-conflicts. This composes the two main wins, confidence-directed CF and
+    decentralized symmetry-breaking, into ONE communication-free / ZK policy that should match
+    the specialist methods in every regime (unseen, anytime, contention, churn). The choice
+    channel (Section 5.6) stays a separate optional module: it is a different (no-teammate-
+    reward) channel for the extreme-noise / unreliable-teammate niche, not part of this union."""
+    def __init__(self, *a, eps_hi=0.8, lr=0.15, coll_pow=2.0, beta_anneal=0.5, **hp):
+        super().__init__(*a, **hp)
+        self.dir = self.rng.randn(self.n)          # fixed private symmetry-breaking direction
+        self.eps_hi = eps_hi; self.lr = lr; self.coll_pow = coll_pow
+        self.beta_anneal = beta_anneal             # loss at which UCB exploration is fully damped
+        self.loss_ema = 0.0                         # 0 until the drone actually loses contests
+
+    def select(self, t, cand):
+        cand = np.asarray(cand)
+        s = self.predict_scores()[cand]
+        # the SAME contention signal (loss_ema) that ramps the offset DAMPS exploration: explore
+        # when targets are plentiful, EXPLOIT + de-conflict when contested (exploration wastes
+        # scarce capacity under matching). beta_eff -> 0 as loss_ema -> beta_anneal.
+        beta_eff = self.em_beta * max(0.0, 1.0 - self.loss_ema / max(self.beta_anneal, 1e-9))
+        if beta_eff > 0:                                       # EMCF predictive-variance UCB (annealed)
+            var = (self._collvar() if self.coll else self._predvar())[cand]
+            s = s + beta_eff * np.sqrt(var)
+        scale = self.eps_hi * (self.loss_ema ** self.coll_pow)  # loss-gated de-confliction offset
+        if scale > 1e-9:
+            s = s + scale * self.dir[cand]
+        s = s + 1e-6 * self.rng.randn(len(cand))               # tie-break jitter
+        a = int(cand[int(np.argmax(s))])
+        self.pulled[a] = True
+        return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        lost = 1.0 if (self.idx < len(choices) and int(choices[self.idx]) == -1) else 0.0
+        self.loss_ema = (1.0 - self.lr) * self.loss_ema + self.lr * lost
+        super().observe(t, choices, revealed, cand_sets, rvar)
+
+
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
     P, U, R = world; m, n = R.shape; d = P.shape[1]
     rng = np.random.RandomState(seed + 999)

@@ -64,7 +64,8 @@ of R onto the population-mean drone direction; it predicts the SAME target ranki
 for every drone (a "popularity" order). Its unseen-pair skill equals the alignment
 between that shared ranking and drone i's true ranking, which is positive but < 1
 whenever d > 1 (there is personalization beyond popularity). This matches the
-measured UCB-Homogeneous partial unseen skill (≈ 0.17 at d = 5).
+measured UCB-Homogeneous partial unseen skill (≈ 0.17 at d = 5 in pre-catalogue
+cycle-23/E15 runs; qualitative, not yet in a committed-data table, regenerate before citing).
 
 ---
 
@@ -260,7 +261,9 @@ interaction component that varies the per-drone target order; for d > 1 this
 component is nonzero for generic factors, so the popularity order is not the
 per-drone-optimal order and the additive skill is bounded below CF's. EMPIRICS:
 BiasModel unseen ~0.12 and UCBHomo ~0.17 (both additive/popularity) vs CF ~0.49 at
-d = 5 (E15, C14); the additive ceiling is real and well below CF.
+d = 5 (pre-catalogue E15/C14 runs; these specific numbers are not in a committed-data
+table and should be regenerated before citing in the paper, the QUALITATIVE additive
+ceiling < CF is sound and matches the §8.9 broader bake-off).
 
 ## What is novel here (versus the cited literature)
 
@@ -321,7 +324,13 @@ ZERO information about û_j (i never observed j); relative to uniform weighting 
 shrinks the broadcast's contribution to û_j and thus INFLATES Var(û_j) and the unseen
 prediction error. Hence uniform (coverage-preserving) weighting weakly dominates
 precision weighting for unseen prediction whenever the broadcast is the only source of
-û_j. (b) The variational-Bayes posterior (EMCF) is the consistent full-information
+û_j AND the broadcast sources are HOMOGENEOUSLY noisy. **Scope caveat (PRECISION_HETERO,
+H11b):** when the teammate sources DIFFER in reliability, noise-aware weighting helps, but
+only in a RATIO-BOUNDED form: bounded precision (relcap) beats uniform under heterogeneous
+noise (+0.09 unseen, non-overlapping CIs) while UNBOUNDED 1/σ² loses everywhere by
+over-concentrating on the few clean rows and starving coverage. So the correct statement is
+"uniform dominates UNBOUNDED precision; bounded precision dominates both iff sources differ
+in reliability" (see proposed Proposition 10). (b) The variational-Bayes posterior (EMCF) is the consistent full-information
 estimator: each observation enters with its likelihood precision INSIDE the model while
 the prior fixes the data-vs-regularizer scale; the predictive variance
 Var(R̂_{ij}) = p_i^T Σ_{u_j} p_i + u_j^T Σ_{p_i} u_j + tr(Σ_{p_i}Σ_{u_j}) is a valid
@@ -333,7 +342,7 @@ uniform). **Honest caveat (H1):** the FULL predictive-variance UCB OVER-explores
 unknown), so for exploration use only the COLLECTIVE term p_i^T Σ_{u_j} p_i (the shared
 û_j uncertainty), which is target-specific and anneals as the swarm pins down U.
 
-### Theorem 7 (decentralized symmetry-breaking under contention). EXACT.
+### Theorem 7 (decentralized symmetry-breaking under contention). EXACT (a, b) + REASONED (c).
 
 m drones in K types (within-type spread → same-type drones share the estimate R̂ up to
 o(1)); a SHARED offer pool S each round; capacity-1 matching; NO communication.
@@ -354,8 +363,24 @@ Only a FIXED, PRIVATE offset both de-conflicts and is stable.
 **Confirmed by** §8.13: ContentionCF (fixed private offset) earns ~2× at severe
 contention (pool=15: 0.105 vs ~0.05), non-overlapping CIs; per-round-softmax and
 shared-popularity routing both backfire, exactly as (c) predicts.
+**Caveat (T7 covers only the FIXED offset):** the fixed offset HURTS preference quality
+when contention is absent (CONTENTION: ContentionCF unseen 0.023 at pool=240 vs RewardCF
+0.323), because a constant offset is value-preserving only up to O(ε) and at no-contention
+even that costs the categorical metric. The headline method is the ADAPTIVE, loss-gated,
+scarcity-gated ContentionAdaCF (unseen recovers to ~0.32, earned reward best-or-tied at
+every pool), which T7 does NOT theorize. The proposed "adaptive-offset envelope" (backlog)
+would cover it: scale→0 at no contention (reduces to greedy, value-preserving) and →fixed
+offset at saturation (T7b). This is an honest gap between the proven theorem and the
+deployed method.
 
-### Theorem 8 (ARD recovers the identifiable rank). EXACT (identifiability) + REASONED (level).
+### Theorem 8 (ARD recovers the identifiable rank). REASONED (identifiability "iff", no VB fixed-point proof) + CONFIRMED (d̂-invariance).
+<!-- Label corrected (theory audit): the "retained iff excited above floor" iff is REASONED
+(standard ARD intuition, not a fixed-point proof for the coupled masked-online VB updates),
+not EXACT. The solidly-supported claim is d̂-INVARIANCE (recovered ~3.2-3.3 at d̂=8 and 20).
+And the recovered rank is NON-monotone in the true rank (ARDRANK: 2.00/2.35/2.13/1.73 for
+d=2/3/5/8) due to an SNR confound, so "recovers the rank" means the identifiable rank, not
+the raw true rank. -->
+
 
 Under variational PMF with ARD (per-column prior precision α_r, VB update
 α_r = (m+n)/(E‖P_{·r}‖² + E‖U_{·r}‖² + 2b_0)), a latent column r is RETAINED (α_r
@@ -398,6 +423,66 @@ stays at its LOW prior, while a genuinely informative teammate has E[s] > 1/|S| 
 prior γ_0, informative and uninformative teammates SEPARATE. Caveat: a CONSISTENTLY-WRONG
 (stable but off-objective) teammate is predictable, so held-out γ still trusts it; detecting
 that needs a reward-IMPROVEMENT (choice-value gradient) signal, not just predictability.
-**Confirmed by** §5.6 heterogeneous-teammate SANITY (oracle vs random teammates): predictive
-γ(oracle) ≈ 0.48 ≫ γ(random) ≈ 0.11 (sanity PASSES), vs in-sample γ(oracle) ≈ 0.95 vs
-γ(random) ≈ 0.70 (sanity FAILS, the inflation of (b)); 1-seed smoke, full 8-seed run pending.
+**Confirmed by** §5.6 heterogeneous-teammate SANITY (oracle vs random teammates), 8 seeds,
+bootstrap CIs (CHOICEHETERO): predictive γ(oracle) 0.29-0.49 ≫ γ(random) ≈ 0.10 (sits at the
+prior, EXACTLY as (a) predicts), and good-drone unseen improves; vs in-sample γ(random)
+0.67-0.72 (the inflation of (b), sanity FAILS). Held-out is the best-confirmed of the recent
+propositions.
+
+---
+
+## Theory audit (2026-05-23): keystone gap + proposed new results
+
+A critical pass over T1-T8/P6/P9 (verified against the code and committed data). Honest verdict:
+the MOST-CITED results (T1, T2's math, T3's closed-form bound, T5) are textbook OR rest on an
+unproven cited keystone; the genuinely NOVEL and well-supported results are T4 (masking
+dichotomy) and P9 (held-out choice identifiability + the random fixed point P9a). Labels
+corrected this pass: T3(a) (the displayed positive-part equality is loose, see TENSIONS #1; the
+bound still holds via the B_t-indicator decomposition), T7 (EXACT a,b + REASONED c), T8
+(REASONED "iff" + CONFIRMED d_hat-invariance). Stale inline numbers (UCBHomo ~0.17, BiasModel
+~0.12) flagged as pre-catalogue. P6 scoped (bounded precision wins under heterogeneous noise).
+T7 caveat added (covers only the FIXED offset; the deployed adaptive ContentionAdaCF/UnifiedCF
+is untheorized).
+
+KEYSTONE GAP (the central open problem). Every "Theta(d) vs Theta(n)" / "exact row recovery"
+claim (T2, T4c) silently CITES decentralized masked U-recovery (Candes-Recht style). Under
+PERSISTENT per-drone masking the sampling is STRUCTURED / non-uniform, exactly where
+incoherence-based uniform-sampling completion does not directly apply. So none of T1-T8 actually
+PROVE decentralized masked U-recovery; they invoke centralized uniform-sampling theory for it.
+Closing this (P15 below) would make the categorical claim self-contained.
+
+PROPOSED new results (statement + sketch + rigor flag; NOT yet proven or integrated):
+- P10 [HIGH, CLEAN] Bounded-precision dominance under heterogeneous reliability. Ridge fold-in
+  with w_k proportional to min(1/sigma_k^2, kappa*min_j 1/sigma_j^2) beats uniform iff
+  Var_k(sigma_k^2)>0, and beats unbounded 1/sigma^2 when the high-precision sources fail to span
+  R^d. Sketch: minimize the sigma-weighted prediction variance under a coverage (span)
+  constraint; uniform ignores heterogeneity, unbounded 1/sigma^2 drives lambda_min(design)->0.
+  Fixes P6's overreach; explains PRECISION_HETERO + PRECISION_SWEEP.
+- T9 [HIGH, MEDIUM/assembly] The 3-condition scope as a formal iff. CF unseen-skill >
+  structure-free + Omega(1) iff (i) d>1, (ii) cT=o(n), (iii) rho>0. (<=) = T1+T2. Necessity:
+  not(i)=>T5; not(ii)=>tabular measures Omega(n) entries, floor->0; not(iii)=>CF=Definition-1.
+  Promotes the boxed paper scope claim to a theorem; (ii) needs a short tabular-coverage lemma.
+- P11 [HIGH, CLEAN-ish] Choice-vs-reward crossover sigma*. Exists sigma* s.t. for sigma_obs>
+  sigma* an argmax-choice estimator (sigma-independent Fisher information) beats a
+  noisy-cardinal-reward one (Fisher proportional to 1/sigma^2); sigma* grows with offer size c,
+  shrinks with d. Explains CHOICEEM's sigma=2.0 niche.
+- P12 [HIGH, MEDIUM] Churn fold-in latency / recovery condition. Under turnover eta/round with
+  greedy exploitation, expected probes-before-first-pull of a fresh target is Theta(n/c) (->
+  never if dominated) => steady-state fresh-skill->0; a predictive-variance UCB gives O(d) =>
+  fresh-skill bounded below iff eta*d < c. Theorizes CHURN / H6b.
+- P13 [MEDIUM, HEURISTIC] Adaptive-offset envelope. A loss-gated scale s(l)=eps_hi*l^p reduces
+  to greedy (value-preserving, T7-margin) as realized loss l->0 and to the T7(b) fixed offset as
+  l->1, so it is best-or-tied at both extremes (interior is empirical). Theorizes ContentionAdaCF
+  and UnifiedCF, which T7 omits.
+- P14 [MEDIUM] Mean-field VI is discriminative but anti-conservative. VB-PMF predictive variance
+  is monotone in the true conditional error (discrimination) but under-estimates it (coverage <
+  nominal) by the dropped cross-covariance Cov(p_i,u_j). Explains CALIBRATION.
+- P15 [HIGHEST value, HARD] Decentralized masked U-recovery (the keystone). Under persistent
+  Bernoulli(rho) per-drone masking each drone recovers col-space(U) to o(1) once its visible
+  entry count exceeds Otilde(d(m+n)/rho), under incoherence + a rho-effective-sampling condition.
+  The honest version of the clause T2/T4c currently cite; persistent masking is non-uniform
+  sampling so off-the-shelf Candes-Recht does not apply. Closing this makes the categorical
+  claim self-contained.
+
+Most valuable to ADD next: P10 (clean, fixes a live inconsistency), T9 (clean assembly), and
+P15 (the hard keystone). The rest are explanatory and honestly heuristic where flagged.
