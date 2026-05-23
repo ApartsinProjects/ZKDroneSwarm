@@ -2,7 +2,9 @@
 a clean linear narrative (minimal-assumptions framing) from motivation through
 theory and experiments. Key figures base64-embedded. Output: docs/paper_v2.html.
 """
-import base64, os
+import base64, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import method_profiles as mp
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIG = os.path.join(ROOT, "docs", "figures")
 OUT = os.path.join(ROOT, "docs", "paper_v2.html")
@@ -220,6 +222,12 @@ A("<p><b>Foundational results.</b> <b>Fold-in error bound (exact):</b> the cold-
   "tabular floor the $\\Theta(d)$-vs-$\\Theta(n)$ separation is minimax-tight on both sides.</p>")
 
 A("<h2>5. Experiments</h2>")
+A("<p><b>Method operating profiles.</b> Before the results, this table fixes the SETTING each method "
+  "runs in, so the comparison is honest about who gets more power. Our methods occupy the hardest cell "
+  "(decentralized, no communication, masked + noisy observation, only a guessed rank, online); any "
+  "baseline that beats us in some regime relaxes one of these axes (ESTR is centralized; the Oracle and "
+  "CTDE rows are reference upper bounds, not competitors).</p>")
+A(mp.html_profiles())
 A("<p><b>Categorical (acting on the unseen).</b> CF acts well on never-observed pairs at every "
   "observation density while structure-free learners sit at the floor (Fig. 1); new targets onboard "
   "for the whole swarm from ~d shared probes and new agents from ~d own probes (vs ~n for tabular).</p>")
@@ -340,7 +348,9 @@ A("<p><b>Why a swarm: collaboration value and positive scaling (Fig. 5).</b> Two
   "PTF gains the most from a broadcast, $+0.51$, because a one-shot refit on a near-fully-observed matrix "
   "is the best case for batch low-rank completion; it accordingly overtakes us at full broadcast "
   "$\\rho{=}1$, whereas our online method leads in the masked regime $\\rho\\le0.5$ that defines the "
-  "operational problem.) This is the operational answer to 'why share?': communication-free sensing "
+  "operational problem. This crossover near $\\rho\\approx0.6$ reproduces across the bake-off and "
+  "crossover sweeps with near-identical numbers and is exactly what matrix-completion theory predicts: "
+  "a one-shot SVD is the near-optimal estimator once the matrix is densely observed.) This is the operational answer to 'why share?': communication-free sensing "
   "turns $m$ isolated, near-useless learners into one effective swarm. <i>(b) Positive scaling with team "
   "size.</i> Holding $n$, horizon $T$, and $\\rho$ fixed and growing the swarm $m{=}5\\to80$, RewardCF "
   "unseen skill RISES monotonically $0.08\\to0.43$ (non-overlapping CIs): more robots feed $\\sim mT\\rho$ "
@@ -379,11 +389,16 @@ A("<p><b>Operational metrics (mission language, Fig. 6).</b> Restating the same 
   "independent of the total target count, whereas a structure-free newcomer never becomes ready. "
   "<i>Resilience to attrition:</i> under continuous turnover, confidence-directed CF retains the highest "
   "skill on both the standing set and (especially) the newest arrivals, while structure-free collapses "
-  "on newcomers. Two metrics we report but do NOT claim as wins: raw collision / redundancy rate (random "
-  "dispatch trivially minimizes it by spreading, the same effectiveness-vs-coverage tension), and "
-  "information-per-observation (all low-rank methods extract real skill from a tiny observation budget "
-  "while structure-free extracts none, so this separates structure from no-structure rather than us from "
-  "other low-rank methods).</p>")
+  "on newcomers. Two further metrics need careful reading rather than a raw number. <i>Redundancy:</i> "
+  "raw collision rate is minimized trivially by random dispatch (spreading avoids collisions but earns "
+  "nothing), so we read it as an efficiency frontier instead: among the reward-seeking de-confliction "
+  "methods at severe contention, our private-offset variants are the top earners and the lowest-collision "
+  "method overall, dominating the CBBA-backoff, MAB-re-seating, and batch baselines on the earned-vs-"
+  "collision frontier (a genuine coordination win once collisions are read against earned value). "
+  "<i>Information efficiency</i> splits in two: for OFFLINE estimation (skill per observed entry) all "
+  "low-rank methods turn a tiny budget into real skill while structure-free turns it into none, with the "
+  "batch PTF marginally ahead; for ONLINE earning (reward per round while learning) we win, because the "
+  "batch methods pay an explore/probe phase, so our cumulative lost value is the lowest.</p>")
 A("<figure>%s<figcaption><b>Fig. 6.</b> Operational metrics (re-analysis of existing runs). "
   "(a) Time-to-competence: rounds to reach 25%% of oracle dispatch under partial broadcast; ours reach "
   "it fastest, most competitors never do. (b) Cumulative lost mission value over the run (lower is "
@@ -406,6 +421,11 @@ A("<div class='box'><b>Scope: when does CF beat structure-free?</b> The advantag
   "settings, our earlier null results.</div>")
 
 A("<h2>6. Related work</h2>")
+A("<p>The table below locates the major MRTA and decentralized-learning paradigms on the four axes that "
+  "define our problem (prior knowledge, communication, distribution, observability). Each established "
+  "family relaxes at least one axis we hold fixed; our cell, low-rank with only a GUESSED rank, no "
+  "communication, decentralized, masked and noisy, is the one left open.</p>")
+A(mp.html_paradigms())
 A("<p>Matrix completion (Candes-Recht; Keshavan-Montanari-Oh; Recht) gives centralized estimation "
   "bounds; we make them decentralized, online, and broadcast-only, with the unseen-pair floor making "
   "the gap categorical and an anytime (decision-reward) separation the completion theory does not "

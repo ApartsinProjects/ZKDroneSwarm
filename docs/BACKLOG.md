@@ -157,6 +157,28 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   NOTE on figure method-sets (user "suggest where it makes sense"): used per-figure relevant subsets with a
   CONSISTENT class colouring on the new operational figures (ours=blue, structure-free=gray, batch low-rank=
   orange, ESTR=red centralized); recolouring ALL legacy figures to one palette is an optional follow-up.
+## ----- BATCH cycle 74 (user: method taxonomy/notation + comparison tables + PTF check + non-win treatments) -----
+- [DONE cycle 74] METHOD PROFILES taxonomy/notation: experiments/method_profiles.py = SINGLE SOURCE OF TRUTH.
+  Compact badge [dist | comm | obs | prior | compute] (dist D/C; comm 0=none/B=broadcast/full; obs full/rho/
+  rho,sig/self; prior none/d-hat/d/U*; compute online/batch/ETC/mem). Our flagship = hardest cell
+  [D | 0 | rho,sig | d-hat | online]. Three tables: (A) per-method operating profiles, (B) MRTA paradigms in
+  context (auction/CBBA, DCOP, MARL-CTDE, learned-comm, multiplayer bandits, matrix completion, low-rank
+  bandits, federated CF, Nagaraj-Agarwal, trait-MRTA, OURS), (C) our methods by mechanism (channel/exploration/
+  confidence/contention/rank/coordination). -> docs/METHOD_PROFILES.md. Integrated: paper (Table A start of
+  Experiments, Table B in Related work), tutorial (Tables A+C in section 5, Table B in section 9).
+- [DONE cycle 74] PTF-wins-at-high-rho CONSISTENCY CHECK (user flagged): VERIFIED consistent. PTF beats RewardCF
+  on unseen at full broadcast (rho=1: RewardCF ~0.39, PTF ~0.51) reproduced NEAR-IDENTICALLY across collab,
+  bake-off (c14), and crossover (c15); crossover at rho~0.6 in all three. Consistent with matrix-completion
+  theory (one-shot SVD is near-optimal once the matrix is densely observed) and with our existing F5 statement
+  (batch-SVD hybrids decay under masking). Our regime is masked (rho<=0.5) where we win. Added the
+  reproduced+theory note to paper + tutorial PTF parentheticals.
+- [DONE cycle 74] TREATMENTS for the two opmetrics non-wins (user): (7) redundancy now read as an EARNED-vs-
+  COLLISION FRONTIER -> among reward-seekers at severe contention our private-offset methods are top earners
+  (ContentionCF 0.105/AdaCF 0.100) AND lowest-collision (AdaCF 0.581), dominating CBBA-backoff/MAB-reseat/greedy/
+  PTF (a genuine coordination win, not a caveat). (8) info-efficiency SPLIT into offline-estimation (skill/obs:
+  batch PTF marginally edges, same rho=1 batch edge) vs online-earning (reward/round: WE win, lowest regret,
+  batch pays a probe phase). opmetrics.py computes the treatment; OPMETRICS.md + paper Fig.6 para + tutorial
+  8.20 updated. Catalogue row 73 updated (new opmetrics JSON 183104; removed superseded 180810).
 - [TODO RAS] reformat docs/paper_aamas/main.tex -> Elsevier elsarticle class (do at submission time).
 ## ===== END RAS TRACK =====
 - [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type
