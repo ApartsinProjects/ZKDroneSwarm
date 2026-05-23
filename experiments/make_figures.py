@@ -559,4 +559,37 @@ if f:
     fig.tight_layout(); save_fig("F19_operational")
     print("F19_operational  <-", os.path.basename(f))
 
+# ---- F20: setting schematic (conceptual; tiny illustrative world) ----
+import matplotlib.patches as mpatches
+_r = np.random.RandomState(3)
+ms_, ns_, ds_ = 6, 10, 2
+Ps_ = _r.randn(ms_, ds_); Us_ = _r.randn(ns_, ds_)
+Rs_ = Ps_ @ Us_.T; Rs_ = Rs_ / (np.abs(Rs_).max() + 1e-9)
+figS, axS = plt.subplots(figsize=(8.6, 3.7))
+imS = axS.imshow(Rs_, cmap="RdYlGn", vmin=-1, vmax=1, aspect="auto")
+foc = 2                                   # focal robot row
+own = [3, 7]                              # focal robot's own (clean) engagements
+masked_rows = [4, 5]                      # teammates the focal robot is persistently blind to
+visible_rows = [r for r in range(ms_) if r != foc and r not in masked_rows]
+for r in masked_rows:                     # grey out persistently-unseen teammate rows
+    axS.add_patch(mpatches.Rectangle((-0.5, r - 0.5), ns_, 1, facecolor="white", alpha=0.6, edgecolor="none"))
+axS.add_patch(mpatches.Rectangle((-0.5, foc - 0.5), ns_, 1, fill=False, edgecolor="#1f5fa8", lw=2.6))
+for j in own:                             # own clean engagements
+    axS.add_patch(mpatches.Rectangle((j - 0.5, foc - 0.5), 1, 1, fill=False, edgecolor="#0a7d4d", lw=2.6))
+for j in range(ns_):                      # everything else in the focal row is UNSEEN
+    if j not in own:
+        axS.text(j, foc, "?", ha="center", va="center", fontsize=10, color="#16191d", fontweight="bold")
+for r in visible_rows:                    # noisy, partial view of visible teammates
+    for j in _r.choice(ns_, 3, replace=False):
+        axS.plot(j, r, marker="o", ms=3.5, color="black", alpha=0.5)
+axS.set_xticks(range(ns_)); axS.set_xticklabels(["task %d" % (j + 1) for j in range(ns_)], fontsize=7, rotation=30)
+axS.set_yticks(range(ms_))
+axS.set_yticklabels([("robot %d (focal)" % (r + 1)) if r == foc else ("robot %d" % (r + 1)) for r in range(ms_)], fontsize=7)
+axS.set_title(r"Hidden low-rank reward $R=PU^\top$ (green=good match, red=poor). The focal robot (blue) must act on"
+              "\nits WHOLE row from only its own clean engagements (green boxes), a partial+noisy view of teammates"
+              "\n(dots; greyed rows are persistently unseen), and NO messages. '?' = pairs it must predict.", fontsize=7.4)
+figS.colorbar(imS, ax=axS, fraction=0.025, pad=0.01, label="reward")
+figS.tight_layout(); save_fig("F20_setting")
+print("F20_setting  <- (conceptual)")
+
 print("figures written to", OUT)

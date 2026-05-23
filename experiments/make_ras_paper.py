@@ -199,7 +199,13 @@ A("<p>This channel is the formal counterpart of physical sensing: a robot percei
   "degrades with distance and the robot's own sensor (noisy, private). It is strictly weaker than the "
   "shared, clean broadcast usually assumed, and it makes decentralization <b>real</b>: persistent blind "
   "spots give every robot a permanently different view, so the robots cannot converge to a common model "
-  "by symmetry.</p>")
+  "by symmetry. Figure 1 illustrates the setting.</p>")
+A("<figure>%s<figcaption><b>Figure 1.</b> The setting. The robot $\\times$ task reward is hidden and "
+  "low-rank, $R=PU^\\top$ (capability traits $p_i$, requirement traits $u_j$). A focal robot (blue row) "
+  "must act on its <i>whole</i> row, including the many pairs it never engaged ('?'), using only its own "
+  "clean engagements (green), a partial and per-observer-noisy view of the teammates it can sense (dots; "
+  "greyed rows are persistently invisible to it), and no communication.</figcaption></figure>"
+  % img("F20_setting.png", "setting schematic"))
 A("<p><b>Objective and metric.</b> We measure decision quality by the normalized <b>skill</b> "
   "(a Murphy skill score [17] / normalized return),"
   "$$ \\mathrm{skill} \\;=\\; \\frac{\\text{earned} - \\text{random}}{\\text{oracle} - \\text{random}}, $$"
@@ -318,7 +324,7 @@ A("<p class='small'><b>Table 2.</b> Operating profiles. Notation [distribution |
 A(mp.html_profiles())
 
 A("<h3>6.1 The categorical win and masking robustness</h3>")
-A("<p>Figure 1 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. SwarmCF acts well on "
+A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. SwarmCF acts well on "
   "tasks it never engaged at every observation density, while the structure-free learners sit at the "
   "floor ($\\approx 0$) by construction, the categorical separation of Theorems 1-2. Among low-rank "
   "methods, SwarmCF's online updates stay robust as the broadcast is masked, whereas batch spectral "
@@ -326,23 +332,23 @@ A("<p>Figure 1 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. 
   "batch wins only at full broadcast, where its one-shot factorization on a near-complete matrix is the "
   "best case for completion. The operationally relevant regime, partial observation, is exactly where "
   "the online estimator leads.</p>")
-A("<figure>%s<figcaption><b>Figure 1.</b> Unseen-pair skill versus broadcast rate $\\rho$. Structure-"
+A("<figure>%s<figcaption><b>Figure 2.</b> Unseen-pair skill versus broadcast rate $\\rho$. Structure-"
   "free learners are pinned at the floor at every density; SwarmCF acts on the "
   "unseen throughout and is robust under masking, while batch spectral completion decays as observation "
   "becomes partial.</figcaption></figure>" % img("F5_crossover.png", "categorical + masking"))
 
 A("<h3>6.2 The operational (anytime) separation</h3>")
 A("<p>Final-policy quality can flatter a method that explores cheaply. The operationally honest measure "
-  "is reward <i>earned while learning</i>. Figure 2 shows cumulative-reward skill over the mission: "
+  "is reward <i>earned while learning</i>. Figure 3 shows cumulative-reward skill over the mission: "
   "SwarmCF earns from the first rounds, while per-arm bandits remain near random because, with "
   "$n\\gg T$, they never stop exploring untried tasks (Theorem 3). Phase-structured low-rank methods pay "
   "an explore-then-commit penalty early.</p>")
-A("<figure>%s<figcaption><b>Figure 2.</b> Anytime cumulative-reward skill. SwarmCF earns from round one; "
+A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill. SwarmCF earns from round one; "
   "explore-then-commit pays a probe phase; structure-free learners are stuck near "
   "random.</figcaption></figure>" % img("F6_anytime.png", "anytime"))
 
 A("<h3>6.3 Why a swarm: the value of the broadcast and a positive scaling law</h3>")
-A("<p>Two experiments isolate what the team and the broadcast actually buy (Figure 3). "
+A("<p>Two experiments isolate what the team and the broadcast actually buy (Figure 4). "
   "<i>(a) Value of the broadcast.</i> Sweeping from $\\rho=0$ (each robot isolated, sees only its own "
   "outcomes) to $\\rho=1$ (full passive sensing): a lone robot cannot recover the shared structure from "
   "its single matrix row, so isolated unseen skill is $\\approx 0$; the broadcast lifts SwarmCF by "
@@ -353,7 +359,7 @@ A("<p>Two experiments isolate what the team and the broadcast actually buy (Figu
   "competence on tasks it never engaged grows with the team. Structure-free learning is flat. A swarm "
   "that gets smarter as it grows, the opposite of the usual interference penalty, is a direct consequence "
   "of sharing structure.</p>")
-A("<figure>%s<figcaption><b>Figure 3.</b> (a) Value of the broadcast: unseen skill versus $\\rho$ "
+A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen skill versus $\\rho$ "
   "(left edge $=$ isolated). (b) Positive scaling: unseen skill versus team size $m$. Both rise for "
   "low-rank CF and are flat for structure-free. (PTF is a batch-refit low-rank method shown for "
   "comparison.)</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
@@ -364,14 +370,14 @@ A("<p>Framed as a target-servicing / dispatch mission, latent factors are robot 
   "distance-noisy sensing, SwarmCF on the same servicing-skill metric beats the entire low-rank field "
   "under limited observability ($\\rho=0.25$): $\\approx 0.36$ versus the best of the field "
   "$\\approx 0.29$ with non-overlapping intervals, while structure-free learners sit at the random-"
-  "dispatch floor (Figure 4). To bound the cost of our constraints we add two reference ceilings (not "
+  "dispatch floor (Figure 5). To bound the cost of our constraints we add two reference ceilings (not "
   "competitors): a centralized full-communication matcher with Hungarian assignment, and the same with "
   "noiseless, unmasked observation. SwarmCF's communication-free de-confliction recovers about 81% of "
   "the full-communication ceiling when tasks are plentiful; the residual gap is the genuine price of "
   "within-round coordination under contention. Both ceilings sit below the omniscient oracle, and the "
   "price of observation noise is small, indicating that coordination, not estimation, is the binding "
   "constraint.</p>")
-A("<figure>%s<figcaption><b>Figure 4.</b> Operational target-servicing mission: SwarmCF (blue) versus "
+A("<figure>%s<figcaption><b>Figure 5.</b> Operational target-servicing mission: SwarmCF (blue) versus "
   "the low-rank field (orange) versus structure-free (gray). The separation opens under limited "
   "observability ($\\rho=0.25$).</figcaption></figure>" % img("F17_mission.png", "mission"))
 A("<p>Table 3 consolidates the comparison on the canonical masked harness.</p>")
