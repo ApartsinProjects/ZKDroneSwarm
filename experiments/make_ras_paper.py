@@ -368,7 +368,7 @@ A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a
   "per robot); the low-rank methods differ only in the update rule. Table 2 fixes each method's operating "
   "profile.</p>")
 A("<p class='small'><b>Table 2.</b> Operating profiles of the methods compared; SwarmCF-family "
-  "refinements are deferred to future work. The notation key precedes the table.</p>")
+  "refinements are deferred to future work (column abbreviations are defined in the key).</p>")
 A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "SoftImpute",
                            "UCBIndep", "Tabular", "Random", "CentralClean-ceiling", "CTDE-ceiling", "Oracle"]))
 

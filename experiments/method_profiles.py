@@ -139,30 +139,35 @@ MECHANISMS = [
 
 # ============================ renderers ============================
 def _legend_html():
-    return ("<p class='small'><b>Notation</b> [distribution | communication | observability | prior | "
-            "computation]: <b>distribution</b> D=decentralized, C=centralized; <b>communication</b> "
-            "0=none (passive sensing), full=message-passing; <b>observability</b> full / &rho;=masked "
-            "(fraction &rho; seen) / &rho;&sigma;=masked and per-observer-noisy / self-only; <b>prior</b> "
-            "&ndash;=none, d&#770;=guessed rank, d=true rank, U*=oracle factors; <b>computation</b> "
-            "online / batch / ETC=explore-then-commit. In our harness every method runs decentralized and "
-            "communication-free (one estimator per robot on the passive broadcast); the low-rank methods "
-            "differ only in the update rule. <b>SwarmCF</b> (our online method) and its batch variant "
-            "<b>SwarmCF-batch</b> are ours; the rest are standard low-rank estimators we adapt, the "
-            "structure-free paradigm, or reference ceilings.</p>")
+    return ("<p class='small'><b>Column key.</b> <b>Observability:</b> full = every engagement seen "
+            "noiselessly; &rho; = a fraction &rho; of engagements seen (masked); &rho;&sigma; = masked and "
+            "read with per-observer noise; full&sigma; = unmasked but noisy; self = own outcomes only. "
+            "<b>Prior:</b> &ndash; = none; d&#770; = a guessed rank; d = the true rank; U* = oracle "
+            "factors. <b>Computation:</b> ETC = explore-then-commit. In our harness every method runs "
+            "decentralized and communication-free (one estimator per robot on the passive broadcast); the "
+            "low-rank methods differ only in the update rule, so the comparison is controlled. "
+            "<b>SwarmCF</b> (our online method) and its batch variant <b>SwarmCF-batch</b> are ours "
+            "(shaded); the rest are standard low-rank estimators we adapt, the structure-free paradigm, or "
+            "reference ceilings (full communication, not competitors).</p>")
+
+
+COMM_DISP = {"0": "none", "full": "full", "B": "params"}
 
 
 def html_profiles(subset=None):
-    rows = ["<table><tr><th class='l'>Method</th><th class='l'>Provenance</th><th>Dist</th>"
-            "<th>Comm</th><th>Observability</th><th>Prior</th><th>Compute</th>"
-            "<th class='l'>Profile</th></tr>"]
+    rows = ["<table><tr><th class='l'>Method</th><th class='l'>Provenance</th>"
+            "<th>Distribution</th><th>Communication</th><th>Observability</th><th>Prior</th>"
+            "<th>Computation</th></tr>"]
     for n, prov, dist, comm, obs, prior, comp, blurb in PROFILES:
         if subset is not None and n not in subset:
             continue
-        nm = "<b>%s</b>" % disp(n) if prov.startswith("ours") else disp(n)
-        rows.append("<tr><td class='l'>%s</td><td class='l'>%s</td><td>%s</td><td>%s</td><td>%s</td>"
-                    "<td>%s</td><td>%s</td><td class='l'><code>%s</code></td></tr>"
-                    % (nm, PROV[prov], DIST[dist], SHORT[comm], SHORT[obs], SHORT[prior], SHORT[comp],
-                       "%s|%s|%s|%s|%s" % (dist, SHORT[comm], SHORT[obs], SHORT[prior], SHORT[comp])))
+        ours = prov.startswith("ours")
+        nm = "<b>%s</b>" % disp(n) if ours else disp(n)
+        tr = "<tr style='background:#eef6ff'>" if ours else "<tr>"
+        rows.append(tr + "<td class='l'>%s</td><td class='l'>%s</td><td>%s</td><td>%s</td><td>%s</td>"
+                    "<td>%s</td><td>%s</td></tr>"
+                    % (nm, PROV[prov], DIST[dist], COMM_DISP.get(comm, SHORT[comm]),
+                       SHORT[obs], SHORT[prior], SHORT[comp]))
     rows.append("</table>")
     return _legend_html() + "\n" + "\n".join(rows)
 
