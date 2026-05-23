@@ -181,21 +181,70 @@ A("<div class='box'><strong>What 'low-rank' means, simply.</strong> Imagine ever
   "your taste in a few genres predicts many movies.</div>")
 
 A("<h2 id='bg'>2. Background: the tools we build on</h2>")
-A("<dl>"
-  "<dt>Collaborative filtering (CF) / matrix completion</dt><dd>Predict the unknown entries of a "
-  "user-item matrix from observed ones by assuming it is low-rank: $R = PU^\\top$ (formalized in "
-  "Section 3.1). Each row (drone) and column (target) is a short latent vector; their inner product is "
-  "the value. Classic guarantees: a rank-$d$ matrix is recoverable from about $\\tilde O(d(m+n))$ "
-  "observed entries (Candes-Recht 2009; Keshavan-Montanari-Oh OptSpace; Recht 2011). We use these as "
-  "the statistical backbone but in a NON-standard way (decentralized, online, masked).</dd>"
-  "<dt>Low-rank bandits</dt><dd>Sequential decision methods that exploit low-rank reward structure "
-  "(explore-then-commit spectral methods; probe-then-fit hybrids). Typically centralized.</dd>"
-  "<dt>RecSys cold-start and fold-in</dt><dd>Given known item factors, a new user's factor is fit "
-  "from a few interactions by a small least-squares solve, no retraining (WALS fold-in). We reuse "
-  "this for onboarding new targets and welcoming new drones.</dd>"
-  "<dt>Exposure / choice debiasing</dt><dd>Treating observed choices as implicit feedback requires "
-  "accounting for what options were available; we use the public active-target set as the choice "
-  "set.</dd></dl>")
+A("<p>Five classical tools combine into our method. Each is given formally (a definition or formula) "
+  "and in plain words; Section 5 then specializes them to the decentralized, online, masked setting.</p>")
+
+A("<h3>2.1 Collaborative filtering / low-rank matrix completion</h3>")
+A("<p>Predict the unknown entries of a user-item (here drone-target) matrix from a few observed ones "
+  "by assuming the matrix is low-rank.</p>")
+A("<div class='formal'><h4>Definition (matrix completion)</h4>"
+  "<p>Let $R\\in\\mathbb{R}^{m\\times n}$ have rank $d\\ll\\min(m,n)$, and let $\\Omega\\subseteq[m]\\times "
+  "[n]$ be the observed entries (with noise). Matrix completion seeks $\\hat R$ of rank $\\le d$ "
+  "fitting the observations, e.g. the nuclear-norm (convex) program "
+  "$\\min_{X} \\lVert X\\rVert_* \\ \\text{s.t.}\\ \\sum_{(i,j)\\in\\Omega}(X_{ij}-R_{ij})^2\\le\\delta$, "
+  "where $\\lVert X\\rVert_*=\\sum_r\\sigma_r(X)$ is the sum of singular values. <b>Guarantee:</b> a "
+  "rank-$d$, $\\mu$-incoherent matrix is recovered (exactly, noiseless) from "
+  "$|\\Omega| = \\tilde O\\big(d(m+n)\\big)$ entries sampled at random "
+  "(Candes-Recht 2009; Keshavan-Montanari-Oh OptSpace 2010; Recht 2011). Incoherence rules out "
+  "'spiky' factors so that uniformly random samples are informative.</p></div>")
+A("<p>We use this as the statistical backbone but in a NON-standard way: decentralized (per drone), "
+  "online (one round at a time), and masked (each drone sees a different, biased subset of $\\Omega$).</p>")
+
+A("<h3>2.2 Alternating least squares (ALS), the workhorse solver</h3>")
+A("<p>The non-convex but biconvex way to fit $R\\approx PU^\\top$: fix one factor, solve the other in "
+  "closed form, alternate. It is the engine of our estimator (Section 5.1).</p>")
+A("<div class='formal'><h4>Definition (ridge ALS)</h4>"
+  "<p>Minimize $\\sum_{(i,j)\\in\\Omega}(R_{ij}-\\langle p_i,u_j\\rangle)^2 + \\lambda(\\lVert P\\rVert_F^2 "
+  "+\\lVert U\\rVert_F^2)$. With one factor fixed the objective is a sum of independent ridge "
+  "regressions:</p>"
+  "$$ p_i = \\Big(\\textstyle\\sum_{j\\in\\Omega_i} u_j u_j^\\top + \\lambda I\\Big)^{-1} "
+  "\\textstyle\\sum_{j\\in\\Omega_i} R_{ij}\\,u_j, \\qquad u_j = \\Big(\\textstyle\\sum_{i\\in\\Omega_j} "
+  "p_i p_i^\\top + \\lambda I\\Big)^{-1} \\textstyle\\sum_{i\\in\\Omega_j} R_{ij}\\,p_i, $$"
+  "<p>where $\\Omega_i,\\Omega_j$ are the observed columns of row $i$ / rows of column $j$. Each solve "
+  "is $O(d^3 + |\\Omega_i| d^2)$. Weighted ALS (WALS) puts a weight $w_{ij}$ on each term; the matrix "
+  "inverted is then the per-factor Gaussian posterior precision, the door to confidence (Section 5.3).</p></div>")
+
+A("<h3>2.3 Low-rank and bilinear bandits</h3>")
+A("<p>Sequential decision-making that exploits low-rank reward structure to act with few samples.</p>")
+A("<div class='formal'><h4>Definition (bilinear bandit)</h4>"
+  "<p>Each round, choosing an (arm-feature, context) pair $(x,z)$ yields reward "
+  "$\\langle x, \\Theta z\\rangle + \\text{noise}$ for an unknown LOW-RANK $\\Theta$ (rank $d$). The goal "
+  "minimizes cumulative regret $\\mathrm{Reg}(T)=\\sum_{t}\\big(\\max_{x,z}\\langle x,\\Theta z\\rangle - "
+  "\\langle x_t,\\Theta z_t\\rangle\\big)$. Explore-then-commit spectral methods (e.g. ESTR, Jun et al. "
+  "2019) spend a probe phase, estimate $\\Theta$ by SVD, then exploit; they are typically CENTRALIZED "
+  "and phase-structured. Our setting is the special case where rows are drones and columns are "
+  "targets, but ANYTIME (no probe phase) and DISTRIBUTED.</p></div>")
+
+A("<h3>2.4 Cold-start and fold-in</h3>")
+A("<p>Given known item factors $U$, a brand-new user's factor is fit from a few interactions by one "
+  "small least-squares solve, no retraining (the WALS 'fold-in').</p>")
+A("<div class='formal'><h4>Definition (fold-in)</h4>"
+  "<p>A new drone with observed rewards $\\{r_a\\}$ on targets with known factors $\\{u_a\\}_{a=1}^k$ "
+  "gets factor $\\hat p = \\big(\\sum_a u_a u_a^\\top + \\lambda I\\big)^{-1}\\sum_a r_a u_a$, after which "
+  "$\\hat R_{\\cdot j}=\\langle\\hat p, u_j\\rangle$ is available for ALL targets $j$. Exact once $k\\ge d$ "
+  "and $\\{u_a\\}$ span $\\mathbb{R}^d$ (Theorem 2). We reuse this symmetrically for onboarding new "
+  "TARGETS (fold-in a $u$ from drones' probes) and welcoming new DRONES.</p></div>")
+
+A("<h3>2.5 Implicit feedback and choice debiasing</h3>")
+A("<p>Treating an observed CHOICE (which target a teammate engaged) as a preference signal, while "
+  "correcting for what options were available (exposure).</p>")
+A("<div class='formal'><h4>Definition (confidence-weighted implicit feedback)</h4>"
+  "<p>Implicit-feedback CF (Hu-Koren-Volinsky 2008) fits preferences $y_{ij}\\in\\{0,1\\}$ with "
+  "per-pair CONFIDENCE $c_{ij}$: $\\min \\sum_{i,j} c_{ij}(y_{ij}-\\langle p_i,u_j\\rangle)^2 + "
+  "\\lambda(\\dots)$, where a chosen item is a (confident) positive and unchosen offered items are "
+  "(less-confident) negatives. We treat a teammate's engaged target as a positive and sample "
+  "negatives from the PUBLIC active-target set (the exposure / choice set), so no private menu is "
+  "needed (the ZK choice channel). This 'confidence' is exactly what Section 5.5 deepens.</p></div>")
 
 # 3 MODEL
 A("<h2 id='model'>3. The model</h2>")
@@ -244,14 +293,28 @@ A("<p class='small'>Note $n=240 \\gg cT/\\ldots$: with $T=50$ rounds and $c=20$ 
   "targets are never tried). This is the regime where generalizing to the unseen matters.</p></div>")
 A("<div class='step'>")
 A("<h3>Step 3.2 Observability: a public outcome stream with two degradations</h3>")
-A("<p>Each round every drone is offered a random candidate set, picks one target, and earns its "
-  "true reward. A public stream carries the (action, outcome) of every engagement. Each drone "
-  "senses its OWN outcome cleanly (noise <code>sigma_own</code>) and a per-drone-limited, noisy "
-  "subset of teammates' outcomes:</p>")
+A("<p>Time is discrete <b>rounds</b> $t=1,\\dots,T$. In each round EVERY drone acts ONCE and "
+  "SIMULTANEOUSLY (no turn-taking, no waiting on others): drone $i$ is shown a <b>candidate set</b> "
+  "$S_i^t\\subseteq[n]$ of $c$ targets, picks one $a_i^t\\in S_i^t$, and earns that target's true reward "
+  "$R_{i,a_i^t}$. A public stream then carries the (action, outcome) of every engagement that round; "
+  "drone $i$ senses its OWN outcome cleanly (noise $\\sigma_{\\mathrm{own}}$) and a per-drone-limited, "
+  "noisy subset of teammates' outcomes:</p>")
 A("<ul><li><strong>Masking ($\\rho$)</strong> (action observability): you either detect a "
   "teammate's engagement or you do not.</li>"
   "<li><strong>Additive noise ($\\sigma_{\\mathrm{obs}}$)</strong> (reward observability): a "
   "detected outcome's value is noisy.</li></ul>")
+A("<div class='box'><b>Why a candidate set, and not all $n$ targets every round?</b> The candidate "
+  "set models a real per-round constraint: a drone can only reach, sense, or consider a few targets at "
+  "a time (think a recommendation 'slate', or a contextual bandit's per-round action set). It also "
+  "makes the oracle/random references well-defined (best-in-offer vs mean-in-offer, Section 6). It is "
+  "just a KNOB: setting $c=n$ (the entire target set offered every round, the 'peek everything' case "
+  "you may have in mind) is a valid special case we can run. Crucially the CATEGORICAL unseen-pair "
+  "result does NOT depend on $c$: it is about the quality of a drone's preference on targets it never "
+  "engaged, a property of the learned model, not of how many targets are shown. Even with $c=n$, a "
+  "tabular learner offered all targets still cannot rank the ones it never tried (it can only exploit "
+  "among its tried ones), while CF ranks them all; if anything CF's edge widens. What $c$ DOES affect "
+  "is the sample-starvation rate (smaller $c$ relative to the horizon means fewer distinct targets are "
+  "tried), which is why we keep $c=20\\ll n=240$ as the interesting, realistic regime.</div>")
 A("<div class='formal'><h4>Observation model (exact)</h4>"
   "<p>Let $a_k^t$ be the target drone $k$ engages at round $t$, and let "
   "$M\\in\\{0,1\\}^{m\\times m}$ be the observation mask ($M_{ii}=1$ always). What drone $i$ records "
@@ -519,6 +582,91 @@ A("<div class='box key'><b>What we actually compute and use.</b> The cheap Lapla
   "fit. Our honest finding (Section 8.12): in this coverage-scarce, decentralized regime, putting "
   "confidence in the DECISION (shrinkage / UCB) and keeping the FIT broadcast-friendly (uniform or "
   "bounded precision) beats the textbook inverse-variance fit weighting.</div>")
+
+A("<h3>5.5 A deeper view of confidence: three levels (and how to leverage them)</h3>")
+A("<p>'Confidence' is not one number. Per-observation precision $1/\\sigma^2$ (Level 1) is the "
+  "shallowest kind, and we saw it can even backfire. The useful confidence is SECOND-ORDER: how "
+  "well-determined is the learned latent structure, and how much should one agent trust another "
+  "agent's revealed CHOICES. We separate three levels.</p>")
+
+A("<div class='formal'><h4>Level 1, observation confidence (a single measurement)</h4>"
+  "<p>$\\beta_{kj}=1/\\sigma_{kj}^2$: how noisy is one sensed reward. Local, myopic. Leverage: "
+  "noise-aware fit weighting, but only bounded/normalized (relcap), since over-trusting clean OWN "
+  "data starves the broadcast that determines the shared structure (Section 8.12).</p></div>")
+
+A("<div class='formal'><h4>Level 2, structure confidence (the posterior over the latent factors)</h4>"
+  "<p>As events accumulate, the swarm's belief about the latent geometry sharpens. Two parts, both "
+  "available in closed form from the (weighted) ALS / variational fit:</p>"
+  "<ul>"
+  "<li><b>Confidence in the shared target structure $U$.</b> Per target, the posterior precision "
+  "$\\Lambda_{u_j}=\\sum_k \\beta_{kj}\\,p_k p_k^\\top + \\lambda I$ and covariance "
+  "$\\Sigma_{u_j}=\\Lambda_{u_j}^{-1}$. Globally, how well the $d$-dimensional subspace is pinned down "
+  "is read off the spectrum of the aggregate design $G_U=\\sum_{k,j}\\beta_{kj}\\,p_k p_k^\\top$: its "
+  "smallest eigenvalue $\\lambda_{\\min}(G_U)$ is the LEAST-explored latent direction. If the swarm "
+  "has only sampled a low-dimensional slice of target-space, $U$ is under-determined no matter how many "
+  "rewards were seen.</li>"
+  "<li><b>Each drone's confidence in its own factor $p_i$.</b> "
+  "$\\Sigma_{p_i}=\\big(\\sum_j \\beta_{ij}\\,u_j u_j^\\top + \\lambda I\\big)^{-1}$. By Theorem 2, "
+  "$p_i$ is identified only once drone $i$ has observed $\\ge d$ targets whose factors span "
+  "$\\mathbb{R}^d$; $\\Sigma_{p_i}$ quantifies HOW WELL, its top eigenvector is the drone's "
+  "worst-known taste direction.</li>"
+  "</ul>"
+  "<p>These combine into a predictive interval for any pair (seen or unseen): "
+  "$\\mathrm{Var}(\\hat R_{ij}) = p_i^\\top\\Sigma_{u_j}p_i + u_j^\\top\\Sigma_{p_i}u_j + "
+  "\\operatorname{tr}(\\Sigma_{p_i}\\Sigma_{u_j})$.</p></div>")
+A("<p><b>How to leverage Level 2 (three concrete mechanisms).</b></p>"
+  "<div class='algo'>"
+  "<span class='cm'># (L2-a) Confidence-driven explore/exploit: replace the fixed eps schedule.</span>\n"
+  "eps_i(t) = clip( trace(Sigma_{p_i}) / (trace(Sigma_{p_i}) + tau), eps_min, 1 )\n"
+  "<span class='cm'>#   explore while your OWN factor is uncertain; exploit once it is pinned down.</span>\n"
+  "\n"
+  "<span class='cm'># (L2-b) Information-greedy COLLECTIVE exploration (D-optimal, broadcast-shared):</span>\n"
+  "<span class='cm'>#   pick the offered target that most reduces uncertainty, not just the count proxy.</span>\n"
+  "select(S):  argmax_{j in S}  Rhat_ij + kappa * ( u_j^T (G_U + lambda I)^{-1} u_j )^{1/2}\n"
+  "<span class='cm'>#   u_j^T (G_U)^{-1} u_j is large for under-explored latent directions; because every</span>\n"
+  "<span class='cm'>#   probe is broadcast, one drone filling a gap lowers G_U-uncertainty for ALL (no comms).</span>\n"
+  "\n"
+  "<span class='cm'># (L2-c) Predictive-variance shrinkage (implemented as EMshrink):</span>\n"
+  "Rhat_ij <- (1-a_ij) * Rhat_ij + a_ij * popularity_j ,   a_ij = sd(Rhat_ij)/(sd+kappa2)\n"
+  "</div>")
+
+A("<div class='formal'><h4>Level 3, peer-policy confidence (is a teammate's CHOICE model-based or "
+  "random?)</h4>"
+  "<p>A teammate $k$'s observed action $a_k^t$ is a useful PREFERENCE signal only to the extent $k$ "
+  "chose it by EXPLOITING a confident model; if $k$ is still exploring, $a_k^t$ is noise. We cannot "
+  "see $k$'s posterior (no parameter sharing), so we INFER $k$'s exploit-confidence from its public "
+  "behavior. Let $\\gamma_k^t = \\Pr(k \\text{ is exploiting at } t \\mid k\\text{'s observed actions})$. "
+  "Two estimable signals (ZK: actions only):</p>"
+  "<ul>"
+  "<li><b>Choice predictability under our model of $k$:</b> if $k$ tends to pick the target OUR "
+  "estimate $\\hat p_k$ says it prefers, $k$ is likely exploiting a model consistent with the shared "
+  "structure. Score $k$'s round-$t$ choice by "
+  "$\\pi^t_k = \\dfrac{\\exp(\\langle\\hat p_k,u_{a_k^t}\\rangle/\\tau)}{\\sum_{j\\in S_k^t}\\exp("
+  "\\langle\\hat p_k,u_j\\rangle/\\tau)}$ (high = unsurprising = model-based; near $1/c$ = looks "
+  "random).</li>"
+  "<li><b>Temporal consistency:</b> $k$'s chosen factors $u_{a_k^t}$ stabilizing over time (low "
+  "drift) signals convergence to exploit-mode (this is the 'competence' weight we already ramp).</li>"
+  "</ul>"
+  "<p>Use $\\gamma_k^t$ to WEIGHT teammate $k$'s choice observation in the choice channel: "
+  "$w^{\\text{choice}}_{k} \\propto \\gamma_k^t$. Early random choices are discounted; late model-based "
+  "choices are trusted, automatically.</p></div>")
+A("<div class='box key'><b>The virtuous cycle (why this is the deep structure).</b> The three levels "
+  "are coupled: my confidence in $U$ depends on the quality of every drone's $p_k$; the value of $k$'s "
+  "CHOICE signal depends on $k$'s confidence in its own $p_k$; and I estimate $k$'s confidence from how "
+  "model-consistent $k$'s choices look to ME. So the swarm bootstraps a shared latent geometry over the "
+  "broadcast, and as it grows more confident, its public choices become SHARPER preference signals, "
+  "which further sharpen everyone's structure. This predicts a regime shift: EARLY, choices are near-"
+  "random, so rely on the (noisy) reward channel; LATE, choices are crisp and noise-immune, so the "
+  "choice channel should dominate. It is the principled justification for ramping the choice weight "
+  "with confidence over time, and it suggests the strongest method is one that fuses the reward and "
+  "choice channels with weights set by Levels 2 and 3, not by a fixed schedule.</p></div>")
+A("<p class='small'>Status: Level-1 bounded weighting (relcap), Level-2 predictive-variance UCB and "
+  "shrinkage (ActiveCF count-proxy; EMCF exact), and a Level-3 temporal competence ramp (ChoiceCF) "
+  "are implemented and evaluated (Sections 8.6, 8.12). The information-greedy collective exploration "
+  "(L2-b) and the choice-predictability gate (L3 first bullet) are the natural next experiments; we "
+  "expect L2-b to beat the count-based bonus when the explored latent slice is low-dimensional, and "
+  "the L3 gate to lift the choice channel specifically at high broadcast noise where rewards are "
+  "unreliable but choices are not.</p>")
 
 # 6 METRICS
 A("<h2 id='metrics'>6. Metrics (and why each one matters)</h2>")
