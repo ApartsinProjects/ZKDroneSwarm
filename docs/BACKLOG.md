@@ -305,8 +305,9 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
   confidence-directed newcomer-probing (neither structure-free optimism nor exploitative CF
   alone suffices). A clean negative->diagnosis->win arc. NEXT: fold into tutorial/paper as a
   non-stationarity result (the collective-exploration extension also wins under churn).
-- [P2] H7 = NON-GAUSSIAN rewards (K4): logistic/GLM-link weighted-ALS for BINARY
-  outcomes. HYP: handles binarized rewards where linear MF degrades; extends scope.
+- [DROPPED 2026-05-23 per user] H7 = NON-GAUSSIAN rewards (K4): logistic/GLM-link
+  weighted-ALS for BINARY outcomes. A scope extension, not a categorical-win direction;
+  out of scope for this work.
 - [P2] H8 = TYPE-PRIOR shrinkage (D7): newcomer cold-start shrinks to its TYPE prior
   (not just popularity). HYP: faster newcomer warm-up than popularity shrinkage.
 - [P0/RUNNING] H9 = HELD-OUT choice-informativeness (Prop 9). In-sample ChoiceEM gamma
