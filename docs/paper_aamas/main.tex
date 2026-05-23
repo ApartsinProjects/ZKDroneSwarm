@@ -97,10 +97,15 @@ senses, weighting each by precision $1/\sigma^2$ (a masked event has zero precis
 not zero value, the key to masking-robustness) \cite{hu2008collaborative}; estimation
 is separated from the decision policy. We foreground \textbf{ActiveCF}: a
 latent-space UCB (predicted reward plus a broadcast count-based uncertainty bonus, so
-one agent's probe lowers everyone's uncertainty -- collective active learning). We
+one agent's probe lowers everyone's uncertainty, i.e.\ collective active learning). We
 ablate RewardCF (rewards only; anytime-optimal), ChoiceZK (actions only; noise-immune
 fallback), and HybridCF (probe, SVD warm-start, then online weighted-ALS; best
-final-policy unseen).
+final-policy unseen). The further refinements form a \emph{scoped menu} rather than a
+method zoo: a Bayesian variational-PMF estimator with calibrated confidence (EMCF), rank
+self-determination (ARD), the choice channel with held-out informativeness, and contention
+de-confliction are each an optional extension of the one core estimator, applied only when
+its condition holds (noisy or coverage-scarce broadcast; unknown rank; extreme reward-noise
+or unreliable teammates; capacity-1 contention) and otherwise reducing to the core.
 
 \section{Theory}
 Proof sketches in the supplement; each result is mapped to a confirming experiment.
@@ -195,12 +200,17 @@ preference quality (evaluated contention-free after training) stays high for CF
 ($\approx0.29$-$0.38$) versus the structure-free floor ($\approx0$) at every pool size,
 since it is a property of the learned model. (ii) On \emph{operational} earned reward CF
 already beats the field at low/moderate contention; greedy (argmax) CF collapses toward
-the matching floor only at severe contention. (iii) We WIN even there with a one-line
-decentralized fix, ContentionCF (the CF estimate plus a FIXED private per-target offset
-for deterministic symmetry breaking): at pool $=15$ it earns $0.105\,[0.096,0.114]$ versus
-$\approx0.05$ for argmax-CF/PTF (non-overlapping, $\sim2\times$), with no communication;
-it is regime-dependent (helps once collisions bind), so a collision-rate-adaptive offset
-would dominate. (iv) De-confliction must use \emph{private, fixed} randomness: per-round
+the matching floor only at severe contention. (iii) We WIN even there with a decentralized,
+communication-free fix. Keeping the CF estimate but replacing greedy argmax with a FIXED
+private per-target offset (deterministic symmetry breaking) earns $0.105\,[0.096,0.114]$ at
+pool $=15$ versus $\approx0.05$ for argmax-CF/PTF (non-overlapping, $\sim2\times$). Making
+that offset \emph{self-tuning} (ContentionAdaCF: scale it by each drone's own observed loss
+rate, gate it by a zero-knowledge scarcity signal of offer size vs swarm size, and fall back
+to $\epsilon$-greedy when targets are plentiful) yields a SINGLE policy that is
+best-or-statistically-tied at \emph{every} contention level: it matches plain CF when targets
+are abundant (pool $=240$: $0.448$ vs $0.439$, with the lowest collision rate) and wins by
+$\sim2\times$ at severe contention (pool $=15$: $0.100$ vs $\le0.06$ for every no-offset
+method), with no communication. (iv) De-confliction must use \emph{private, fixed} randomness: per-round
 softmax and shared-signal (popularity / collective count-bonus) routing both backfire by
 re-colliding or re-synchronizing.
 Consistent soft-contention evidence: the independent tabula\_drone validation runs with
