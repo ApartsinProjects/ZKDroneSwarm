@@ -205,7 +205,10 @@ A("<p>This channel is the formal counterpart of physical sensing: a robot percei
   "degrades with distance and the robot's own sensor (noisy, private). It is strictly weaker than the "
   "shared, clean broadcast usually assumed, and it makes decentralization <b>real</b>: persistent blind "
   "spots give every robot a permanently different view, so the robots cannot converge to a common model "
-  "by symmetry. Figure 1 illustrates the setting.</p>")
+  "by symmetry. In a grounding experiment (supplementary material) we derive the mask and noise directly "
+  "from 2-D sensing geometry, range-limited visibility and read-off noise that grows with distance, and "
+  "the categorical result survives once sensing coverage exceeds a modest threshold, so the channel is "
+  "physically realizable rather than a convenient abstraction. Figure 1 illustrates the setting.</p>")
 A("<figure>%s<figcaption><b>Figure 1.</b> The setting. The robot $\\times$ task reward is hidden and "
   "low-rank, $R=PU^\\top$ (capability traits $p_i$, requirement traits $u_j$). A focal robot (blue row) "
   "must act on its <i>whole</i> row, including the many pairs it never engaged ('?'), using only its own "
@@ -391,6 +394,15 @@ A("<figure>%s<figcaption><b>Figure 5.</b> Operational target-servicing mission: 
 A("<p>Table 3 consolidates the comparison on the canonical masked harness.</p>")
 A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical masked harness.</p>")
 A(mp.html_scorecard(ROOT))
+A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b> The advantage is not "
+  "universal, and we state its boundary precisely. It holds when three conditions co-occur: "
+  "<b>(i) low-rank but personalized</b> structure ($1<d\\ll\\min(m,n)$): at $d=1$ the reward reduces to a "
+  "shared popularity order that a bias/pooling baseline already captures, so there is nothing personal to "
+  "transfer; <b>(ii) task scarcity</b> ($n\\gg cT$): if instead sample-rich, a tabular learner eventually "
+  "measures every entry and the unseen advantage vanishes; <b>(iii) a shared channel</b> ($\\rho>0$): "
+  "with no broadcast each robot has only its own row and collaborative filtering degenerates to tabular. "
+  "These are exactly the conditions of the regime we target, and they delimit honestly where "
+  "structure-free methods remain competitive.</div>")
 
 # ---------------- 7. discussion ----------------
 A("<h2>7. Discussion, limitations, and future work</h2>")
@@ -400,8 +412,11 @@ A("<p><b>What the results say.</b> Under the least information, no prior, no com
   "and recovering most of what a centralized, communicating system could achieve. The win is structural "
   "(it is a property of exploiting the shared low-rank trait structure) and operational (it shows up in "
   "reward earned while learning, and in a robotics-grounded mission).</p>")
-A("<p><b>Limitations.</b> The reward is (approximately) low-rank and stationary; rewards are real-valued "
-  "and bilinear in latent traits; and the recovery rate of Theorem 4 is established for non-adaptive "
+A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
+  "trait-based premise; the categorical advantage degrades gracefully as the structure becomes only "
+  "approximately low-rank or the rank grows toward full (a stress test in the supplement), vanishing only "
+  "when there is no exploitable structure. Rewards are real-valued and bilinear in latent traits; and the "
+  "recovery rate of Theorem 4 is established for non-adaptive "
   "exploration, the finite-time rate under a strongly exploiting policy (which can starve low-reward "
   "tasks of coverage) remains open. We report the regime boundaries honestly: the advantage requires "
   "structure beyond mere popularity ($d>1$), task scarcity ($n\\gg cT$), and a shared channel "

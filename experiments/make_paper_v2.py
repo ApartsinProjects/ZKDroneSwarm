@@ -104,6 +104,11 @@ A("<div class='abs'><b>Abstract.</b> We study multi-robot task allocation under 
   "Against the field of low-rank methods our online, masking-robust, anytime-optimal estimators "
   "dominate throughout the limited-observability regime that defines the problem.</div>")
 
+A("<div class='box'><b>Naming.</b> Our methods form the <b>SwarmCF</b> family: <b>SwarmCF</b> is the core "
+  "online weighted-ALS filter (code name RewardCF), <b>SwarmCF-B</b> the Bayesian-confidence variant "
+  "(EMCF), <b>SwarmCF-D/D+</b> the contention variants (ContentionCF/AdaCF), <b>SwarmCF-batch</b> the "
+  "batch hybrid (PTF), and so on. Figures and tables use the SwarmCF names; running prose and code "
+  "listings retain the original class names for traceability to the implementation.</div>")
 A("<h2>1. Introduction</h2>")
 A("<div class='box'><b>Minimal assumptions.</b> No prior knowledge. Zero communication. Only partial, "
   "noisy observables. Fully distributed decisions. Can a swarm still act intelligently, in particular "

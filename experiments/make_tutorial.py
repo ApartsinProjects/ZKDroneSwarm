@@ -234,6 +234,12 @@ A(plain("A <b>matrix</b> is just a table of numbers with rows and columns. Here 
         "you can fill in cells you never measured. That single idea is the heart of everything below."))
 
 # 1 MOTIVATION
+A("<div class='box key'><b>Naming.</b> Our methods form the <b>SwarmCF</b> family: <b>SwarmCF</b> is the "
+  "core online weighted-ALS filter (code name <code>RewardCF</code>), <b>SwarmCF-B</b> the "
+  "Bayesian-confidence variant (<code>EMCF</code>), <b>SwarmCF-D/D+</b> the contention variants "
+  "(<code>ContentionCF/AdaCF</code>), <b>SwarmCF-batch</b> the batch hybrid (<code>PTF</code>), and so "
+  "on. Figures and tables use the SwarmCF names; running prose and the code listings below retain the "
+  "original class names so they match <code>experiments/pilot_noise.py</code>.</div>")
 A("<h2 id='mot'>1. Motivation: the problem</h2>")
 A("<p>Imagine a swarm of autonomous drones that, round after round, must each pick a target to "
   "engage. Three facts make this both hard and interesting:</p>")
