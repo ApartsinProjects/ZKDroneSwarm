@@ -246,7 +246,7 @@ A("<p><b>Objective and metric.</b> We measure decision quality by the normalized
 A("<h2>4. Method: SwarmCF</h2>")
 A("<p>Each robot independently maintains low-rank factor estimates $\\hat P\\in\\mathbb{R}^{m\\times\\hat "
   "d}$, $\\hat U\\in\\mathbb{R}^{n\\times\\hat d}$ and updates them online from whatever it senses, using "
-  "<b>noise-weighted alternating least squares</b> (weighted ridge ALS, the workhorse of low-rank "
+  "<b>noise-weighted alternating least squares</b> (weighted ridge ALS [28,31], the workhorse of low-rank "
   "completion) on the observed entries. The key design choice for masking-robustness: an unobserved "
   "entry receives zero <i>weight</i>, never an imputed zero <i>value</i>. The robot then acts greedily "
   "(with a small $\\varepsilon$ for exploration) on its <b>completed</b> reward row, which is defined for "
@@ -294,27 +294,28 @@ A("<p>We formalize the separation between structure-free learning and SwarmCF, g
   "<b>structure-free</b> if its estimate of $R_{ij}$ depends only on robot $i$'s own past engagements of "
   "task $j$ and equals a fixed prior on any task it never engaged (the per-arm class: independent UCB, "
   "tabular).</p>")
-A("<div class='thm'><b>Theorem 1 (structure-free floor).</b> For a structure-free learner and any task "
+A("<div class='thm'><b>Proposition 1 (structure-free floor).</b> For a structure-free learner and any task "
   "$j$ that robot $i$ never engaged, the estimate is the prior constant, so its expected unseen-pair "
   "skill is exactly $0$ and its squared error is at least the row variance $\\Omega(1)$. Moreover the "
   "broadcast is provably useless to it: its per-task estimate is by definition not a function of any "
   "other task or robot.</div>")
-A("<div class='thm'><b>Theorem 2 (CF row completion, $\\Theta(d)$ versus $\\Theta(n)$).</b> If the task "
+A("<div class='thm'><b>Theorem 1 (CF row completion, $\\Theta(d)$ versus $\\Theta(n)$).</b> If the task "
   "factors $U$ are known (rank $d$) and robot $i$ observes its true rewards on any set $\\Omega$ with "
   "$|\\Omega|\\ge d$ whose factors span $\\mathbb{R}^d$, then $p_i$ is the unique least-squares solution "
   "and $R_{ij}=\\langle p_i,u_j\\rangle$ is recovered <b>exactly for all</b> $j$. Per-robot sample "
   "complexity is therefore $\\Theta(d)$, versus $\\Theta(n)$ for any structure-free learner.</div>")
-A("<div class='thm'><b>Theorem 3 (anytime separation under task scarcity).</b> With $n$ tasks, offers of "
+A("<div class='thm'><b>Theorem 2 (anytime separation under task scarcity).</b> With $n$ tasks, offers of "
   "size $c$ and horizon $T$, any structure-free learner has anytime (cumulative-reward) skill at most "
   "$g(cT/n)\\to 0$ when $cT=o(n)$, even with a full broadcast; SwarmCF reaches near-oracle in $O(d)$ "
   "rounds, so its anytime skill is $1-O(d/T)$.</div>")
-A("<p>Theorems 1-3 make the separation categorical (zero vs nonzero) and operational (it shows up in "
-  "reward earned while learning), but Theorem 2 assumes $U$ is known. The remaining question, the crux "
+A("<p>Proposition 1 and Theorems 1-2 make the separation categorical (zero versus nonzero) and "
+  "operational (it shows up in reward earned while learning), but Theorem 1 assumes $U$ is known. The "
+  "remaining question, the crux "
   "of the decentralized setting, is whether each robot can <b>recover</b> the shared structure from its "
   "own privately-masked, noisy stream. Because the mask is over robot pairs, robot $i$'s observations form "
   "a structured (non-uniform) sub-sample, exactly where off-the-shelf uniform-sampling completion does "
   "not apply. We give a deterministic condition instead.</p>")
-A("<div class='thm'><b>Theorem 4 (decentralized masked recovery).</b> Let $E_i(j)$ be the set of robot "
+A("<div class='thm'><b>Theorem 3 (decentralized masked recovery).</b> Let $E_i(j)$ be the set of robot "
   "$i$'s visible teammates that engaged task $j$. If $i$'s observation graph contains a $\\hat d\\times "
   "\\hat d$ fully-observed invertible anchor block (fixing the factor frame) and, for task $j$, the "
   "factors $\\{p_k : k\\in E_i(j)\\}$ span $\\mathbb{R}^d$, then robot $i$ recovers $u_j$ exactly "
@@ -324,17 +325,17 @@ A("<div class='thm'><b>Theorem 4 (decentralized masked recovery).</b> Let $E_i(j
   "$p_i$, the pair $(i,j)$ is non-identifiable and the learner is at the prior floor. Under non-adaptive "
   "exploration the spanning condition is met for all tasks, with high probability, after "
   "$T=O\\!\\big(\\tfrac{nd}{\\rho m}\\log n\\big)$ rounds, a rate that improves as the team grows.</div>")
-A("<p>Theorem 4 turns the previously-cited completion step into a self-contained, checkable condition: "
+A("<p>Theorem 3 turns the previously-cited completion step into a self-contained, checkable condition: "
   "recovery is exact when a robot has seen a task engaged by a spanning set of visible teammates, "
   "impossible without it, and is reached the faster the larger the team. Appendix C validates it "
   "directly: on the actual observation patterns the swarm produces, reconstruction error collapses from "
   "the prior floor to (numerically) zero exactly at the spanning threshold.</p>")
-A("<div class='thm'><b>Theorem 5 (collective speedup, why a swarm).</b> An isolated robot ($\\rho=0$) "
+A("<div class='thm'><b>Theorem 4 (collective speedup, why a swarm).</b> An isolated robot ($\\rho=0$) "
   "sees only its own row and cannot identify a rank-$d>1$ column space, so its unseen skill stays at the "
   "floor: sharing is <b>necessary</b>. With the broadcast, the swarm's pooled observations cross the "
   "recovery threshold after $\\tilde O(d(1+n/m))$ rounds, an $\\Theta(m)$-fold speedup over a lone "
   "learner, achieved with no communication.</div>")
-A("<p>Theorems 4-5 are, to our knowledge, the first results that pin decentralized low-rank recovery from "
+A("<p>Theorems 3-4 are, to our knowledge, the first results that pin decentralized low-rank recovery from "
   "a persistent, private, per-robot mask to an explicit condition and tie its rate to team size; they are "
   "what make the categorical claim self-contained rather than imported from centralized theory. Full "
   "proofs are given in Appendix A.</p>")
@@ -367,7 +368,7 @@ A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "SoftImpu
 A("<h3>6.1 The categorical win and masking robustness</h3>")
 A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. SwarmCF acts well on "
   "tasks it never engaged at every broadcast rate, while the structure-free learners sit at the "
-  "floor ($\\approx 0$) by construction, the categorical separation of Theorems 1-2. Among low-rank "
+  "floor ($\\approx 0$) by construction, the categorical separation of Proposition 1 and Theorem 1. Among low-rank "
   "methods, SwarmCF's online updates stay robust as the broadcast is masked, whereas batch spectral "
   "completion (which imputes unobserved entries) decays; the two cross over near $\\rho\\approx 0.6$ and "
   "batch wins only at full broadcast, where its one-shot factorization on a near-complete matrix is the "
@@ -382,7 +383,7 @@ A("<h3>6.2 The operational (anytime) separation</h3>")
 A("<p>Final-policy quality can flatter a method that explores cheaply. The operationally honest measure "
   "is reward <i>earned while learning</i>. Figure 3 shows cumulative-reward skill over the mission: "
   "SwarmCF earns from the first rounds, while per-arm bandits remain near random because, with "
-  "$n\\gg T$, they never stop exploring untried tasks (Theorem 3). Phase-structured low-rank methods pay "
+  "$n\\gg T$, they never stop exploring untried tasks (Theorem 2). Phase-structured low-rank methods pay "
   "an explore-then-commit penalty early.</p>")
 A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill. SwarmCF earns from round one; "
   "explore-then-commit pays a probe phase; structure-free learners are stuck near "
@@ -394,7 +395,7 @@ A("<p>Two experiments isolate what the team and the broadcast actually buy (Figu
   "outcomes) to $\\rho=1$ (full passive sensing): a lone robot cannot recover the shared structure from "
   "its single matrix row, so isolated unseen skill is $\\approx 0$; the broadcast lifts SwarmCF by "
   "$+0.39$ unseen skill but a structure-free learner by $\\approx 0$, which has no model linking tasks "
-  "and so cannot use it (Theorem 5). <i>(b) Positive scaling.</i> Holding $n$, horizon and $\\rho$ "
+  "and so cannot use it (Theorem 4). <i>(b) Positive scaling.</i> Holding $n$, horizon and $\\rho$ "
   "fixed and growing the team from $m=5$ to $80$, SwarmCF's unseen skill rises monotonically "
   "($0.08\\to 0.43$): more robots feed more observations into the one shared structure, so each robot's "
   "competence on tasks it never engaged grows with the team. Structure-free learning is flat. A swarm "
@@ -473,7 +474,7 @@ A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and sta
   "trait-based premise; the categorical advantage degrades gracefully as the structure becomes only "
   "approximately low-rank or the rank grows toward full, vanishing only "
   "when there is no exploitable structure. Rewards are real-valued and bilinear in latent traits; and the "
-  "recovery rate of Theorem 4 is established for non-adaptive "
+  "recovery rate of Theorem 3 is established for non-adaptive "
   "exploration, the finite-time rate under a strongly exploiting policy (which can starve low-reward "
   "tasks of coverage) remains open. We report the regime boundaries honestly: the advantage requires "
   "structure beyond mere popularity ($d>1$), task scarcity ($n\\gg cT$), and a shared channel "
@@ -597,26 +598,26 @@ A("<p class='small'>We give self-contained proofs of the main results below, eac
   "remark on the proof technique and its relation to existing results. Throughout, factors are assumed "
   "in general position (generic $P,U$), the persistent mask is $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ "
   "over robot pairs, and $\\hat d\\ge d$.</p>")
-A("<p class='small'><b>Theorem 1 (floor).</b> For an unobserved $j$ the estimate is a pre-chosen "
+A("<p class='small'><b>Proposition 1 (floor).</b> For an unobserved $j$ the estimate is a pre-chosen "
   "constant $b$; $\\mathbb{E}[(b-R_{ij})^2]=(b-\\mu_i)^2+\\mathrm{Var}_j\\ge\\mathrm{Var}_j=\\Omega(1)$, "
   "and on an offer of never-engaged tasks selection is independent of their rewards, giving skill $0$. "
   "The broadcast cannot help a per-task estimate by definition. <i>Remark:</i> elementary; it fixes the "
   "floor against which the categorical claim is measured.</p>")
-A("<p class='small'><b>Theorem 2 (row completion).</b> Stacking the observed entries gives "
+A("<p class='small'><b>Theorem 1 (row completion).</b> Stacking the observed entries gives "
   "$R_{i,\\Omega}=U_\\Omega p_i$; spanning makes $U_\\Omega$ full column rank, so "
   "$p_i=(U_\\Omega^\\top U_\\Omega)^{-1}U_\\Omega^\\top R_{i,\\Omega}$ is unique and exact, hence all "
   "$R_{ij}$. <i>Remark:</i> the linear algebra is standard given $U$; the contribution is the "
-  "$\\Theta(d)$-versus-$\\Theta(n)$ contrast against the floor of Theorem 1.</p>")
-A("<p class='small'><b>Theorem 3 (anytime).</b> A structure-free learner earns above the mean only on an "
+  "$\\Theta(d)$-versus-$\\Theta(n)$ contrast against the floor of Proposition 1.</p>")
+A("<p class='small'><b>Theorem 2 (anytime).</b> A structure-free learner earns above the mean only on an "
   "offer containing an already-engaged task; the engaged set has size $\\le t-1$ and is reward-blind, so "
   "by concavity of expected order statistics the per-round surplus is $\\le g(c(t-1)/n)$; summing gives "
   "$\\le g(cT/n)\\to 0$. <i>Remark:</i> an order argument (the mechanism is exact, the constant loose); "
   "it justifies reporting the anytime metric alongside final-policy skill.</p>")
-A("<p class='small'><b>Theorem 4 (recovery).</b> A fully-observed invertible $\\hat d\\times\\hat d$ "
+A("<p class='small'><b>Theorem 3 (recovery).</b> A fully-observed invertible $\\hat d\\times\\hat d$ "
   "block pins the factor frame; per task, $R_{E_i(j),j}=P_{E_i(j)}u_j$ has a unique solution iff "
   "$P_{E_i(j)}$ has full column rank, giving exact $u_j$ (noiseless) and, with noise, error "
   "$O(\\sigma\\sqrt{d/|E_i(j)|})$; non-identifiability below the spanning threshold is the per-task "
-  "analogue of Theorem 1. Coverage time (non-adaptive policy): each visible teammate engages each task "
+  "analogue of Proposition 1. Coverage time (non-adaptive policy): each visible teammate engages each task "
   "with probability $1/n$ per round, so it has engaged task $j$ at least once after $T$ rounds with "
   "probability $1-(1-1/n)^T\\approx 1-e^{-T/n}$; the number of distinct visible engagers of $j$ is "
   "$\\mathrm{Binomial}(|N_i|,1-e^{-T/n})$ with $|N_i|\\approx\\rho m$, and requiring $\\ge d$ spanning "
@@ -626,9 +627,9 @@ A("<p class='small'><b>Theorem 4 (recovery).</b> A fully-observed invertible $\\
   "condition for a persistent, per-observer mask, the regime where uniform-sampling matrix-completion "
   "guarantees do not apply; the finite-time rate under a strongly-exploiting (adaptive) policy is left "
   "open.</p>")
-A("<p class='small'><b>Theorem 5 (collective speedup).</b> A single row leaves a rank-$d>1$ column space "
+A("<p class='small'><b>Theorem 4 (collective speedup).</b> A single row leaves a rank-$d>1$ column space "
   "unconstrained (floor); the pooled support reaches the completion threshold in $\\tilde O(d(1+n/m))$ "
-  "rounds. <i>Remark:</i> an order argument given Theorem 4; it is the formal counterpart of the "
+  "rounds. <i>Remark:</i> an order argument given Theorem 3; it is the formal counterpart of the "
   "value-of-broadcast and positive-scaling results in Section 6.3. The fold-in perturbation bound used "
   "above (cold-start error $=$ basis-recovery $+$ own-probe noise $+$ ridge bias, exact at $k\\ge d$) is "
   "stated and proved in Appendix B.</p>")
@@ -642,13 +643,13 @@ A("<p class='small'>For a newcomer factor $x_\\star$ probed against an estimated
   "$s=\\sigma_{\\min}(B)$, and is exact ($\\hat r=r$) when $\\varepsilon=\\sigma=0,\\lambda\\to0,k\\ge d$. "
   "It quantitatively explains the graceful degradation of cold-start skill as sensing becomes "
   "sparser.</p>")
-A("<h2>Appendix C. Empirical validation of the recovery condition (Theorem 4)</h2>")
+A("<h2>Appendix C. Empirical validation of the recovery condition (Theorem 3)</h2>")
 A("<p class='small'>On the swarm's actual coverage patterns ($m=30,n=240,d=5,\\rho=0.5$, noiseless to "
   "isolate identifiability), reconstructing each unseen pair $(i,j)$ from the observed entries by least "
   "squares gives error $0.000$ exactly when robot $i$'s factor lies in the span of its visible engagers "
-  "of $j$ (the condition of Theorem 4), versus the prior floor ($\\approx0.30$) otherwise, with graceful "
+  "of $j$ (the condition of Theorem 3), versus the prior floor ($\\approx0.30$) otherwise, with graceful "
   "partial recovery as the spanning rank rises to $d$. The identifiability threshold is therefore "
-  "exactly the spanning condition of Theorem 4.</p>")
+  "exactly the spanning condition of Theorem 3.</p>")
 A("<h2>Appendix D. Reproducibility</h2>")
 A("<p class='small'>All experiments use a block-model world with signed-cosine reward, 8 random seeds, "
   "and bootstrap 95% confidence intervals throughout; each reported number is averaged over the per-seed "
