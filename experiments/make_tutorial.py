@@ -94,7 +94,15 @@ dl dt{font-weight:700;margin-top:10px}dl dd{margin:2px 0 0}
 .algo{background:#fbfdff;border:1px solid var(--ln);border-radius:8px;padding:10px 14px;margin:14px 0;font:12.5px/1.55 SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-x:auto}
 .algo .kw{color:#1f5fa8;font-weight:700}.algo .cm{color:#5b6570;font-style:italic}
 .katex{font-size:1.02em}.katex-display{margin:10px 0;overflow-x:auto;overflow-y:hidden}
+.plain{background:#f0f9f8;border:1px solid #d3e9e6;border-left:4px solid #11a89a;border-radius:8px;padding:9px 16px;margin:13px 0}
+.plain .lab{color:#0d8b80;font-weight:700;letter-spacing:.01em}
+.note{background:#fafafa;border:1px dashed var(--ln);border-radius:6px;padding:2px 12px;margin:8px 0;font-size:14px;color:var(--mut)}
 """
+
+def plain(s):
+    """Layman-friendly 'In plain words' callout, used throughout to keep the tutorial
+    self-contained for a non-expert reader."""
+    return "<div class='plain'><span class='lab'>In plain words.</span> %s</div>" % s
 
 H = []
 A = H.append
@@ -134,7 +142,8 @@ A("<div class='box'><strong>What you will learn.</strong> How a swarm of drones,
   "and walk through every experiment and figure.</div>")
 
 A("<div class='toc'>")
-toc = [("1. Motivation: the problem", "mot"), ("2. Background: the tools", "bg"),
+toc = [("Notation at a glance", "notation"),
+       ("1. Motivation: the problem", "mot"), ("2. Background: the tools", "bg"),
        ("3. The model (world, observability, fairness)", "model"),
        ("4. Baselines (the field)", "base"), ("5. Our methods", "meth"),
        ("6. Metrics", "metrics"), ("7. Theory", "thy"),
@@ -143,6 +152,77 @@ toc = [("1. Motivation: the problem", "mot"), ("2. Background: the tools", "bg")
 for t, a in toc:
     A("<a href='#%s'>%s</a><br>" % (a, t))
 A("</div>")
+
+# NOTATION TABLE (plain-language symbol key, so the tutorial is self-contained)
+A("<h2 id='notation'>Notation at a glance</h2>")
+A("<p>This tutorial uses a handful of symbols and abbreviations over and over. Here is every one of "
+  "them in plain words; keep this table handy and refer back whenever a formula looks dense. None of "
+  "the later sections assume you have memorized any of this.</p>")
+NOTE_ROWS = [
+    ("Counts and indices", ""),
+    ("$m$", "number of <b>drones</b> (the agents / decision-makers). In our experiments $m=30$."),
+    ("$n$", "number of <b>targets</b> (the tasks a drone can pick). In our experiments $n=240$."),
+    ("$T$", "number of <b>rounds</b> (each round, every drone picks one target). We use $T=50$."),
+    ("$i$", "index of a particular drone (a row), e.g. 'drone $i$'."),
+    ("$j$", "index of a particular target (a column), e.g. 'target $j$'."),
+    ("$k$", "index of a teammate (another drone) when we talk about one drone watching another."),
+    ("The hidden structure", ""),
+    ("$R$", "the <b>reward table</b>: $R_{ij}$ is how well drone $i$ does on target $j$ (its "
+            "compatibility / payoff). This is what we are trying to learn. It is never fully observed."),
+    ("$R_{ij}$", "one entry of that table: the reward (a number, here in $[-1,1]$) drone $i$ gets from target $j$."),
+    ("$\\hat R_{ij}$", "our <b>estimate</b> of $R_{ij}$ (the 'hat' always means 'estimated / guessed', not the true value)."),
+    ("$d$", "the <b>true rank</b>: the number of hidden factors that actually explain compatibility. "
+            "Small $d$ (here $d=5$) means the table is 'low-rank', i.e. simple underneath."),
+    ("$\\hat d$", "the <b>guessed rank</b> the algorithms assume (here $\\hat d=8$). They do NOT know the true $d$."),
+    ("$p_i$", "drone $i$'s hidden <b>taste vector</b> (a list of $\\hat d$ numbers). Think 'what this drone is good at'."),
+    ("$u_j$", "target $j$'s hidden <b>profile vector</b> (also $\\hat d$ numbers). Think 'what this target needs'."),
+    ("$\\langle p_i, u_j\\rangle$", "the <b>dot product</b> of the two vectors: multiply them entry-by-entry and add up. "
+            "It is our predicted compatibility $\\hat R_{ij}$ (taste meets profile)."),
+    ("Observability (what a drone can see)", ""),
+    ("$\\rho$ (rho)", "<b>broadcast probability</b>: the chance a drone sees any given teammate's outcome each "
+            "round. $\\rho=1$ means it sees everything; small $\\rho$ means it sees little (heavy masking)."),
+    ("$\\sigma_{\\mathrm{obs}}$ (sigma-obs)", "<b>noise</b> on a teammate's observed reward: how garbled the "
+            "numbers a drone overhears are. Large $\\sigma_{\\mathrm{obs}}$ = very noisy."),
+    ("$\\sigma_{\\mathrm{own}}$", "noise on a drone's OWN reward (smaller, here $0.10$): even your own sensor is imperfect."),
+    ("$\\varepsilon$ (epsilon)", "<b>exploration rate</b>: the chance a drone tries a random target instead of its "
+            "current best guess (so it keeps learning). It shrinks over time."),
+    ("Methods and math tools", ""),
+    ("CF", "<b>collaborative filtering</b>: predicting your unknowns by borrowing patterns from others "
+           "(the 'people who liked X also liked Y' idea, here for drones and targets)."),
+    ("MF", "<b>matrix factorization</b>: approximating the big table $R$ as $p_i$ times $u_j$, i.e. "
+           "discovering the hidden taste/profile vectors. The engine under CF."),
+    ("ALS", "<b>alternating least squares</b>: a way to fit MF by repeatedly fixing one set of vectors and "
+            "solving for the other, back and forth, until they settle."),
+    ("EM", "<b>expectation-maximization</b>: a two-step loop that alternates 'guess the hidden thing given "
+           "current beliefs' and 'update beliefs given that guess'. Used for our uncertainty-aware variants."),
+    ("$\\arg\\max$", "'the option that scores highest'. $\\arg\\max_j \\hat R_{ij}$ = the target $j$ with the "
+            "biggest estimated reward for drone $i$."),
+    ("$\\Sigma$ (Sigma)", "a <b>covariance / uncertainty</b> bundle: how unsure we are about a vector, and how its "
+            "components co-vary. Bigger $\\Sigma$ = less confident."),
+    ("$\\gamma_k$ (gamma)", "<b>choice-informativeness</b> of teammate $k$: how much drone trusts that $k$'s "
+            "pick reflects real knowledge rather than a random guess (Section 5.6)."),
+    ("ZK", "<b>zero-knowledge / zero-communication</b>: agents never message each other or share parameters; "
+           "they only passively watch the public outcome stream."),
+    ("Scoring", ""),
+    ("skill", "a 0-to-1 score: $0$ = no better than random, $1$ = as good as an all-knowing oracle. "
+              "Formally $(\\text{method}-\\text{random})/(\\text{oracle}-\\text{random})$. Lets us compare fairly."),
+    ("unseen-pair skill", "skill measured ONLY on drone-target pairs the drone never tried, the acid test of "
+            "generalizing to the unknown."),
+    ("anytime skill", "skill accumulated over ALL rounds (not just the end), rewarding methods that are good EARLY too."),
+    ("CI", "<b>confidence interval</b>: the bracket $[\\text{lo},\\text{hi}]$ after a number is the range we are "
+           "$95\\%$ sure the true average lies in. Non-overlapping CIs = a real difference, not luck."),
+]
+A("<table><tr><th class='l'>Symbol / term</th><th class='l'>Plain meaning</th></tr>")
+for sym, mean in NOTE_ROWS:
+    if mean == "":
+        A("<tr><td class='l' colspan='2'><b>%s</b></td></tr>" % sym)
+    else:
+        A("<tr><td class='l'>%s</td><td class='l'>%s</td></tr>" % (sym, mean))
+A("</table>")
+A(plain("A <b>matrix</b> is just a table of numbers with rows and columns. Here the rows are drones, "
+        "the columns are targets, and each cell is a reward. 'Low-rank' means that big table is secretly "
+        "simple: a few hidden dials (the factors) generate the whole thing, so once you learn the dials "
+        "you can fill in cells you never measured. That single idea is the heart of everything below."))
 
 # 1 MOTIVATION
 A("<h2 id='mot'>1. Motivation: the problem</h2>")
@@ -164,6 +244,14 @@ A("<div class='box key'><strong>The central question (generalization).</strong> 
   "engagements, then for any target it never touched its best guess is the prior mean, the error "
   "floor. With far more targets than rounds, that floor dominates. Closing this gap is the whole "
   "point.</div>")
+A(plain("Picture a new employee who can only rate a restaurant after eating there. With thousands of "
+        "restaurants and time for only a few meals, they will be clueless about almost all of them, that "
+        "is the 'structure-free' learner stuck at its 'error floor' (its dumbest possible guess, the "
+        "overall average). The trick we use is the one Netflix uses: notice that people (or drones) fall "
+        "into a few taste groups, and predict the un-tried options from what similar others experienced. "
+        "<b>Latent</b> = hidden / not directly visible. <b>Low-rank</b> = explained by just a few hidden "
+        "factors. <b>$n \\gg T$</b> reads 'far more targets than rounds', i.e. never enough data to "
+        "brute-force every cell."))
 
 # 2 BACKGROUND
 A("<div class='box'><strong>The idea in everyday terms (the Netflix analogy).</strong> Streaming "
@@ -198,6 +286,17 @@ A("<div class='formal'><h4>Definition (matrix completion)</h4>"
   "$|\\Omega| = \\tilde O\\big(d(m+n)\\big)$ entries sampled at random "
   "(Candes-Recht 2009; Keshavan-Montanari-Oh OptSpace 2010; Recht 2011). Incoherence rules out "
   "'spiky' factors so that uniformly random samples are informative.</p></div>")
+A(plain("Unpacking the box: $\\mathbb{R}^{m\\times n}$ just means 'a table with $m$ rows and $n$ "
+        "columns of real numbers'. $\\Omega$ ('omega') is the SET of cells we have actually observed, "
+        "usually a tiny fraction. 'Rank $d$' is the number of hidden dials behind the table. The scary "
+        "formula is one precise way to say 'find the SIMPLEST table that agrees with what we saw': "
+        "'singular values' measure how many independent dials a table really uses, and the 'nuclear "
+        "norm' $\\lVert X\\rVert_*$ adds them up, so making it small forces simplicity (few dials). "
+        "'Incoherent' just means the hidden factors are spread out, not concentrated in one freak "
+        "row/column, so random peeks are representative. The punchline (the 'guarantee') is the "
+        "remarkable part: you can reconstruct the WHOLE table from only about $d(m+n)$ random cells, "
+        "far fewer than the $m\\times n$ total. That is why a few observations can teach a drone about "
+        "targets it never touched."))
 A("<p>We use this as the statistical backbone but in a NON-standard way: decentralized (per drone), "
   "online (one round at a time), and masked (each drone sees a different, biased subset of $\\Omega$).</p>")
 
@@ -214,6 +313,16 @@ A("<div class='formal'><h4>Definition (ridge ALS)</h4>"
   "<p>where $\\Omega_i,\\Omega_j$ are the observed columns of row $i$ / rows of column $j$. Each solve "
   "is $O(d^3 + |\\Omega_i| d^2)$. Weighted ALS (WALS) puts a weight $w_{ij}$ on each term; the matrix "
   "inverted is then the per-factor Gaussian posterior precision, the door to confidence (Section 5.3).</p></div>")
+A(plain("What the two formulas actually say: to update a drone's taste vector $p_i$, take every target "
+        "it has a reward for, and combine those targets' profile vectors $u_j$ weighted by the rewards, "
+        "essentially 'you are the average of what you liked'. The $(\\dots)^{-1}$ piece is a fair-share "
+        "correction so that targets you have seen many times do not drown out the rest. The same recipe "
+        "with rows and columns swapped updates each target's profile $u_j$. 'Alternating' means you do "
+        "one, then the other, then back, each step is a tidy textbook least-squares fit, and they "
+        "converge. The $\\lambda$ ('lambda') term is <b>regularization</b>: a gentle pull toward zero "
+        "that stops the model from over-trusting a handful of noisy observations. The bonus, used "
+        "heavily later: the matrix you invert doubles as a measure of how CONFIDENT you are in that "
+        "vector (more, more-varied observations, more confident)."))
 
 A("<h3>2.3 Low-rank and bilinear bandits</h3>")
 A("<p>Sequential decision-making that exploits low-rank reward structure to act with few samples.</p>")
@@ -225,6 +334,15 @@ A("<div class='formal'><h4>Definition (bilinear bandit)</h4>"
   "2019) spend a probe phase, estimate $\\Theta$ by SVD, then exploit; they are typically CENTRALIZED "
   "and phase-structured. Our setting is the special case where rows are drones and columns are "
   "targets, but ANYTIME (no probe phase) and DISTRIBUTED.</p></div>")
+A(plain("A <b>bandit</b> is the classic 'which slot machine to pull' problem: you must choose "
+        "repeatedly, learning as you go, balancing trying new options (explore) against cashing in on "
+        "the best-known one (exploit). <b>Regret</b> is how much total reward you left on the table "
+        "versus a genie who always picked the best, lower is better. 'Bilinear / low-rank' bandit just "
+        "adds our twist: the payoffs share hidden structure, so a smart player learns many options at "
+        "once. <b>SVD</b> (singular value decomposition) is the standard math tool that reads the hidden "
+        "dials out of observed data. Most prior methods use a separate 'probe phase' (waste some rounds "
+        "measuring, then stop learning) and a central computer; ours never stops learning ('anytime') "
+        "and every drone runs its own copy ('distributed')."))
 
 A("<h3>2.4 Cold-start and fold-in</h3>")
 A("<p>Given known item factors $U$, a brand-new user's factor is fit from a few interactions by one "
@@ -235,6 +353,13 @@ A("<div class='formal'><h4>Definition (fold-in)</h4>"
   "$\\hat R_{\\cdot j}=\\langle\\hat p, u_j\\rangle$ is available for ALL targets $j$. Exact once $k\\ge d$ "
   "and $\\{u_a\\}$ span $\\mathbb{R}^d$ (Theorem 2). We reuse this symmetrically for onboarding new "
   "TARGETS (fold-in a $u$ from drones' probes) and welcoming new DRONES.</p></div>")
+A(plain("<b>Cold-start</b> is the everyday problem 'a brand-new user (or product) has no history, so "
+        "how do we recommend anything?'. <b>Fold-in</b> is the cheap fix: if the swarm already knows the "
+        "targets' profile vectors, a newly-arrived drone only has to try a handful of targets, then one "
+        "quick least-squares solve places it in the hidden 'taste space', and from that single point it "
+        "can instantly score EVERY target, including ones it never tried. 'Span $\\mathbb{R}^d$' means "
+        "the few targets it sampled were varied enough to pin down all $d$ dials. No global retraining "
+        "needed, and the very same trick onboards a brand-new target."))
 
 A("<h3>2.5 Implicit feedback and choice debiasing</h3>")
 A("<p>Treating an observed CHOICE (which target a teammate engaged) as a preference signal, while "
@@ -246,6 +371,15 @@ A("<div class='formal'><h4>Definition (confidence-weighted implicit feedback)</h
   "(less-confident) negatives. We treat a teammate's engaged target as a positive and sample "
   "negatives from the PUBLIC active-target set (the exposure / choice set), so no private menu is "
   "needed (the ZK choice channel). This 'confidence' is exactly what Section 5.5 deepens.</p></div>")
+A(plain("<b>Explicit</b> feedback is a star rating; <b>implicit</b> feedback is just an ACTION, you "
+        "watched this film, you clicked that link, here: a drone engaged that target. An action is a "
+        "weaker hint than a rating (it says 'I preferred this' but not by how much), yet it is "
+        "noise-free, you cannot misread WHICH target a teammate picked. The catch is <b>exposure "
+        "bias</b>: someone can only choose among options they were shown, so 'not chosen' might mean "
+        "'disliked' OR 'never offered'. We correct for it by counting an un-chosen target as a negative "
+        "only when it was actually on offer (publicly visible). $y_{ij}\\in\\{0,1\\}$ is just a "
+        "chosen/not-chosen flag, and $c_{ij}$ is how much we trust that flag. This is the 'choices "
+        "channel' that powers our communication-free teamwork."))
 
 # 3 MODEL
 A("<h2 id='model'>3. The model</h2>")
@@ -276,6 +410,17 @@ A("<p><b>In words.</b> A few hidden 'knobs' ($d$ of them) explain every drone's 
   "target. Two drones of the same type want similar targets; two targets of the same type are wanted "
   "by similar drones. That shared, low-dimensional structure is exactly what lets one drone learn "
   "about a target from <em>other</em> drones' experiences, the engine of collaborative filtering.</p>")
+A(plain("Decoding the generative box term by term. A <b>block model</b> just means agents come in a few "
+        "groups ('types'): drones of the same type behave alike, like customer segments. Each type has a "
+        "<b>prototype</b> direction, and each individual is that prototype nudged a little ($\\xi$ is how "
+        "much wiggle room within a group). <b>$\\mathcal{N}(0,1)$</b> is the bell-curve (normal) "
+        "distribution; 'i.i.d.' means each number is drawn independently from it. <b>Unit-normalize</b> "
+        "means we rescale every vector to length 1 (an arrow on a sphere), so only its DIRECTION "
+        "matters, not its size, this prevents a target from looking good just by being 'bigger'. The "
+        "reward $\\langle p_i,u_j\\rangle$ is then <b>cosine similarity</b>: $+1$ if the two arrows point "
+        "the same way (perfect match), $0$ if perpendicular (irrelevant), $-1$ if opposite (actively bad "
+        "fit). Finally $\\operatorname{rank}(R)=\\min(d,K_1,K_2)$ says the effective number of hidden "
+        "dials is capped by whichever is smallest: the factor dimension or the number of types."))
 A("<h4>Default parameters (used everywhere unless a sweep varies them)</h4>")
 A("<table><tr><th class='l'>Symbol</th><th>Meaning</th><th>Default</th></tr>"
   "<tr><td class='l'>$m$</td><td>number of drones (agents)</td><td>30</td></tr>"
@@ -334,6 +479,17 @@ A("<div class='formal'><h4>Observation model (exact)</h4>"
   "<p><b>Data format a learner sees.</b> A stream of tuples $(k, a_k^t, \\tilde r^{(i)}_{k,t})$ for the "
   "$k$ it sensed: the actor id, the discrete action (which target), and the noisy scalar outcome. No "
   "factors, no ids of TYPES, no rank, no teammate parameters, ever.</p></div>")
+A(plain("The big curly-brace formula is just three cases for 'what number does drone $i$ jot down about "
+        "drone $k$ this round': (1) if $k$ is itself, it records its own reward with a little sensor "
+        "noise; (2) if $k$ is a teammate it managed to detect, it records that reward with MORE noise; "
+        "(3) if it did not detect $k$, it records nothing. <b>Mask</b> $M_{ik}=1/0$ is the detected / "
+        "not-detected switch, and <b>Bernoulli($\\rho$)</b> just means 'flip a biased coin that lands "
+        "detected with probability $\\rho$'. <b>Precision</b> $\\beta=1/\\sigma^2$ is simply 'how much "
+        "you trust a number': low noise, high precision, trust it; high noise, low precision, take it "
+        "with a grain of salt. 'Persistent' masking means each drone is permanently deaf to the same "
+        "teammates; 'i.i.d.' means the deafness is re-rolled every round (like dropped radio packets), "
+        "both give the same headline result. Crucially, the tuple has no hidden factors or types in it, "
+        "only who-did-what-and-got-what, which is why the setting is genuinely zero-knowledge."))
 A("<div class='box'>Masking is <em>passive sensing of public outcomes</em> (limited detection), NOT "
   "radio transmission, so the setting is genuinely communication-free. Persistent (fixed) per-drone "
   "masks make decentralization durable; i.i.d. per-round masks (packet-loss style) give the same "
@@ -397,6 +553,18 @@ A("<table><tr><th class='l'>Method</th><th>Class</th><th class='l'>What it does<
   "(similarity-weighted neighbor rewards); tests whether explicit factorization is needed.</td></tr>"
   "<tr><td class='l'>BiasModel</td><td>additive</td><td class='l'>additive drone+target bias, NO "
   "interaction (rank&le;2); isolates the value of personalization.</td></tr></table>")
+A(plain("The recurring acronyms, once: <b>UCB</b> ('upper confidence bound') is the standard "
+        "'optimism' bandit rule, prefer the option whose value COULD plausibly be highest given how "
+        "little you have tried it, which automatically explores the under-tested. <b>epsilon-greedy</b> "
+        "is the simplest explorer: pick your current best, but a small fraction $\\varepsilon$ of the "
+        "time pick at random. <b>SGD</b> ('stochastic gradient descent') nudges the model a little after "
+        "each new data point, the default way to learn online. <b>SVD</b> reads the hidden dials out of "
+        "a table in one shot (it needs a fairly complete table to work well, which is its weakness under "
+        "masking). <b>Thompson sampling</b> explores by acting on a random draw from what it currently "
+        "believes, instead of a fixed bonus. <b>kNN</b> ('k nearest neighbours') skips model-fitting "
+        "and just averages the rewards of the most similar drones/targets. The split that matters: "
+        "<b>no-structure</b> methods learn each cell on its own (cannot generalize to untried targets), "
+        "while <b>low-rank</b> methods learn the hidden dials (can). Our methods are in the second camp."))
 A("<p class='small'>A 'batch-SVD hybrid' (ESTR, PTF) extracts factors by one SVD of an accumulated "
   "reward table whose unobserved entries are imputed 0; under masking that table is sparse and "
   "biased, which is why these methods decay (Section 8.5). In our harness every baseline runs as an "
@@ -456,6 +624,17 @@ A("<div class='formal'><h4>Low-rank class (model $R\\approx PU^\\top$)</h4>"
   "\\Lambda_{u_j}^{-1})$ and taking $\\arg\\max\\langle\\tilde u_j,\\tilde p\\rangle$. <i>Fails "
   "because:</i> Thompson sampling over-explores in the sample-starved anytime regime. (This is the "
   "closest baseline to our EMCF, but with sampling instead of a predictive-interval UCB.)</p></div>")
+A(plain("Symbols in these four rules: the <b>residual</b> $e=\\langle p_k,u_j\\rangle-r$ is simply "
+        "'prediction minus truth', the error to shrink. $\\eta$ ('eta') in MFSGD is the <b>step size</b> "
+        "(how big a correction to make each time); $\\lambda$ is the same regularization pull-toward-zero "
+        "as before. The $+\\infty$ score for an untried arm is just a way to say 'always try the "
+        "never-tried option first'. In BPMF the letters describe a running 'belief': $\\mu$ ('mu') is the "
+        "best-guess vector (the mean), and $\\Lambda$ ('Lambda', a precision matrix) is the confidence "
+        "around it, so $\\Lambda^{-1}$ turns that confidence back into a spread to sample from. "
+        "'Conjugate update' is just the clean bookkeeping that keeps this belief Gaussian as data "
+        "arrives. The common storyline: all of these CAN learn the hidden dials, but each pays a price, "
+        "tiny SGD steps, a wasted probe phase, or too much random exploring, that our method in "
+        "Section 5 avoids."))
 
 A("<div class='formal'><h4>Memory-based and additive</h4>"
   "<p><b>SoftImpute (nuclear-norm convex completion).</b> <i>Intuition:</i> the convex way to complete "
@@ -531,10 +710,6 @@ A("<div class='box'><b>What 'global negatives, no menu' means (and the masking q
   "<dt>HybridCF / HybridCFconv</dt><dd>probe-then-online-ALS: a short UCB probe and SVD warm-start, "
   "then our online weighted-ALS (PTF's probe and warm-start, but our estimator). The converged "
   "variant (more ALS sweeps, refit every round) is the best on final-policy unseen skill.</dd>"
-  "<dt>BothCF</dt><dd>fuse rewards + competence-weighted choices.</dd>"
-  "<dt>HybridCF / HybridCFconv</dt><dd>probe-then-online-ALS: a short UCB probe and SVD warm-start, "
-  "then our online weighted-ALS (PTF's probe and warm-start, but our estimator). The converged "
-  "variant (more ALS sweeps, refit every round) is the best on final-policy unseen skill.</dd>"
   "<dt>ActiveCFconv</dt><dd>active exploration: a latent-space UCB (predicted reward + a count-based "
   "uncertainty bonus from the broadcast). Probes the most uncertain targets, and since probes are "
   "broadcast, one drone's probe lowers everyone's uncertainty (collective active learning). Best "
@@ -568,6 +743,17 @@ A("<div class='formal'><h4>Weighted-ALS objective and updates (exact)</h4>"
   "biasing the factors as masking grows. <b>Why precision weighting is subtle:</b> the matrices being "
   "inverted are exactly the per-factor Gaussian posterior precisions (next subsection), so the choice "
   "of $w$ trades noise-filtering against coverage; see 5.3.</p></div>")
+A(plain("The objective $\\mathcal{L}(P,U)$ reads: 'choose the hidden taste/profile vectors so that, for "
+        "every reward we actually saw, the prediction $\\langle p_k,u_j\\rangle$ is close to the observed "
+        "$r$, paying more attention to the rewards we trust ($w_{kj}$ = trust = $1/\\text{noise}^2$), "
+        "plus a penalty $\\lambda(\\dots)$ that keeps the vectors small and tame.' The "
+        "$\\lVert\\cdot\\rVert_F^2$ ('Frobenius norm, squared') is just 'add up the squares of all the "
+        "numbers', a size measure for a whole table. The two arrow-update lines are the closed-form "
+        "answer to that objective with everything but one factor held still, the same 'you are the "
+        "weighted average of what you saw' recipe from Section 2.2. The single most important design "
+        "choice is hiding in plain sight: a target a drone never detected simply is NOT in the sum (it "
+        "gets weight $0$), as opposed to being faked as a $0$ reward, that one distinction is why our "
+        "estimator keeps working as the swarm goes increasingly blind."))
 A("<div class='algo'>"
   "<span class='kw'>class</span> RewardCF:                          <span class='cm'># online weighted-ALS on rewards</span>\n"
   "  state: P[m,d], U[n,d] ~ small random;  buffer B = []\n"
@@ -626,6 +812,15 @@ A("<div class='formal'><h4>Posterior covariance and predictive intervals</h4>"
   "generalization (Section 8.12); we found the right fix is <em>ratio-bounded, scale-normalized</em> "
   "precision (relcap): keep noise-awareness but never let any row dominate or the data-vs-prior balance "
   "drift.</li></ul></div>")
+A(plain("The key idea here: not only can the drone GUESS a reward it never measured, it can also say how "
+        "SURE it is of that guess, an error bar on the unknown. The variance formula just adds up the "
+        "sources of doubt: how unsure we are about the target's hidden profile ($\\Sigma_j$), how unsure "
+        "about the drone's own taste ($\\Sigma_i$), and a small interaction term ($\\operatorname{tr}$ "
+        "is the 'trace', the sum of a matrix's diagonal). The bigger that total, the wider the bracket "
+        "$\\hat R_{ij}\\pm z\\sqrt{\\text{Var}}$ ($z$ just sets the confidence level, $z\\approx 2$ for "
+        "95%). Having an error bar on EVERY pair is powerful: the drone can deliberately probe the "
+        "targets it is least sure about (UCB), or, when unsure, fall back to 'what's generally popular' "
+        "instead of a shaky personal guess (shrinkage)."))
 A("<div class='formal'><h4>Variational EM (Bayesian) factorization, with intervals</h4>"
   "<p>The fully Bayesian version (probabilistic matrix factorization, $r_{ij}\\sim "
   "\\mathcal{N}(\\langle p_i,u_j\\rangle, \\sigma_{ij}^2)$, $p_i,u_j\\sim\\mathcal{N}(0,\\lambda^{-1}I)$) "
@@ -639,6 +834,15 @@ A("<div class='formal'><h4>Variational EM (Bayesian) factorization, with interva
   "inflated by $\\Sigma$), WITHOUT us hand-tuning a weight, confidence enters the model, not an ad-hoc "
   "knob. Prediction uses the same predictive-variance formula above for a real interval; we drive a "
   "UCB and optional shrinkage from it. (This is our <code>EMCF</code>.)</p></div>")
+A(plain("This box describes the 'fully Bayesian' version, EMCF. The difference from plain ALS in one "
+        "sentence: instead of committing to a single best guess for each hidden vector, it carries a "
+        "whole CLOUD of plausible vectors (a mean $\\mu$ and a spread $\\Sigma$) and lets that cloud "
+        "speak. 'Mean-field VI' (variational inference) is the practical recipe for updating such clouds. "
+        "The neat consequence: a target seen only a few times, or seen noisily, has a FAT cloud, and a "
+        "fat cloud automatically counts for less in everyone else's updates, no manual 'trust this less' "
+        "knob required. Confidence becomes part of the model itself. Second moment / "
+        "$\\mathbb{E}[uu^\\top]=\\Sigma+\\mu\\mu^\\top$ is just the bookkeeping that carries the cloud's "
+        "spread through the math."))
 
 A("<h3>5.4 Matrix factorization WITH uncertainty: the landscape (what we scouted)</h3>")
 A("<p>'Confidence-aware factorization' is a real literature; here is the map, what kind of uncertainty "
@@ -663,6 +867,14 @@ A("<table><tr><th class='l'>Approach</th><th class='l'>Uncertainty it gives</th>
   "<tr><td class='l'>Low-rank / bilinear bandit ellipsoids (Jun et al., 2019)</td><td class='l'>"
   "frequentist confidence sets on the bilinear parameter</td><td>phase-structured</td>"
   "<td class='l'>related; we are anytime + distributed</td></tr></table>")
+A(plain("Vocabulary for the table, in everyday terms. <b>MAP / point estimate</b> = commit to a single "
+        "best answer, no error bars. <b>Laplace</b> = a cheap trick that draws an error-bar bubble "
+        "around that single answer using math you already did (here, literally free from ALS). "
+        "<b>MCMC / Gibbs</b> = the gold-standard but slow way to map uncertainty by drawing many random "
+        "samples. <b>Variational (VI)</b> = a faster approximation of that, what our EMCF uses. "
+        "<b>Confidence set / ellipsoid</b> = a region the true answer is very likely to sit in. The "
+        "bottom line of the whole table: rich uncertainty is available at every price point, and we "
+        "deliberately pick the CHEAP options that survive our no-coordinator, see-little setting."))
 A("<div class='box key'><b>What we actually compute and use.</b> The cheap Laplace covariance "
   "$\\Sigma_j=\\Lambda_j^{-1}$ (free from ALS) and the full variational posterior (EMCF) both give a "
   "real predictive interval per (drone,target). We use it three ways, exploration (UCB bonus), "
@@ -700,6 +912,15 @@ A("<div class='formal'><h4>The 2x2 of confidence (own vs teammate) x (reward vs 
   "teammate-choice cell). The own-choice cell is exploit-vs-explore self-assessment. Crucially OUR "
   "confidence and the TEAMMATE's are different quantities, we never see a teammate's posterior, we "
   "INFER its reliability from public behavior.</p></div>")
+A(plain("The 2x2 just says 'confidence' is really four different questions, and good behavior needs all "
+        "four. Down one axis: is this about ME or about a TEAMMATE? Across the other: is it about the "
+        "REWARD numbers or about the CHOICES (actions)? So the four boxes are: (1) how sure am I of my "
+        "OWN taste? (if shaky, explore more); (2) am I confidently exploiting or still feeling things "
+        "out?; (3) how much should I trust the reward numbers a TEAMMATE reports? (noisier means trust "
+        "less); (4) how much should I trust a TEAMMATE's CHOICES, are they acting on real knowledge or "
+        "just guessing? The fourth is the subtle one and gets its own method ($\\gamma_k$, Section 5.6). "
+        "The deep point: I can directly measure my own confidence, but a teammate's I can only INFER "
+        "from watching what they do in public, never by reading their mind."))
 
 A("<div class='formal'><h4>Level 1, observation confidence (a single measurement)</h4>"
   "<p>$\\beta_{kj}=1/\\sigma_{kj}^2$: how noisy is one sensed reward. Local, myopic. Leverage: "
@@ -741,6 +962,17 @@ A("<p><b>How to leverage Level 2 (three concrete mechanisms).</b></p>"
   "<span class='cm'># (L2-c) Predictive-variance shrinkage (implemented as EMshrink):</span>\n"
   "Rhat_ij <- (1-a_ij) * Rhat_ij + a_ij * popularity_j ,   a_ij = sd(Rhat_ij)/(sd+kappa2)\n"
   "</div>")
+A(plain("Level 2 is about confidence in the LEARNED STRUCTURE, not a single number. An <b>eigenvalue</b> "
+        "of a covariance measures how spread-out (uncertain) the belief is along one direction; the "
+        "SMALLEST eigenvalue $\\lambda_{\\min}$ flags the latent direction the swarm has explored LEAST, "
+        "its biggest blind spot. The <b>trace</b> (sum of the diagonal) is a handy 'total uncertainty' "
+        "score. The three mechanisms turn that into action: (a) explore while your own taste is still "
+        "fuzzy and settle down once it sharpens; (b) <b>collective active learning</b>, deliberately "
+        "probe the targets that would shrink the swarm's blind spot the most, and since probes are "
+        "public, one drone's probe educates everyone (D-optimal is just the formal name for 'pick the "
+        "measurement that cuts uncertainty most'); (c) <b>shrinkage</b>, when unsure about a target, "
+        "blend your personal guess with the crowd-favorite, leaning on the crowd exactly in proportion "
+        "to your doubt."))
 
 A("<div class='formal'><h4>Level 3, peer-policy confidence (is a teammate's CHOICE model-based or "
   "random?)</h4>"
@@ -824,6 +1056,18 @@ A("<div class='formal'><h4>EM (each drone runs this locally over the teammates i
   "few gradient steps, or replaced by the implicit-feedback least-squares surrogate (positive at "
   "$a_k^t$, sampled negatives from the public active set) with weight $r_k^t$, so it slots into the "
   "same weighted-ALS solver (Section 5.1).</p></div>")
+A(plain("The machinery in everyday terms. <b>Softmax</b> turns scores into pick-probabilities: the "
+        "higher a target scores, the likelier it is chosen, and the <b>temperature</b> $\\tau$ sets how "
+        "decisive, low $\\tau$ means 'almost always take the top one', high $\\tau$ means 'pick fuzzily'. "
+        "We model each teammate's choice as a COIN FLIP between two stories: with probability $\\gamma_k$ "
+        "they chose thoughtfully (softmax on real preferences), otherwise they chose at random (uniform). "
+        "<b>EM</b> then untangles the two without ever being told which is which: the <b>E-step</b> asks "
+        "'given my current model, does this particular choice look thoughtful or random?' and assigns a "
+        "<b>responsibility</b> $r_k^t$ between 0 and 1; the <b>M-step</b> then (1) sets each teammate's "
+        "reliability $\\gamma_k$ to their average responsibility, and (2) re-fits the hidden factors "
+        "while letting each choice pull only as hard as its responsibility. Round and round until it "
+        "settles. The payoff: a teammate who is just exploring gets near-zero responsibility, so their "
+        "near-random choices cannot corrupt the shared map, precisely the failure we set out to fix."))
 A("<div class='algo'>"
   "<span class='kw'>class</span> ChoiceEM:        <span class='cm'># joint latent + per-teammate informativeness</span>\n"
   "  state: P,U (factors);  gamma[k] in [0,1] init 0.5  <span class='cm'># reliability of each teammate</span>\n"
@@ -896,6 +1140,13 @@ A("<div class='formal'><h4>Effect of a wrong guess (and why over-guessing is saf
   "Measured (Section 8.12, $\\hat d$ sweep, true $d=5$): unseen skill is $0.222$ at $\\hat d=2$ "
   "(under-guess, hurts) and $\\approx 0.33$-$0.36$ for $\\hat d \\in \\{5,8,12,20\\}$ (flat, robust). "
   "We deliberately run $\\hat d=8 > 5$ to show no oracle knowledge of the rank is used.</p></div>")
+A(plain("Think of the rank as the number of DIALS the model is allowed to use to explain compatibility. "
+        "The true world uses $d=5$ dials. If you give the model too few ($\\hat d<5$, 'under-guess') it "
+        "physically cannot capture reality and accuracy suffers, the one dangerous mistake. If you give "
+        "it too many ($\\hat d>5$, 'over-guess'), the spare dials simply find nothing to do and the "
+        "gentle regularizer parks them at zero, costing a sliver of compute but not accuracy. Hence the "
+        "safe habit: when unsure, guess a bit HIGH. 'Projecting onto a rank-$\\hat d$ subspace' is just "
+        "the formal way to say 'forced to explain everything with only $\\hat d$ dials'."))
 A("<p><b>Can the method ADAPT the rank as data grows? Yes, several ways (scouted).</b> The key signal "
   "is already in hand: the structure-confidence spectrum (Level 2, Section 5.5). The number of latent "
   "directions the data CONFIDENTLY supports is the number of large eigenvalues of the aggregate design "
@@ -949,6 +1200,14 @@ A("<div class='formal'><h4>Skill (normalized reward), formal definition</h4>"
   "of different difficulty. The oracle is the per-round best-in-offer (the centralized, "
   "complete-information ceiling in the non-contention setting); under contention it becomes the "
   "Hungarian matching optimum (Section 8.13).</p></div>")
+A(plain("Reading the formula: $\\mathbb{E}_S[\\cdots]$ means 'the average over all the random handfuls "
+        "of targets a drone might be offered'. $\\rho_i$ is what the method actually earns on average, "
+        "$\\mu_i$ is what blind guessing earns (the average target in the offer), and "
+        "$\\rho^{\\mathrm{or}}_i$ is what a cheating oracle that always grabs the best-in-offer earns. "
+        "Skill just measures 'how far up from guessing toward the oracle did you get', as a fraction. "
+        "'Affine rescaling' means we only stretched and shifted the reward axis (so $0$ and $1$ land on "
+        "guessing and oracle), without distorting comparisons. 'Regret' is the flip side, how far SHORT "
+        "of the oracle you fell; less regret means more skill."))
 A("<p>So <b>skill = 0</b> means 'no better than guessing' and <b>skill = 1</b> means 'as good as the "
   "cheating oracle'. A method at 0.4 has closed 40% of that gap. A difference counts only if the error "
   "bars (confidence intervals, defined at the end of this section) do not overlap. We use five flavors "
@@ -1051,6 +1310,18 @@ A("<h2 id='thy'>7. Theory, step by step (why the win is categorical)</h2>")
 A("<p>The empirical results are not luck: a short chain of arguments PREDICTS them. We give each "
   "result as: <em>statement</em>, <em>why it matters</em>, <em>proof (key steps)</em>, and "
   "<em>confirmed by</em> (which experiment). Full formal proofs: <code>docs/THEORY_FORMAL.md</code>.</p>")
+A(plain("The whole theory in everyday language, before the symbols. <b>Theorem 1:</b> a learner that "
+        "treats each target separately is HELPLESS on any target it never tried, its best guess is just "
+        "the overall average, so it scores zero on the unseen, period. <b>Theorem 2:</b> a learner that "
+        "uses the shared hidden structure can fill in its ENTIRE row of preferences from only about $d$ "
+        "tries (one per hidden dial), a few samples buy opinions on everything. <b>Theorem 3:</b> when "
+        "there are far more targets than rounds, the separate-targets learner cannot even earn well "
+        "WHILE learning, no matter how long it runs; the structured learner is near-perfect after ~$d$ "
+        "rounds. <b>Theorem 4:</b> whether each drone is permanently or just occasionally blind to "
+        "teammates does not change the headline, it only changes whether the drones' views stay "
+        "permanently different. <b>Later results</b> formalize the confidence and contention findings. "
+        "If you read nothing else here: the advantage is CATEGORICAL (a zero-versus-nonzero gap), not a "
+        "matter of tuning."))
 A("<h4>Setup and notation (recap of Sections 3 and 6)</h4>")
 A("<p>True reward $R = P U^\\top$ of rank $d$, unit factors so $R_{ij}=\\langle p_i,u_j\\rangle\\in"
   "[-1,1]$. Drone $i$ is offered a uniform size-$c$ set each round; $\\mu_i$ is its mean-in-offer "
@@ -1059,6 +1330,15 @@ A("<p>True reward $R = P U^\\top$ of rank $d$, unit factors so $R_{ij}=\\langle 
   "<b>structure-free</b> (Definition) if its estimate $\\hat R_{ij}$ depends only on drone $i$'s own "
   "past pulls of target $j$, and equals a fixed prior constant on any $j$ it never pulled (the per-arm "
   "tabular class: UCB-Indep, Tabular).</p>")
+A(plain("A few proof shorthands you will meet below. <b>$\\Omega(1)$, $\\Theta(d)$, $O(\\cdot)$</b> are "
+        "'big-O' size notation: $\\Theta(d)$ means 'grows in proportion to $d$', $\\Omega(1)$ means 'at "
+        "least some fixed positive amount', $O(d/T)$ means 'no bigger than about $d/T$'. <b>Order "
+        "statistics</b> just means 'the maximum (or k-th largest) of a few random draws', here, the best "
+        "target in a small random offer. <b>Jensen / concavity</b> is the fact that the average of a "
+        "curved-downward function is below the function of the average, which we use to bound how much a "
+        "blind explorer can luck into. <b>Borel-Cantelli</b> is the probability fact that an event with "
+        "a steady positive chance each round is guaranteed to happen infinitely often given enough "
+        "rounds. None of these change the story; they are just the tools that make it airtight."))
 
 A("<div class='step'><h3>Theorem 1: the tabular floor (EXACT)</h3>")
 A("<p><b>Statement.</b> For a structure-free learner and any target j drone i never pulled, the "
@@ -1172,6 +1452,15 @@ A("<div class='step'><h3>Recent findings, formalized (P6, T7, T8)</h3>"
   "the prior floor, so the recovered effective rank = the data-IDENTIFIABLE rank $\\le d$ (strictly "
   "$<d$ under masking), and it does not depend on the guessed $\\hat d$, removing the rank "
   "hyperparameter. (Confirms 5.7: effective rank $\\approx 3.2$ at both $\\hat d=8,20$.)</p></div>")
+A(plain("These three in plain words. <b>P6 (confidence):</b> to judge a target you never tried, ALL your "
+        "useful information comes from teammates, so leaning extra-hard on your own (here irrelevant) "
+        "readings actually HURTS, the humble 'treat all data evenly' rule beats the clever "
+        "'trust-my-own-clean-data' rule. <b>T7 (contention):</b> if look-alike drones all grab their "
+        "identical favorite they keep colliding; giving each drone its own small, FIXED tie-breaking "
+        "nudge makes them pick different near-ties and stop colliding, and it has to be both private and "
+        "fixed (re-rolling it each round, or sharing it, undoes the benefit). <b>T8 (rank):</b> the "
+        "automatic-rank method keeps exactly as many hidden dials as the data can actually support and "
+        "ignores the rest, so you never have to guess the number of dials yourself."))
 
 # 8 RESULTS
 A("<h2 id='res'>8. Results, step by step</h2>")
@@ -1525,18 +1814,41 @@ A("<p class='small'>All numbers come from complete per-seed JSON in <code>result
 
 # 11 GLOSSARY
 A("<h2 id='glo'>11. Glossary</h2>")
+A("<p>Plain one-line definitions of the recurring terms. For every mathematical symbol, see the "
+  "<a href='#notation'>Notation at a glance</a> table at the top.</p>")
 A("<dl>"
-  "<dt>Low rank / latent factors</dt><dd>R = P U^T with a few columns; compatibility is an inner "
-  "product of short vectors.</dd>"
-  "<dt>Weighted ALS</dt><dd>alternating least squares solving for P given U and vice versa, each "
-  "observation weighted by its precision; missing entries get zero weight.</dd>"
-  "<dt>Fold-in</dt><dd>fit a new row/column factor from a few observations given the other factors, "
-  "no retraining.</dd>"
-  "<dt>Unseen pair</dt><dd>a (drone, target) the drone never engaged or observed; tabular is at the "
-  "floor here, CF is not.</dd>"
-  "<dt>Anytime / AUC skill</dt><dd>cumulative reward earned over rounds; charges exploration cost.</dd>"
-  "<dt>Masking (rho)</dt><dd>per-drone loss of a fraction of sensed outcomes (limited detection).</dd>"
-  "<dt>Skill</dt><dd>(method - random)/(oracle - random): 0 random, 1 centralized ceiling.</dd></dl>")
+  "<dt>Collaborative filtering (CF)</dt><dd>predicting your unknowns by borrowing patterns from "
+  "others who share hidden structure with you (the 'people who liked X also liked Y' idea).</dd>"
+  "<dt>Low rank / latent factors</dt><dd>the reward table $R=PU^\\top$ is generated by a few hidden "
+  "dials; compatibility is the inner product of two short vectors (a drone's taste, a target's "
+  "profile). 'Latent' = hidden; 'rank' = how many dials.</dd>"
+  "<dt>Matrix completion</dt><dd>filling in the unobserved cells of a partly-seen table by assuming "
+  "it is low-rank, the statistical backbone of CF.</dd>"
+  "<dt>Weighted ALS</dt><dd>alternating least squares: solve for $P$ given $U$, then $U$ given $P$, "
+  "back and forth; each observation weighted by how much we trust it; unseen entries get zero weight "
+  "(not a fake zero value).</dd>"
+  "<dt>EM (expectation-maximization)</dt><dd>a loop that alternates 'guess the hidden thing given "
+  "current beliefs' (E-step) and 'update beliefs given that guess' (M-step); used to jointly learn "
+  "the factors and how trustworthy each teammate's choices are.</dd>"
+  "<dt>Posterior / predictive interval</dt><dd>the model's belief after seeing data, including an "
+  "error bar; lets a drone say not just 'this target is good' but 'how sure' it is.</dd>"
+  "<dt>Fold-in</dt><dd>place a brand-new drone or target into the hidden space from a few "
+  "observations, given the existing factors, no full retraining (the cold-start fix).</dd>"
+  "<dt>Unseen pair</dt><dd>a (drone, target) the drone never engaged or observed; a structure-free "
+  "learner is stuck at the floor here, CF is not. The headline test of generalization.</dd>"
+  "<dt>Skill</dt><dd>$(\\text{method}-\\text{random})/(\\text{oracle}-\\text{random})$: $0$ = "
+  "guessing, $1$ = all-knowing oracle. A single 0-to-1 ruler for fair comparison.</dd>"
+  "<dt>Anytime / AUC skill</dt><dd>reward actually earned WHILE learning, summed over rounds; charges "
+  "a method for any time it wastes just exploring.</dd>"
+  "<dt>Masking ($\\rho$)</dt><dd>limited DETECTION: each drone passively senses only a fraction "
+  "$\\rho$ of teammates' public outcomes (not radio silence, just partial sight).</dd>"
+  "<dt>Zero-knowledge (ZK)</dt><dd>no messages, no shared parameters, no coordinator; drones learn "
+  "only from the public stream of who-did-what-and-got-what.</dd>"
+  "<dt>Contention</dt><dd>when a target can be taken by only one drone, so look-alike drones collide "
+  "and lose reward; fixed by private tie-breaking 'offsets' (Section 8.13).</dd>"
+  "<dt>Choice-informativeness ($\\gamma_k$)</dt><dd>how much a teammate's pick reflects real "
+  "knowledge versus a random guess; learned from public actions to weight the choice channel.</dd>"
+  "</dl>")
 
 A("<p class='small' style='margin-top:30px'>Generated from the project repository; every figure and "
   "number is regenerable from saved data. See the paper draft for the full write-up.</p>")
