@@ -90,9 +90,9 @@ if f:
     d = json.load(open(f)); rhos = d["meta"]["rhos"]; raw = d["raw"]
     # group: ours (online weighted-ALS) vs batch-SVD hybrids vs no-structure floor
     styles = {
-        "HybridCF": dict(marker="D", color="C6", lw=2.4, label="HybridCF (ours: probe->SVD->online ALS)"),
-        "RewardCF": dict(marker="o", color="C0", lw=2.2, label="RewardCF (ours, online ALS)"),
-        "BothCF":   dict(marker="o", color="C1", lw=2.2, label="BothCF (ours, online ALS)"),
+        "HybridCF": dict(marker="D", color="C6", lw=2.4, label="SwarmCF-H (probe-then-online, ours)"),
+        "RewardCF": dict(marker="o", color="C0", lw=2.2, label="SwarmCF (online ALS, ours)"),
+        "BothCF":   dict(marker="o", color="C1", lw=2.2, label="SwarmCF-RC (reward+choice, ours)"),
         "PTF":      dict(marker="s", color="C3", ls="--", label="PTF (probe->SVD->finetune)"),
         "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "BPMF":     dict(marker="v", color="C5", ls="--", label="BPMF (Bayesian PMF)"),
@@ -121,8 +121,8 @@ if f:
     rho_key = "0.25" if "0.25" in raw else list(raw.keys())[-1]
     rounds = np.arange(1, T + 1)
     styles = {
-        "RewardCF": dict(color="C0", lw=2.3, label="RewardCF (ours, online ALS)"),
-        "BothCF":   dict(color="C1", lw=2.3, label="BothCF (ours, online ALS)"),
+        "RewardCF": dict(color="C0", lw=2.3, label="SwarmCF (online ALS, ours)"),
+        "BothCF":   dict(color="C1", lw=2.3, label="SwarmCF-RC (reward+choice, ours)"),
         "PTF":      dict(color="C3", ls="--", label="PTF (probe-then-fit)"),
         "ESTR":     dict(color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "Tabular":  dict(color="C2", ls="-.", label="Tabular (eps-greedy own-row)"),
@@ -444,7 +444,8 @@ if f:
             plt.bar(x + (bi - (len(rhos) - 1) / 2.0) * wbar, mu, wbar, yerr=sd, capsize=2,
                     label="$\\rho$=%.2f" % r, alpha=0.6 + 0.4 * bi)
         cols = ["C0" if nm in ("RewardCF", "EMCF") else ("C1" if nm in struct else "C7") for nm in methods]
-        plt.xticks(x, methods, rotation=30, ha="right", fontsize=7.5)
+        DISPLAY = {"RewardCF": "SwarmCF", "EMCF": "SwarmCF-B"}
+        plt.xticks(x, [DISPLAY.get(nm, nm) for nm in methods], rotation=30, ha="right", fontsize=7.5)
         for tl, c in zip(plt.gca().get_xticklabels(), cols):
             tl.set_color(c)
         plt.ylabel("servicing skill  (0=random dispatch, 1=oracle)")
@@ -462,7 +463,7 @@ if fc and fm:
     dm = json.load(open(fm)); rawm = dm["raw"]; mssz = dm["meta"]["ms"]
     sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="RewardCF (low-rank CF, ours)"),
            "PTF":      dict(color="C1", marker="s", lw=2, label="PTF (batch-refit low-rank)"),
-           "UCBIndep": dict(color="C7", marker="d", ls="--", label="UCBIndep (no structure)"),
+           "UCBIndep": dict(color="C7", marker="d", ls="--", label="UCBIndep (structure-free)"),
            "Tabular":  dict(color="C3", marker="x", ls=":", label="Tabular (no structure)")}
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     ax = axes[0]                                                 # (a) unseen skill vs broadcast rate rho
