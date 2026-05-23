@@ -168,6 +168,21 @@ A("<p><b>T1 (tabular floor).</b> A structure-free learner has $\\Omega(1)$ error
   "it durable; the categorical results are invariant to the choice. <b>T5 (additive ceiling).</b> An "
   "additive predictor $a+b_i+c_j$ has rank $\\le 2$ and reduces to the popularity order, so it cannot "
   "personalize and is strictly below CF for $d > 1$.</p>")
+A("<p><b>Recent results and honest scope.</b> <b>T9 (precise scope iff):</b> the CATEGORICAL "
+  "unseen gap vs a structure-free learner needs only a shared channel ($\\rho>0$) and some structure; "
+  "$d>1$ is what additionally beats a POPULARITY baseline (T5); sample-starvation is what makes the "
+  "unseen advantage OPERATIONALLY dominant (T3), three conditions with three distinct roles, not one "
+  "AND. <b>Confidence:</b> precision fit-weighting is suboptimal for unseen prediction (it over-weights "
+  "the drone's own, here irrelevant, data); the Bayesian posterior is the right object (P6), and "
+  "<b>P10</b> sharpens it, bounded ratio-capped precision dominates uniform exactly when teammate "
+  "sources DIFFER in reliability, while unbounded $1/\\sigma^2$ starves coverage. <b>Exploration:</b> "
+  "EMCF's predictive-variance UCB is LinUCB on the recovered latent features, giving $\\tilde O(d\\sqrt "
+  "T)$ per-drone regret given $U$ (P16). <b>Contention</b> = fixed private offset (T7); <b>rank</b> = "
+  "ARD recovers the identifiable rank, removing the hyperparameter (T8); <b>choice channel</b> = "
+  "held-out informativeness is identifiable where in-sample is not (P9). <b>Honest keystone:</b> the "
+  "per-drone recovery of $U$ from the STRUCTURED (persistent-masked) broadcast is currently invoked "
+  "from centralized completion theory, not yet proven for non-uniform masking, the main open problem "
+  "(full statements + proofs and a critical self-audit in <code>THEORY_FORMAL.md</code>).</p>")
 
 A("<h2>5. Experiments</h2>")
 A("<p><b>Categorical (acting on the unseen).</b> CF acts well on never-observed pairs at every "
@@ -270,10 +285,25 @@ A("<h2>6. Related work</h2>")
 A("<p>Matrix completion (Candes-Recht; Keshavan-Montanari-Oh; Recht) gives centralized estimation "
   "bounds; we make them decentralized, online, and broadcast-only, with the unseen-pair floor making "
   "the gap categorical and an anytime (decision-reward) separation the completion theory does not "
-  "address. Low-rank bandits (explore-then-commit spectral; probe-then-fit) are centralized and/or "
-  "phase-structured; we are anytime and distributed. Bayesian PMF over-explores in the anytime "
-  "regime. Federated/gossip CF shares factors; we share nothing but a passively-sensed public "
-  "stream.</p>")
+  "address. Low-rank / bilinear bandits (explore-then-commit spectral ESTR; probe-then-fit; rank-1 "
+  "and generalized low-rank matrix bandits) are centralized and/or phase-structured; we are anytime "
+  "and distributed. Bayesian PMF over-explores in the anytime regime. Federated/gossip CF shares "
+  "factors; we share nothing but a passively-sensed public stream. The CLOSEST neighbor is multi-user "
+  "RL with low-rank rewards (Nagaraj/Agarwal 2022), which shares the low-rank-across-agents structure "
+  "but CENTRALIZES trajectory aggregation, whereas we keep parameters private. CF-bandits / "
+  "clustering-of-bandits (CLUB, COFIBA, BanditMF) cluster users centrally and optimize regret on "
+  "PULLED arms, not unseen-pair generalization. For contention our communication-free "
+  "symmetry-breaking parallels no-communication multiplayer bandits but acts on a LEARNED low-rank "
+  "preference. MRTA (auction / consensus CBBA / DCOP) and cooperative MARL (CTDE: MAPPO/QMIX/VDN) "
+  "assume communication, known utilities, or centralized training; the admissible no-comms case "
+  "reduces to our per-agent bandit baselines.</p>")
+A("<p class='small'><b>Honest positioning.</b> Every individual ingredient (low-rank bandits, online "
+  "MF, observe-neighbors bandits, no-comms multiplayer matching, Dawid-Skene reliability) exists in "
+  "prior work; the contribution is COMPOSITIONAL, this exact combination (decentralized + private "
+  "parameters + broadcast-only + online + sample-starved, with an unseen-pair categorical separation) "
+  "is the open niche, and the genuinely new mechanisms are the masking-robust zero-weight (not "
+  "zero-value) estimator, the anytime separation under starvation, the comms-free de-confliction on a "
+  "learned preference, and held-out choice-informativeness. We do not claim a new estimator.</p>")
 
 A("<h2>7. Limitations and conclusion</h2>")
 A("<p><b>Contention.</b> Our formal results assume non-contention (a target may be engaged "

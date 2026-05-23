@@ -1517,6 +1517,31 @@ A(plain("These three in plain words. <b>P6 (confidence):</b> to judge a target y
         "fixed (re-rolling it each round, or sharing it, undoes the benefit). <b>T8 (rank):</b> the "
         "automatic-rank method keeps exactly as many hidden dials as the data can actually support and "
         "ignores the rest, so you never have to guess the number of dials yourself."))
+A("<div class='step'><h3>Newest theory (a self-audit pass): scope corrected, P6 fixed, a regret reason, and the honest keystone</h3>"
+  "<p><b>T9 (precise scope).</b> The boxed '3-condition iff' was loose. Correctly: the CATEGORICAL "
+  "unseen gap vs a tabular learner needs only a shared channel ($\\rho>0$) and some structure (it holds "
+  "even at $d=1$, even when sample-rich); $d>1$ is what additionally beats a POPULARITY baseline; and "
+  "sample-starvation is what makes the unseen edge OPERATIONALLY dominant. Three conditions, three "
+  "distinct roles, not one AND against one baseline.</p>"
+  "<p><b>P10 (precision, corrected from P6).</b> Our earlier P6 ('uniform beats precision') over-reached. "
+  "Under HETEROGENEOUS teammate noise, bounded ratio-capped precision WINS (it down-weights the noisy "
+  "sources yet preserves coverage), while UNBOUNDED $1/\\sigma^2$ over-concentrates on the clean ones and "
+  "starves coverage. So noise-aware weighting helps iff sources differ in reliability, and only in a "
+  "bounded form, matching the heterogeneous-noise sanity (8.12).</p>"
+  "<p><b>P16 / H5(b) (why directed exploration helps).</b> Given the recovered target factors, EMCF's "
+  "predictive-variance UCB is exactly LinUCB on the latent features, so per-drone regret is "
+  "$\\tilde O(d\\sqrt T)$, the formal reason confidence-directed probing beats a fixed schedule (and is "
+  "what wins under churn). The JOINT case (learning the factors WHILE exploring) is open.</p>"
+  "<p><b>The honest keystone.</b> The self-audit found that our headline 'a few samples complete the "
+  "whole row' leans on a CITED step, recovering the shared structure $U$ from the MASKED broadcast, "
+  "that we have NOT proven for structured (persistent) masking, where uniform-sampling completion theory "
+  "does not directly apply. It is the central open problem; we label it plainly. (Full statements, "
+  "proofs, and the critical audit: <code>docs/THEORY_FORMAL.md</code>.)</p></div>")
+A(plain("Why this matters: good research polices its own claims. This pass DEMOTED the results that were "
+        "textbook or over-labeled, FIXED one (P6 to P10) that the experiments actually contradicted, ADDED "
+        "the missing regret reason for the exploration win, and NAMED the single gap the categorical story "
+        "still rests on. The theory section came out smaller, sharper, and honest about its edges, which "
+        "is the point."))
 
 # 8 RESULTS
 A("<h2 id='res'>8. Results, step by step</h2>")
