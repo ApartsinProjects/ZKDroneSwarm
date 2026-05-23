@@ -2028,6 +2028,25 @@ A("<figure>%s<figcaption><strong>F16.</strong> Sensing-grounded observability: u
   "distance-noise). The low-rank CF win survives geometry-limited sensing; structure-free learners stay "
   "at the floor at every coverage.</figcaption></figure>" % img("F16_sensing.png", "F16"))
 
+A("<h3>8.18 An operational mission (what the abstract numbers mean)</h3>")
+A(plain("<b>What are the hidden factors, concretely?</b> They are TRAITS. $p_i$ is robot $i$'s "
+        "capability/trait vector (sensor modalities, payload, effector type, speed, endurance); $u_j$ is "
+        "task $j$'s requirement/trait-demand vector; the reward $\\langle p_i,u_j\\rangle$ is how well the "
+        "robot's traits meet the task's needs. It is LOW-RANK because only a handful of traits govern fit "
+        "(d ~ a few). This is the standard 'trait-based' / capability-vs-requirement view of multi-robot "
+        "task allocation; our twist is that the traits are HIDDEN and learned online, decentralized, with "
+        "no communication, instead of being given."))
+A("<p>Framed as an operational target-servicing / dispatch MISSION (each robot repeatedly services an "
+  "offered target and earns the trait-match, under range-limited distance-noisy sensing), and measured "
+  "on our SAME servicing skill, our method beats the WHOLE competing field, the structured low-rank "
+  "methods (PTF, ESTR, BPMF, SoftImpute, MFSGD) AND the structure-free ones, under limited observability "
+  "(rho=0.25): ours $\\approx0.36$ vs the best of the entire field $\\approx0.29$ (non-overlapping error "
+  "bars), while structure-free learners sit at the random-dispatch floor. At full broadcast the "
+  "structured methods catch up; the gap opens precisely under the limited observability that defines the "
+  "operational regime. So the swarm dispatches the right asset to targets it never personally serviced. "
+  "Applications: limited-resource servicing under degraded comms (firefighting, medical-evac, precision "
+  "agriculture), search-and-service, and sensor-target matching.</p>")
+
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "

@@ -330,6 +330,20 @@ A("<p><b>Sensing-grounded observability (robotics check).</b> To confirm the mas
   "coverage, where there is too little data to recover the shared structure). So the generalization "
   "result holds under geometry-limited, distance-noisy sensing, the operating regime of a real "
   "decentralized swarm, not merely under an injected mask.</p>")
+A("<p><b>Operational mission (application).</b> The abstract result is an operational target-servicing "
+  "/ dispatch mission: the latent factors are robot CAPABILITY traits $p_i$ and task REQUIREMENT traits "
+  "$u_j$ (sensor modalities, payload, effector type, endurance), low-rank because few traits govern "
+  "fit; effectiveness $\\langle p_i,u_j\\rangle$ is the match. Over the mission each robot repeatedly "
+  "services an offered target and earns that match (our standard reward), under range-limited, "
+  "distance-noisy passive sensing. On the SAME metric (servicing skill), against the FULL field "
+  "(structured low-rank PTF/ESTR/BPMF/SoftImpute/MFSGD AND structure-free) under limited observability "
+  "($\\rho{=}0.25$): ours $0.36$ vs the best of the entire field $0.29$ (SoftImpute), non-overlapping "
+  "CIs, structure-free at the random-dispatch floor; at full broadcast the structured field is "
+  "competitive and the separation opens under masking. The swarm dispatches the right asset to targets "
+  "it never personally serviced because it recovers the shared trait structure from the broadcast. "
+  "This generalizes trait-based MRTA (capability-vs-requirement matching) to UNKNOWN traits learned "
+  "online, decentralized, communication-free. Applications: limited-resource servicing under degraded "
+  "comms, search-and-service, coverage-with-capability, SEAD-style sensor-target matching.</p>")
 
 A("<div class='box'><b>Scope: when does CF beat structure-free?</b> The advantage is not "
   "universal. Across a structure-by-observability grid it holds precisely when THREE "

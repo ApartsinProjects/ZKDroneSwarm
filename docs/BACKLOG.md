@@ -102,7 +102,14 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   EXACT -- 3-source cold-start error, explains the sensing F16 curve), T11 (collective broadcast speedup,
   Theta(m) faster + impossible-alone -- the theory behind rho>0), P17 (minimax Omega(d) lower bound ->
   Theta(d)-vs-Theta(n) tight on both sides). Headlines folded into paper §4.
-- [DONE cycle 70] concrete SCENARIO sim: pilot_mission.py = AREA-INSPECTION mission (capability-vs-
+- [DONE cycle 70] OPERATIONAL MISSION (the clean applicative win): pilot_strike.py = target-servicing/
+  dispatch on OUR STANDARD reward+skill (no metric drift), FULL field (RewardCF/EMCF vs structured
+  PTF/ESTR/BPMF/SoftImpute/MFSGD vs structure-free), masked rho-sweep. WIN at rho=0.25: EMCF 0.360 /
+  RewardCF 0.348 > best-of-field SoftImpute 0.289 (non-overlapping CIs), structure-free ~0; rho=1.0 EMCF
+  0.485 leads. catalogue row 66, docs/STRIKE.md. Folded into paper + tutorial (8.18) with the TRAIT
+  interpretation (latent = capability/requirement traits; extends trait-based MRTA to UNKNOWN traits).
+  Lesson: COUNT/coverage metrics reward spreading (CF loses); REWARD/skill (act-well) is the win metric.
+- [DONE cycle 70, companion] concrete SCENARIO sim: pilot_mission.py = AREA-INSPECTION mission (capability-vs-
   requirement quality, coverage with depletion, range-limited sensing). HONEST result (quality-vs-coverage
   tradeoff): CF wins MEAN INSPECTION QUALITY per engagement decisively (~0.25 vs ~0 structure-free) -- it
   dispatches the right drone to the right target; but pure COVERAGE breadth is an EXPLORATION objective
