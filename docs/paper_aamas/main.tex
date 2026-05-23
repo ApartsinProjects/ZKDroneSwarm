@@ -216,6 +216,16 @@ re-colliding or re-synchronizing.
 Consistent soft-contention evidence: the independent tabula\_drone validation runs with
 HP depletion and our method still leads (skill $\approx 0.81$).
 
+\textbf{Scope: non-stationarity (churn).} Under continuous target turnover (departures plus
+fresh arrivals), PLAIN exploitative CF does not suffice: fold-in's order-$d$ probe latency is
+outpaced by churn on the freshest arrivals, where it even trails a structure-free optimist
+($0.074$ vs $0.132$). The fix is the same confidence-directed exploration from our refinements
+menu: a CF estimator that probes uncertain (fresh) targets and folds them in (ActiveCF
+count-bonus, or EMCF predictive-variance UCB) dominates under churn on both the active set and
+the freshest arrivals (EMCF active $0.842$ vs $0.619$ structure-free; fresh $0.371$ vs $0.132$,
+non-overlapping CIs). The swarm stays adapted under continuous change, provided it unites
+low-rank fold-in with directed newcomer-probing.
+
 Under minimal assumptions, CF over the public broadcast lets a swarm act on the unseen,
 onboard new tasks and agents, and earn from the first round, with a categorical,
 theory-backed advantage and dominance over prior-art low-rank methods in the

@@ -291,6 +291,15 @@ A("<p><b>Contention.</b> Our formal results assume non-contention (a target may 
   "scarcity-gated version of that offset extends the win across the contested range and reduces to "
   "plain CF when targets are plentiful.</p>")
 A(md_tables("docs/CONTENTION.md"))
+A("<p><b>Non-stationarity (churn).</b> When targets continuously turn over (departures plus fresh "
+  "arrivals), PLAIN exploitative CF does not suffice: fold-in's order-$d$ probe latency is outpaced by "
+  "churn on the freshest arrivals, where exploitative CF even trails a structure-free optimist "
+  "($0.074$ vs $0.132$). The fix is the SAME confidence-directed exploration from the refinements "
+  "menu: a CF estimator that PROBES uncertain (fresh) targets and folds them in (ActiveCF count-bonus, "
+  "or EMCF predictive-variance UCB) DOMINATES under churn on both the active set and the freshest "
+  "arrivals (EMCF active $0.842$ vs $0.619$ structure-free; fresh arrivals $0.371$ vs $0.132$, "
+  "non-overlapping CIs). The swarm stays adapted under continuous change, provided it unites low-rank "
+  "fold-in with directed newcomer-probing, neither alone suffices.</p>")
 A("<p>Under minimal assumptions, collaborative filtering over the public broadcast lets a "
   "swarm act on the unseen, onboard new tasks and agents, and earn from the first round, with "
   "a categorical, theory-backed advantage over structure-free learning and dominance over "

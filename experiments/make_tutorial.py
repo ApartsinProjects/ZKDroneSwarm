@@ -1848,7 +1848,30 @@ A("<div class='box key'><b>Making it self-tuning (ContentionAdaCF, built and tes
   "no-offset method, non-overlapping CIs). The contention regime, where we started by losing, is now a "
   "clean win with no communication.</div>")
 
-A("<h3>8.14 When does collaborative filtering actually help? (the honest scope)</h3>")
+A("<h3>8.14 Staying adapted under churn (non-stationarity), a negative that became a win</h3>")
+A("<p>Real swarms face CHURN: targets come and go over time. We test continuous turnover, a "
+  "fixed-size active set where a batch of targets DEPARTS and an equal batch of FRESH ones ARRIVES "
+  "every few rounds, and measure steady-state skill on the active set and on the very freshest "
+  "arrivals. This is a clean illustration of the research process: a negative, diagnosed, turned into "
+  "a win.</p>")
+A(md_tables("docs/CHURN.md"))
+A("<p><b>The negative (and its diagnosis).</b> Plain exploitative CF (RewardCF) does NOT win under "
+  "fast churn: it ties the structure-free UCBIndep on the active set and TRAILS it on the freshest "
+  "arrivals ($0.074$ vs $0.132$). Why: a newcomer's factor needs about $d$ collective probes before "
+  "fold-in can place it, a latency that rapid churn outpaces, and a purely exploitative policy never "
+  "probes the new targets. UCBIndep, by contrast, is drawn to untried arms by its optimism, so it at "
+  "least samples the arrivals.</p>")
+A(plain("The fix follows directly from the diagnosis: combine CF's structure (fold-in) WITH directed "
+        "exploration of the uncertain (fresh) targets, so the swarm both PROBES newcomers and PROPAGATES "
+        "what it learns about them to everyone. We already have exactly those methods: ActiveCFconv "
+        "(probe the under-observed via a broadcast count-bonus) and EMCF (probe by predictive-variance "
+        "UCB). Both DOMINATE under churn, on the active set EMCF reaches $0.842$ vs UCBIndep's $0.619$, "
+        "and on the freshest arrivals ActiveCFconv $0.363$ and EMCF $0.371$ vs UCBIndep $0.132$ and plain "
+        "CF $0.074$ (all non-overlapping CIs). So non-stationarity IS handled, but only by the variant "
+        "that UNITES low-rank fold-in with confidence-directed newcomer-probing: structure-free optimism "
+        "(UCBIndep) lacks the propagation, and exploitative CF lacks the probing; you need both."))
+
+A("<h3>8.15 When does collaborative filtering actually help? (the honest scope)</h3>")
 A("<p>It would be dishonest to claim CF always wins. It does not. Pinning down EXACTLY when it beats a "
   "plain learner is itself a useful result, and it comes down to three conditions that must ALL hold "
   "at once.</p>")
