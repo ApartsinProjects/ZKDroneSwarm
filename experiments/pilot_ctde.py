@@ -49,11 +49,16 @@ def _assign(pred):
     return out
 
 
-def run_ctde(world, seed, pool):
+def run_ctde(world, seed, pool, so=None):
     """Centralized comms-FULL ceiling: one shared CF model + Hungarian assignment. Returns anytime
-    earned-reward skill (matching-normalized), comparable to pcon.run_contention's metric."""
+    earned-reward skill (matching-normalized), comparable to pcon.run_contention's metric. so=None uses
+    the standard observation noise (the realistic CTDE ceiling); so=0 gives the CLEAN centralized ceiling
+    (no priors, assumes low-rank, observes ALL effects with NO noise and NO masking, one centralized
+    optimal Hungarian assignment) -- the strongest a centralized low-rank system can do without being
+    handed the true factors, i.e. the bracket just below the Oracle."""
     P, U, R = world[:3]; m, n = R.shape
-    T, so = pc.T, pc.SO
+    T = pc.T
+    so = pc.SO if so is None else so
     rng = np.random.RandomState(seed + 999)
     central = RewardCF(m, n, pc.D_HAT, 0, seed + 1, **_CONV)   # ONE shared model, sees everything
     cum_real = cum_orac = cum_rand = 0.0
@@ -84,12 +89,14 @@ def _job(args):
     w = make_world(pc.M, pc.N, pc.D, pc.K, pc.K, within=0.15, seed=seed, signed=True)
     if kind == "CTDE-ceiling":
         return kind, pool, seed, run_ctde(w, seed, pool)
+    if kind == "CentralClean-ceiling":
+        return kind, pool, seed, run_ctde(w, seed, pool, so=0.0)
     Cls, hp = pcon.REG[kind]
     a, u, c = pcon.run_contention(Cls, hp, 1.0, pool, seed)
     return kind, pool, seed, float(a)
 
 
-ORDER = ["CTDE-ceiling", "ContentionAdaCF", "RewardCFconv", "UCBIndep"]
+ORDER = ["CentralClean-ceiling", "CTDE-ceiling", "ContentionAdaCF", "RewardCFconv", "UCBIndep"]
 
 
 def ci(vals, B=10000):
@@ -122,15 +129,18 @@ def main():
                  "metric": "anytime earned-reward skill (matching-normalized); CTDE is a CEILING not a competitor"},
         "raw": raw}, results_dir=os.path.join(ROOT, "results", "pilots"))
 
-    L = ["# CTDE comms-full ceiling: the price of zero communication (E-CTDE / Rank5)\n",
-         "Earned-reward skill (matching-normalized; oracle = 1) under capacity-1 contention. "
-         "CTDE-ceiling = ONE centralized CF model + Hungarian assignment (full communication, "
-         "coordinated to distinct targets); a CEILING, not a competitor. 8 seeds, bootstrap 95%% CI.\n",
+    L = ["# Centralized ceilings: the price of zero communication and of observation noise (E-CTDE / Rank5)\n",
+         "Earned-reward skill (matching-normalized; oracle = 1) under capacity-1 contention. Two centralized "
+         "CEILINGS (NOT competitors), bracketing our comms-free methods from above: "
+         "**CentralClean-ceiling** = one centralized low-rank model + Hungarian assignment that observes ALL "
+         "effects with NO noise and NO masking (no priors, just the low-rank assumption; the strongest a "
+         "centralized low-rank system can do short of being handed the true factors); **CTDE-ceiling** = the "
+         "same but with realistic observation noise. 8 seeds, bootstrap 95%% CI.\n",
          "| method | " + " | ".join("pool=%d" % p for p in POOLS) + " |",
          "|" + "---|" * (len(POOLS) + 1)]
     for k in ORDER:
         cells = [cell(raw[str(p)][k]) for p in POOLS]
-        lab = "_%s (ceiling)_" % k if k == "CTDE-ceiling" else ("**%s**" % k if "CF" in k else k)
+        lab = "_%s (ceiling)_" % k if "ceiling" in k else ("**%s**" % k if "CF" in k else k)
         L.append("| %s | %s |" % (lab, " | ".join(cells)))
     L.append("")
     # price of no-comms = CTDE - our best comms-free, per pool
@@ -139,6 +149,11 @@ def main():
         g = float(np.mean(raw[str(p)]["CTDE-ceiling"]) - np.mean(raw[str(p)]["ContentionAdaCF"]))
         gaps.append("pool=%d: %+.3f" % (p, g))
     L.append("Price of zero communication (CTDE-ceiling - ContentionAdaCF): " + ";  ".join(gaps) + "\n")
+    noisegaps = []
+    for p in POOLS:
+        g = float(np.mean(raw[str(p)]["CentralClean-ceiling"]) - np.mean(raw[str(p)]["CTDE-ceiling"]))
+        noisegaps.append("pool=%d: %+.3f" % (p, g))
+    L.append("Price of observation noise (CentralClean-ceiling - CTDE-ceiling): " + ";  ".join(noisegaps) + "\n")
     L.append("Read: CTDE (full comms) is a CEILING above our comms-free methods and below the oracle. "
              "A SMALL gap to ContentionAdaCF means communication buys little here, our comms-free "
              "de-confliction recovers most of the coordination value; the gap widens where within-round "

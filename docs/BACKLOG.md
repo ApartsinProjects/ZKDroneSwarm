@@ -203,6 +203,24 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   finite-time coverage rate. VALIDATED: pilot_p15.py oracle reconstruction on real coverage = error 0.0000
   for recoverable pairs vs 0.30 floor, threshold EXACTLY the spanning condition (catalogue row 74,
   docs/P15_VALIDATION.md). Keystone paragraphs in paper + tutorial updated (was "central open problem").
+## ----- BATCH cycle 77 (user: centralized-label audit + clean centralized ceiling + mask alignment + SwarmCF family naming) -----
+- [DONE cycle 77] CENTRALIZED-LABEL AUDIT: confirmed NO other method was mislabeled (only ESTR, fixed
+  cycle 75). All "centralized" uses in paper are correct (matrix completion, bilinear bandits, CTDE
+  training). method_profiles dist=C only for the genuine references (CentralClean, CTDE, Oracle).
+- [DONE cycle 77] CLEAN CENTRALIZED CEILING added (user "should we add it?"): CentralClean-ceiling in
+  pilot_ctde.py = centralized low-rank model + Hungarian optimal assignment observing ALL effects with NO
+  noise and NO masking (no priors, assumes low-rank; profile [C|full|full|d-hat|online]). The strongest a
+  centralized low-rank system can do without the true factors; brackets just below the Oracle and above the
+  noisy CTDE ceiling. pilot_ctde now reports both ceilings + the "price of observation noise"
+  (CentralClean - CTDE). Added to method_profiles PROFILES (+ CTDE obs corrected to fullsig = full-but-noisy).
+- [DONE cycle 77] THEORY/MASK ALIGNMENT: verified all masking theorems use the persistent per-drone
+  drone-pair mask M_{ik}~Bern(rho) (Theorem 4 is the canonical statement; T11/P15 consistent). Updated the
+  now-stale audit-section references that still called P15 the "central open problem" -> P15 BOUNDED (cycle 76).
+- [DONE cycle 77] SwarmCF FAMILY NAMING (user "normalize names so they look like one family", chose SwarmCF,
+  display-layer): method_profiles FAMILY map + disp() show our methods as SwarmCF / SwarmCF-B (EMCF) /
+  SwarmCF-D+ (ContentionAdaCF) / SwarmCF-batch (PTF) etc. in all tables + scorecard, with a family note in
+  the legend; code class names and figure legends unchanged (low-risk display layer). Provenance column
+  already separates ours / standard-adapted / structure-free / reference.
 - [TODO RAS] reformat docs/paper_aamas/main.tex -> Elsevier elsarticle class (do at submission time).
 ## ===== END RAS TRACK =====
 - [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type

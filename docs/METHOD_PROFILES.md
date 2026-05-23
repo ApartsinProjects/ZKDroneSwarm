@@ -10,14 +10,14 @@ Single source of truth (experiments/method_profiles.py). The ZK-MRTA setting is 
 
 | Method | Provenance | Dist | Comm | Observability | Prior | Compute | Profile |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| **RewardCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
-| **EMCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
-| **BothCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
-| **ChoiceCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
-| **ContentionAdaCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
-| **UnifiedCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
-| **HybridCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
-| **PTF** | ours (hybrid) | D | 0 | rho,sig | dhat | batch | `D|0|rho,sig|dhat|batch` |
+| **SwarmCF (RewardCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-B (EMCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-RC (BothCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-Ch (ChoiceCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-D+ (ContentionAdaCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-U (UnifiedCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-H (HybridCF)** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-batch (PTF)** | ours (hybrid) | D | 0 | rho,sig | dhat | batch | `D|0|rho,sig|dhat|batch` |
 | MFSGD | standard, adapted | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
 | KNNCF | standard, adapted | D | 0 | rho,sig | none | memory | `D|0|rho,sig|none|memory` |
 | BiasModel | standard, adapted | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
@@ -29,7 +29,8 @@ Single source of truth (experiments/method_profiles.py). The ZK-MRTA setting is 
 | UCBHomo | structure-free baseline | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
 | Tabular | structure-free baseline | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
 | Random | structure-free baseline | D | 0 | - | none | - | `D|0|-|none|-` |
-| CTDE-ceiling | reference (upper bound) | C | full | full | dhat | batch | `C|full|full|dhat|batch` |
+| CentralClean-ceiling | reference (upper bound) | C | full | full | dhat | online | `C|full|full|dhat|online` |
+| CTDE-ceiling | reference (upper bound) | C | full | fullsig | dhat | online | `C|full|fullsig|dhat|online` |
 | Oracle | reference (upper bound) | C | full | full | U* | - | `C|full|full|U*|-` |
 
 ## B. MRTA / decentralized-learning paradigms in context
@@ -52,26 +53,26 @@ Single source of truth (experiments/method_profiles.py). The ZK-MRTA setting is 
 
 | Method | Signal channel | Exploration | Confidence | Contention | Rank | Coordination |
 | --- | --- | --- | --- | --- | --- | --- |
-| **RewardCF** | reward | eps-greedy | none | none | fixed d-hat | implicit |
-| **ChoiceCF** | choice | eps-greedy | none | none | fixed d-hat | implicit |
-| **BothCF** | reward+choice | eps-greedy | competence-weight | none | fixed d-hat | implicit |
-| **EMCF** | reward | collective-UCB | Bayesian posterior | none | fixed d-hat | implicit |
-| **ActiveCF** | reward | collective-UCB | Bayesian posterior | none | fixed d-hat | explicit (exploration division) |
-| **CoordCF** | reward | neg-correlated-UCB | Bayesian posterior | none | fixed d-hat | explicit (no-comms division of labor) |
-| **ContentionCF** | reward | eps-greedy | none | fixed private offset | fixed d-hat | explicit de-confliction (no comms) |
-| **ContentionAdaCF** | reward | eps-greedy | none | scarcity-gated offset | fixed d-hat | explicit de-confliction (no comms) |
-| **ARD-EMCF** | reward | collective-UCB | Bayesian posterior | none | ARD (self-tuned) | implicit |
-| **HybridCF** | reward | probe-then-exploit | none | none | fixed d-hat | implicit |
-| **PTF** | reward | probe-then-exploit | none | none | fixed d-hat | implicit (batch refit) |
-| **UnifiedCF** | reward | gated collective-UCB | Bayesian posterior | gated offset | fixed d-hat | both (conditionally) |
+| **SwarmCF (RewardCF)** | reward | eps-greedy | none | none | fixed d-hat | implicit |
+| **SwarmCF-Ch (ChoiceCF)** | choice | eps-greedy | none | none | fixed d-hat | implicit |
+| **SwarmCF-RC (BothCF)** | reward+choice | eps-greedy | competence-weight | none | fixed d-hat | implicit |
+| **SwarmCF-B (EMCF)** | reward | collective-UCB | Bayesian posterior | none | fixed d-hat | implicit |
+| **SwarmCF-X (ActiveCF)** | reward | collective-UCB | Bayesian posterior | none | fixed d-hat | explicit (exploration division) |
+| **SwarmCF-Xc (CoordCF)** | reward | neg-correlated-UCB | Bayesian posterior | none | fixed d-hat | explicit (no-comms division of labor) |
+| **SwarmCF-D (ContentionCF)** | reward | eps-greedy | none | fixed private offset | fixed d-hat | explicit de-confliction (no comms) |
+| **SwarmCF-D+ (ContentionAdaCF)** | reward | eps-greedy | none | scarcity-gated offset | fixed d-hat | explicit de-confliction (no comms) |
+| **SwarmCF-B-ARD (ARD-EMCF)** | reward | collective-UCB | Bayesian posterior | none | ARD (self-tuned) | implicit |
+| **SwarmCF-H (HybridCF)** | reward | probe-then-exploit | none | none | fixed d-hat | implicit |
+| **SwarmCF-batch (PTF)** | reward | probe-then-exploit | none | none | fixed d-hat | implicit (batch refit) |
+| **SwarmCF-U (UnifiedCF)** | reward | gated collective-UCB | Bayesian posterior | gated offset | fixed d-hat | both (conditionally) |
 
 ## D. Performance scorecard (one canonical masked harness)
 
 | Method | Provenance | unseen@rho=0.25 | unseen@rho=1.0 | regret@0.25 | rounds-to-25%-oracle | profile |
 | --- | --- | --- | --- | --- | --- | --- |
-| **RewardCF** | ours | 0.336 | 0.376 | 41.2 | 35 | `D|0|rho,sig|dhat|online` |
-| **BothCF** | ours | 0.349 | 0.372 | 41.2 | 36 | `D|0|rho,sig|dhat|online` |
-| **PTF** | ours (hybrid) | 0.280 | 0.516 | 46.0 | never | `D|0|rho,sig|dhat|batch` |
+| **SwarmCF (RewardCF)** | ours | 0.336 | 0.376 | 41.2 | 35 | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-RC (BothCF)** | ours | 0.349 | 0.372 | 41.2 | 36 | `D|0|rho,sig|dhat|online` |
+| **SwarmCF-batch (PTF)** | ours (hybrid) | 0.280 | 0.516 | 46.0 | never | `D|0|rho,sig|dhat|batch` |
 | MFSGD | standard, adapted | -0.019 | 0.042 | 46.5 | never | `D|0|rho,sig|dhat|online` |
 | BPMF | standard, adapted | 0.126 | 0.233 | 49.9 | never | `D|0|rho,sig|dhat|batch` |
 | ESTR | standard, adapted | 0.058 | 0.232 | 46.4 | never | `D|0|rho|dhat|ETC` |

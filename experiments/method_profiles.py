@@ -26,14 +26,27 @@ Run as a script to (re)write docs/METHOD_PROFILES.md.
 import os, glob, json
 
 DIST = {"D": "decentralized", "C": "centralized"}
-OBS = {"full": "full (every engagement, noiseless)", "rho": "masked (sees a fraction &rho;)",
+OBS = {"full": "full (every engagement, noiseless)", "fullsig": "full but noisy (no masking, noise &sigma;)",
+       "rho": "masked (sees a fraction &rho;)",
        "rho,sig": "masked + noisy (fraction &rho;, per-observer noise &sigma;)",
        "self": "self-only (isolated)", "-": "n/a"}
-SHORT = {"rho,sig": "&rho;&sigma;", "rho": "&rho;", "full": "full", "self": "self", "-": "&ndash;",
+SHORT = {"rho,sig": "&rho;&sigma;", "rho": "&rho;", "full": "full", "fullsig": "full&sigma;", "self": "self", "-": "&ndash;",
          "dhat": "d&#770;", "none": "&ndash;", "d": "d", "U*": "U*", "0": "0", "B": "B",
          "online": "online", "batch": "batch", "ETC": "ETC", "memory": "mem"}
 PROV = {"ours": "ours", "ours-hybrid": "ours (hybrid)", "standard": "standard, adapted",
         "structfree": "structure-free baseline", "reference": "reference (upper bound)"}
+
+# Our invented methods are ONE family, SwarmCF, differing only in the menu axes (Table C).
+# Display name = "SwarmCF-variant (code name)" so the family reads as one; code class names unchanged.
+FAMILY = {"RewardCF": "SwarmCF", "ChoiceCF": "SwarmCF-Ch", "BothCF": "SwarmCF-RC",
+          "EMCF": "SwarmCF-B", "ActiveCF": "SwarmCF-X", "CoordCF": "SwarmCF-Xc",
+          "ContentionCF": "SwarmCF-D", "ContentionAdaCF": "SwarmCF-D+", "UnifiedCF": "SwarmCF-U",
+          "HybridCF": "SwarmCF-H", "PTF": "SwarmCF-batch", "ARD-EMCF": "SwarmCF-B-ARD"}
+
+
+def disp(name):
+    """Display name: our methods shown as the SwarmCF family with the code name in parentheses."""
+    return ("%s (%s)" % (FAMILY[name], name)) if name in FAMILY else name
 
 # ---- TABLE A: method operating profiles ----
 # name: (provenance, dist, comm, obs, prior, compute, blurb)
@@ -57,7 +70,8 @@ PROFILES = [
     ("UCBHomo",         "structfree",  "D", "0",   "rho,sig", "none", "online", "shared arm table; assumes drone homogeneity"),
     ("Tabular",         "structfree",  "D", "0",   "rho,sig", "none", "online", "eps-greedy own-row table"),
     ("Random",          "structfree",  "D", "0",   "-",       "none", "-",      "uniform random selection (floor)"),
-    ("CTDE-ceiling",    "reference",   "C", "full", "full",   "dhat", "batch",  "1 shared model + Hungarian assignment (full-comms ceiling)"),
+    ("CentralClean-ceiling", "reference", "C", "full", "full",  "dhat", "online", "centralized low-rank + Hungarian on NOISELESS, unmasked observation (no priors; the clean centralized ceiling)"),
+    ("CTDE-ceiling",    "reference",   "C", "full", "fullsig", "dhat", "online", "1 shared model + Hungarian assignment (full comms, but noisy observation)"),
     ("Oracle",          "reference",   "C", "full", "full",   "U*",   "-",      "best-in-offer under the true reward (=1 by definition)"),
 ]
 
@@ -133,7 +147,10 @@ def _legend_html():
             "<b>In-harness every method is decentralized and communication-free</b> (one estimator per "
             "drone on the passive broadcast); the low-rank methods differ in the update rule and "
             "refinements, not the information regime. Our flagship sits in the hardest cell "
-            "[D | 0 | &rho;&sigma; | d&#770; | online].</p>")
+            "[D | 0 | &rho;&sigma; | d&#770; | online]. <b>Our invented methods are ONE family, SwarmCF</b> "
+            "(shown as 'SwarmCF-variant (code name)'), differing only in the menu axes of the mechanism "
+            "table; everything else is a standard estimator we adapt, the structure-free paradigm, or a "
+            "reference ceiling.</p>")
 
 
 def html_profiles():
@@ -141,7 +158,7 @@ def html_profiles():
             "<th>Comm</th><th>Observability</th><th>Prior</th><th>Compute</th>"
             "<th class='l'>Profile</th></tr>"]
     for n, prov, dist, comm, obs, prior, comp, blurb in PROFILES:
-        nm = "<b>%s</b>" % n if prov.startswith("ours") else n
+        nm = "<b>%s</b>" % disp(n) if prov.startswith("ours") else disp(n)
         rows.append("<tr><td class='l'>%s</td><td class='l'>%s</td><td>%s</td><td>%s</td><td>%s</td>"
                     "<td>%s</td><td>%s</td><td class='l'><code>%s</code></td></tr>"
                     % (nm, PROV[prov], DIST[dist], SHORT[comm], SHORT[obs], SHORT[prior], SHORT[comp],
@@ -170,7 +187,7 @@ def html_mechanisms():
             "<th>Confidence</th><th>Contention</th><th>Rank</th><th>Coordination</th></tr>"]
     for n, ch, ex, cf, ct, rk, co in MECHANISMS:
         rows.append("<tr><td class='l'><b>%s</b></td><td>%s</td><td>%s</td><td>%s</td>"
-                    "<td>%s</td><td>%s</td><td>%s</td></tr>" % (n, ch, ex, cf, ct, rk, co))
+                    "<td>%s</td><td>%s</td><td>%s</td></tr>" % (disp(n), ch, ex, cf, ct, rk, co))
     rows.append("</table>")
     return "\n".join(rows)
 
@@ -220,7 +237,7 @@ def html_scorecard(root):
             "<th>cumulative regret<br>(&rho;=0.25, lower=better)</th>"
             "<th>rounds to 25%<br>of oracle</th><th class='l'>profile</th></tr>"]
     for r in scorecard_rows(root):
-        nm = "<b>%s</b>" % r["name"] if r["prov"].startswith("ours") else r["name"]
+        nm = "<b>%s</b>" % disp(r["name"]) if r["prov"].startswith("ours") else disp(r["name"])
         f = lambda v, p="%.3f": (p % v) if v is not None else "&ndash;"
         rows.append("<tr><td class='l'>%s</td><td class='l'>%s</td><td>%s</td><td>%s</td><td>%s</td>"
                     "<td>%s</td><td class='l'><code>%s</code></td></tr>"
@@ -258,7 +275,7 @@ def md_all(root=None):
          _md_row(["Method", "Provenance", "Dist", "Comm", "Observability", "Prior", "Compute", "Profile"]),
          _md_row(["---"] * 8)]
     for n, prov, dist, comm, obs, prior, comp, blurb in PROFILES:
-        nm = "**%s**" % n if prov.startswith("ours") else n
+        nm = "**%s**" % disp(n) if prov.startswith("ours") else disp(n)
         prof = "%s|%s|%s|%s|%s" % (dist, comm, obs, prior, comp)
         L.append(_md_row([nm, PROV[prov], dist, comm, obs, prior, comp, "`%s`" % prof]))
     L.append("\n## B. MRTA / decentralized-learning paradigms in context\n")
@@ -271,13 +288,13 @@ def md_all(root=None):
     L.append(_md_row(["Method", "Signal channel", "Exploration", "Confidence", "Contention", "Rank", "Coordination"]))
     L.append(_md_row(["---"] * 7))
     for n, ch, ex, cf, ct, rk, co in MECHANISMS:
-        L.append(_md_row(["**%s**" % n, ch, ex, cf, ct, rk.replace("&#770;", "-hat"), co]))
+        L.append(_md_row(["**%s**" % disp(n), ch, ex, cf, ct, rk.replace("&#770;", "-hat"), co]))
     if root:
         L.append("\n## D. Performance scorecard (one canonical masked harness)\n")
         L.append(_md_row(["Method", "Provenance", "unseen@rho=0.25", "unseen@rho=1.0", "regret@0.25", "rounds-to-25%-oracle", "profile"]))
         L.append(_md_row(["---"] * 7))
         for r in scorecard_rows(root):
-            nm = "**%s**" % r["name"] if r["prov"].startswith("ours") else r["name"]
+            nm = "**%s**" % disp(r["name"]) if r["prov"].startswith("ours") else disp(r["name"])
             f = lambda v, p="%.3f": (p % v) if v is not None else "-"
             L.append(_md_row([nm, PROV[r["prov"]], f(r["unseen025"]), f(r["unseen100"]),
                               f(r["regret"], "%.1f"), r["ttc"], "`%s`" % r["badge"].strip("[]").replace(" | ", "|")]))

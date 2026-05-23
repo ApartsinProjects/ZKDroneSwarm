@@ -451,12 +451,16 @@ bound still holds via the B_t-indicator decomposition), T7 (EXACT a,b + REASONED
 T7 caveat added (covers only the FIXED offset; the deployed adaptive ContentionAdaCF/UnifiedCF
 is untheorized).
 
-KEYSTONE GAP (the central open problem). Every "Theta(d) vs Theta(n)" / "exact row recovery"
-claim (T2, T4c) silently CITES decentralized masked U-recovery (Candes-Recht style). Under
-PERSISTENT per-drone masking the sampling is STRUCTURED / non-uniform, exactly where
-incoherence-based uniform-sampling completion does not directly apply. So none of T1-T8 actually
-PROVE decentralized masked U-recovery; they invoke centralized uniform-sampling theory for it.
-Closing this (P15 below) would make the categorical claim self-contained.
+KEYSTONE GAP (was the central open problem; CLOSED to a bounded condition in cycle 76, see
+Proposition 15 below). Every "Theta(d) vs Theta(n)" / "exact row recovery" claim (T2, T4c) cited
+decentralized masked U-recovery (Candes-Recht style). Under PERSISTENT per-drone masking the sampling
+is STRUCTURED / non-uniform, exactly where incoherence-based uniform-sampling completion does not
+directly apply. UPDATE (cycle 76): Proposition 15 now replaces that citation with a self-contained
+deterministic SUFFICIENT + NECESSARY condition (anchor block + per-target spanning coverage), exact in
+the noiseless case, error-bounded under noise, self-achieving in O((nd/(rho m)) log n) rounds under
+non-adaptive exploration, and empirically validated; only the adaptive finite-time coverage rate
+remains open. T2/T4c now rest on that per-drone condition rather than an imported uniform-sampling
+assumption.
 
 PROPOSED new results (statement + sketch + rigor flag; NOT yet proven or integrated):
 - P10 [HIGH, CLEAN] Bounded-precision dominance under heterogeneous reliability. Ridge fold-in
@@ -484,15 +488,16 @@ PROPOSED new results (statement + sketch + rigor flag; NOT yet proven or integra
 - P14 [MEDIUM] Mean-field VI is discriminative but anti-conservative. VB-PMF predictive variance
   is monotone in the true conditional error (discrimination) but under-estimates it (coverage <
   nominal) by the dropped cross-covariance Cov(p_i,u_j). Explains CALIBRATION.
-- P15 [HIGHEST value, HARD] Decentralized masked U-recovery (the keystone). Under persistent
-  Bernoulli(rho) per-drone masking each drone recovers col-space(U) to o(1) once its visible
-  entry count exceeds Otilde(d(m+n)/rho), under incoherence + a rho-effective-sampling condition.
-  The honest version of the clause T2/T4c currently cite; persistent masking is non-uniform
-  sampling so off-the-shelf Candes-Recht does not apply. Closing this makes the categorical
-  claim self-contained.
+- P15 [DONE cycle 76 -- now BOUNDED, see Proposition 15 below] Decentralized masked U-recovery (the
+  keystone). Resolved not via a non-uniform-completion entry-count bound but via the structure of the
+  per-drone DRONE-PAIR mask: drone i recovers u_j (predicts the unseen pair) EXACTLY iff p_i lies in the
+  span of its visible engagers' factors (anchor block + per-target spanning coverage); prior floor below
+  (necessity); error-bounded under noise; self-achieving in O((nd/(rho m)) log n) rounds under
+  non-adaptive exploration; empirically validated (pilot_p15.py). Residual: adaptive finite-time rate.
 
-Most valuable to ADD next: P10 (clean, fixes a live inconsistency), T9 (clean assembly), and
-P15 (the hard keystone). The rest are explanatory and honestly heuristic where flagged.
+Most valuable to ADD next: P10 (clean, fixes a live inconsistency) and T9 (clean assembly); P15 (the
+hard keystone) is now DONE / bounded (Proposition 15). The rest are explanatory and honestly heuristic
+where flagged.
 
 ---
 
