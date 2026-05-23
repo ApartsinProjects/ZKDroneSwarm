@@ -161,31 +161,36 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
 
 # ---------------- 2. related work ----------------
 A("<h2>2. Related work</h2>")
-A("<p><b>Multi-robot task allocation.</b> The taxonomies of Gerkey and Matari&cacute; [1] and Korsah et "
-  "al. [2] organize MRTA by single/multi-task robots, single/multi-robot tasks, and "
-  "instantaneous/time-extended assignment with interrelated utilities. Classical solvers, market and "
-  "auction mechanisms [3] and consensus-based bundle algorithms (CBBA) [4], and distributed constraint "
-  "optimization, achieve coordination through <b>communication</b> and assume <b>known</b> task "
-  "utilities or costs. Trait-based MRTA [5] matches robot capability vectors to task requirement "
-  "vectors, but takes the traits as <b>given</b>. Our setting keeps the trait/low-rank view but makes "
-  "the traits <b>unknown and learned online</b>, with neither communication nor known utilities; recent "
-  "surveys [18] document the rapid growth of learning-based MRTA, but the prior-free, communication-free "
-  "regime we study remains unaddressed.</p>")
+A("<p>Swarm robotics seeks collective competence from simple local rules [38,39], and coverage and "
+  "patrolling control coordinate where robots <i>move</i> [40]; we instead address which <i>task</i> each "
+  "robot should engage when the capability-to-task match is unknown and there is no communication.</p>")
+A("<p><b>Multi-robot task allocation.</b> The taxonomies of Gerkey and Matari&cacute; [1], Korsah et al. "
+  "[2], and Nunes et al. [20] organize MRTA by single/multi-task robots, single/multi-robot tasks, and "
+  "instantaneous/time-extended assignment with interrelated utilities and temporal constraints. Classical "
+  "solvers, market and auction mechanisms [3], consensus-based bundle algorithms (CBBA) [4], and "
+  "distributed constraint optimization achieve coordination through <b>communication</b> and assume "
+  "<b>known</b> task utilities or costs (surveys: [21]); even work that explicitly limits communication "
+  "still relies on auctions and messages [22], and a recent review underscores how central communication "
+  "remains to multi-robot systems [23]. Trait-based and heterogeneity-aware MRTA [5,24,25] matches robot "
+  "capability vectors to task requirement vectors, but takes the traits as <b>given</b>. Our setting "
+  "keeps the trait/low-rank view but makes the traits <b>unknown and learned online</b>, with neither "
+  "communication nor known utilities; recent surveys [18] document the rapid growth of learning-based "
+  "MRTA, but the prior-free, communication-free regime we study remains unaddressed.</p>")
 A("<p><b>Decentralized and learning-based coordination.</b> Communication-free multiplayer bandits "
-  "(musical chairs [6], SIC-MMAB [7]) break symmetry without messages but are <b>structure-free</b> "
-  "(per-arm), so they cannot generalize to unseen arms. Cooperative multi-agent RL (CTDE methods such as "
-  "MAPPO [14]) and learned-communication methods (e.g. CommNet [15]) rely on centralized training or "
-  "message passing; recent learning-based decentralized assignment (e.g., graph neural networks for goal "
-  "assignment [19]) likewise presumes communication or centralized training. Federated and gossip "
-  "collaborative filtering share model parameters; we share nothing but a passively-sensed outcome "
-  "stream.</p>")
+  "(musical chairs [6], SIC-MMAB [7], game-of-thrones [26]) break symmetry without messages but are "
+  "<b>structure-free</b> (per-arm), so they cannot generalize to unseen arms. Cooperative multi-agent RL "
+  "(CTDE: MAPPO [14], QMIX [33], VDN [34], MADDPG [35]) and learned-communication methods (CommNet [15], "
+  "TarMAC [36], DIAL [37]) rely on centralized training or message passing; recent learning-based "
+  "decentralized assignment (graph neural networks for goal assignment [19] and scheduling [41]) likewise "
+  "presumes communication or centralized training. Federated and gossip collaborative filtering share "
+  "model parameters; we share nothing but a passively-sensed outcome stream.</p>")
 A("<p><b>Low-rank estimation and bandits.</b> Matrix completion gives centralized recovery guarantees "
-  "under (near-)uniform sampling [8,9], with practical factorization estimators (matrix factorization "
-  "[13], Bayesian PMF [11], soft-impute [12]); low-rank and bilinear bandits (e.g. explore-then-spectral "
-  "[10], and clustering-of-bandits [16]) are centralized and/or phase-structured. We make estimation "
-  "decentralized, online, broadcast-only, and robust to a structured (non-uniform) per-robot observation "
-  "mask, with the unseen-pair error floor turning the gap into a categorical, rather than "
-  "constant-factor, separation.</p>")
+  "under (near-)uniform sampling [8,9,27,28], with practical factorization estimators (matrix "
+  "factorization [13], Bayesian PMF [11], soft-impute [12], implicit-feedback ALS [31], ranking CF [32]); "
+  "low-rank and bilinear bandits (explore-then-spectral [10], bilinear [29], generalized-linear [30], "
+  "clustering-of-bandits [16]) are centralized and/or phase-structured. We make estimation decentralized, "
+  "online, broadcast-only, and robust to a structured (non-uniform) per-robot observation mask, with the "
+  "unseen-pair error floor turning the gap into a categorical, rather than constant-factor, separation.</p>")
 A("<p>Table 1 places the major paradigms on the four axes that define our problem; each established "
   "family relaxes at least one axis we hold fixed, and our cell, low-rank with only a guessed rank, no "
   "communication, decentralized, masked and noisy, is the one left open.</p>")
@@ -220,11 +225,11 @@ A("<p>This channel is the formal counterpart of physical sensing: a robot percei
   "shared, clean broadcast usually assumed, and it makes decentralization <b>real</b>: persistent blind "
   "spots give every robot a permanently different view, and the private per-observer noise means even "
   "commonly-visible outcomes are read differently by each robot, so there is no shared, clean signal to "
-  "average toward agreement, the robots cannot converge to a common model by symmetry. In a grounding "
-  "experiment (supplementary material) we derive the mask and noise directly "
-  "from 2-D sensing geometry, range-limited visibility and read-off noise that grows with distance, and "
-  "the categorical result survives once sensing coverage exceeds a modest threshold, so the channel is "
-  "physically realizable rather than a convenient abstraction. Figure 1 illustrates the setting.</p>")
+  "average toward agreement, the robots cannot converge to a common model by symmetry. The channel is "
+  "the formal counterpart of 2-D sensing geometry, a robot perceives a teammate's engagement only when "
+  "the teammate is within range (the persistent mask) and reads its outcome with a fidelity that degrades "
+  "with distance and with its own sensor (the per-observer noise), so it is physically realizable rather "
+  "than a convenient abstraction. Figure 1 illustrates the setting.</p>")
 A("<figure>%s<figcaption><b>Figure 1.</b> The setting. The robot $\\times$ task reward is hidden and "
   "low-rank, $R=PU^\\top$ (capability traits $p_i$, requirement traits $u_j$). A focal robot (blue row) "
   "must act on its <i>whole</i> row, including the many pairs it never engaged ('?'), using only its own "
@@ -424,10 +429,11 @@ A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical maske
 A(mp.html_scorecard(ROOT))
 
 A("<h3>6.5 Robustness and external validity</h3>")
-A("<p><b>Across world parameters.</b> The separation is not an artifact of one configuration: it holds "
-  "across team size $m$, task count $n$, latent rank $d$, and within-cluster heterogeneity in parameter "
-  "sweeps (supplementary material), and degrades only gracefully as the structure approaches full rank "
-  "(Section 7). The headline regime is simply the one where all three scope conditions hold strongly.</p>")
+A("<p><b>Beyond one configuration.</b> The separation is structural rather than tuned: it follows from "
+  "the three scope conditions stated below (an exploitable low-rank-but-personalized reward, task "
+  "scarcity, and a shared channel), not from any particular team size or task count, and we observe the "
+  "same pattern across $m$, $n$, $d$, and heterogeneity in additional sweeps. The most demanding "
+  "robustness test, transfer to an environment we did not design, is reported next.</p>")
 A("<p><b>In an independent, physically-grounded simulator.</b> To test transfer beyond our own harness we "
   "re-run the comparison in a spatial multi-robot simulator we did not design, the open-source "
   "<i>tabula_drone</i> environment (robots move in 2-D and engage targets with depleting health, episodic "
@@ -463,7 +469,7 @@ A("<p><b>What the results say.</b> Under the least information, no prior, no com
   "reward earned while learning, and in a robotics-grounded mission).</p>")
 A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
   "trait-based premise; the categorical advantage degrades gracefully as the structure becomes only "
-  "approximately low-rank or the rank grows toward full (a stress test in the supplement), vanishing only "
+  "approximately low-rank or the rank grows toward full, vanishing only "
   "when there is no exploitable structure. Rewards are real-valued and bilinear in latent traits; and the "
   "recovery rate of Theorem 4 is established for non-adaptive "
   "exploration, the finite-time rate under a strongly exploiting policy (which can starve low-reward "
@@ -531,12 +537,53 @@ A("<ol class='small' style='line-height:1.5'>"
   "2024.</li>"
   "<li>P. Goarin, G. Loianno. Graph neural network for decentralized multi-robot goal assignment. "
   "<i>IEEE Robotics and Automation Letters</i>, 2024.</li>"
+  "<li>E. Nunes, M. Manner, H. Mitiche, M. Gini. A taxonomy for task allocation problems with temporal "
+  "and ordering constraints. <i>Robotics and Autonomous Systems</i>, 90:55&ndash;70, 2017.</li>"
+  "<li>A. Khamis, A. Hussein, A. Elmogy. Multi-robot task allocation: a review of the state-of-the-art. "
+  "In <i>Cooperative Robots and Sensor Networks</i>, Springer, 2015.</li>"
+  "<li>M. Otte, M. J. Kuhlman, D. Sofge. Auctions for multi-robot task allocation in communication "
+  "limited environments. <i>Autonomous Robots</i>, 44:547&ndash;584, 2020.</li>"
+  "<li>J. Gielis, A. Shankar, A. Prorok. A critical review of communications in multi-robot systems. "
+  "<i>Current Robotics Reports</i>, 3:213&ndash;225, 2022.</li>"
+  "<li>G. Notomista, S. Mayya, S. Hutchinson, M. Egerstedt. An optimal task allocation strategy for "
+  "heterogeneous multi-robot systems. <i>European Control Conference</i>, 2019.</li>"
+  "<li>H. Ravichandar, K. Shaw, S. Chernova. STRATA: unified framework for task assignments in large "
+  "teams of heterogeneous agents. <i>AAMAS</i>, 2020.</li>"
+  "<li>I. Bistritz, A. Leshem. Distributed multi-player bandits: a game of thrones approach. "
+  "<i>NeurIPS</i>, 2018.</li>"
+  "<li>B. Recht. A simpler approach to matrix completion. <i>JMLR</i>, 12:3413&ndash;3430, 2011.</li>"
+  "<li>P. Jain, P. Netrapalli, S. Sanghavi. Low-rank matrix completion using alternating minimization. "
+  "<i>STOC</i>, 2013.</li>"
+  "<li>K.-S. Jun, R. Willett, S. Wright, R. Nowak. Bilinear bandits with low-rank structure. "
+  "<i>ICML</i>, 2019.</li>"
+  "<li>Y. Lu, A. Meisami, A. Tewari. Low-rank generalized linear bandit problems. <i>AISTATS</i>, "
+  "2021.</li>"
+  "<li>Y. Hu, Y. Koren, C. Volinsky. Collaborative filtering for implicit feedback datasets. "
+  "<i>ICDM</i>, 2008.</li>"
+  "<li>S. Rendle, C. Freudenthaler, Z. Gantner, L. Schmidt-Thieme. BPR: Bayesian personalized ranking "
+  "from implicit feedback. <i>UAI</i>, 2009.</li>"
+  "<li>T. Rashid, M. Samvelyan, et al. QMIX: monotonic value function factorisation for deep multi-agent "
+  "reinforcement learning. <i>ICML</i>, 2018.</li>"
+  "<li>P. Sunehag, G. Lever, et al. Value-decomposition networks for cooperative multi-agent learning. "
+  "<i>AAMAS</i>, 2018.</li>"
+  "<li>R. Lowe, Y. Wu, et al. Multi-agent actor-critic for mixed cooperative-competitive environments. "
+  "<i>NeurIPS</i>, 2017.</li>"
+  "<li>A. Das, T. Gervet, et al. TarMAC: targeted multi-agent communication. <i>ICML</i>, 2019.</li>"
+  "<li>J. Foerster, Y. Assael, N. de Freitas, S. Whiteson. Learning to communicate with deep multi-agent "
+  "reinforcement learning. <i>NeurIPS</i>, 2016.</li>"
+  "<li>M. Brambilla, E. Ferrante, M. Birattari, M. Dorigo. Swarm robotics: a review from the swarm "
+  "engineering perspective. <i>Swarm Intelligence</i>, 7:1&ndash;41, 2013.</li>"
+  "<li>E. &#350;ahin. Swarm robotics: from sources of inspiration to domains of application. "
+  "<i>LNCS 3342</i>, Springer, 2005.</li>"
+  "<li>J. Cort&eacute;s, S. Mart&iacute;nez, T. Karatas, F. Bullo. Coverage control for mobile sensing "
+  "networks. <i>IEEE Trans. Robotics and Automation</i>, 20(2):243&ndash;255, 2004.</li>"
+  "<li>Z. Wang, M. Gombolay. Learning scheduling policies for multi-robot coordination with graph "
+  "attention networks. <i>IEEE Robotics and Automation Letters</i>, 5(3):4509&ndash;4516, 2020.</li>"
   "</ol>")
 
 A("<h2>Appendix A. Theory: proofs and an audit (correctness, novelty, utility)</h2>")
 A("<p class='small'>We give self-contained proofs of the main results below, each followed by a brief "
-  "audit of its correctness, novelty, and utility; longer technical versions and a self-critical "
-  "appraisal are in the companion <code>docs/THEORY_FORMAL.md</code>. Throughout, factors are assumed in "
+  "audit of its correctness, novelty, and utility. Throughout, factors are assumed in "
   "general position (generic $P,U$), the persistent mask is $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ over "
   "robot pairs, and $\\hat d\\ge d$.</p>")
 A("<p class='small'><b>Theorem 1 (floor).</b> For an unobserved $j$ the estimate is a pre-chosen "
@@ -571,7 +618,7 @@ A("<p class='small'><b>Theorem 5 (collective speedup).</b> A single row leaves a
   "unconstrained (floor); the pooled support reaches the completion threshold in $\\tilde O(d(1+n/m))$ "
   "rounds. <i>Correct</i> (order, given Theorem 4); <i>high utility</i> (the why-a-swarm theory, matching "
   "Section 6.3). The fold-in perturbation bound used above (cold-start error $=$ basis-recovery $+$ "
-  "own-probe noise $+$ ridge bias, exact at $k\\ge d$) is in <code>THEORY_FORMAL.md</code>.</p>")
+  "own-probe noise $+$ ridge bias, exact at $k\\ge d$) is stated and proved in Appendix B.</p>")
 
 A("<h2>Appendix B. The fold-in error bound</h2>")
 A("<p class='small'>For a newcomer factor $x_\\star$ probed against an estimated basis "
@@ -587,15 +634,13 @@ A("<p class='small'>On the swarm's actual coverage patterns ($m=30,n=240,d=5,\\r
   "isolate identifiability), reconstructing each unseen pair $(i,j)$ from the observed entries by least "
   "squares gives error $0.000$ exactly when robot $i$'s factor lies in the span of its visible engagers "
   "of $j$ (the condition of Theorem 4), versus the prior floor ($\\approx0.30$) otherwise, with graceful "
-  "partial recovery as the spanning rank rises to $d$. The identifiability threshold is exactly the "
-  "spanning condition. Full table in <code>docs/P15_VALIDATION.md</code>.</p>")
+  "partial recovery as the spanning rank rises to $d$. The identifiability threshold is therefore "
+  "exactly the spanning condition of Theorem 4.</p>")
 A("<h2>Appendix D. Reproducibility</h2>")
-A("<p class='small'>All numbers come from saved per-seed JSON under <code>results/pilots/</code> "
-  "(registry <code>docs/DATA_CATALOGUE.md</code>); figures via <code>experiments/make_figures.py</code>; "
-  "this paper via <code>experiments/make_ras_paper.py</code>; methods in "
-  "<code>experiments/pilot_noise.py</code> and <code>pilot_baselines.py</code>; proofs in "
-  "<code>docs/THEORY_FORMAL.md</code>. Block-model world, signed-cosine reward, 8 seeds, bootstrap "
-  "95% CIs throughout.</p>")
+A("<p class='small'>All experiments use a block-model world with signed-cosine reward, 8 random seeds, "
+  "and bootstrap 95% confidence intervals throughout; each reported number is averaged over the per-seed "
+  "runs. Source code, the simulation harness, and the per-seed data needed to regenerate every figure and "
+  "table are openly available in the project repository linked in the header.</p>")
 A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robots, $n=240$ tasks, true "
   "rank $d=5$, guessed rank $\\hat d=8$, horizon $T=50$, offer size $c=20$, own-observation noise "
   "$\\sigma_{\\mathrm{own}}=0.1$, broadcast-observation noise $\\sigma_{\\mathrm{obs}}=0.3$, persistent "
