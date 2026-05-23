@@ -321,7 +321,7 @@ if os.path.exists(f):
     d = json.load(open(f)); sk = d["skill"]; traj = d["traj"]
     order = ["random", "mf", "ucb_indep", "weighted_als", "oracle"]
     lab = {"random": "Random", "mf": "MF (env SGD)", "ucb_indep": "UCBIndep",
-           "weighted_als": "WeightedALS (ours)", "oracle": "Oracle"}
+           "weighted_als": "SwarmCF (ours)", "oracle": "Oracle"}
     col = {"random": "gray", "mf": "C3", "ucb_indep": "C4", "weighted_als": "C2", "oracle": "k"}
     fig, ax = plt.subplots(1, 2, figsize=(11, 4))
     present = [p for p in order if p in sk]
