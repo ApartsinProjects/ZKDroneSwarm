@@ -5,8 +5,10 @@ Active set of fixed size 200; every 5 rounds 8 targets DEPART and 8 FRESH ones A
 | method | skill on active set | skill on RECENT arrivals |
 |---|---|---|
 | **RewardCF** | 0.632 [0.610, 0.655] | 0.074 [0.059, 0.088] |
+| ActiveCFconv | 0.697 [0.684, 0.709] | 0.363 [0.321, 0.402] |
+| EMCF | 0.842 [0.830, 0.853] | 0.371 [0.291, 0.439] |
 | Tabular | 0.448 [0.435, 0.459] | 0.062 [0.042, 0.082] |
-| UCBIndep | 0.619 [0.583, 0.646] | 0.132 [0.114, 0.150] |
+| UCBIndep | 0.619 [0.584, 0.646] | 0.132 [0.114, 0.150] |
 
-Read (HONEST result, NOT a clean categorical win): under FAST continuous churn CF does NOT dominate. On the active set CF beats the structure-free Tabular (0.63 vs 0.45) but only TIES the optimistic UCBIndep (~0.62); and on the FRESHEST arrivals (active < recency) CF actually TRAILS UCBIndep (0.074 vs 0.132, non-overlapping CIs). Diagnosis: collective fold-in needs ~d probes to pin a newcomer's factor, a latency that rapid churn outpaces, while UCBIndep's untried-arm optimism directs it straight onto the new targets. So CF's categorical advantage is a SAMPLE-STARVED STATIC-unseen property; under rapid non-stationarity the fold-in latency erodes it on the newest targets. An honest SCOPE LIMIT, not a third categorical result. (A faster re-adaptation, e.g. optimistic/active probing of fresh arrivals layered on CF, is the natural fix; logged as future work.)
+Read: under FAST continuous churn, PLAIN exploitative CF (RewardCF) does NOT win, it ties UCBIndep on the active set and TRAILS it on fresh arrivals (0.074 vs 0.132), because collective fold-in needs ~d probes to pin a newcomer and exploitation never probes them. The FIX is CF UNITED WITH DIRECTED EXPLORATION of the uncertain (fresh) targets: ActiveCFconv (broadcast count-bonus) and especially EMCF (predictive-variance UCB) PROBE newcomers AND fold them in via the shared structure, and they DOMINATE, on the active set EMCF 0.842 vs UCBIndep 0.619 / RewardCF 0.632, and on FRESH arrivals ActiveCFconv 0.363 and EMCF 0.371 vs UCBIndep 0.132 (all non-overlapping CIs). So non-stationarity IS handled: the win needs the variant that combines low-rank fold-in with confidence-directed probing of newcomers, neither structure-free optimism (UCBIndep) nor exploitative CF alone suffices. The arc: plain-CF negative -> diagnosis (must probe newcomers) -> confidence-directed CF win.
 

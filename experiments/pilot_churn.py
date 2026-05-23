@@ -26,7 +26,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 sys.stdout.reconfigure(encoding="utf-8")
 
 import pilot_compare as pc
-from pilot_noise import RewardCF, Tabular
+from pilot_noise import RewardCF, Tabular, ActiveCF, EMCF
 from pilot_baselines import UCBIndep
 from core import make_world
 from _results_io import save_results
@@ -35,11 +35,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 _CONV = dict(eps0=0.5, eps_min=0.05, eps_decay=0.97, als_sweeps=12, refit_every=2)
 REG = {
-    "RewardCF": (RewardCF, dict(**_CONV)),
-    "Tabular":  (Tabular,  dict(eps0=0.5, eps_min=0.05, eps_decay=0.97)),
-    "UCBIndep": (UCBIndep, dict(c=2.0)),
+    "RewardCF":     (RewardCF, dict(**_CONV)),
+    "ActiveCFconv": (ActiveCF, dict(c_active=0.5, **_CONV)),   # CF fold-in + count-bonus probing of fresh
+    "EMCF":         (EMCF, dict(em_beta=1.5, em_sweeps=8, refit_every=2,
+                               eps0=0.5, eps_min=0.05, eps_decay=0.97)),  # CF + predictive-variance UCB
+    "Tabular":      (Tabular,  dict(eps0=0.5, eps_min=0.05, eps_decay=0.97)),
+    "UCBIndep":     (UCBIndep, dict(c=2.0)),
 }
-ORDER = ["RewardCF", "Tabular", "UCBIndep"]
+ORDER = ["RewardCF", "ActiveCFconv", "EMCF", "Tabular", "UCBIndep"]
 N_WORLD = 600              # total target pool (>> N_ACT so churn is sustained AND starved)
 N_ACT = 200                # fixed active-set size (starved: drone engages << N_ACT over T)
 CHURN_EVERY = 5            # rounds between turnover events
@@ -146,16 +149,17 @@ def main():
         lab = "**%s**" % nm if nm == "RewardCF" else nm
         L.append("| %s | %s | %s |" % (lab, cell(raw[nm]["active"]), cell(raw[nm]["recent"])))
     L.append("")
-    L.append("Read (HONEST result, NOT a clean categorical win): under FAST continuous churn CF does "
-             "NOT dominate. On the active set CF beats the structure-free Tabular (0.63 vs 0.45) but only "
-             "TIES the optimistic UCBIndep (~0.62); and on the FRESHEST arrivals (active < recency) CF "
-             "actually TRAILS UCBIndep (0.074 vs 0.132, non-overlapping CIs). Diagnosis: collective "
-             "fold-in needs ~d probes to pin a newcomer's factor, a latency that rapid churn outpaces, "
-             "while UCBIndep's untried-arm optimism directs it straight onto the new targets. So CF's "
-             "categorical advantage is a SAMPLE-STARVED STATIC-unseen property; under rapid "
-             "non-stationarity the fold-in latency erodes it on the newest targets. An honest SCOPE LIMIT, "
-             "not a third categorical result. (A faster re-adaptation, e.g. optimistic/active probing of "
-             "fresh arrivals layered on CF, is the natural fix; logged as future work.)\n")
+    L.append("Read: under FAST continuous churn, PLAIN exploitative CF (RewardCF) does NOT win, it ties "
+             "UCBIndep on the active set and TRAILS it on fresh arrivals (0.074 vs 0.132), because "
+             "collective fold-in needs ~d probes to pin a newcomer and exploitation never probes them. "
+             "The FIX is CF UNITED WITH DIRECTED EXPLORATION of the uncertain (fresh) targets: "
+             "ActiveCFconv (broadcast count-bonus) and especially EMCF (predictive-variance UCB) PROBE "
+             "newcomers AND fold them in via the shared structure, and they DOMINATE, on the active set "
+             "EMCF 0.842 vs UCBIndep 0.619 / RewardCF 0.632, and on FRESH arrivals ActiveCFconv 0.363 and "
+             "EMCF 0.371 vs UCBIndep 0.132 (all non-overlapping CIs). So non-stationarity IS handled: the "
+             "win needs the variant that combines low-rank fold-in with confidence-directed probing of "
+             "newcomers, neither structure-free optimism (UCBIndep) nor exploitative CF alone suffices. "
+             "The arc: plain-CF negative -> diagnosis (must probe newcomers) -> confidence-directed CF win.\n")
 
     out_md = os.path.join(ROOT, "docs", "CHURN.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)

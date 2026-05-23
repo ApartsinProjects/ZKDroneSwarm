@@ -295,10 +295,16 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
   optimistic UCBIndep (0.619); on FRESH arrivals CF TRAILS UCBIndep (0.074 vs 0.132,
   non-overlapping). Root cause: collective fold-in needs ~d probes to pin a newcomer, a
   LATENCY that fast churn outpaces, while UCBIndep optimism probes the new targets directly.
-  So CF's categorical edge is a STATIC sample-starved property; rapid non-stationarity erodes
-  it on the newest targets. -> docs/CHURN.md. FUTURE FIX (H6b): layer optimistic / active
-  probing of fresh arrivals onto CF (combine fold-in with directed exploration of newcomers)
-  to recover fast re-adaptation; likely the genuine non-stationarity contribution.
+  So PLAIN CF's categorical edge is a STATIC sample-starved property. -> docs/CHURN.md.
+- [DONE -- WIN] H6b = CONFIDENCE-DIRECTED CF wins under churn (the fix). Added ActiveCFconv
+  (broadcast count-bonus) and EMCF (predictive-variance UCB) to the churn sweep (8 seeds).
+  Both UNITE low-rank fold-in WITH directed probing of the uncertain (fresh) targets, and
+  DOMINATE: active set EMCF 0.842 vs UCBIndep 0.619 / RewardCF 0.632; FRESH arrivals
+  ActiveCFconv 0.363 and EMCF 0.371 vs UCBIndep 0.132 (all non-overlapping CIs). So
+  non-stationarity IS handled categorically, but only by the variant combining fold-in with
+  confidence-directed newcomer-probing (neither structure-free optimism nor exploitative CF
+  alone suffices). A clean negative->diagnosis->win arc. NEXT: fold into tutorial/paper as a
+  non-stationarity result (the collective-exploration extension also wins under churn).
 - [P2] H7 = NON-GAUSSIAN rewards (K4): logistic/GLM-link weighted-ALS for BINARY
   outcomes. HYP: handles binarized rewards where linear MF degrades; extends scope.
 - [P2] H8 = TYPE-PRIOR shrinkage (D7): newcomer cold-start shrinks to its TYPE prior
