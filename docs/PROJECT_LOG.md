@@ -522,3 +522,21 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   NOTE: the tutorial keeps its "drone" voice on purpose (drone-domain teaching doc, internally
   self-consistent); it was NOT regenerated so its frozen drone figures do not mix with the
   paper's robot figures.
+- Cycle 65 (RAS submission hardening + reviewer cycles to acceptance): acted on direct
+  requests and then reviewed the paper line by line as an RAS reviewer over several cycles.
+  NAMING: one display name per method (SwarmCF, SwarmCF-batch; external methods keep their
+  literature names MF-SGD/ESTR/BPMF/SoftImpute; structure-free Independent-UCB/Tabular/Random;
+  ceilings Centralized (clean)/(CTDE)/Oracle); "PTF" dropped from all prose and figures.
+  TEMPLATE: removed non-paper text (the "Self-contained manuscript ..." subtitle, "(RAS)" in
+  the HTML title); added author block, Declaration of competing interest, Data availability
+  (repo link); Highlights trimmed to <=85 chars; abstract 235 words (<=250). TABLE 1: clearer
+  headers + streamlined cells. FIGURE 1: redesigned as a clean legend-based schematic.
+  REVIEWER FIXES: (1) HTML rendering bug, a literal "<" in math ate scope-condition (i), now
+  "&lt;"; (2) SwarmCF-batch reframed as ours, not an external "field"; (3) removed undefined
+  "ZK-MRTA"; (4) INTEGRITY: tabula_drone is our own in-repo simulator, so dropped "open-source
+  ... we did not design" and reframed as a separate higher-fidelity simulator with different
+  dynamics; (5) Table 2/3 notation made consistent (dropped Table 3's redundant profile column)
+  and method sets aligned (removed Homogeneous-UCB); (6) Appendix A self-grades -> neutral
+  remarks; (7) completed authorless reference [18] (Athira K. A. et al., ACM Comput. Surv.
+  2024); (8) condensed a duplicated Section 3 sentence; removed em-dashes. Committed rounds
+  16-17, pushed. OPEN (user): fill the placeholder author/affiliation block before submission.
