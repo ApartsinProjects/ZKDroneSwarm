@@ -184,12 +184,22 @@ settings (our earlier null results).
 Matrix completion \cite{candes2009exact,keshavan2010matrix,recht2011simpler,mazumder2010spectral}
 gives the centralized statistical backbone; we make it decentralized, online, and
 broadcast-only. Low-rank and contextual bandits
-\cite{jun2019bilinear,li2010contextual,chapelle2011empirical} and online clustering of
-bandits \cite{gentile2014online} are centralized and/or phase-structured; we are
-anytime and distributed. Recommender CF \cite{koren2009matrix,hu2008collaborative,
-salakhutdinov2008bayesian} inspires our estimator and the exposure-debiased choice
-channel. We connect to the MRTA taxonomy \cite{gerkey2004formal} and decentralized
-MARL, but remove communication, priors, and shared state.
+\cite{jun2019bilinear,katariya2017rank1,kang2024lowrank,li2010contextual,chapelle2011empirical}
+and online clustering of bandits \cite{gentile2014online} are centralized and/or
+phase-structured; we are anytime and distributed. The closest neighbor is multi-user RL
+with low-rank rewards \cite{nagaraj2022multiuser}, which shares the low-rank-across-agents
+structure but CENTRALIZES trajectory aggregation, whereas we keep every agent's parameters
+private and learn only from a partial, noisy broadcast. Recommender CF
+\cite{koren2009matrix,hu2008collaborative,salakhutdinov2008bayesian} inspires our estimator
+and the exposure-debiased choice channel. For contention, our communication-free
+symmetry-breaking is in the spirit of no-communication multiplayer bandits, but applied on
+top of a LEARNED low-rank preference rather than independent arms. We connect to the MRTA
+taxonomy \cite{gerkey2004formal} and cooperative MARL \cite{amato2024ctde}, but remove
+communication, priors, and shared state (the CTDE workhorses centralize training; the
+admissible no-communication case reduces to our per-agent bandit baselines). Our
+contribution is COMPOSITIONAL: this exact combination (decentralized, broadcast-only,
+online, sample-starved, with an unseen-pair categorical separation) is the open niche, while
+the individual ingredients are known.
 
 \section{Limitations and conclusion}
 \textbf{Scope: contention.} Our formal results assume non-contention. We tested hard

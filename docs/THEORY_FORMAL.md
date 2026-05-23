@@ -486,3 +486,49 @@ PROPOSED new results (statement + sketch + rigor flag; NOT yet proven or integra
 
 Most valuable to ADD next: P10 (clean, fixes a live inconsistency), T9 (clean assembly), and
 P15 (the hard keystone). The rest are explanatory and honestly heuristic where flagged.
+
+---
+
+## Theorem 9 (scope of the categorical advantage: a PRECISE iff). EXACT given T1/T2/T5/T3 + a coverage count.
+
+This promotes the boxed "3-condition" scope claim to a precise statement and CORRECTS it: the box
+("CF beats tabular iff d>1 AND sample-starved AND shared") conflates three gaps with three
+DIFFERENT roles. Skill is on UNSEEN pairs (targets a drone never pulled). Conditions: (i)
+PERSONALIZED rank d>1; (ii) SAMPLE-STARVED T = o(n) (a drone pulls one target/round, so it engages
+≤ T of n targets; for the anytime corollary the relevant quantity is cT = o(n), per T3); (iii)
+SHARED channel ρ > 0.
+
+(A) [vs structure-free TABULAR: the categorical mechanism] By T1 a structure-free learner has
+unseen-pair skill = 0 in EVERY regime. A CF learner attains Ω(1) unseen-pair skill iff (iii) ρ > 0
+AND R is structured (rank ≥ 1): then U is identified from the broadcast (KEYSTONE clause) and the
+row is completed from O(d) own pulls (T2), so CF predicts unseen pairs with o(1) error. Hence the
+CATEGORICAL (zero-vs-nonzero) unseen gap vs tabular needs ONLY (iii) + structure, and holds even at
+d = 1 (CF recovers the rank-1 popularity that tabular cannot) and even when sample-rich.
+
+(B) [vs the POPULARITY / additive baseline: the role of d>1] Against the rank-1 popularity / additive
+model (UCBHomo / BiasModel, which already attains the rank-1 part), the unseen gap Δ_pop is Ω(1) iff
+(i) d > 1. At d = 1, R = popularity and CF's per-drone ranking coincides with the shared popularity
+ranking (T5), so Δ_pop = 0; for d > 1 the personalization (the interaction orthogonal to the additive
+subspace, T5) is recoverable by CF but not by the additive model, giving Δ_pop = Ω(1).
+
+(C) [role of starvation: OPERATIONAL relevance] (A)/(B) concern the unseen-RESTRICTED skill, which is
+regime-independent (T1 holds in any regime; CF's recovery needs only ρ>0). Starvation (ii) is what
+makes the unseen advantage drive the OVERALL / ANYTIME metric: the fraction of a drone's targets that
+stay unseen is 1 − E|pulled|/n = 1 − Θ(T/n), which → 1 iff T = o(n). When sample-rich (T = Ω(n)) the
+per-pair gap persists but unseen pairs are rare, so by T3 the anytime gap closes.
+
+**Necessity (summary).** ¬(iii) [ρ=0] ⇒ CF sees only own pulls = Definition 1 ⇒ CF unseen skill = 0
+(no gap, T1). ¬(i) [d=1] ⇒ Δ_pop = 0 (T5), though Δ_tabular can still be > 0. ¬(ii) [sample-rich]
+⇒ the unseen advantage is operationally negligible (T3).
+
+**Proof.** (A) T1 gives the 0 floor for tabular; T2 gives CF's o(1) unseen error for ρ>0 (via the
+U-identification clause; see KEYSTONE GAP for the one cited step). (B) T5. (C) unseen-fraction:
+each round adds ≤ 1 distinct pulled target, so |pulled| ≤ T and, when T = o(n) (collisions rare),
+E|pulled| = Θ(T); hence unseen-fraction = 1 − Θ(T/n). T3 converts that fraction into the anytime
+gap. ∎
+
+**Reading (the correction).** The honest scope is NOT a single 3-way "iff." (iii)+structure already
+give the CATEGORICAL unseen gap vs tabular (the headline). (i) d>1 is what's additionally needed to
+beat the POPULARITY baseline. (ii) starvation is what makes the unseen advantage OPERATIONALLY
+dominant. Three conditions, three distinct roles, the paper/tutorial scope box should say so rather
+than ANDing them against one baseline. Promotes proposed-T9 to a stated result.

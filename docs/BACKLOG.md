@@ -348,6 +348,42 @@ NEXT EXPERIMENTS (queued): H9 held-out gamma (RUNNING); H10 reward-gradient Choi
 H11(b) precision heterogeneous-noise sanity; eps-greedy contention unification (H2 follow-up);
 H4 calibration.
 
+## AUDITS (2026-05-23, two background agents)
+- ZK-COMPLIANCE AUDIT: CLEAN. All methods/variants (pilot_noise + pilot_baselines) and all
+  harnesses respect no-prior-knowledge (only d_hat, never P/U/R/true-rank/types), no-communication
+  (private per-instance state, no shared/global mutable, no learner reads another's state), and
+  partial-noisy-broadcast-only. Borderline-but-fine: OracleMate Rrow is env-only (commented);
+  contention loss-signal choices[idx]==-1 is own public outcome; ChoiceCF within=True negatives use
+  the PUBLIC offer set (broadcast), within=False is the strict-ZK variant. No code change needed.
+- NOVELTY / PRIOR-WORK: the niche is OPEN but a niche (novelty is COMPOSITIONAL: all 4 constraints
+  together, decentralized+private-params + broadcast-only + online/starved + unseen-pair categorical).
+  CLOSEST neighbor = Multi-User RL with low-rank rewards (Nagaraj/Agarwal 2022, arXiv:2210.05355),
+  which CENTRALIZES trajectories where we stay broadcast-only. Genuinely-new mechanisms: masking-
+  robust zero-WEIGHT estimator; anytime-under-starvation separation; comms-free symmetry-breaking on
+  a LEARNED low-rank preference (cf. multiplayer-MAB no-comms tradition); held-out choice-gamma
+  (Dawid-Skene ported online). Weakest: bare T1-T5 (decentralized restatement of completion bounds).
+  DONE: added closest-prior-work cites (nagaraj2022multiuser, katariya2017rank1, kang2024lowrank)
+  + amato2024ctde to main.tex related-work + references.bib (replaced the PLACEHOLDER); softened to
+  a COMPOSITIONAL-niche framing. TODO: fold the same cites into paper_v2/literature-review.
+
+## BENCHMARK CANDIDATES (scouted; ranked) -- non-trivial MRTA/MARL baselines to add
+- [Rank1, BUILD] CBBA-lite (broadcast-bid greedy/market auction): canonical MRTA baseline with the
+  consensus/comms step REMOVED -> each drone bids on the public broadcast using its CF-predicted
+  utility; contention resolved via public info only. Reviewers will expect it; stress-tests our
+  fixed-private-offset de-confliction vs the field's standard primitive under capacity-1 contention.
+- [Rank2] Per-agent CLUB/COFIBA (clustering-of-bandits run LOCALLY on the broadcast, cluster on the
+  CF-estimated latent factors since we lack context features): strongest structure-exploiting non-MF
+  baseline; tests clustering(discrete) vs factorization(continuous) in our regime.
+- [Rank3, MOSTLY HAVE] Broadcast-fed structure-free learner = our UCBIndep (per-arm table updated
+  from the broadcast, floor on unseen) -> already empirically backs Thm 1 ("broadcast useless to
+  tabular"); make this explicit in the paper.
+- [Rank4] Multiplayer-MAB no-comms matcher (SIC-MMAB / musical-chairs) on top of CF-predicted prefs:
+  the correct prior-art comparison for the contention symmetry-breaking claim.
+- [Rank5, BRACKET] Distributed/greedy Hungarian with learned utilities: a coordination-CEILING
+  bracket (NOT ZK-admissible), shows how much the no-comms constraint costs.
+- INADMISSIBLE (state+dismiss): MAPPO/QMIX/VDN (centralized training), LinUCB/COFIBA-with-features
+  (need context features), BanditMF (~= our BPMF), CBBA-with-consensus (needs comms).
+
 ## NEGATIVE / WEAK RESULTS: root cause + fix (2026-05-23 rigor review)
 All results below use >=6 seeds + bootstrap 95% CIs (single-seed numbers were only
 SMOKE PREVIEWS, never reported). Confirmed not ALS/convergence artifacts: the precision

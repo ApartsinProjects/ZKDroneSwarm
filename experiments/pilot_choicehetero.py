@@ -92,6 +92,9 @@ class OracleMate:
     """A teammate that always engages its TRUE best-in-offer target (maximally informative
     choices). The sanity-check 'expert': its gamma MUST be driven high by a working estimator."""
     def __init__(self, m, n, d, idx, seed, Rrow=None):
+        # Rrow is ENVIRONMENT-ONLY (this is a special teammate / env actor, not a method under
+        # test): it shapes only the public broadcast others observe, is never read by any learner,
+        # and OracleMate is excluded from learning (spec[i] skip) and from all metrics (good_idx).
         self.idx = idx; self.n = n; self.Rrow = Rrow
         self.pulled = np.zeros(n, bool)
 
