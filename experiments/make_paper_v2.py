@@ -224,7 +224,9 @@ A("<figure>%s<figcaption><b>Fig. 3.</b> Persistent vs i.i.d. masking: unseen/any
   "state-uniqueness durable (persistent) vs transient (i.i.d.).</figcaption></figure>"
   % img("F8_iid_vs_persistent.png", "F8"))
 A("<p><b>Out-of-harness transfer (independent simulator).</b> Beyond our generative code, we drop the "
-  "method as a drop-in policy into the separately-built tabula_drone PettingZoo environment, which has "
+  "method as a drop-in policy into <b>ZK-MRTA-Sim</b>, an independently-built, spatially-explicit "
+  "simulator of the same Zero-Knowledge / Zero-prior / Zero-communication MRTA setting (PettingZoo "
+  "package <code>tabula_drone</code>; not to be confused with our <i>Tabular</i> baseline), which has "
   "dynamics our model lacks: spatial geometry, target health that DEPLETES as engaged (a soft "
   "contention/matching pressure), episodic resets, and a Hungarian optimal-assignment oracle. We "
   "benchmark against the environment's own policies (Fig. 3b). On the efficiency metric (reward per "
@@ -234,7 +236,7 @@ A("<p><b>Out-of-harness transfer (independent simulator).</b> Beyond our generat
   "itself latent-based, so it is not an independent test of low-rankness). For the low-rank assumption "
   "itself we stress it directly (approximate low-rank via entrywise noise; a nonlinear link that "
   "raises the effective rank) and observe graceful degradation with the ranking preserved.</p>")
-A("<figure>%s<figcaption><b>Fig. 3b.</b> Independent tabula_drone simulator (spatial, depleting HP, "
+A("<figure>%s<figcaption><b>Fig. 3b.</b> ZK-MRTA-Sim, the independent simulator (spatial, depleting HP, "
   "episodic; matching oracle): converged skill and learning curves; ours beats the env's SGD-MF and "
   "UCBIndep, approaching the oracle.</figcaption></figure>"
   % img("F13_realsim.png", "F13"))

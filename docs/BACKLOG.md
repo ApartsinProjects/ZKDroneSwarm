@@ -71,6 +71,27 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   (unseen skill vs coverage). (d) reformat main.tex to RAS (Elsevier elsarticle) class when submitting.
 - [TODO RAS] (stretch, shared with T-RO) close/bound P15 keystone; small hardware or high-fidelity (Gazebo/
   Isaac/AirSim) demo would lift toward T-RO too.
+## ----- BATCH cycle 68 (user: do D2, D4, D7/H8, E-CTDE, RAS grounding) -----
+- [DONE cycle 68] D2 real ZK-MRTA env + real policies: tabula_bench.py re-run in the REAL PettingZoo
+  tabula_drone env (m=9, n=27, spatial, HP depletion, episodic). Our weighted-ALS (=RewardCF) skill
+  0.806 +-0.016 = BEST, approaches oracle, beats UCBIndep 0.721 and the env's own MF 0.251. The headline
+  advantage TRANSFERS to the real env. tabula_bench_real.json (catalogue row 38). RAS: feature this as the
+  named real-environment validation. (Further D2 extension if wanted: port UnifiedCF/EMCF as env policies.)
+- [DONE cycle 68] E-CTDE / Rank5 ceiling: pilot_ctde.py, catalogue row 64, docs/CTDE.md. PRICE OF ZERO
+  COMMUNICATION (8 seeds): CTDE-ceiling 0.553/0.489/0.434/0.271 vs AdaCF 0.448/0.205/0.153/0.100
+  (pool 240/60/30/15). Comms-free recovers 81% of the comms-full ceiling at no contention, ~35-42% under
+  contention (within-round coordination needs comms). All CTDE < oracle. Quantifies the no-comms cost.
+- [DONE cycle 68, HONEST NEGATIVE] D7/H8 type-prior shrinkage: pilot_d7.py, catalogue row 63, docs/D7.md.
+  10-seed result REVERSES the 1-seed smoke: type-prior UNDERPERFORMS population-prior at small k
+  (type-minus-pop k=1 -0.329, k=3 -0.161, k=5 +0.012, k=16 -0.018). Inferring the type from <d probes is
+  unreliable; a wrong centroid is a worse prior than the safe global mean. Population-prior (E7) is the
+  robust cold-start choice. (D7/H8 closed: honest negative, hierarchical prior needs known/reliable type.)
+- [RESOLVED-COVERED] D4 cold-start warm-start CONVERGENCE DYNAMICS: characterized by EXISTING results --
+  E7 (catalogue row 55: unseen skill vs #own probes = the cold-start convergence curve, incl. strict-ZK
+  recovery of U from the broadcast) + the anytime rho-sweep (row 30/F6: skill vs rounds, broadcast
+  warm-start acceleration vs isolated). No separate run needed; the two axes (own-data, rounds x rho)
+  jointly give the warm-start convergence dynamics. (If a dedicated single-drone factor-error-vs-round
+  curve is wanted later, it is a thin wrapper over run_anytime tracking ||U_hat-U|| per round.)
 ## ===== END RAS TRACK =====
 - [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type
       homogeneity? vary K (clusters) in the contention world; if all drones same type they all want the

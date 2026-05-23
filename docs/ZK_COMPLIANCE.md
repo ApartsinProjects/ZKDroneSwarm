@@ -258,3 +258,26 @@ CONCLUSION (baseline side): no competitor is exposed to privileged information. 
 the guessed d_hat for all; low-rank baselines complete their own observed matrix; the
 broadcast is identically masked and noised; ESTR is decentralized. The few asymmetries
 that exist are GENEROUS to the baselines, so our reported gaps are conservative.
+
+## Noise-variance exposure (cycle 68): is sigma known to learners?
+
+Question (raised in review): during estimation, is the OBSERVATION-NOISE LEVEL exposed to
+the drones? Answer: YES, the per-observation variance is passed to observe() as `rvar`
+(=sigma^2: sigma_own^2 for own outcome, sigma_obs^2 for a sensed teammate), and the
+precision-weighting methods USE it (RewardCF/ChoiceCF/BothCF: weight = 1/rvar; BPMF: rvar
+as the likelihood variance). Honest assessment:
+- This is NOT a ground-truth prior in the forbidden sense (no P/U/R/true-rank/types). It is
+  the OBSERVATION-MODEL noise level, i.e. SENSOR CALIBRATION, exactly the known measurement-
+  noise covariance that a Kalman filter assumes. A robot knowing its own sensor's noise (and,
+  in the sensing-grounded model, sigma(d) from its own range estimate) is admissible self-
+  knowledge, not knowledge of the hidden reward structure.
+- The HEADLINE does NOT depend on it: the `precision=False` (uniform-weighting) ablation
+  IGNORES sigma entirely, and uniform weighting is competitive-or-better in most regimes
+  (PRECISION_SWEEP: uniform wins unseen at ALL noise; PRECISION_HETERO: bounded precision
+  helps ONLY under heterogeneous noise). So the categorical result holds with NO knowledge of
+  sigma.
+- Strictly-sigma-agnostic path EXISTS: EMCF estimates the noise/posterior variance
+  variationally rather than being given it.
+- TODO (backlog): a residual-estimated-sigma RewardCF variant (estimate sigma from observed
+  prediction residuals via empirical Bayes) to remove even this mild assumption; and state the
+  sensor-calibration assumption explicitly in the paper's setting.

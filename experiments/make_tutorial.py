@@ -1714,9 +1714,12 @@ A("<p><b>Takeaway.</b> The story holds and widens. SoftImpute is excellent when 
   "these new baselines with non-overlapping error bars. No competitor wins in the regime that defines "
   "the problem.</p>")
 
-A("<h3>8.10 External validation: an independently-built simulator (transfer, not 'realism')</h3>")
-A("<div class='box warn'><b>A note on naming.</b> We previously called this 'a realistic simulator', "
-  "which over-claims, so we are precise here. <code>tabula_drone</code> is still a SIMULATOR (a "
+A("<h3>8.10 External validation: ZK-MRTA-Sim, an independently-built simulator (transfer, not 'realism')</h3>")
+A("<div class='box warn'><b>A note on naming.</b> We call this <b>ZK-MRTA-Sim</b>, an independently-built "
+  "simulator of the same Zero-Knowledge / Zero-prior / Zero-communication MRTA setting (its PettingZoo "
+  "package is <code>tabula_drone</code>; not to be confused with our <i>Tabular</i> baseline). We "
+  "previously called it 'a realistic simulator', which over-claims, so we are precise: it is still a "
+  "SIMULATOR (a "
   "PettingZoo environment), not real hardware or field data, and it is itself a LATENT-compatibility "
   "world, so it does not independently prove the world is low-rank. What it genuinely provides is "
   "<b>out-of-harness transfer</b>: a SEPARATELY-built codebase, which we did not design for this "
@@ -1730,7 +1733,7 @@ A("<p>We drop our estimator in as a drop-in policy (WeightedALS = RewardCF in th
   "policies: its SGD matrix-factorization, a per-arm UCB-Indep, random, and the optimal-assignment "
   "oracle. Score = efficiency (mean reward per step over the converged second half of episodes), "
   "normalized to skill = (policy &minus; random)/(oracle &minus; random) (Figure F13).</p>")
-A("<figure>%s<figcaption><strong>F13.</strong> Independent tabula_drone simulator (spatial, depleting "
+A("<figure>%s<figcaption><strong>F13.</strong> ZK-MRTA-Sim, the independent simulator (spatial, depleting "
   "HP, episodic; matching oracle): converged skill (left) and per-episode learning curves "
   "(right).</figcaption></figure>" % img("F13_realsim.png", "F13"))
 A("<p><b>Takeaway.</b> The advantage TRANSFERS out of our own harness: our method reaches skill ~0.81 "
