@@ -739,6 +739,55 @@ A("<div class='box'><b>Scouted ideas it builds on.</b> Dawid-Skene EM for annota
   "early rounds and high reward-noise, where distinguishing model-based from random choices matters "
   "most).</p></div>")
 
+A("<h3>5.7 Do we even need to guess the rank? (and how to adapt it)</h3>")
+A("<p>A natural worry: every structured method uses a GUESSED rank $\\hat d=8$ while the true rank is "
+  "$d=5$, and every drone starts from the SAME guess (it is a shared hyperparameter, not learned or "
+  "shared state, each drone's factors stay private). What if the guess is wrong, and can the method "
+  "learn the rank from data?</p>")
+A("<div class='formal'><h4>Effect of a wrong guess (and why over-guessing is safe)</h4>"
+  "<p>Write $\\hat d$ for the guessed rank, $d$ for the truth. Two regimes:</p>"
+  "<ul>"
+  "<li><b>Under-guess</b> ($\\hat d < d$): the model literally cannot represent the rank-$d$ structure; "
+  "it projects $R$ onto its best rank-$\\hat d$ subspace and loses the rest, so unseen skill drops. "
+  "This is the only harmful case.</li>"
+  "<li><b>Over-guess</b> ($\\hat d > d$): the extra $\\hat d - d$ latent directions carry no signal; the "
+  "ridge term $\\lambda\\lVert\\cdot\\rVert^2$ shrinks them toward $0$ and the data places $\\approx 0$ "
+  "energy there, so prediction is essentially unchanged. Over-guessing costs a little compute, not "
+  "accuracy.</li>"
+  "</ul>"
+  "<p>So the safe rule is GUESS GENEROUSLY ($\\hat d \\ge d$); the regularizer absorbs the slack. "
+  "Measured (Section 8.12, $\\hat d$ sweep, true $d=5$): unseen skill is $0.222$ at $\\hat d=2$ "
+  "(under-guess, hurts) and $\\approx 0.33$-$0.36$ for $\\hat d \\in \\{5,8,12,20\\}$ (flat, robust). "
+  "We deliberately run $\\hat d=8 > 5$ to show no oracle knowledge of the rank is used.</p></div>")
+A("<p><b>Can the method ADAPT the rank as data grows? Yes, several ways (scouted).</b> The key signal "
+  "is already in hand: the structure-confidence spectrum (Level 2, Section 5.5). The number of latent "
+  "directions the data CONFIDENTLY supports is the number of large eigenvalues of the aggregate design "
+  "$G_U=\\sum_{k,j}\\beta_{kj}p_kp_k^\\top$; early on only a few are well-determined, and more become "
+  "supportable as coverage grows, so the EFFECTIVE rank should start small and rise toward $d$.</p>")
+A("<ul>"
+  "<li><b>Automatic Relevance Determination (ARD).</b> Put a per-column precision prior "
+  "$\\alpha_r$ on the factor columns (a Gamma hyperprior in the variational EMCF); a column with no "
+  "signal has its posterior precision $\\alpha_r\\to\\infty$ and is pruned. The rank self-determines, "
+  "no hard choice, and grows with data. (Bayesian/VB matrix and tensor factorization with automatic "
+  "rank determination; Nakajima et al.; Zhao et al.)</li>"
+  "<li><b>Nuclear-norm / singular-value thresholding.</b> Penalize $\\lVert\\hat R\\rVert_*$ (sum of "
+  "singular values); the threshold $\\lambda$ implicitly selects rank by zeroing small singular values "
+  "(this is what our SoftImpute baseline already does).</li>"
+  "<li><b>Spectral-gap estimate.</b> Read the rank off the eigenvalue spectrum of the accumulated "
+  "$\\hat R$: keep the components above the noise floor (the gap between signal and noise singular "
+  "values).</li>"
+  "<li><b>Online greedy rank growth.</b> Start with small $\\hat d$; when held-out OWN-reward fit "
+  "plateaus, add one latent dimension and keep it only if it reduces validation error, decentralized "
+  "self-validation (the StackCF idea) drives the schedule.</li>"
+  "</ul>"
+  "<div class='box key'><b>Proposed method (ARD-EMCF), and what it should show.</b> Extend the "
+  "variational EMCF (Section 5.3) with ARD per-column precisions; each drone runs it locally (ZK). The "
+  "EFFECTIVE rank then tracks the data: $\\approx 1$-$2$ early (only the popularity direction is "
+  "pinned), rising toward the true $d=5$ as coverage accumulates, and never exceeding what the data "
+  "support (so it self-protects against an over-large $\\hat d$). The test: with $\\hat d$ set absurdly "
+  "high (say $20$), ARD-EMCF should recover effective rank $\\approx 5$ and MATCH the oracle-rank model, "
+  "removing the rank hyperparameter entirely. This is queued as the next method experiment.</div>")
+
 # 6 METRICS
 A("<h2 id='metrics'>6. Metrics (and why each one matters)</h2>")
 A("<p>To compare methods fairly we put every score on the same 0-to-1 ruler, called <b>skill</b>: the "
