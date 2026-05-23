@@ -91,10 +91,10 @@ if f:
     # group: ours (online weighted-ALS) vs batch-SVD hybrids vs structure-free floor
     styles = {
         "RewardCF": dict(marker="o", color="C0", lw=2.4, label="SwarmCF (online ALS, ours)"),
-        "PTF":      dict(marker="s", color="C3", ls="--", label="PTF (probe->SVD->finetune)"),
+        "PTF":      dict(marker="s", color="C3", ls="--", label="SwarmCF-batch"),
         "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "BPMF":     dict(marker="v", color="C5", ls="--", label="BPMF (Bayesian PMF)"),
-        "UCBIndep": dict(marker="x", color="gray", ls=":", label="UCBIndep (structure-free floor)"),
+        "UCBIndep": dict(marker="x", color="gray", ls=":", label="Independent-UCB (structure-free)"),
     }
     plt.figure(figsize=(6, 4))
     for nm, st in styles.items():
@@ -107,7 +107,7 @@ if f:
     plt.gca().invert_xaxis()  # left = full broadcast, right = heavy masking
     plt.xlabel("broadcast rate  $\\rho$  (fraction of broadcast seen)")
     plt.ylabel("UNSEEN-pair skill")
-    plt.title("Masking-robustness (unseen-pair skill): our online SwarmCF stays\nrobust as the broadcast is masked; batch-SVD hybrids (PTF/ESTR/BPMF) decay", fontsize=10)
+    plt.title("Masking-robustness (unseen-pair skill): our online SwarmCF stays\nrobust as the broadcast is masked; batch methods (SwarmCF-batch/ESTR/BPMF) decay", fontsize=10)
     plt.legend(fontsize=7, loc="lower left"); plt.tight_layout()
     save_fig("F5_crossover")
     print("F5_crossover  <-", os.path.basename(f))
@@ -120,10 +120,10 @@ if f:
     rounds = np.arange(1, T + 1)
     styles = {
         "RewardCF": dict(color="C0", lw=2.6, label="SwarmCF (online ALS, ours)"),
-        "PTF":      dict(color="C3", ls="--", label="PTF (probe-then-fit)"),
+        "PTF":      dict(color="C3", ls="--", label="SwarmCF-batch"),
         "ESTR":     dict(color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "Tabular":  dict(color="C2", ls="-.", label="Tabular (eps-greedy own-row)"),
-        "UCBIndep": dict(color="gray", ls=":", label="UCBIndep (n>>T: stuck exploring)"),
+        "UCBIndep": dict(color="gray", ls=":", label="Independent-UCB (n>>T: stuck exploring)"),
     }
     plt.figure(figsize=(6, 4))
     for nm, st in styles.items():
@@ -135,12 +135,12 @@ if f:
         plt.fill_between(rounds, mu - sd, mu + sd, color=st.get("color"), alpha=0.12)
     plt.axhline(0, color="black", lw=0.8, ls=":")
     plt.axvline(int(0.4 * T), color="red", lw=0.8, ls=":", alpha=0.6)
-    plt.text(int(0.4 * T) + 0.5, plt.ylim()[0] + 0.02, "probe-phase end\n(ESTR/PTF)",
+    plt.text(int(0.4 * T) + 0.5, plt.ylim()[0] + 0.02, "probe-phase end\n(ESTR/SwarmCF-batch)",
              fontsize=6, color="red")
     plt.xlabel("round  t")
     plt.ylabel("cumulative-normalized skill (reward earned)")
     plt.title("Anytime reward (rho=0.25): online CF earns from round 1;\n"
-              "explore-then-commit pays a probe phase; UCBIndep stuck (n>>T)", fontsize=10)
+              "explore-then-commit pays a probe phase; Independent-UCB stuck (n>>T)", fontsize=10)
     plt.legend(fontsize=7, loc="lower right"); plt.tight_layout()
     save_fig("F6_anytime")
     print("F6_anytime  <-", os.path.basename(f))
@@ -278,8 +278,8 @@ if f:
             ax.annotate(nm, (x, y), fontsize=7, xytext=(4, 4), textcoords="offset points")
         ax.set_xlabel("anytime cumulative-reward skill"); ax.set_ylabel("final-policy UNSEEN skill")
         ax.set_title("rho = %.2f" % rho, fontsize=10); ax.grid(alpha=0.25)
-    fig.suptitle("Pareto frontier (up-right = better): our methods dominate or match PTF on both "
-                 "axes;\nPTF sacrifices all anytime for unseen (dominated under masking, rho=0.25)",
+    fig.suptitle("Pareto frontier (up-right = better): our methods dominate or match SwarmCF-batch on both "
+                 "axes;\nSwarmCF-batch sacrifices all anytime for unseen (dominated under masking, rho=0.25)",
                  fontsize=9)
     fig.tight_layout(rect=[0, 0, 1, 0.94]); save_fig("F11_pareto")
     print("F11_pareto  <-", os.path.basename(f))
@@ -317,7 +317,7 @@ f = "results/pilots/tabula_bench_real.json"
 if os.path.exists(f):
     d = json.load(open(f)); sk = d["skill"]; traj = d["traj"]
     order = ["random", "mf", "ucb_indep", "weighted_als", "oracle"]
-    lab = {"random": "Random", "mf": "MF (env SGD)", "ucb_indep": "UCBIndep",
+    lab = {"random": "Random", "mf": "MF (env SGD)", "ucb_indep": "Independent-UCB",
            "weighted_als": "SwarmCF (ours)", "oracle": "Oracle"}
     col = {"random": "gray", "mf": "C3", "ucb_indep": "C4", "weighted_als": "C2", "oracle": "k"}
     fig, ax = plt.subplots(1, 2, figsize=(11, 4))
@@ -327,7 +327,7 @@ if os.path.exists(f):
               color=[col[p] for p in present])
     ax[0].set_xticks(range(len(present))); ax[0].set_xticklabels([lab[p] for p in present], rotation=20, ha="right", fontsize=8)
     ax[0].set_ylabel("skill = (policy - random)/(oracle - random)")
-    ax[0].set_title("Real simulator: converged skill", fontsize=10); ax[0].grid(alpha=0.25, axis="y")
+    ax[0].set_title("Converged skill", fontsize=10); ax[0].grid(alpha=0.25, axis="y")
     for p in ["random", "mf", "ucb_indep", "weighted_als", "oracle"]:
         if p in traj:
             arr = np.array(traj[p]); muc = arr.mean(0)
@@ -336,8 +336,8 @@ if os.path.exists(f):
                        ls="-" if p in ("weighted_als", "random", "oracle") else "--")
     ax[1].set_xlabel("episode"); ax[1].set_ylabel("reward per step")
     ax[1].set_title("Learning curves", fontsize=10); ax[1].grid(alpha=0.25); ax[1].legend(fontsize=7)
-    fig.suptitle("Validation in the real tabula_drone simulator (spatial, HP-depletion, episodic): "
-                 "ours beats the env's SGD-MF and UCBIndep, approaching the oracle", fontsize=9)
+    fig.suptitle("Validation in a separate higher-fidelity simulator (tabula_drone: spatial, HP-depletion,\n"
+                 "episodic): SwarmCF beats the simulator's SGD-MF and Independent-UCB, approaching the oracle", fontsize=9)
     fig.tight_layout(rect=[0, 0, 1, 0.93]); save_fig("F13_realsim")
     print("F13_realsim  <- tabula_bench_real.json")
 
@@ -385,7 +385,7 @@ if f:
            "PTF": dict(color="C5", marker="d", ls=":")}
     lab = {"ContentionAdaCF": "ContentionAdaCF (ours)", "ContentionCF": "ContentionCF (ours)",
            "CBBAlite": "CBBAlite (CBBA auction+backoff)", "MusicalChairs": "MusicalChairs (SIC-MMAB re-seat)",
-           "RewardCFconv": "greedy RewardCF", "PTF": "PTF (batch low-rank)"}
+           "RewardCFconv": "greedy SwarmCF", "PTF": "SwarmCF-batch (batch low-rank)"}
     x = list(range(len(pools)))
     plt.figure(figsize=(5.4, 3.8))
     for nm in methods:
@@ -409,7 +409,7 @@ if f:
     sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="SwarmCF (low-rank CF, ours)"),
            "KNNCF": dict(color="C1", marker="s", label="KNNCF (memory CF)"),
            "Tabular": dict(color="C3", marker="x", ls="--", label="Tabular (structure-free)"),
-           "UCBIndep": dict(color="C7", marker="d", ls=":", label="UCBIndep (structure-free)")}
+           "UCBIndep": dict(color="C7", marker="d", ls=":", label="Independent-UCB (structure-free)")}
     plt.figure(figsize=(5.2, 3.8))
     for nm in ["RewardCF", "KNNCF", "Tabular", "UCBIndep"]:
         if nm not in raw[str(Rs[0])]:
@@ -441,14 +441,15 @@ if f:
             plt.bar(x + (bi - (len(rhos) - 1) / 2.0) * wbar, mu, wbar, yerr=sd, capsize=2,
                     label="$\\rho$=%.2f" % r, alpha=0.6 + 0.4 * bi)
         cols = ["C0" if nm == "RewardCF" else ("C1" if nm in struct else "C7") for nm in methods]
-        DISPLAY = {"RewardCF": "SwarmCF"}
+        DISPLAY = {"RewardCF": "SwarmCF", "PTF": "SwarmCF-batch", "UCBIndep": "Independent-UCB",
+                   "MFSGD": "MF-SGD"}
         plt.xticks(x, [DISPLAY.get(nm, nm) for nm in methods], rotation=30, ha="right", fontsize=7.5)
         for tl, c in zip(plt.gca().get_xticklabels(), cols):
             tl.set_color(c)
         plt.ylabel("servicing skill  (0=random dispatch, 1=oracle)")
         plt.axhline(0, color="black", lw=0.6)
-        plt.title("Operational target-servicing mission: SwarmCF (blue) vs the low-rank field (orange)\n"
-                  "vs structure-free (gray); the separation opens under masking ($\\rho$=0.25)", fontsize=8.5)
+        plt.title("Operational target-servicing mission: online SwarmCF (blue) vs other low-rank methods\n"
+                  "(orange, incl. our SwarmCF-batch) vs structure-free (gray); separation opens at $\\rho$=0.25", fontsize=8.5)
         plt.legend(fontsize=8); plt.tight_layout(); save_fig("F17_mission")
         print("F17_mission  <-", os.path.basename(f))
 
@@ -459,8 +460,8 @@ if fc and fm:
     dc = json.load(open(fc)); rawc = dc["raw"]; rhos = dc["meta"]["rhos"]
     dm = json.load(open(fm)); rawm = dm["raw"]; mssz = dm["meta"]["ms"]
     sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="SwarmCF (low-rank CF, ours)"),
-           "PTF":      dict(color="C1", marker="s", lw=2, label="PTF (batch-refit low-rank)"),
-           "UCBIndep": dict(color="C7", marker="d", ls="--", label="UCBIndep (structure-free)"),
+           "PTF":      dict(color="C1", marker="s", lw=2, label="SwarmCF-batch (batch-refit)"),
+           "UCBIndep": dict(color="C7", marker="d", ls="--", label="Independent-UCB (structure-free)"),
            "Tabular":  dict(color="C3", marker="x", ls=":", label="Tabular (structure-free)")}
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     ax = axes[0]                                                 # (a) unseen skill vs broadcast rate rho
@@ -558,34 +559,52 @@ if f:
 
 # ---- F20: setting schematic (conceptual; tiny illustrative world) ----
 import matplotlib.patches as mpatches
-_r = np.random.RandomState(3)
-ms_, ns_, ds_ = 6, 10, 2
+from matplotlib.lines import Line2D
+_r = np.random.RandomState(7)
+ms_, ns_, ds_ = 8, 12, 2
 Ps_ = _r.randn(ms_, ds_); Us_ = _r.randn(ns_, ds_)
 Rs_ = Ps_ @ Us_.T; Rs_ = Rs_ / (np.abs(Rs_).max() + 1e-9)
-figS, axS = plt.subplots(figsize=(8.6, 3.7))
+figS, axS = plt.subplots(figsize=(9.0, 4.4))
 imS = axS.imshow(Rs_, cmap="RdYlGn", vmin=-1, vmax=1, aspect="auto")
-foc = 2                                   # focal robot row
-own = [3, 7]                              # focal robot's own (clean) engagements
-masked_rows = [4, 5]                      # teammates the focal robot is persistently blind to
+# crisp white cell grid
+axS.set_xticks(np.arange(-.5, ns_, 1), minor=True); axS.set_yticks(np.arange(-.5, ms_, 1), minor=True)
+axS.grid(which="minor", color="white", lw=1.4); axS.tick_params(which="minor", length=0)
+
+foc = 3                                    # focal robot row
+own = [2, 6, 9]                            # focal robot's own clean engagements (columns)
+masked_rows = [5, 6]                       # teammates persistently invisible to the focal robot
 visible_rows = [r for r in range(ms_) if r != foc and r not in masked_rows]
-for r in masked_rows:                     # grey out persistently-unseen teammate rows
-    axS.add_patch(mpatches.Rectangle((-0.5, r - 0.5), ns_, 1, facecolor="white", alpha=0.6, edgecolor="none"))
-axS.add_patch(mpatches.Rectangle((-0.5, foc - 0.5), ns_, 1, fill=False, edgecolor="#1f5fa8", lw=2.6))
-for j in own:                             # own clean engagements
-    axS.add_patch(mpatches.Rectangle((j - 0.5, foc - 0.5), 1, 1, fill=False, edgecolor="#0a7d4d", lw=2.6))
-for j in range(ns_):                      # everything else in the focal row is UNSEEN
+
+for r in masked_rows:                      # persistently-masked teammate rows: hatch out
+    axS.add_patch(mpatches.Rectangle((-0.5, r - 0.5), ns_, 1, facecolor="#9aa3ad", alpha=0.6,
+                                     edgecolor="none", hatch="//"))
+axS.add_patch(mpatches.Rectangle((-0.5, foc - 0.5), ns_, 1, fill=False, edgecolor="#1f5fa8", lw=3))
+for j in own:                              # focal robot's own clean engagements: green cells
+    axS.add_patch(mpatches.Rectangle((j - 0.5, foc - 0.5), 1, 1, fill=False, edgecolor="#0a7d4d", lw=3))
+for j in range(ns_):                       # rest of the focal row is UNSEEN: '?'
     if j not in own:
-        axS.text(j, foc, "?", ha="center", va="center", fontsize=10, color="#16191d", fontweight="bold")
-for r in visible_rows:                    # noisy, partial view of visible teammates
+        axS.text(j, foc, "?", ha="center", va="center", fontsize=11, color="#16191d", fontweight="bold")
+for r in visible_rows:                     # partial, per-observer-noisy view of visible teammates
     for j in _r.choice(ns_, 3, replace=False):
-        axS.plot(j, r, marker="o", ms=3.5, color="black", alpha=0.5)
-axS.set_xticks(range(ns_)); axS.set_xticklabels(["task %d" % (j + 1) for j in range(ns_)], fontsize=7, rotation=30)
+        axS.add_patch(mpatches.Circle((j, r), 0.17, facecolor="black", edgecolor="white", lw=0.6, alpha=0.85))
+
+axS.set_xticks(range(ns_)); axS.set_xticklabels(["t%d" % (j + 1) for j in range(ns_)], fontsize=7.5)
 axS.set_yticks(range(ms_))
-axS.set_yticklabels([("robot %d (focal)" % (r + 1)) if r == foc else ("robot %d" % (r + 1)) for r in range(ms_)], fontsize=7)
-axS.set_title(r"Hidden low-rank reward $R=PU^\top$ (green=good match, red=poor). The focal robot (blue) must act on"
-              "\nits WHOLE row from only its own clean engagements (green boxes), a partial+noisy view of teammates"
-              "\n(dots; greyed rows are persistently unseen), and NO messages. '?' = pairs it must predict.", fontsize=7.4)
-figS.colorbar(imS, ax=axS, fraction=0.025, pad=0.01, label="reward")
+axS.set_yticklabels([("robot %d (focal)" % (r + 1)) if r == foc else ("robot %d" % (r + 1))
+                     for r in range(ms_)], fontsize=7.5)
+axS.set_xlabel("tasks", fontsize=9)
+axS.set_title(r"The setting: a hidden low-rank reward $R = P\,U^\top$ that each robot must act on "
+              "from partial, private observation", fontsize=10.5)
+
+leg = [mpatches.Patch(facecolor="none", edgecolor="#1f5fa8", lw=3, label="focal robot's full row (must act on all of it)"),
+       mpatches.Patch(facecolor="none", edgecolor="#0a7d4d", lw=3, label="own clean engagement"),
+       Line2D([0], [0], marker="o", linestyle="None", markerfacecolor="black", markeredgecolor="white",
+              markersize=8, label="partial, per-observer-noisy view of a teammate"),
+       mpatches.Patch(facecolor="#9aa3ad", alpha=0.6, hatch="//", edgecolor="none", label="teammate persistently masked"),
+       Line2D([0], [0], marker="$?$", linestyle="None", color="black", markersize=10,
+              label="unseen (robot, task) pair to predict")]
+axS.legend(handles=leg, loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=2, fontsize=8, frameon=False)
+cb = figS.colorbar(imS, ax=axS, fraction=0.025, pad=0.01); cb.set_label("reward (green good, red poor)", fontsize=8)
 figS.tight_layout(); save_fig("F20_setting")
 print("F20_setting  <- (conceptual)")
 

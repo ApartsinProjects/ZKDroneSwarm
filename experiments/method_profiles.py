@@ -37,16 +37,23 @@ PROV = {"ours": "ours", "ours-hybrid": "ours (hybrid)", "standard": "standard, a
         "structfree": "structure-free baseline", "reference": "reference (upper bound)"}
 
 # Our invented methods are ONE family, SwarmCF, differing only in the menu axes (Table C).
-# Display name = "SwarmCF-variant (code name)" so the family reads as one; code class names unchanged.
+# Single display name per method (no code-name parentheticals): code class names unchanged.
 FAMILY = {"RewardCF": "SwarmCF", "ChoiceCF": "SwarmCF-Ch", "BothCF": "SwarmCF-RC",
           "EMCF": "SwarmCF-B", "ActiveCF": "SwarmCF-X", "CoordCF": "SwarmCF-Xc",
           "ContentionCF": "SwarmCF-D", "ContentionAdaCF": "SwarmCF-D+", "UnifiedCF": "SwarmCF-U",
           "HybridCF": "SwarmCF-H", "PTF": "SwarmCF-batch", "ARD-EMCF": "SwarmCF-B-ARD"}
 
+# Clean single display names for the literature / structure-free / reference methods (cite by name).
+DISPLAY_EXT = {"MFSGD": "MF-SGD", "UCBIndep": "Independent-UCB", "UCBHomo": "Homogeneous-UCB",
+               "CentralClean-ceiling": "Centralized (clean)", "CTDE-ceiling": "Centralized (CTDE)"}
+
 
 def disp(name):
-    """Display name: our methods shown as the SwarmCF family with the code name in parentheses."""
-    return ("%s (%s)" % (FAMILY[name], name)) if name in FAMILY else name
+    """Single display name per method: ours as the SwarmCF family, external methods by their
+    (clean) literature name."""
+    if name in FAMILY:
+        return FAMILY[name]
+    return DISPLAY_EXT.get(name, name)
 
 # ---- TABLE A: method operating profiles ----
 # name: (provenance, dist, comm, obs, prior, compute, blurb)
@@ -97,20 +104,20 @@ def is_reference(name):
 
 # ---- TABLE B: literature paradigms in context ----
 PARADIGMS = [
-    ("Auction / consensus / DCOP MRTA", "known utilities / costs", "message-passing",
-     "decentralized", "full task info", "needs communication AND known utilities"),
-    ("Cooperative MARL (CTDE; learned comms)", "none (learned)", "central training / learned messages",
-     "central-train or decentral-exec", "full (in training)", "central critic or message-passing, not comms-free"),
-    ("No-comms multiplayer bandits", "none (per-arm)", "none",
-     "decentralized", "own pulls + collisions", "comms-free but STRUCTURE-FREE (no unseen generalization)"),
+    ("Auction / consensus / DCOP MRTA", "task utilities or costs", "message-passing",
+     "decentralized", "full task info", "needs communication and known utilities"),
+    ("Cooperative MARL (CTDE)", "none (learned)", "central training or messages",
+     "central train, decentral. exec", "full (in training)", "needs a central critic or messages"),
+    ("No-communication multiplayer bandits", "none (per-arm)", "none",
+     "decentralized", "own pulls + collisions", "structure-free: no unseen generalization"),
     ("Low-rank completion / bandits", "low-rank", "centralized",
-     "centralized", "partial (uniform)", "centralized and/or explore-then-commit; not online-decentralized"),
-    ("Federated / gossip CF", "low-rank", "broadcast of parameters",
-     "decentralized", "partial", "shares PARAMETERS, not a passive outcome stream"),
-    ("Trait-based MRTA", "KNOWN traits", "varies",
-     "decentralized", "full", "capability/requirement traits are GIVEN, not learned"),
-    ("OURS (broadcast CF for ZK-MRTA)", "low-rank, GUESSED rank only", "none (passive sensing)",
-     "decentralized", "masked + noisy", "the hardest cell: no comms, no known utilities/traits, guessed rank"),
+     "centralized", "partial (uniform)", "centralized and/or explore-then-commit"),
+    ("Federated / gossip CF", "low-rank", "parameter exchange",
+     "decentralized", "partial", "shares parameters, not a passive stream"),
+    ("Trait-based MRTA", "known traits", "varies",
+     "decentralized", "full", "traits given, not learned"),
+    ("Ours: communication-free MRTA (this paper)", "low-rank, guessed rank only", "none (passive sensing)",
+     "decentralized", "masked + per-observer noisy", "none: the open cell (hardest)"),
 ]
 
 # ---- TABLE C: our methods by mechanism ----
@@ -132,19 +139,16 @@ MECHANISMS = [
 
 # ============================ renderers ============================
 def _legend_html():
-    return ("<p class='small'><b>Notation</b> [dist | comm | obs | prior | compute]: "
-            "<b>dist</b> D=decentralized, C=centralized; <b>comm</b> 0=none (passive), B=broadcast params, "
-            "full=message-passing; <b>obs</b> full / &rho;=masked / &rho;&sigma;=masked+noisy / self; "
-            "<b>prior</b> &ndash;=none, d&#770;=guessed rank (itself removable: the ARD variant learns it), "
-            "ARD=rank self-determined, d=true rank, U*=oracle factors; "
-            "<b>compute</b> online / batch / ETC=explore-then-commit / mem. "
-            "<b>In-harness every method is decentralized and communication-free</b> (one estimator per "
-            "robot on the passive broadcast); the low-rank methods differ in the update rule and "
-            "refinements, not the information regime. Our flagship sits in the hardest cell "
-            "[D | 0 | &rho;&sigma; | d&#770; | online]. <b>Our invented methods are ONE family, SwarmCF</b> "
-            "(shown as 'SwarmCF-variant (code name)'), differing only in the menu axes of the mechanism "
-            "table; everything else is a standard estimator we adapt, the structure-free paradigm, or a "
-            "reference ceiling.</p>")
+    return ("<p class='small'><b>Notation</b> [distribution | communication | observability | prior | "
+            "computation]: <b>distribution</b> D=decentralized, C=centralized; <b>communication</b> "
+            "0=none (passive sensing), full=message-passing; <b>observability</b> full / &rho;=masked "
+            "(fraction &rho; seen) / &rho;&sigma;=masked and per-observer-noisy / self-only; <b>prior</b> "
+            "&ndash;=none, d&#770;=guessed rank, d=true rank, U*=oracle factors; <b>computation</b> "
+            "online / batch / ETC=explore-then-commit. In our harness every method runs decentralized and "
+            "communication-free (one estimator per robot on the passive broadcast); the low-rank methods "
+            "differ only in the update rule. <b>SwarmCF</b> (our online method) and its batch variant "
+            "<b>SwarmCF-batch</b> are ours; the rest are standard low-rank estimators we adapt, the "
+            "structure-free paradigm, or reference ceilings.</p>")
 
 
 def html_profiles(subset=None):
@@ -165,10 +169,10 @@ def html_profiles(subset=None):
 
 def html_paradigms():
     rows = ["<table><tr><th class='l'>Paradigm</th><th class='l'>Prior knowledge</th>"
-            "<th class='l'>Communication</th><th class='l'>Distribution</th>"
-            "<th class='l'>Observability</th><th class='l'>Note</th></tr>"]
+            "<th class='l'>Communication</th><th class='l'>Decisions</th>"
+            "<th class='l'>Observation</th><th class='l'>Constraint it relaxes vs. ours</th></tr>"]
     for para, prior, comm, dist, obs, note in PARADIGMS:
-        ours = para.startswith("OURS")
+        ours = para.startswith("Ours")
         cell = ("<b>%s</b>" % para) if ours else para
         tr = "<tr style='background:#eef6ff'>" if ours else "<tr>"
         rows.append(tr + "<td class='l'>%s</td><td class='l'>%s</td><td class='l'>%s</td>"
@@ -200,7 +204,7 @@ def _mean(xs):
 
 
 # scorecard method order (grouped by provenance), restricted to the masked-harness family
-SCORE_ORDER = ["RewardCF", "PTF", "MFSGD", "BPMF", "ESTR", "UCBHomo",
+SCORE_ORDER = ["RewardCF", "PTF", "MFSGD", "BPMF", "ESTR",
                "UCBIndep", "Tabular", "Random"]
 
 
@@ -231,22 +235,19 @@ def html_scorecard(root):
     rows = ["<table><tr><th class='l'>Method</th><th class='l'>Provenance</th>"
             "<th>unseen skill<br>(&rho;=0.25, masked)</th><th>unseen skill<br>(&rho;=1, full)</th>"
             "<th>cumulative regret<br>(&rho;=0.25, lower=better)</th>"
-            "<th>rounds to 25%<br>of oracle</th><th class='l'>profile</th></tr>"]
+            "<th>rounds to 25%<br>of oracle</th></tr>"]
     for r in scorecard_rows(root):
         nm = "<b>%s</b>" % disp(r["name"]) if r["prov"].startswith("ours") else disp(r["name"])
         f = lambda v, p="%.3f": (p % v) if v is not None else "&ndash;"
         rows.append("<tr><td class='l'>%s</td><td class='l'>%s</td><td>%s</td><td>%s</td><td>%s</td>"
-                    "<td>%s</td><td class='l'><code>%s</code></td></tr>"
+                    "<td>%s</td></tr>"
                     % (nm, PROV[r["prov"]], f(r["unseen025"]), f(r["unseen100"]),
-                       f(r["regret"], "%.1f"), r["ttc"],
-                       r["badge"].strip("[]").replace(" | ", "|")))
+                       f(r["regret"], "%.1f"), r["ttc"]))
     rows.append("</table>")
     note = ("<p class='small'>One canonical masked harness (m=30, n=240, 8 seeds): unseen skill from the "
-            "bake-off, regret and time-to-competence from the anytime trajectories. Our online CF leads the "
-            "masked column and the operational columns; the batch-refit PTF (also ours) wins only the "
-            "full-broadcast column; structure-free sits at the floor. The confidence/contention/unified "
-            "refinements (EMCF, ContentionAdaCF, UnifiedCF) and the SoftImpute / KNNCF baselines are "
-            "evaluated in their dedicated experiments.</p>")
+            "bake-off, regret and time-to-competence from the anytime trajectories. SwarmCF leads the "
+            "masked column and the operational columns; the batch variant SwarmCF-batch wins only the "
+            "full-broadcast column; structure-free learners sit at the floor.</p>")
     return "\n".join(rows) + "\n" + note
 
 
@@ -278,7 +279,7 @@ def md_all(root=None):
     L.append(_md_row(["Paradigm", "Prior knowledge", "Communication", "Distribution", "Observability", "Note"]))
     L.append(_md_row(["---"] * 6))
     for para, prior, comm, dist, obs, note in PARADIGMS:
-        nm = "**%s**" % para if para.startswith("OURS") else para
+        nm = "**%s**" % para if para.startswith("Ours") else para
         L.append(_md_row([nm, prior, comm, dist, obs, note]))
     L.append("\n## C. Our methods by mechanism\n")
     L.append(_md_row(["Method", "Signal channel", "Exploration", "Confidence", "Contention", "Rank", "Coordination"]))

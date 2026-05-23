@@ -55,21 +55,21 @@ H = []
 A = H.append
 A("<!doctype html><html lang='en'><head><meta charset='utf-8'>"
   "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-  "<title>Acting on the Unseen (RAS)</title>%s<style>%s</style></head><body><div class='wrap'>" % (KATEX, CSS))
+  "<title>Acting on the Unseen</title>%s<style>%s</style></head><body><div class='wrap'>" % (KATEX, CSS))
 
 # ---------------- title / meta ----------------
 A("<h1>Acting on the Unseen: Communication-Free Collaborative Filtering for Decentralized "
   "Multi-Robot Task Allocation</h1>")
-A("<p class='sub'>Self-contained manuscript. Companion tutorial, full proofs, and per-seed data: "
-  "<a href='https://github.com/ApartsinProjects/ZKDroneSwarm'>ApartsinProjects/ZKDroneSwarm</a>. "
-  "Every reported number is regenerable from saved results.</p>")
+A("<p class='sub'>Author One<sup>a,&lowast;</sup>, Author Two<sup>a</sup><br>"
+  "<span class='small'><sup>a</sup>Affiliation, City, Country.&ensp;"
+  "<sup>&lowast;</sup>Corresponding author.</span></p>")
 
 A("<div class='hl'><b>Highlights</b><ul>"
-  "<li>A prior-free, communication-free MRTA regime with partial, privately-noisy observation.</li>"
-  "<li>Decentralized online collaborative filtering acts well on never-attempted tasks.</li>"
-  "<li>A categorical separation over structure-free learning, proven and empirically validated.</li>"
-  "<li>The broadcast's value and a positive scaling law: the swarm gets smarter as it grows.</li>"
-  "<li>Robust under masking; recovers most of a centralized full-communication ceiling.</li></ul></div>")
+  "<li>Prior-free, communication-free MRTA under partial, privately-noisy observation.</li>"
+  "<li>Decentralized online collaborative filtering acts on never-attempted tasks.</li>"
+  "<li>Categorical separation over structure-free learning: proven and validated.</li>"
+  "<li>A positive scaling law: the swarm gets smarter as it grows.</li>"
+  "<li>Robust to masking; recovers most of a centralized full-communication ceiling.</li></ul></div>")
 
 # ---------------- abstract ----------------
 A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes some combination of "
@@ -82,13 +82,13 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "well on tasks it never attempted, and onboard new tasks and robots, by running online low-rank "
   "collaborative filtering over the broadcast (<b>SwarmCF</b>). The advantage over any structure-free learner is <b>categorical</b>, not a "
   "constant factor: a structure-free learner is provably at the prior-mean error floor on unseen pairs. We "
-  "prove a matching per-robot sample complexity ($\\Theta(d)$ vs $\\Theta(n)$), an anytime "
+  "prove a matching per-robot sample complexity ($\\Theta(d)$ versus $\\Theta(n)$), an anytime "
   "(cumulative-reward) separation under task scarcity, and a deterministic condition under which "
   "decentralized recovery from the masked broadcast is exact (validated empirically). Experiments quantify "
   "the value of the broadcast, a positive scaling law (the swarm gets smarter as it grows), and dominance "
-  "over the low-rank field under limited observability, recovering most of a centralized "
-  "full-communication ceiling; the advantage also transfers to an independent spatial robot simulator we "
-  "did not design.</div>")
+  "over the other low-rank methods under limited observability, recovering most of a centralized "
+  "full-communication ceiling; the advantage also transfers to a separate, higher-fidelity spatial "
+  "robot simulator with different dynamics.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
   "filtering; low-rank matrix completion; communication-free coordination; multi-agent bandits; swarm "
   "robotics.</p>")
@@ -154,9 +154,9 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "the team grows, and validate the condition empirically (Section 5, Appendix C).</li>"
   "<li>We quantify, on a robotics-grounded task-servicing mission, the <b>value of the broadcast</b>, a "
   "<b>positive scaling law</b> (per-robot competence rises with team size), and <b>dominance over the "
-  "low-rank field</b> under limited observability, recovering most of a centralized full-communication "
-  "ceiling; and we show the advantage <b>transfers to an independent spatial robot simulator</b> we did "
-  "not design (Section 6).</li></ol>")
+  "other low-rank methods</b> under limited observability, recovering most of a centralized full-communication "
+  "ceiling; and we show the advantage <b>transfers to a separate, higher-fidelity spatial simulator</b> "
+  "with different dynamics (Section 6).</li></ol>")
 
 # ---------------- 2. related work ----------------
 A("<h2>2. Related work</h2>")
@@ -193,8 +193,9 @@ A("<p><b>Low-rank estimation and bandits.</b> Matrix completion gives centralize
 A("<p>Table 1 places the major paradigms on the four axes that define our problem; each established "
   "family relaxes at least one axis we hold fixed, and our cell, low-rank with only a guessed rank, no "
   "communication, decentralized, masked and noisy, is the one left open.</p>")
-A("<p class='small'><b>Table 1.</b> Paradigms on the axes prior knowledge / communication / distribution "
-  "/ observability.</p>")
+A("<p class='small'><b>Table 1.</b> Established paradigms versus our regime across prior knowledge, "
+  "communication, decision locus, and observation; the final column names the constraint each relaxes "
+  "(ours relaxes none).</p>")
 A(mp.html_paradigms())
 
 # ---------------- 3. problem setting ----------------
@@ -218,17 +219,15 @@ A("<div class='box'><b>The observation channel (the heart of the setting).</b> T
   "of action $a_{kt}$ it reads $R_{k,a_{kt}}+\\eta_{ikt}$ with $\\eta_{ikt}\\sim\\mathcal N(0,\\sigma^2)$ "
   "drawn independently per observer, so the same action is read differently by different robots. No robot "
   "ever sees the clean stream, and no two robots see the same stream.</div>")
-A("<p>This channel is the formal counterpart of physical sensing: a robot perceives a teammate's action "
-  "and its effect only when the teammate is within range (partial, persistent) and with a fidelity that "
-  "degrades with distance and the robot's own sensor (noisy, private). It is strictly weaker than the "
+A("<p>This channel is the formal counterpart of physical sensing: a robot perceives a teammate's "
+  "engagement and its outcome only when the teammate is within range (the persistent partial mask) and "
+  "reads it with a fidelity that degrades with distance and with its own sensor (the per-observer noise), "
+  "so it is physically realizable rather than a convenient abstraction. It is strictly weaker than the "
   "shared, clean broadcast usually assumed, and it makes decentralization <b>real</b>: persistent blind "
   "spots give every robot a permanently different view, and the private per-observer noise means even "
   "commonly-visible outcomes are read differently by each robot, so there is no shared, clean signal to "
-  "average toward agreement, the robots cannot converge to a common model by symmetry. The channel is "
-  "the formal counterpart of 2-D sensing geometry, a robot perceives a teammate's engagement only when "
-  "the teammate is within range (the persistent mask) and reads its outcome with a fidelity that degrades "
-  "with distance and with its own sensor (the per-observer noise), so it is physically realizable rather "
-  "than a convenient abstraction. Figure 1 illustrates the setting.</p>")
+  "average toward agreement and the robots cannot converge to a common model by symmetry. Figure 1 "
+  "illustrates the setting.</p>")
 A("<figure>%s<figcaption><b>Figure 1.</b> The setting. The robot $\\times$ task reward is hidden and "
   "low-rank, $R=PU^\\top$ (capability traits $p_i$, requirement traits $u_j$). A focal robot (blue row) "
   "must act on its <i>whole</i> row, including the many pairs it never engaged ('?'), using only its own "
@@ -252,7 +251,7 @@ A("<p>Each robot independently maintains low-rank factor estimates $\\hat P\\in\
   "entry receives zero <i>weight</i>, never an imputed zero <i>value</i>. The robot then acts greedily "
   "(with a small $\\varepsilon$ for exploration) on its <b>completed</b> reward row, which is defined for "
   "every task, including ones it never engaged.</p>")
-A("<div class='algo'><div class='cap'>Algorithm 1 &mdash; SwarmCF (run independently by each robot $i$)</div>"
+A("<div class='algo'><div class='cap'>Algorithm 1: SwarmCF (run independently by each robot $i$)</div>"
   "init $\\hat P,\\hat U$ small-random; observed set $\\Omega_i\\leftarrow\\emptyset$\n"
   "for round $t=1,\\dots,T$:\n"
   "    offered $S_{it}$; act $a_{it}\\leftarrow \\arg\\max_{j\\in S_{it}}\\langle\\hat p_i,\\hat u_j\\rangle$"
@@ -269,7 +268,7 @@ A("<p><b>Onboarding (fold-in).</b> A new task $j^\\star$ (or a new robot) is abs
   "observed engagements against the corresponding known factors, an $O(\\hat d)$ computation. This is the "
   "same operation that lets an existing robot predict an unseen task once the basis is recovered "
   "(Algorithm 2).</p>")
-A("<div class='algo'><div class='cap'>Algorithm 2 &mdash; Fold-in (onboard a new task / robot / unseen pair)</div>"
+A("<div class='algo'><div class='cap'>Algorithm 2: Fold-in (onboard a new task / robot / unseen pair)</div>"
   "given basis $B$ (the $\\hat d$-dim factors of the entities the newcomer has been observed against)\n"
   "and observations $y$ (the few rewards seen for the newcomer), with weights $W$:\n"
   "    $\\hat x \\leftarrow (B^\\top W B+\\lambda I)^{-1} B^\\top W y$    // $O(\\hat d)$ ridge solve\n"
@@ -300,7 +299,7 @@ A("<div class='thm'><b>Theorem 1 (structure-free floor).</b> For a structure-fre
   "skill is exactly $0$ and its squared error is at least the row variance $\\Omega(1)$. Moreover the "
   "broadcast is provably useless to it: its per-task estimate is by definition not a function of any "
   "other task or robot.</div>")
-A("<div class='thm'><b>Theorem 2 (CF row completion, $\\Theta(d)$ vs $\\Theta(n)$).</b> If the task "
+A("<div class='thm'><b>Theorem 2 (CF row completion, $\\Theta(d)$ versus $\\Theta(n)$).</b> If the task "
   "factors $U$ are known (rank $d$) and robot $i$ observes its true rewards on any set $\\Omega$ with "
   "$|\\Omega|\\ge d$ whose factors span $\\mathbb{R}^d$, then $p_i$ is the unique least-squares solution "
   "and $R_{ij}=\\langle p_i,u_j\\rangle$ is recovered <b>exactly for all</b> $j$. Per-robot sample "
@@ -337,8 +336,8 @@ A("<div class='thm'><b>Theorem 5 (collective speedup, why a swarm).</b> An isola
   "learner, achieved with no communication.</div>")
 A("<p>Theorems 4-5 are, to our knowledge, the first results that pin decentralized low-rank recovery from "
   "a persistent, private, per-robot mask to an explicit condition and tie its rate to team size; they are "
-  "what make the categorical claim self-contained rather than imported from centralized theory. We assess "
-  "the theory's correctness, novelty, and utility in Appendix A.</p>")
+  "what make the categorical claim self-contained rather than imported from centralized theory. Full "
+  "proofs are given in Appendix A.</p>")
 
 # ---------------- 6. experiments ----------------
 A("<h2>6. Experiments</h2>")
@@ -360,9 +359,8 @@ A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a
   "methods. In our harness <b>every</b> method runs decentralized and communication-free (one estimator "
   "per robot); the low-rank methods differ only in the update rule. Table 2 fixes each method's operating "
   "profile.</p>")
-A("<p class='small'><b>Table 2.</b> Operating profiles of the methods compared (the SwarmCF-family "
-  "refinements are deferred to future work). Notation [distribution | communication | observability | "
-  "prior | computation].</p>")
+A("<p class='small'><b>Table 2.</b> Operating profiles of the methods compared; SwarmCF-family "
+  "refinements are deferred to future work. The notation key precedes the table.</p>")
 A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "SoftImpute",
                            "UCBIndep", "Tabular", "Random", "CentralClean-ceiling", "CTDE-ceiling", "Oracle"]))
 
@@ -404,14 +402,15 @@ A("<p>Two experiments isolate what the team and the broadcast actually buy (Figu
   "of sharing structure.</p>")
 A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen skill versus $\\rho$ "
   "(left edge $=$ isolated). (b) Positive scaling: unseen skill versus team size $m$. Both rise for "
-  "low-rank CF and are flat for structure-free. (PTF is a batch-refit low-rank method shown for "
-  "comparison.)</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
+  "low-rank CF and are flat for structure-free. (SwarmCF-batch is a batch-refit variant of our method, "
+  "shown for comparison.)</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
 
 A("<h3>6.4 An operational mission and a centralized ceiling</h3>")
 A("<p>Framed as a target-servicing / dispatch mission, latent factors are robot capability traits and "
   "task requirement traits, each robot repeatedly services an offered target under range-limited, "
-  "distance-noisy sensing, SwarmCF on the same servicing-skill metric beats the entire low-rank field "
-  "under limited observability ($\\rho=0.25$): $\\approx 0.35$ versus the best of the field "
+  "distance-noisy sensing, SwarmCF on the same servicing-skill metric beats every other low-rank method "
+  "(including our own batch variant SwarmCF-batch) under limited observability ($\\rho=0.25$): "
+  "$\\approx 0.35$ versus the best alternative "
   "$\\approx 0.29$ with non-overlapping intervals, while structure-free learners sit at the random-"
   "dispatch floor (Figure 5). To bound the cost of our constraints we add two reference ceilings (not "
   "competitors): a centralized full-communication matcher with Hungarian assignment, and the same with "
@@ -420,9 +419,11 @@ A("<p>Framed as a target-servicing / dispatch mission, latent factors are robot 
   "within-round coordination under contention. Both ceilings sit below the omniscient oracle, and the "
   "price of observation noise is small, indicating that coordination, not estimation, is the binding "
   "constraint.</p>")
-A("<figure>%s<figcaption><b>Figure 5.</b> Operational target-servicing mission: SwarmCF (blue) versus "
-  "the low-rank field (orange) versus structure-free (gray). The separation opens under limited "
-  "observability ($\\rho=0.25$).</figcaption></figure>" % img("F17_mission.png", "mission"))
+A("<figure>%s<figcaption><b>Figure 5.</b> Operational target-servicing mission: our online SwarmCF "
+  "(blue) versus the other low-rank methods (orange, including our batch variant SwarmCF-batch) versus "
+  "structure-free learners (gray). The separation opens under limited observability ($\\rho=0.25$); at "
+  "full broadcast the batch completion methods catch up, as in Figure 2.</figcaption></figure>"
+  % img("F17_mission.png", "mission"))
 A("<p>Table 3 consolidates the comparison on the canonical masked harness.</p>")
 A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical masked harness.</p>")
 A(mp.html_scorecard(ROOT))
@@ -432,25 +433,27 @@ A("<p><b>Beyond one configuration.</b> The separation is structural rather than 
   "the three scope conditions stated below (an exploitable low-rank-but-personalized reward, task "
   "scarcity, and a shared channel), not from any particular team size or task count, and we observe the "
   "same pattern across $m$, $n$, $d$, and heterogeneity in additional sweeps. The most demanding "
-  "robustness test, transfer to an environment we did not design, is reported next.</p>")
-A("<p><b>In an independent, physically-grounded simulator.</b> To test transfer beyond our own harness we "
-  "re-run the comparison in a spatial multi-robot simulator we did not design, the open-source "
-  "<i>tabula_drone</i> environment (robots move in 2-D and engage targets with depleting health, episodic "
-  "dynamics), which differs from our model in dynamics, spatial structure, and protocol. Dropped in as a "
-  "policy, SwarmCF attains the best converged skill, $0.806\\pm0.016$, approaching the oracle and beating "
-  "both an independent-UCB learner ($0.721$) and the environment's own SGD matrix-factorization policy "
-  "($0.251$) (Figure 6). In this smaller, less task-scarce environment a structure-free learner is no "
-  "longer pinned at the floor, exactly as our scope predicts, yet SwarmCF still wins; that the advantage "
-  "transfers to an environment we did not construct is strong evidence it is a property of exploiting the "
-  "shared low-rank structure rather than of our synthetic harness.</p>")
-A("<figure>%s<figcaption><b>Figure 6.</b> External validity in the independent spatial <i>tabula_drone</i> "
-  "simulator (2-D motion, depleting-health targets, episodic). Left: converged skill, SwarmCF best and "
-  "near-oracle, above independent-UCB and the environment's own SGD-MF policy. Right: learning "
-  "curves.</figcaption></figure>" % img("F13_realsim.png", "real-environment validation"))
+  "robustness test, transfer to a separate, higher-fidelity simulator with different dynamics, is "
+  "reported next.</p>")
+A("<p><b>In a separate, higher-fidelity simulator.</b> To test transfer beyond our analytical harness we "
+  "re-run the comparison in a separate spatial multi-robot simulator, <i>tabula_drone</i> (robots move in "
+  "2-D and engage targets with depleting health, episodic dynamics), which differs from our model in "
+  "dynamics, spatial structure, and protocol and was not built around the collaborative-filtering method. "
+  "Dropped in as one policy alongside the simulator's own built-in policies, SwarmCF attains the best "
+  "converged skill, $0.806\\pm0.016$, approaching the oracle and beating both an independent-UCB learner "
+  "($0.721$) and the simulator's own SGD matrix-factorization policy ($0.251$) (Figure 6). In this "
+  "smaller, less task-scarce environment a structure-free learner is no longer pinned at the floor, "
+  "exactly as our scope predicts, yet SwarmCF still wins; that the advantage persists under markedly "
+  "different dynamics is evidence it reflects exploiting the shared low-rank structure rather than our "
+  "analytical harness.</p>")
+A("<figure>%s<figcaption><b>Figure 6.</b> External validity in a separate, higher-fidelity spatial "
+  "simulator (<i>tabula_drone</i>: 2-D motion, depleting-health targets, episodic). Left: converged "
+  "skill, SwarmCF best and near-oracle, above independent-UCB and the simulator's own SGD-MF policy. "
+  "Right: learning curves.</figcaption></figure>" % img("F13_realsim.png", "higher-fidelity simulator validation"))
 
 A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b> The advantage is not "
   "universal, and we state its boundary precisely. It holds when three conditions co-occur: "
-  "<b>(i) low-rank but personalized</b> structure ($1<d\\ll\\min(m,n)$): at $d=1$ the reward reduces to a "
+  "<b>(i) low-rank but personalized</b> structure ($1&lt;d\\ll\\min(m,n)$): at $d=1$ the reward reduces to a "
   "shared popularity order that a bias/pooling baseline already captures, so there is nothing personal to "
   "transfer; <b>(ii) task scarcity</b> ($n\\gg cT$): if instead sample-rich, a tabular learner eventually "
   "measures every entry and the unseen advantage vanishes; <b>(iii) a shared channel</b> ($\\rho>0$): "
@@ -482,8 +485,8 @@ A("<p><b>Future work (a planned follow-up).</b> The present paper deliberately k
   "communication-free de-confliction under capacity-1 contention via a fixed private offset, against "
   "no-communication auction and musical-chairs primitives; <i>(iii)</i> rank self-determination "
   "(removing the guessed $\\hat d$); <i>(iv)</i> the action/choice channel as a noise-immune alternative "
-  "to cardinal rewards; and <i>(v)</i> non-stationarity and team churn. We also plan a hardware / "
-  "high-fidelity-simulation study and a tightening of the adaptive-policy coverage rate.</p>")
+  "to cardinal rewards; and <i>(v)</i> non-stationarity and team churn. We also plan a hardware and "
+  "physics-based simulation study and a tightening of the adaptive-policy coverage rate.</p>")
 
 # ---------------- 8. conclusion ----------------
 A("<h2>8. Conclusion</h2>")
@@ -496,7 +499,16 @@ A("<p>We formalized multi-robot task allocation in its most restrictive but prac
   "that must learn to coordinate from nothing but what it can quietly see, becomes a useful baseline "
   "regime for autonomous multi-robot systems.</p>")
 
-# ---------------- appendices ----------------
+# ---------------- declarations ----------------
+A("<h2>Declaration of competing interest</h2>")
+A("<p class='small'>The authors declare that they have no known competing financial interests or personal "
+  "relationships that could have appeared to influence the work reported in this paper.</p>")
+A("<h2>Data availability</h2>")
+A("<p class='small'>The source code, the simulation harness, and the per-seed data required to reproduce "
+  "every figure and table in this paper are openly available at "
+  "<a href='https://github.com/ApartsinProjects/ZKDroneSwarm'>github.com/ApartsinProjects/ZKDroneSwarm</a>.</p>")
+
+# ---------------- references + appendices ----------------
 A("<h2>References</h2>")
 A("<ol class='small' style='line-height:1.5'>"
   "<li>B. P. Gerkey, M. J. Matari&cacute;. A formal analysis and taxonomy of task allocation in "
@@ -532,8 +544,8 @@ A("<ol class='small' style='line-height:1.5'>"
   "<li>C. Gentile, S. Li, G. Zappella. Online clustering of bandits. <i>ICML</i>, 2014.</li>"
   "<li>A. H. Murphy. Skill scores based on the mean square error and their relationships to the "
   "correlation coefficient. <i>Monthly Weather Review</i>, 116:2417&ndash;2424, 1988.</li>"
-  "<li>A systematic literature review on multi-robot task allocation. <i>ACM Computing Surveys</i>, "
-  "2024.</li>"
+  "<li>Athira K. A., J. Divya Udayan, U. Subramaniam. A systematic literature review on multi-robot "
+  "task allocation. <i>ACM Computing Surveys</i>, 2024.</li>"
   "<li>P. Goarin, G. Loianno. Graph neural network for decentralized multi-robot goal assignment. "
   "<i>IEEE Robotics and Automation Letters</i>, 2024.</li>"
   "<li>E. Nunes, M. Manner, H. Mitiche, M. Gini. A taxonomy for task allocation problems with temporal "
@@ -580,26 +592,26 @@ A("<ol class='small' style='line-height:1.5'>"
   "attention networks. <i>IEEE Robotics and Automation Letters</i>, 5(3):4509&ndash;4516, 2020.</li>"
   "</ol>")
 
-A("<h2>Appendix A. Theory: proofs and an audit (correctness, novelty, utility)</h2>")
-A("<p class='small'>We give self-contained proofs of the main results below, each followed by a brief "
-  "audit of its correctness, novelty, and utility. Throughout, factors are assumed in "
-  "general position (generic $P,U$), the persistent mask is $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ over "
-  "robot pairs, and $\\hat d\\ge d$.</p>")
+A("<h2>Appendix A. Proofs of the main results</h2>")
+A("<p class='small'>We give self-contained proofs of the main results below, each closed by a short "
+  "remark on the proof technique and its relation to existing results. Throughout, factors are assumed "
+  "in general position (generic $P,U$), the persistent mask is $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ "
+  "over robot pairs, and $\\hat d\\ge d$.</p>")
 A("<p class='small'><b>Theorem 1 (floor).</b> For an unobserved $j$ the estimate is a pre-chosen "
   "constant $b$; $\\mathbb{E}[(b-R_{ij})^2]=(b-\\mu_i)^2+\\mathrm{Var}_j\\ge\\mathrm{Var}_j=\\Omega(1)$, "
   "and on an offer of never-engaged tasks selection is independent of their rewards, giving skill $0$. "
-  "The broadcast cannot help a per-task estimate by definition. <i>Correct</i> (elementary); "
-  "<i>novel</i> as a clean impossibility for this setting; <i>necessary</i> (defines the floor).</p>")
+  "The broadcast cannot help a per-task estimate by definition. <i>Remark:</i> elementary; it fixes the "
+  "floor against which the categorical claim is measured.</p>")
 A("<p class='small'><b>Theorem 2 (row completion).</b> Stacking the observed entries gives "
   "$R_{i,\\Omega}=U_\\Omega p_i$; spanning makes $U_\\Omega$ full column rank, so "
   "$p_i=(U_\\Omega^\\top U_\\Omega)^{-1}U_\\Omega^\\top R_{i,\\Omega}$ is unique and exact, hence all "
-  "$R_{ij}$. <i>Correct</i> (linear algebra); standard given $U$, but the $\\Theta(d)$-vs-$\\Theta(n)$ "
-  "framing against the floor is the contribution; <i>necessary</i> (the mechanism).</p>")
+  "$R_{ij}$. <i>Remark:</i> the linear algebra is standard given $U$; the contribution is the "
+  "$\\Theta(d)$-versus-$\\Theta(n)$ contrast against the floor of Theorem 1.</p>")
 A("<p class='small'><b>Theorem 3 (anytime).</b> A structure-free learner earns above the mean only on an "
   "offer containing an already-engaged task; the engaged set has size $\\le t-1$ and is reward-blind, so "
   "by concavity of expected order statistics the per-round surplus is $\\le g(c(t-1)/n)$; summing gives "
-  "$\\le g(cT/n)\\to 0$. <i>Correct</i> (order; constant loose, mechanism exact); <i>high utility</i> "
-  "(justifies the anytime metric).</p>")
+  "$\\le g(cT/n)\\to 0$. <i>Remark:</i> an order argument (the mechanism is exact, the constant loose); "
+  "it justifies reporting the anytime metric alongside final-policy skill.</p>")
 A("<p class='small'><b>Theorem 4 (recovery).</b> A fully-observed invertible $\\hat d\\times\\hat d$ "
   "block pins the factor frame; per task, $R_{E_i(j),j}=P_{E_i(j)}u_j$ has a unique solution iff "
   "$P_{E_i(j)}$ has full column rank, giving exact $u_j$ (noiseless) and, with noise, error "
@@ -609,15 +621,17 @@ A("<p class='small'><b>Theorem 4 (recovery).</b> A fully-observed invertible $\\
   "probability $1-(1-1/n)^T\\approx 1-e^{-T/n}$; the number of distinct visible engagers of $j$ is "
   "$\\mathrm{Binomial}(|N_i|,1-e^{-T/n})$ with $|N_i|\\approx\\rho m$, and requiring $\\ge d$ spanning "
   "engagers for all $n$ tasks with a union bound gives $T=O\\!\\big(\\tfrac{nd}{\\rho m}\\log n\\big)$, "
-  "which decreases in the team size $\\rho m$ and requires $\\rho m>d$. <i>Correct</i> (proved + "
-  "validated, Appendix C); <i>novel</i> (deterministic condition for "
-  "persistent per-robot masking, where uniform-sampling completion fails); <i>high utility</i> (makes "
-  "the categorical claim self-contained). Residual: the finite-time rate under an adaptive policy.</p>")
+  "which decreases in the team size $\\rho m$ and requires $\\rho m>d$. <i>Remark:</i> the condition is "
+  "deterministic and is validated directly in Appendix C. We are not aware of a comparable recovery "
+  "condition for a persistent, per-observer mask, the regime where uniform-sampling matrix-completion "
+  "guarantees do not apply; the finite-time rate under a strongly-exploiting (adaptive) policy is left "
+  "open.</p>")
 A("<p class='small'><b>Theorem 5 (collective speedup).</b> A single row leaves a rank-$d>1$ column space "
   "unconstrained (floor); the pooled support reaches the completion threshold in $\\tilde O(d(1+n/m))$ "
-  "rounds. <i>Correct</i> (order, given Theorem 4); <i>high utility</i> (the why-a-swarm theory, matching "
-  "Section 6.3). The fold-in perturbation bound used above (cold-start error $=$ basis-recovery $+$ "
-  "own-probe noise $+$ ridge bias, exact at $k\\ge d$) is stated and proved in Appendix B.</p>")
+  "rounds. <i>Remark:</i> an order argument given Theorem 4; it is the formal counterpart of the "
+  "value-of-broadcast and positive-scaling results in Section 6.3. The fold-in perturbation bound used "
+  "above (cold-start error $=$ basis-recovery $+$ own-probe noise $+$ ridge bias, exact at $k\\ge d$) is "
+  "stated and proved in Appendix B.</p>")
 
 A("<h2>Appendix B. The fold-in error bound</h2>")
 A("<p class='small'>For a newcomer factor $x_\\star$ probed against an estimated basis "
@@ -638,8 +652,8 @@ A("<p class='small'>On the swarm's actual coverage patterns ($m=30,n=240,d=5,\\r
 A("<h2>Appendix D. Reproducibility</h2>")
 A("<p class='small'>All experiments use a block-model world with signed-cosine reward, 8 random seeds, "
   "and bootstrap 95% confidence intervals throughout; each reported number is averaged over the per-seed "
-  "runs. Source code, the simulation harness, and the per-seed data needed to regenerate every figure and "
-  "table are openly available in the project repository linked in the header.</p>")
+  "runs. The code and per-seed data needed to regenerate every figure and table are openly available "
+  "(see Data availability).</p>")
 A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robots, $n=240$ tasks, true "
   "rank $d=5$, guessed rank $\\hat d=8$, horizon $T=50$, offer size $c=20$, own-observation noise "
   "$\\sigma_{\\mathrm{own}}=0.1$, broadcast-observation noise $\\sigma_{\\mathrm{obs}}=0.3$, persistent "
