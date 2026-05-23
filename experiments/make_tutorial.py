@@ -207,7 +207,10 @@ NOTE_ROWS = [
            "they only passively watch the public outcome stream."),
     ("Scoring", ""),
     ("skill", "a 0-to-1 score: $0$ = no better than random, $1$ = as good as an all-knowing oracle. "
-              "Formally $(\\text{method}-\\text{random})/(\\text{oracle}-\\text{random})$. Lets us compare fairly."),
+              "Formally $(\\text{method}-\\text{random})/(\\text{oracle}-\\text{random})$. Lets us compare fairly. "
+              "This is a STANDARD normalization, not ours: it is the <i>skill score</i> of forecast "
+              "verification (Murphy, (forecast-reference)/(perfect-reference)) and the random/human-"
+              "<i>normalized score</i> ubiquitous in RL benchmarking (e.g. Atari); an affine rescaling of regret."),
     ("unseen-pair skill", "skill measured ONLY on drone-target pairs the drone never tried, the acid test of "
             "generalizing to the unknown."),
     ("anytime skill", "skill accumulated over ALL rounds (not just the end), rewarding methods that are good EARLY too."),

@@ -276,8 +276,14 @@ as the likelihood variance). Honest assessment:
   (PRECISION_SWEEP: uniform wins unseen at ALL noise; PRECISION_HETERO: bounded precision
   helps ONLY under heterogeneous noise). So the categorical result holds with NO knowledge of
   sigma.
-- Strictly-sigma-agnostic path EXISTS: EMCF estimates the noise/posterior variance
-  variationally rather than being given it.
-- TODO (backlog): a residual-estimated-sigma RewardCF variant (estimate sigma from observed
-  prediction residuals via empirical Bayes) to remove even this mild assumption; and state the
-  sensor-calibration assumption explicitly in the paper's setting.
+- Which methods ASSUME sigma known (use rvar=sigma^2): RewardCF(precision=True, default), ChoiceCF,
+  BothCF, BPMF, AND EMCF (correction: EMCF uses the TRUE likelihood precision 1/sigma^2; it estimates
+  the FACTOR posterior, NOT the observation noise), plus all descendants (ContentionCF/AdaCF, UnifiedCF,
+  CBBALite, MusicalChairs, CoordCF). sigma-AGNOSTIC (never use sigma): RewardCF(precision=False, uniform),
+  MFSGD, ESTR, PTF, SoftImpute, KNNCF, BiasModel, Tabular/UCB*/Random; and the CHOICE channel
+  (ChoiceZK/ChoiceCF cross-agent side) is inherently sigma-free (choices are noise-free).
+- Strictly-sigma-agnostic path: the uniform variant ignores sigma and is competitive-or-better in most
+  regimes, so the categorical headline does NOT require known sigma. NO method currently ESTIMATES sigma.
+- DONE (cycle 69): RewardCFEstSigma -- estimates per-source sigma^2 from prediction residuals (empirical
+  Bayes), removing the known-sigma assumption; validated to match the known-sigma version (see EST_SIGMA).
+  TODO: state the sensor-calibration assumption explicitly in the paper's setting.

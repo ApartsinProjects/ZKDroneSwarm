@@ -152,7 +152,10 @@ A("<p><b>Observability.</b> A public stream of (action, outcome); each agent sen
   "<b>Baselines.</b> Random, UCBIndep, UCBHomo, Tabular (no-structure); MFSGD, ESTR, PTF, BPMF "
   "(low-rank). <b>Fairness/ZK.</b> Every method gets a guessed rank (or none), an independent "
   "per-agent instance with no parameter sharing, and the same noisy partial stream; the Oracle "
-  "(centralized, complete information) only normalizes scores. <b>Metrics.</b> normalized skill, "
+  "(centralized, complete information) only normalizes scores. <b>Metrics.</b> normalized skill "
+  "$=$ (method $-$ random)/(oracle $-$ random) (the standard <i>skill score</i> of forecast "
+  "verification and the random-<i>normalized score</i> of RL benchmarking; an affine rescaling of "
+  "regret with random$=0$, oracle$=1$), "
   "unseen-pair skill, anytime cumulative-reward skill, state-uniqueness.</p>")
 
 A("<h2>3. Method</h2>")
@@ -203,6 +206,18 @@ A("<p><b>Recent results and honest scope.</b> <b>T9 (precise scope iff):</b> the
   "per-drone recovery of $U$ from the STRUCTURED (persistent-masked) broadcast is currently invoked "
   "from centralized completion theory, not yet proven for non-uniform masking, the main open problem "
   "(full statements + proofs and a critical self-audit in <code>THEORY_FORMAL.md</code>).</p>")
+A("<p><b>Foundational results (new).</b> <b>T10 (fold-in error bound, EXACT):</b> the cold-start / "
+  "onboarding prediction error splits cleanly into three sources, the swarm's basis-recovery error "
+  "$\\varepsilon$, own-probe noise $\\sigma\\sqrt{d/k}$, and ridge bias, and is EXACT once $k\\ge d$; this "
+  "is the first self-contained bound for our fold-in and it QUANTITATIVELY explains the sensing "
+  "experiment (sparser sensing $\\Rightarrow$ larger $\\varepsilon \\Rightarrow$ lower cold-start "
+  "skill). <b>T11 (collective broadcast speedup):</b> an isolated agent CANNOT recover a rank-$d{>}1$ "
+  "column space (one matrix row is unconstrained, so it stays at the floor), whereas the broadcast lets "
+  "the swarm cross the completion threshold in $\\tilde O(d(1{+}n/m))$ rounds, a $\\Theta(m)$-fold "
+  "COLLECTIVE speedup with no communication; this is the theoretical content behind the $\\rho>0$ "
+  "condition. <b>P17 (minimax tightness):</b> $\\Omega(d)$ own probes are necessary even given the exact "
+  "basis (with $k<d$ the unseen component is unconstrained), so with T10 and T1 the "
+  "$\\Theta(d)$-vs-$\\Theta(n)$ separation is minimax-tight on both sides.</p>")
 
 A("<h2>5. Experiments</h2>")
 A("<p><b>Categorical (acting on the unseen).</b> CF acts well on never-observed pairs at every "

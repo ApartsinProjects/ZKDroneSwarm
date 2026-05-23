@@ -92,6 +92,19 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   warm-start acceleration vs isolated). No separate run needed; the two axes (own-data, rounds x rho)
   jointly give the warm-start convergence dynamics. (If a dedicated single-drone factor-error-vs-round
   curve is wanted later, it is a thin wrapper over run_anytime tracking ||U_hat-U|| per round.)
+## ----- BATCH cycle 69 (noise-assumption + foundational theory + small items) -----
+- [DONE] Skill-score lineage cited in paper (§2) + tutorial glossary (Murphy skill score / RL normalized score).
+- [DONE] Residual-sigma variant: RewardCFEstSigma (pilot_noise.py) estimates per-source sigma^2 from
+  residuals. est-sigma study (pilot_estsigma.py, catalogue row 65): the 'noise known' assumption is NOT
+  load-bearing -- est-sigma BEATS known-sigma (+0.101 hetero unseen), uniform best of all. EMCF noise-
+  exposure correction in ZK_COMPLIANCE (EMCF uses true 1/sigma^2, does NOT estimate sigma).
+- [DONE] FOUNDATIONAL THEORY (user "last effort"): THEORY_FORMAL.md T10 (fold-in perturbation bound,
+  EXACT -- 3-source cold-start error, explains the sensing F16 curve), T11 (collective broadcast speedup,
+  Theta(m) faster + impossible-alone -- the theory behind rho>0), P17 (minimax Omega(d) lower bound ->
+  Theta(d)-vs-Theta(n) tight on both sides). Headlines folded into paper §4.
+- [TODO RAS] concrete SCENARIO sim (search/coverage/inspection with capability-vs-requirement semantics)
+  -- substantial (new env wrapper over the sensing-grounded harness); recommended next RAS step.
+- [TODO RAS] reformat docs/paper_aamas/main.tex -> Elsevier elsarticle class (do at submission time).
 ## ===== END RAS TRACK =====
 - [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type
       homogeneity? vary K (clusters) in the contention world; if all drones same type they all want the

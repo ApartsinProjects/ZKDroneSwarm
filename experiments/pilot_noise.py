@@ -942,6 +942,43 @@ class CoordCF(RewardCF):
         super().observe(t, choices, revealed, cand_sets, rvar)
 
 
+class RewardCFEstSigma(RewardCF):
+    """RewardCF that ESTIMATES the per-source observation noise sigma_k^2 from prediction
+    RESIDUALS (empirical Bayes) instead of being TOLD rvar. Removes the 'noise level known'
+    assumption: each refit (i) predicts the buffered observations with the current factors,
+    (ii) sets a shrunk per-source variance sigma_hat_k^2 = (sum residual_k^2 + a*s0^2)/(n_k + a),
+    (iii) re-runs the weighted ALS with w = 1/sigma_hat_k^2. EM-like; should MATCH the known-sigma
+    RewardCF (recover the precision benefit under heterogeneous noise) WITHOUT knowing sigma."""
+    def __init__(self, *a, sig_floor=0.05, sig_prior=0.3, prior_k=4.0, **hp):
+        hp.pop("precision", None)
+        super().__init__(*a, precision=True, **hp)
+        self.sig_floor = sig_floor; self.sig_prior = sig_prior; self.prior_k = prior_k
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):
+            r = revealed[k]
+            if not np.isnan(r):
+                self.rk.append(k); self.rj.append(int(choices[k]))
+                self.rv.append(float(r)); self.rw.append(1.0)      # placeholder; re-estimated in _refit
+        self._decay()
+        if (t + 1) % self.refit_every == 0:
+            self._refit()
+
+    def _refit(self):
+        if not self.rk:
+            return
+        K = np.asarray(self.rk); J = np.asarray(self.rj); V = np.asarray(self.rv)
+        pred = np.einsum('id,id->i', self.U[J], self.P[K])         # residuals under the CURRENT model
+        res2 = (pred - V) ** 2
+        s2 = np.full(self.m, self.sig_prior ** 2)                  # shrunk per-source noise estimate
+        for k in range(self.m):
+            mk = K == k; nk = int(mk.sum())
+            if nk > 0:
+                s2[k] = (res2[mk].sum() + self.prior_k * self.sig_prior ** 2) / (nk + self.prior_k)
+        s2 = np.maximum(s2, self.sig_floor ** 2)
+        self._als(K, J, V, 1.0 / s2[K])                           # weighted ALS with ESTIMATED precision
+
+
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand, d_hat=None):
     # NOTE (ZK fairness): d_hat=None defaults to the TRUE rank P.shape[1] -- this is an
     # ORACLE-RANK diagnostic path used by the older reward-class pilots; it is NOT the

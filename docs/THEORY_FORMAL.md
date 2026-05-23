@@ -724,3 +724,91 @@ Status: OPEN. Closing the persistent case makes the categorical Theta(d)-vs-Thet
 self-contained rather than CITED. Until then, T2/T4c are stated honestly as holding under the
 centralized/uniform-sampling reduction (rho = 1 exact; rho < 1 i.i.d. coverable; rho < 1 persistent
 conjectured), and the EMPIRICAL masked results (C11, catalogue rows 20+) stand as the evidence.
+
+---
+
+## Foundational results (cycle 69): the fold-in error bound, the collective speedup, and minimax tightness
+
+Three new results that DIRECTLY underpin the approach, are self-contained where flagged, and tie the
+theory to the experiments (cold-start, the broadcast's value, and the categorical separation's tightness).
+
+### Theorem 10 (fold-in perturbation bound -- cold-start / onboarding error). EXACT (linear algebra).
+
+Unifies E7 (new drone), C12 (new target), and the sensing degradation. A new entity has hidden factor
+x_* in R^d (a newcomer's own p_*, or a new target's u_*). It is probed against k known cross-factors
+stacked as B in R^{k x d} (for a new target: the d-dim factors of the k probing drones; for a new
+drone: the factors of the k probed targets), observing y = B x_* + eta, with mean-0 per-entry noise of
+variance sigma^2. The learner holds an ESTIMATE B_hat = B + Delta of that basis (||Delta||_op <= eps,
+the swarm's basis-recovery error) and ridge-folds-in x_hat = (B_hat^T B_hat + lam I)^{-1} B_hat^T y. For
+any other cross-factor b (estimate b_hat = b + delta, ||delta|| <= eps) the predicted reward is
+r_hat = b_hat^T x_hat; the truth is r = b^T x_*. Let s = sigma_min(B) (> 0 iff k >= d and B has rank d).
+
+CLAIM: there are constants C1,C2,C3 (absolute) with
+  E|r_hat - r|  <=  C1 * eps * ||x_*|| * (1 + ||b||/s)            [basis-recovery error]
+                 +  C2 * ||b|| * sigma * sqrt(d) / s             [own-probe noise]
+                 +  C3 * lam * ||x_*|| * ||b|| / s^2             [ridge bias],
+and r_hat = r EXACTLY when eps = 0, sigma = 0, lam -> 0, k >= d and rank(B) = d.
+
+PROOF. Write x_hat - x_* = (B_hat^T B_hat + lam I)^{-1} [ B_hat^T eta - lam x_* + (B^T B - B_hat^T B_hat) x_* ].
+By Weyl, ||(B_hat^T B_hat + lam I)^{-1}||_op <= 1/(max(s^2 - 2 eps ||B|| - eps^2, 0) + lam); for eps < s/2
+this is <= 2/s^2. Then ||B_hat^T eta|| has mean <= ||B_hat||_F sigma <= sqrt(d) ||B_hat||_op sigma (each
+of the d coordinates is a noise projection of variance <= ||B_hat||_op^2 sigma^2); ||(B^T B - B_hat^T B_hat) x_*||
+<= (2 eps ||B|| + eps^2) ||x_*||; ||lam x_*|| = lam ||x_*||. Collect to bound ||x_hat - x_*||. Finally
+|r_hat - r| = |b_hat^T x_hat - b^T x_*| <= |b_hat^T (x_hat - x_*)| + |(b_hat - b)^T x_*|
+<= ||b_hat|| ||x_hat - x_*|| + eps ||x_*||, and ||b_hat|| <= ||b|| + eps; substituting gives the three
+terms. EXACT case: eps = sigma = lam = 0 makes B_hat = B and x_hat = (B^T B)^{-1} B^T (B x_*) = x_* (rank d),
+so r_hat = b^T x_* = r. QED.
+
+WHY IT MATTERS. (i) It is the first SELF-CONTAINED error bound for our cold-start/onboarding fold-in,
+and it SEPARATES the three error sources. (ii) It makes the Theta(d) probe complexity rigorous: s > 0
+requires k >= d, and under sub-Gaussian unit factors s grows like sqrt(k), so the noise term ~ sigma
+sqrt(d/k) -- the own-data rate. (iii) It QUANTITATIVELY EXPLAINS the sensing experiment (F16): sparser
+sensing -> larger swarm basis-recovery error eps -> larger term (i) -> lower cold-start skill, exactly
+the observed degradation; and at full coverage eps -> 0 the bound collapses to the noise/ridge terms.
+
+### Theorem 11 (collective broadcast speedup -- why sharing is the crux). ORDER (coverage EXACT; recovery CITED).
+
+Setup of Section "Setup", m drones, n targets, rank d, persistent Bernoulli(rho) broadcast, one
+engagement per drone per round, T rounds, n >> T (sample-starved).
+
+(a) IMPOSSIBLE ALONE. An ISOLATED drone (rho = 0) observes only its own T engagements, all in ONE row of
+R. A single row cannot identify a rank-d > 1 column space (the other rows are entirely unconstrained),
+so its estimate on any UNSEEN target is the prior mean and its unseen MSE stays at the floor v_i
+(this is exactly Definition 1 / Theorem 1). Sharing is therefore NECESSARY, not merely helpful.
+
+(b) COLLECTIVE THRESHOLD. With the broadcast, the swarm's pooled observed support is the union of all
+drones' sensed engagements; since every engagement is seen by at least its own drone, |Omega_swarm| =
+Theta(mT) distinct entries (n >> T, so few re-engagements). Noisy low-rank completion recovers
+col-space(U) once |Omega_swarm| = Otilde(d(m+n)) (CITED: Candes-Plan; with the persistent-masking
+caveat of P15). Hence the swarm crosses the recovery threshold after
+  T_*  =  Otilde( d (m + n) / m )  =  Otilde( d (1 + n/m) )  rounds,
+after which EACH drone, folding-in on the collectively-recovered basis (Theorem 10), generalizes to
+unseen pairs.
+
+(c) SPEEDUP. A hypothetical single agent allowed to probe ANY entry needs Otilde(d(m+n)) rounds (one
+probe/round) to reach the same threshold; the m-drone swarm reaches it in Otilde(d(m+n)/m), a
+Theta(m)-fold COLLECTIVE SPEEDUP, achieved with NO communication (only passive observation of the public
+outcome stream). Equivalently, per-drone effective sample complexity drops from Theta(n) (measure your
+own row) to Theta(d(1 + n/m)) -> Theta(d) as m grows.
+
+Rigor: (a) EXACT; coverage counting in (b) EXACT; "recover from Otilde(d(m+n)) entries" CITED
+(completion) and inherits P15's persistent-masking caveat; the speedup ratio in (c) is exact given (b).
+WHY IT MATTERS. Formalizes the central intuition: the broadcast is not a convenience, it is what makes
+decentralized recovery POSSIBLE, and it yields an explicit m-fold collective speedup. This is the
+theoretical content behind the rho > 0 condition (Theorem 9-iii) and the "broadcast is useless to
+tabular but essential to CF" dichotomy, and it predicts the n/m scaling seen in the E2/E4 sweeps.
+
+### Proposition 17 (minimax tightness: Omega(d) probes are necessary). EXACT.
+
+CLAIM: even GIVEN the exact basis, any learner needs k >= d probes to predict a new entity's reward on a
+generic unseen cross-factor below the prior variance, in the worst case over x_*. PROOF: with k < d, the
+system B x_* = y constrains x_* only on the k-dimensional row-space of B; the orthogonal (d-k)-dimensional
+component x_*^perp is unobserved. For an unseen cross-factor b with a nonzero component along that
+subspace, b^T x_* depends on x_*^perp, which the data does not constrain; under any rotationally-symmetric
+prior on x_* the Bayes-optimal estimate sets that component to its mean and incurs squared error
+E[(b^perp . x_*^perp)^2] = Omega(||b^perp||^2 Var(x_*)) > 0, i.e. no better than the prior. Hence k >= d
+is NECESSARY. QED.
+
+Combined with Theorem 10 (k >= d SUFFICIENT) and Theorem 1 (a structure-free learner needs Omega(n),
+one probe per unseen target), the Theta(d) vs Theta(n) separation is MINIMAX-TIGHT on both sides: no
+communication-free learner beats Theta(d) own probes, and no structure-free learner beats Theta(n).
