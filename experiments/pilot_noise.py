@@ -641,29 +641,20 @@ class ContentionCF(RewardCF):
     their personal-but-uncontested favorites; (2) softmax SAMPLING instead of argmax, so
     drones with similar tastes diverge (symmetry breaking). Aims to WIN under contention,
     where greedy argmax makes everyone collide on the same few high-value targets."""
-    def __init__(self, *a, c_pen=0.5, tau=0.15, **hp):
+    def __init__(self, *a, eps_break=0.1, **hp):
         super().__init__(*a, **hp)
-        self.c_pen = c_pen; self.tau = tau
-        self.gcount = np.zeros(self.n)
+        # FIXED private per-target offset (deterministic symmetry breaking). Same-type drones
+        # have near-identical R_hat, so this fixed perturbation flips which near-tied target each
+        # consistently prefers -> they de-conflict stably (unlike random softmax, which re-collides
+        # every round). Clear winners (gap > eps_break) stay greedy, so value is preserved.
+        self.offset = self.rng.randn(self.n) * eps_break
 
     def select(self, t, cand):
         cand = np.asarray(cand)
-        score = self.U[cand] @ self.P[self.idx]
-        score = score - self.c_pen * np.log1p(self.gcount[cand])    # discount contested targets
-        logits = (score - score.max()) / max(self.tau, 1e-6)
-        p = np.exp(logits); s = float(p.sum())
-        if not np.isfinite(s) or s <= 0:
-            a = int(cand[self.rng.randint(len(cand))])
-        else:
-            a = int(cand[self.rng.choice(len(cand), p=p / s)])      # softmax sample (de-synchronize)
+        score = self.U[cand] @ self.P[self.idx] + self.offset[cand]
+        a = int(cand[int(np.argmax(score))])
         self.pulled[a] = True
         return a
-
-    def observe(self, t, choices, revealed, cand_sets, rvar):
-        for k in range(self.m):
-            if not np.isnan(revealed[k]):
-                self.gcount[int(choices[k])] += 1                   # broadcast engagement counts
-        super().observe(t, choices, revealed, cand_sets, rvar)
 
 
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):

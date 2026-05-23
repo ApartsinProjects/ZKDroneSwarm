@@ -44,7 +44,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 _CONV = dict(eps0=0.5, eps_min=0.05, eps_decay=0.97, als_sweeps=20, refit_every=1)
 REG = {
-    "ContentionCF": (ContentionCF, dict(c_pen=0.5, tau=0.15, **_CONV)),  # contention-aware decision
+    "ContentionCF": (ContentionCF, dict(eps_break=0.1, **_CONV)),  # fixed-offset symmetry breaking
     "ActiveCFconv": (ActiveCF,  dict(c_active=0.5, **_CONV)),
     "RewardCFconv": (RewardCF,  dict(**_CONV)),
     "UCBIndep":     (UCBIndep,  dict(c=2.0)),

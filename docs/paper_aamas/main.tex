@@ -193,13 +193,16 @@ random contender, earned reward normalized by the Hungarian optimum, pool swept
 $240\to15$). Three findings. (i) The \emph{categorical} unseen-pair result SURVIVES:
 preference quality (evaluated contention-free after training) stays high for CF
 ($\approx0.29$-$0.38$) versus the structure-free floor ($\approx0$) at every pool size,
-since it is a property of the learned model. (ii) The \emph{operational} earned-reward
-gap narrows as contention rises: CF leads clearly while there is slack but collapses
-toward the matching floor under severe contention (pool $=15$, $2{:}1$), where collisions
-not preferences bind, so without coordination the advantage is erased. (iii) A new
-finding: the collective active-exploration bonus BACKFIRES under a shared pool (it
-synchronizes probes, raising collisions), so plain $\epsilon$-greedy is more
-contention-robust; de-synchronizing active exploration is the natural next step.
+since it is a property of the learned model. (ii) On \emph{operational} earned reward CF
+already beats the field at low/moderate contention; greedy (argmax) CF collapses toward
+the matching floor only at severe contention. (iii) We WIN even there with a one-line
+decentralized fix, ContentionCF (the CF estimate plus a FIXED private per-target offset
+for deterministic symmetry breaking): at pool $=15$ it earns $0.105\,[0.096,0.114]$ versus
+$\approx0.05$ for argmax-CF/PTF (non-overlapping, $\sim2\times$), with no communication;
+it is regime-dependent (helps once collisions bind), so a collision-rate-adaptive offset
+would dominate. (iv) De-confliction must use \emph{private, fixed} randomness: per-round
+softmax and shared-signal (popularity / collective count-bonus) routing both backfire by
+re-colliding or re-synchronizing.
 Consistent soft-contention evidence: the independent tabula\_drone validation runs with
 HP depletion and our method still leads (skill $\approx 0.81$).
 
