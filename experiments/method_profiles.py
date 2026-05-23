@@ -104,17 +104,17 @@ def is_reference(name):
 
 # ---- TABLE B: literature paradigms in context ----
 PARADIGMS = [
-    ("Auction / consensus / DCOP MRTA", "task utilities or costs", "message-passing",
+    ("Auction / consensus / DCOP MRTA [3,4]", "task utilities or costs", "message-passing",
      "decentralized", "full task info", "needs communication and known utilities"),
-    ("Cooperative MARL (CTDE)", "none (learned)", "central training or messages",
+    ("Cooperative MARL (CTDE) [14,33]", "none (learned)", "central training or messages",
      "central train, decentral. exec", "full (in training)", "needs a central critic or messages"),
-    ("No-communication multiplayer bandits", "none (per-arm)", "none",
+    ("No-communication multiplayer bandits [6,7]", "none (per-arm)", "none",
      "decentralized", "own pulls + collisions", "structure-free: no unseen generalization"),
-    ("Low-rank completion / bandits", "low-rank", "centralized",
+    ("Low-rank completion / bandits [8,10]", "low-rank", "centralized",
      "centralized", "partial (uniform)", "centralized and/or explore-then-commit"),
-    ("Federated / gossip CF", "low-rank", "parameter exchange",
+    ("Federated / gossip CF [42,44]", "low-rank", "parameter exchange",
      "decentralized", "partial", "shares parameters, not a passive stream"),
-    ("Trait-based MRTA", "known traits", "varies",
+    ("Trait-based MRTA [5,25]", "known traits", "varies",
      "decentralized", "full", "traits given, not learned"),
     ("Ours: communication-free MRTA (this paper)", "low-rank, guessed rank only", "none (passive sensing)",
      "decentralized", "masked + per-observer noisy", "none: the open cell (hardest)"),
