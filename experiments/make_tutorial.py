@@ -152,7 +152,7 @@ A("<ul>"
   "targets (payload, sensor, geometry). The compatibility is unknown and latent, but structured: "
   "a few hidden factors explain most of it (it is approximately low-rank).</li>"
   "<li><strong>Sample starvation.</strong> There are many more targets than engagement rounds "
-  "(<code>n &gt;&gt; T</code>): a learner that treats each drone-target pair as its own unknown can "
+  "($n \\gg T$): a learner that treats each drone-target pair as its own unknown can "
   "never gather enough data.</li>"
   "<li><strong>No communication, partial observability.</strong> Drones neither coordinate nor "
   "share parameters. There is only a public stream of what happened (engagements and their "
@@ -340,7 +340,7 @@ A("<div class='step'>")
 A("<h3>Step 3.3 Fairness and zero-knowledge, for every method</h3>")
 A("<p>The same rules bind ours and all baselines: no method ever receives the latent factors, the "
   "true rank, or labels; structured methods all get the SAME <em>guessed</em> rank "
-  "<code>d_hat=8</code> (true <code>d=5</code>); every method is an INDEPENDENT per-drone learner "
+  "$\\hat d=8$ (true $d=5$); every method is an INDEPENDENT per-drone learner "
   "with no parameter sharing and no coordinator; all see the same partial+noisy stream. The "
   "<strong>Oracle</strong> (centralized, complete information) is used only to normalize scores, "
   "never as a competitor.</p></div>")
@@ -480,6 +480,17 @@ A("<p class='small'>Common thread: the no-structure methods are at the unseen fl
   "masking because they impute missing entries; BPMF generalizes but over-explores. Our online "
   "weighted-ALS (Section 5) keeps the generalization while removing the probe phase and the "
   "imputation bias.</p>")
+A("<div class='box warn'><b>Why not standard MARL baselines (MAPPO, QMIX, IPPO)?</b> They are "
+  "admissible only if they respect our setting, and most do not. The cooperative MARL workhorses "
+  "(MAPPO, QMIX, value-decomposition) are CTDE, <em>centralized training</em> with a shared/global "
+  "critic and joint-state access, decentralized only at execution. That requires a training-time "
+  "coordinator and shared parameters, which our minimal-assumptions setting forbids; including them "
+  "would hand a competitor information we deny everyone else. The one fully-decentralized, "
+  "communication-free MARL baseline, INDEPENDENT learners (Independent Q-Learning / independent "
+  "bandits), is, in our stateless per-round task-selection problem, exactly a per-agent bandit, which "
+  "<b>UCB-Indep and Tabular already instantiate</b> (and which sit at the unseen floor, Theorem 1). So "
+  "the relevant MARL class is covered; the rest are out of scope by construction, not omitted by "
+  "choice.</div>")
 
 # 5 METHODS
 A("<h2 id='meth'>5. Our methods</h2>")
@@ -488,15 +499,36 @@ A("<p>Each drone runs its own <strong>online weighted alternating least squares<
   "NOT observe gets zero <em>weight</em>, not an imputed zero <em>value</em>. (Batch 'fill-in' methods "
   "instead pretend a missing entry is a real 0, which is why they decay as more of the broadcast is "
   "masked.) A second, optional refinement weights each OBSERVED event by its precision "
-  "<code>1/sigma^2</code> (trust clean outcomes more than noisy ones); this helps when the broadcast "
+  "$1/\\sigma^2$ (trust clean outcomes more than noisy ones); this helps when the broadcast "
   "is noisy, but at low noise plain uniform weighting actually generalizes a little better to unseen "
   "targets, which we show honestly in the ablation (section 8.12). Estimation is separated from the "
   "decision policy, so the policy can be epsilon-greedy, UCB, or uncertainty-directed.</p>")
 A("<dl>"
   "<dt>RewardCF</dt><dd>cross-agent signal = teammates' (noisy) rewards. The simple workhorse; "
   "best on the anytime metric.</dd>"
-  "<dt>ChoiceZK</dt><dd>cross-agent signal = teammates' CHOICES only (global negatives, no menu): "
-  "strictly observes only actions. A noise-immune fallback.</dd>"
+  "<dt>ChoiceZK</dt><dd>cross-agent signal = teammates' CHOICES only (no rewards), with GLOBAL "
+  "negatives and NO menu. A noise-immune fallback: actions are discrete, so no reward noise can "
+  "corrupt them.</dd>"
+  "</dl>")
+A("<div class='box'><b>What 'global negatives, no menu' means (and the masking question).</b> "
+  "Treating a teammate's CHOICE as a preference is implicit feedback (Section 2.5): the engaged "
+  "target $a_k$ is a POSITIVE example for $k$'s factor, and we need NEGATIVE examples (targets $k$ "
+  "implicitly preferred less). Two ways to pick negatives: (i) from the teammate's offered MENU "
+  "$S_k$ (the $c$ targets $k$ chose among), which requires observing that menu, or (ii) GLOBAL "
+  "negatives, sample uniformly from ALL $n$ targets (within=False). ChoiceZK uses (ii), so it needs "
+  "only the single observed fact 'drone $k$ engaged target $a_k$', not the set $k$ was choosing from. "
+  "That is the stricter zero-knowledge channel, and E13 shows it costs nothing (ChoiceZK $\\approx$ "
+  "ChoiceCF), the menu carries no extra value. <b>On masking:</b> a CHOICE is observed exactly when "
+  "the engagement is DETECTED (the same $\\rho$ detection that gates the reward); a masked (undetected) "
+  "engagement reveals neither action nor reward. So ChoiceZK sees the detected SUBSET of teammates' "
+  "actions, not all of them, and the action it does see is clean (discrete), while the co-observed "
+  "reward is noisy. The choice channel's value is precisely that detection-without-noise still "
+  "carries preference information.</div>"
+  "<dl>"
+  "<dt>BothCF</dt><dd>fuse rewards + competence-weighted choices.</dd>"
+  "<dt>HybridCF / HybridCFconv</dt><dd>probe-then-online-ALS: a short UCB probe and SVD warm-start, "
+  "then our online weighted-ALS (PTF's probe and warm-start, but our estimator). The converged "
+  "variant (more ALS sweeps, refit every round) is the best on final-policy unseen skill.</dd>"
   "<dt>BothCF</dt><dd>fuse rewards + competence-weighted choices.</dd>"
   "<dt>HybridCF / HybridCFconv</dt><dd>probe-then-online-ALS: a short UCB probe and SVD warm-start, "
   "then our online weighted-ALS (PTF's probe and warm-start, but our estimator). The converged "
@@ -641,7 +673,31 @@ A("<h3>5.5 A deeper view of confidence: three levels (and how to leverage them)<
 A("<p>'Confidence' is not one number. Per-observation precision $1/\\sigma^2$ (Level 1) is the "
   "shallowest kind, and we saw it can even backfire. The useful confidence is SECOND-ORDER: how "
   "well-determined is the learned latent structure, and how much should one agent trust another "
-  "agent's revealed CHOICES. We separate three levels.</p>")
+  "agent's revealed CHOICES. Two orthogonal axes organize it: WHOSE confidence (my OWN vs a "
+  "TEAMMATE's) and WHICH channel (the REWARD signal vs the CHOICE signal). That gives a 2x2 we use "
+  "throughout.</p>")
+A("<div class='formal'><h4>The 2x2 of confidence (own vs teammate) x (reward vs choice)</h4>"
+  "<table><tr><th></th><th>REWARD channel (continuous outcomes)</th><th>CHOICE channel (discrete "
+  "actions)</th></tr>"
+  "<tr><td class='l'><b>OWN</b> (about me)</td>"
+  "<td class='l'>How well MY factor $p_i$ is pinned down by the rewards I have: posterior covariance "
+  "$\\Sigma_{p_i}=(\\sum_j \\beta_{ij}u_ju_j^\\top+\\lambda I)^{-1}$. Large $\\Rightarrow$ explore "
+  "(my taste is uncertain).</td>"
+  "<td class='l'>Whether I am EXPLOITING a confident model vs still exploring (my own "
+  "exploit-state), $1-\\epsilon_i$ or $1-\\mathrm{tr}\\,\\Sigma_{p_i}$-driven.</td></tr>"
+  "<tr><td class='l'><b>TEAMMATE</b> (about $k$)</td>"
+  "<td class='l'>How much to trust teammate $k$'s REWARD reports: their observation precision "
+  "$\\beta_{kj}=1/\\sigma_{\\mathrm{obs}}^2$ AND how well their data pin the target factor "
+  "$\\Sigma_{u_j}$. Drives the (bounded) fit weighting and shrinkage.</td>"
+  "<td class='l'>How INFORMATIVE / knowledgeable $k$'s CHOICES are: $\\gamma_k=\\Pr(k$ acts on its "
+  "model rather than at random$)$, inferred from $k$'s public actions. Drives the choice-channel "
+  "weight (ChoiceEM, Section 5.6).</td></tr></table>"
+  "<p>Levels 1-3 below populate this grid: Level 1 is per-observation precision (the REWARD cells, "
+  "shallow); Level 2 is the posterior structure confidence (own $\\Sigma_{p_i}$ and teammate "
+  "$\\Sigma_{u_j}$, the reward column); Level 3 is peer-policy confidence ($\\gamma_k$, the "
+  "teammate-choice cell). The own-choice cell is exploit-vs-explore self-assessment. Crucially OUR "
+  "confidence and the TEAMMATE's are different quantities, we never see a teammate's posterior, we "
+  "INFER its reliability from public behavior.</p></div>")
 
 A("<div class='formal'><h4>Level 1, observation confidence (a single measurement)</h4>"
   "<p>$\\beta_{kj}=1/\\sigma_{kj}^2$: how noisy is one sensed reward. Local, myopic. Leverage: "
@@ -975,7 +1031,7 @@ A("<p>True reward $R = P U^\\top$ of rank $d$, unit factors so $R_{ij}=\\langle 
 A("<div class='step'><h3>Theorem 1: the tabular floor (EXACT)</h3>")
 A("<p><b>Statement.</b> For a structure-free learner and any target j drone i never pulled, the "
   "estimate is the prior constant, so its squared error is at least the row variance "
-  "<code>Var_j(R[i,j]) = Omega(1)</code>, and its expected unseen-pair skill is exactly 0.</p>")
+  "$\\mathrm{Var}_j(R_{ij}) = \\Omega(1)$, and its expected unseen-pair skill is exactly 0.</p>")
 A("<p><b>Why it matters.</b> This is the floor the categorical win is measured against: a "
   "structure-free swarm is helpless on anything it has not personally tried, no matter how long it or "
   "its teammates run.</p>")
@@ -987,7 +1043,7 @@ A("<p><b>Proof (key steps).</b> (1) By definition the estimate on an unpulled j 
   "expected earned reward equals the unseen-set mean, giving skill 0.</p>")
 A("<p><b>Confirmed by.</b> Tabular/UCBIndep unseen ~0 at every density (F2), every rank (F4), every "
   "world (Section 8.7). <em>Corollary (pooling):</em> a learner that pools all drones (UCBHomo) "
-  "estimates the column mean <code>&#10216;p_bar, u_j&#10217;</code> = the rank-1 'popularity' term, "
+  "estimates the column mean $\\langle \\bar p, u_j\\rangle$ = the rank-1 'popularity' term, "
   "so it gets PARTIAL unseen skill (~0.17), not zero and not full, exactly as measured.</p></div>")
 
 A("<div class='step'><h3>Theorem 2: CF completes a whole row from O(d) (EXACT)</h3>")
@@ -998,10 +1054,10 @@ A("<p><b>Statement.</b> If the target factors U are known (rank d) and drone i o
 A("<p><b>Why it matters.</b> This is the engine of generalization and of onboarding/cold-start: a "
   "few observations plus the shared structure determine the entire row. Per-drone sample complexity "
   "drops from $\\Theta(n)$ (tabular) to $\\Theta(d)$, a categorical, not incremental, change.</p>")
-A("<p><b>Proof (key steps).</b> (1) Stacking j in Omega gives the linear system "
-  "<code>R[i,Omega] = U_Omega p_i</code>. (2) Spanning means U_Omega has rank d, so "
-  "<code>U_Omega^T U_Omega</code> is invertible and the solution <code>p_i = (U_Omega^T U_Omega)^{-1} "
-  "U_Omega^T R[i,Omega]</code> is unique and equals the true p_i. (3) Then "
+A("<p><b>Proof (key steps).</b> (1) Stacking $j\\in\\Omega$ gives the linear system "
+  "$R_{i,\\Omega} = U_\\Omega\\, p_i$. (2) Spanning means $U_\\Omega$ has rank $d$, so "
+  "$U_\\Omega^\\top U_\\Omega$ is invertible and the solution $p_i = (U_\\Omega^\\top U_\\Omega)^{-1} "
+  "U_\\Omega^\\top R_{i,\\Omega}$ is unique and equals the true $p_i$. (3) Then "
   "$\\langle p_i, u_j\\rangle$ reproduces $R_{ij}$ for every $j$. (With noise, the ridge "
   "estimate has error O(sigma^2 d / lambda_min), vanishing as data grows.) U itself is identified from "
   "the pooled broadcast by standard matrix completion once about d(m+n) entries are seen.</p>")
@@ -1092,7 +1148,7 @@ A("<p>A brand-new TARGET is onboarded for the whole swarm from about <code>d</co
   "via fold-in (Figure F3); tabular needs about <code>m</code> probes. Symmetrically, a NEW DRONE "
   "with zero history acts from the broadcast alone, folding in its own factor from a few probes "
   "(Figure F10), starting at population-average competence while a tabular newcomer is at the floor. "
-  "Both are <code>Theta(d)</code> vs <code>Theta(n)</code> separations.</p>")
+  "Both are $\\Theta(d)$ vs $\\Theta(n)$ separations.</p>")
 A("<figure>%s<figcaption><strong>F3.</strong> Target onboarding: CF onboards from about d probes; "
   "tabular needs about one per drone.</figcaption></figure>" % img("F3_onboard.png", "F3"))
 A("<figure>%s<figcaption><strong>F10.</strong> Newcomer cold-start: a new drone acts from the "
@@ -1116,7 +1172,7 @@ A("<p>Every low-rank method clears the no-structure floor on unseen pairs, so th
   "is twofold. (a) Masking-robustness (Figure F5): our online weighted-ALS unseen skill is flat as "
   "the broadcast is masked, while batch-SVD hybrids (PTF/ESTR/BPMF) decay. (b) Anytime (Figure F6): "
   "on cumulative reward we dominate at every horizon; UCBIndep is stuck near random because, with "
-  "<code>n &gt;&gt; T</code>, it never stops exploring untried arms, and PTF/ESTR pay a probe "
+  "$n \\gg T$, it never stops exploring untried arms, and PTF/ESTR pay a probe "
   "phase.</p>")
 A("<figure>%s<figcaption><strong>F5.</strong> Masking-robustness: online ALS stays high; batch-SVD "
   "hybrids decay; the no-structure floor is at zero.</figcaption></figure>" % img("F5_crossover.png", "F5"))
@@ -1131,8 +1187,8 @@ A("<p><b>Takeaway.</b> If you count reward as it is actually earned (the honest,
 
 A("<h3>8.6 Both observability channels</h3>")
 A("<p>Crossing masking with reward noise (Figure F7): the reward channel (RewardCF) degrades as "
-  "<code>sigma_obs</code> rises while the clean choice channel (ChoiceZK) is flat. The crossover is "
-  "at <code>sigma_obs ~ 1</code> (noise = half the signal range): for realistic noise the reward "
+  "$\\sigma_{\\mathrm{obs}}$ rises while the clean choice channel (ChoiceZK) is flat. The crossover is "
+  "at $\\sigma_{\\mathrm{obs}}\\approx 1$ (noise = half the signal range): for realistic noise the reward "
   "channel dominates; the choice channel is severe-noise insurance. No learned fusion is needed.</p>")
 A("<figure>%s<figcaption><strong>F7.</strong> Two channels: clean choices overtake noisy rewards "
   "only under severe noise.</figcaption></figure>" % img("F7_channels.png", "F7"))
@@ -1324,6 +1380,34 @@ A("<p><b>Takeaway (three honest findings from the numbers).</b></p>"
   "the more contention-robust choice. The fix for active exploration under contention is to "
   "de-synchronize it (per-drone jitter or a coordination term), a concrete next step.</li>"
   "</ul>")
+A("<h4>Winning under contention: keep the estimate, change the decision (ContentionCF)</h4>"
+  "<p>The right lesson is not 'CF loses under contention' but 'argmax is the wrong DECISION rule under "
+  "contention'. The CF ESTIMATE of who-suits-what is exactly as good as ever (the categorical result "
+  "above); what fails is everyone greedily grabbing their single best target. So we keep the estimator "
+  "and swap the policy for a contention-aware, decentralized (still communication-free) one. Three "
+  "ideas, in increasing sophistication, all ZK:</p>"
+  "<ul>"
+  "<li><b>Randomized (softmax) selection.</b> Instead of $\\arg\\max_j \\hat R_{ij}$, sample "
+  "$j\\sim\\mathrm{softmax}(\\hat R_{ij}/\\tau)$. Drones with similar tastes still diverge "
+  "probabilistically, so collisions drop; $\\tau$ trades raw quality against spread. Pure symmetry "
+  "breaking, the standard decentralized anti-coordination tool.</li>"
+  "<li><b>Contention-discounted value.</b> From the public broadcast each drone estimates each target's "
+  "POPULARITY (how many drones tend to want it) and discounts expected reward by the chance it loses "
+  "the collision: $\\tilde R_{ij} = \\hat R_{ij}\\cdot \\Pr(\\text{win } j)$, then "
+  "$\\arg\\max_j \\tilde R_{ij}$. This routes drones off crowded high-popularity targets onto their "
+  "personal-but-uncontested favorites, where CF's PERSONALIZATION (the $d>1$ part) is precisely the "
+  "edge: structure-free learners only know popularity, so they all pile onto the same few targets.</li>"
+  "<li><b>De-synchronized exploration.</b> Replace the shared count-bonus (which synchronizes probes) "
+  "with a per-drone private bonus / jittered tie-break, so exploration spreads across targets.</li>"
+  "</ul>"
+  "<div class='box key'><b>Why CF SHOULD win under contention with the right policy.</b> Contention "
+  "rewards DIVERSITY of choices, and diverse-but-accurate preferences are exactly what a personalized "
+  "($d>1$) CF model has and a popularity/structure-free model lacks: the latter induces every agent to "
+  "rank targets the same way (maximal collisions), while CF spreads agents along their true, differing "
+  "tastes. So the contention-aware decision should let CF's structural advantage convert into FEWER "
+  "collisions AND better matches. We implement <code>ContentionCF</code> (RewardCF estimate + "
+  "contention-discounted softmax selection) and test it against argmax-CF, PTF, and a matching oracle; "
+  "result reported here when the run lands.</div>")
 
 A("<h3>8.14 When does collaborative filtering actually help? (the honest scope)</h3>")
 A("<p>It would be dishonest to claim CF always wins. It does not. Pinning down EXACTLY when it beats a "
