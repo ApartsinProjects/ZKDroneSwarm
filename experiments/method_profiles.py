@@ -13,10 +13,10 @@ Provenance is explicit:
   - structure-free: the external paradigm we beat (per-arm UCB, tabular, random)
   - reference     : full-information upper bounds, NOT competitors (Oracle, CTDE ceiling)
 
-Harness fact (clarified): run_masked builds ONE estimator PER drone, each seeing only the
+Harness fact (clarified): run_masked builds ONE estimator PER robot, each seeing only the
 broadcast it observes and acting on its own row -- so EVERY bake-off method is decentralized
 and communication-free in-harness. ESTR is spectral/centralized in ORIGIN (Kang-Hsieh-Lee) but
-runs here as a per-drone reduction; its distinguishing feature in-harness is explore-then-commit,
+runs here as a per-robot reduction; its distinguishing feature in-harness is explore-then-commit,
 not centralization. Genuine centralization/full-info applies only to the Oracle and CTDE ceilings.
 
 Compact badge: [dist | comm | obs | prior | compute].
@@ -65,10 +65,10 @@ PROFILES = [
     ("BiasModel",       "standard",    "D", "0",   "rho,sig", "none", "online", "global + row + col bias (popularity, rank&le;2)"),
     ("BPMF",            "standard",    "D", "0",   "rho,sig", "dhat", "batch",  "Bayesian PMF, Salakhutdinov-Mnih (Gibbs, batch)"),
     ("SoftImpute",      "standard",    "D", "0",   "rho,sig", "dhat", "batch",  "nuclear-norm completion, Mazumder et al. (batch convex)"),
-    ("CLUB",            "standard",    "D", "0",   "rho,sig", "none", "batch",  "clustering of bandits, Gentile et al. (hard drone clusters)"),
-    ("ESTR",            "standard",    "D", "0",   "rho",     "dhat", "ETC",    "explore-then-spectral-commit, Kang-Hsieh-Lee (centralized in ORIGIN; run per-drone)"),
-    ("UCBIndep",        "structfree",  "D", "0",   "rho,sig", "none", "online", "per-(drone,target) UCB1; no cross-arm generalization"),
-    ("UCBHomo",         "structfree",  "D", "0",   "rho,sig", "none", "online", "shared arm table; assumes drone homogeneity"),
+    ("CLUB",            "standard",    "D", "0",   "rho,sig", "none", "batch",  "clustering of bandits, Gentile et al. (hard robot clusters)"),
+    ("ESTR",            "standard",    "D", "0",   "rho",     "dhat", "ETC",    "explore-then-spectral-commit, Kang-Hsieh-Lee (centralized in ORIGIN; run per-robot)"),
+    ("UCBIndep",        "structfree",  "D", "0",   "rho,sig", "none", "online", "per-(robot,target) UCB1; no cross-arm generalization"),
+    ("UCBHomo",         "structfree",  "D", "0",   "rho,sig", "none", "online", "shared arm table; assumes robot homogeneity"),
     ("Tabular",         "structfree",  "D", "0",   "rho,sig", "none", "online", "eps-greedy own-row table"),
     ("Random",          "structfree",  "D", "0",   "-",       "none", "-",      "uniform random selection (floor)"),
     ("CentralClean-ceiling", "reference", "C", "full", "full",  "dhat", "online", "centralized low-rank + Hungarian on NOISELESS, unmasked observation (no priors; the clean centralized ceiling)"),
@@ -139,7 +139,7 @@ def _legend_html():
             "ARD=rank self-determined, d=true rank, U*=oracle factors; "
             "<b>compute</b> online / batch / ETC=explore-then-commit / mem. "
             "<b>In-harness every method is decentralized and communication-free</b> (one estimator per "
-            "drone on the passive broadcast); the low-rank methods differ in the update rule and "
+            "robot on the passive broadcast); the low-rank methods differ in the update rule and "
             "refinements, not the information regime. Our flagship sits in the hardest cell "
             "[D | 0 | &rho;&sigma; | d&#770; | online]. <b>Our invented methods are ONE family, SwarmCF</b> "
             "(shown as 'SwarmCF-variant (code name)'), differing only in the menu axes of the mechanism "
@@ -262,9 +262,9 @@ def md_all(root=None):
          "rivals'. Provenance is explicit: PTF and the CF family are ours; MFSGD/ESTR/BPMF/SoftImpute/KNNCF/"
          "CLUB are standard estimators we adapt (cited); UCB/Tabular/Random are the structure-free paradigm; "
          "Oracle/CTDE are upper bounds.\n",
-         "**Harness fact:** run_masked builds ONE estimator per drone, so every bake-off method is "
+         "**Harness fact:** run_masked builds ONE estimator per robot, so every bake-off method is "
          "decentralized and communication-free in-harness; ESTR is spectral/centralized only in ORIGIN and "
-         "runs here as a per-drone explore-then-commit reduction. Genuine full information applies only to "
+         "runs here as a per-robot explore-then-commit reduction. Genuine full information applies only to "
          "Oracle and the CTDE ceiling.\n",
          "**Notation** `[dist | comm | obs | prior | compute]`.\n",
          "## A. Method operating profiles\n",

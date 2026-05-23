@@ -46,7 +46,7 @@ if f:
     plt.errorbar(x, [t[0] for t in tb], yerr=[t[1] for t in tb], marker="s", label="Tabular (independent)", capsize=3)
     plt.axhline(0, color="gray", lw=0.8, ls=":")
     plt.gca().invert_xaxis()
-    plt.xlabel("observation density  rho  (fraction of broadcast seen)")
+    plt.xlabel("broadcast rate  $\\rho$  (fraction of broadcast seen)")
     plt.ylabel("UNSEEN-pair skill")
     plt.title("Acting on never-observed pairs under heterogeneous masking")
     plt.legend(); plt.tight_layout(); save_fig("F2_unseen_masking")
@@ -88,13 +88,13 @@ if f:
 f = latest("results/pilots/c15_crossover_*.json")
 if f:
     d = json.load(open(f)); rhos = d["meta"]["rhos"]; raw = d["raw"]
-    # group: ours (online weighted-ALS) vs batch-SVD hybrids vs no-structure floor
+    # group: ours (online weighted-ALS) vs batch-SVD hybrids vs structure-free floor
     styles = {
         "RewardCF": dict(marker="o", color="C0", lw=2.4, label="SwarmCF (online ALS, ours)"),
         "PTF":      dict(marker="s", color="C3", ls="--", label="PTF (probe->SVD->finetune)"),
         "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "BPMF":     dict(marker="v", color="C5", ls="--", label="BPMF (Bayesian PMF)"),
-        "UCBIndep": dict(marker="x", color="gray", ls=":", label="UCBIndep (no-structure floor)"),
+        "UCBIndep": dict(marker="x", color="gray", ls=":", label="UCBIndep (structure-free floor)"),
     }
     plt.figure(figsize=(6, 4))
     for nm, st in styles.items():
@@ -105,7 +105,7 @@ if f:
         plt.errorbar(rhos, mu, yerr=sd, capsize=2, markersize=5, **st)
     plt.axhline(0, color="black", lw=0.8, ls=":")
     plt.gca().invert_xaxis()  # left = full broadcast, right = heavy masking
-    plt.xlabel("observation density  rho  (fraction of broadcast seen)")
+    plt.xlabel("broadcast rate  $\\rho$  (fraction of broadcast seen)")
     plt.ylabel("UNSEEN-pair skill")
     plt.title("Masking-robustness (unseen-pair skill): our online SwarmCF stays\nrobust as the broadcast is masked; batch-SVD hybrids (PTF/ESTR/BPMF) decay", fontsize=10)
     plt.legend(fontsize=7, loc="lower left"); plt.tight_layout()
@@ -303,7 +303,7 @@ if f:
                 ax.errorbar(rhos, mu, yerr=sd, capsize=2, markersize=5,
                             label=nm + (" (ours)" if "conv" in nm else ""), **s)
         ax.invert_xaxis(); ax.axhline(0, color="black", lw=0.7, ls=":")
-        ax.set_xlabel("observation density rho"); ax.set_ylabel("%s skill" % metric)
+        ax.set_xlabel("broadcast rate $\\rho$"); ax.set_ylabel("%s skill" % metric)
         ax.set_title("%s skill vs rho" % metric, fontsize=10); ax.grid(alpha=0.25)
     axes[0].legend(fontsize=7, loc="upper right")
     fig.suptitle("More fair baselines: SoftImpute (convex), kNN-CF (memory), BiasModel (additive) "
@@ -393,7 +393,7 @@ if f:
         sd = [np.std(raw[str(p)][nm]["anytime"]) for p in pools]
         plt.errorbar(x, mu, yerr=sd, capsize=2, markersize=5, label=lab.get(nm, nm), **sty.get(nm, {}))
     plt.xticks(x, ["%d" % p for p in pools])
-    plt.xlabel("offer pool size |S| (left = no contention, right = severe; m=30 drones)")
+    plt.xlabel("offer pool size |S| (left = no contention, right = severe; m=30 robots)")
     plt.ylabel("earned-reward skill (matching-normalized)")
     plt.title("De-confliction under capacity-1 contention: proactive PRIVATE offset (ours)\n"
               "beats the auction-backoff and MAB re-seating field primitives at severe contention", fontsize=8)
@@ -406,10 +406,10 @@ f = latest("results/pilots/sensing_*.json")
 if f:
     d = json.load(open(f)); raw = d["raw"]; Rs = d["meta"]["R_senses"]; covd = d["meta"].get("coverage", {})
     xs = [covd.get(str(r), r) for r in Rs]                 # x-axis = effective coverage
-    sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="RewardCF (low-rank CF, ours)"),
+    sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="SwarmCF (low-rank CF, ours)"),
            "KNNCF": dict(color="C1", marker="s", label="KNNCF (memory CF)"),
-           "Tabular": dict(color="C3", marker="x", ls="--", label="Tabular (no structure)"),
-           "UCBIndep": dict(color="C7", marker="d", ls=":", label="UCBIndep (no structure)")}
+           "Tabular": dict(color="C3", marker="x", ls="--", label="Tabular (structure-free)"),
+           "UCBIndep": dict(color="C7", marker="d", ls=":", label="UCBIndep (structure-free)")}
     plt.figure(figsize=(5.2, 3.8))
     for nm in ["RewardCF", "KNNCF", "Tabular", "UCBIndep"]:
         if nm not in raw[str(Rs[0])]:
@@ -458,10 +458,10 @@ fm = latest("results/pilots/scale_m_*.json")
 if fc and fm:
     dc = json.load(open(fc)); rawc = dc["raw"]; rhos = dc["meta"]["rhos"]
     dm = json.load(open(fm)); rawm = dm["raw"]; mssz = dm["meta"]["ms"]
-    sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="RewardCF (low-rank CF, ours)"),
+    sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="SwarmCF (low-rank CF, ours)"),
            "PTF":      dict(color="C1", marker="s", lw=2, label="PTF (batch-refit low-rank)"),
            "UCBIndep": dict(color="C7", marker="d", ls="--", label="UCBIndep (structure-free)"),
-           "Tabular":  dict(color="C3", marker="x", ls=":", label="Tabular (no structure)")}
+           "Tabular":  dict(color="C3", marker="x", ls=":", label="Tabular (structure-free)")}
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     ax = axes[0]                                                 # (a) unseen skill vs broadcast rate rho
     for nm in ["RewardCF", "PTF", "UCBIndep", "Tabular"]:
@@ -471,7 +471,7 @@ if fc and fm:
         sd = [np.std(rawc[str(r)][nm]["unseen"]) for r in rhos]
         ax.errorbar(rhos, mu, yerr=sd, capsize=2, markersize=5, **sty[nm])
     ax.axhline(0, color="black", lw=0.7, ls=":")
-    ax.set_xlabel("broadcast rate $\\rho$  (0 = isolated: each drone sees only its own outcomes)")
+    ax.set_xlabel("broadcast rate $\\rho$  (0 = isolated: each robot sees only its own outcomes)")
     ax.set_ylabel("unseen-pair skill")
     ax.set_title("(a) Collaboration value: the comms-free broadcast unlocks\n"
                  "generalization for low-rank CF, is worthless to structure-free", fontsize=8)
@@ -488,7 +488,7 @@ if fc and fm:
     ax.set_xlabel("swarm size $m$  (fixed $n$, horizon $T$, broadcast rate $\\rho$)")
     ax.set_ylabel("unseen-pair skill")
     ax.set_title("(b) Positive scaling: the swarm gets SMARTER as it grows;\n"
-                 "more drones feed the SHARED structure; structure-free stays flat", fontsize=8)
+                 "more robots feed the SHARED structure; structure-free stays flat", fontsize=8)
     ax.grid(alpha=0.25); ax.legend(fontsize=7)
     fig.tight_layout(); save_fig("F18_collab_scaling")
     print("F18_collab_scaling  <-", os.path.basename(fc), "+", os.path.basename(fm))
@@ -534,13 +534,13 @@ if f:
     B.grid(alpha=0.2, axis="y")
     # (c) new-asset readiness latency (full broadcast): skill on unseen vs own engagements
     C = ax[1, 0]; probes = rd["probes"]
-    for who, col, mk, labl, lw, ls in [("cf", "C0", "o", "new drone via CF fold-in", 2.2, "-"),
+    for who, col, mk, labl, lw, ls in [("cf", "C0", "o", "new robot via CF fold-in", 2.2, "-"),
                                        ("pop", "C5", "d", "popularity prior", 1.5, "--"),
                                        ("tab", "C7", "x", "structure-free newcomer", 1.5, "--")]:
         C.plot(probes, rd["lat"]["1.0"][who]["curve"], marker=mk, color=col, label=labl, lw=lw, ls=ls)
     C.axhline(0, color="black", lw=0.6, ls=":")
     C.set_xlabel("own engagements since joining the swarm"); C.set_ylabel("skill on never-tried targets")
-    C.set_title("(c) New-asset readiness: a new drone becomes effective on unseen\ntargets after a few engagements; a structure-free newcomer never does", fontsize=9)
+    C.set_title("(c) New-asset readiness: a new robot becomes effective on unseen\ntargets after a few engagements; a structure-free newcomer never does", fontsize=9)
     C.grid(alpha=0.25); C.legend(fontsize=7.5)
     # (d) resilience to attrition: skill retained under continuous turnover
     D = ax[1, 1]; rmeth = rs["methods"]; xr = np.arange(len(rmeth)); w = 0.38

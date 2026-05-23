@@ -508,3 +508,17 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   (caught when E7's new file did not appear at the repo root). save_results now ROOT-anchors a
   relative results_dir; misplaced file moved back. LESSON (again): cwd-relative paths in
   generators/savers are a recurring footgun -- anchor to ROOT.
+- Cycle 64 (RAS paper TERM/NAME CONSISTENCY pass): single sweep to make terminology and
+  method names identical across paper prose, tables, and figures. Standardized: "drone" to
+  "robot" (kept the proper env name tabula_drone); "observation density" to the canonical
+  "broadcast rate rho"; "no-structure"/"no structure" to "structure-free"; the flagship
+  figure label "RewardCF (low-rank CF, ours)" to "SwarmCF (...)" in F16/F18 so every embedded
+  figure shows the SwarmCF family name (F5/F6/F13/F17 already did); and one stray "tasks" to
+  "targets" inside the all-target mission paragraph (general framework stays "task", concrete
+  mission/examples stay "target"). PTF left as-is: the paper deliberately uses the code name
+  "PTF" in prose and "SwarmCF-batch (PTF)" in Table 2/3, so figures naming it "PTF" are
+  already consistent. method_profiles.py (single source of truth) updated; figures + paper
+  regenerated; verified in the rendered HTML (0 stray drone/observation-density/no-structure).
+  NOTE: the tutorial keeps its "drone" voice on purpose (drone-domain teaching doc, internally
+  self-consistent); it was NOT regenerated so its frozen drone figures do not mix with the
+  paper's robot figures.

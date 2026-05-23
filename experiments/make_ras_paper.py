@@ -368,7 +368,7 @@ A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "SoftImpu
 
 A("<h3>6.1 The categorical win and masking robustness</h3>")
 A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. SwarmCF acts well on "
-  "tasks it never engaged at every observation density, while the structure-free learners sit at the "
+  "tasks it never engaged at every broadcast rate, while the structure-free learners sit at the "
   "floor ($\\approx 0$) by construction, the categorical separation of Theorems 1-2. Among low-rank "
   "methods, SwarmCF's online updates stay robust as the broadcast is masked, whereas batch spectral "
   "completion (which imputes unobserved entries) decays; the two cross over near $\\rho\\approx 0.6$ and "
@@ -376,7 +376,7 @@ A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. 
   "best case for completion. The operationally relevant regime, partial observation, is exactly where "
   "the online estimator leads.</p>")
 A("<figure>%s<figcaption><b>Figure 2.</b> Unseen-pair skill versus broadcast rate $\\rho$. Structure-"
-  "free learners are pinned at the floor at every density; SwarmCF acts on the "
+  "free learners are pinned at the floor at every broadcast rate; SwarmCF acts on the "
   "unseen throughout and is robust under masking, while batch spectral completion decays as observation "
   "becomes partial.</figcaption></figure>" % img("F5_crossover.png", "categorical + masking"))
 
@@ -416,7 +416,7 @@ A("<p>Framed as a target-servicing / dispatch mission, latent factors are robot 
   "dispatch floor (Figure 5). To bound the cost of our constraints we add two reference ceilings (not "
   "competitors): a centralized full-communication matcher with Hungarian assignment, and the same with "
   "noiseless, unmasked observation. SwarmCF's communication-free de-confliction recovers about 81% of "
-  "the full-communication ceiling when tasks are plentiful; the residual gap is the genuine price of "
+  "the full-communication ceiling when targets are plentiful; the residual gap is the genuine price of "
   "within-round coordination under contention. Both ceilings sit below the omniscient oracle, and the "
   "price of observation noise is small, indicating that coordination, not estimation, is the binding "
   "constraint.</p>")
