@@ -158,13 +158,17 @@ A("<p><b>Multi-robot task allocation.</b> The taxonomies of Gerkey and Matari&ca
   "optimization, achieve coordination through <b>communication</b> and assume <b>known</b> task "
   "utilities or costs. Trait-based MRTA [5] matches robot capability vectors to task requirement "
   "vectors, but takes the traits as <b>given</b>. Our setting keeps the trait/low-rank view but makes "
-  "the traits <b>unknown and learned online</b>, with neither communication nor known utilities.</p>")
+  "the traits <b>unknown and learned online</b>, with neither communication nor known utilities; recent "
+  "surveys [18] document the rapid growth of learning-based MRTA, but the prior-free, communication-free "
+  "regime we study remains unaddressed.</p>")
 A("<p><b>Decentralized and learning-based coordination.</b> Communication-free multiplayer bandits "
   "(musical chairs [6], SIC-MMAB [7]) break symmetry without messages but are <b>structure-free</b> "
   "(per-arm), so they cannot generalize to unseen arms. Cooperative multi-agent RL (CTDE methods such as "
   "MAPPO [14]) and learned-communication methods (e.g. CommNet [15]) rely on centralized training or "
-  "message passing. Federated and gossip collaborative filtering share model parameters; we share "
-  "nothing but a passively-sensed outcome stream.</p>")
+  "message passing; recent learning-based decentralized assignment (e.g., graph neural networks for goal "
+  "assignment [19]) likewise presumes communication or centralized training. Federated and gossip "
+  "collaborative filtering share model parameters; we share nothing but a passively-sensed outcome "
+  "stream.</p>")
 A("<p><b>Low-rank estimation and bandits.</b> Matrix completion gives centralized recovery guarantees "
   "under (near-)uniform sampling [8,9], with practical factorization estimators (matrix factorization "
   "[13], Bayesian PMF [11], soft-impute [12]); low-rank and bilinear bandits (e.g. explore-then-spectral "
@@ -478,6 +482,10 @@ A("<ol class='small' style='line-height:1.5'>"
   "<li>C. Gentile, S. Li, G. Zappella. Online clustering of bandits. <i>ICML</i>, 2014.</li>"
   "<li>A. H. Murphy. Skill scores based on the mean square error and their relationships to the "
   "correlation coefficient. <i>Monthly Weather Review</i>, 116:2417&ndash;2424, 1988.</li>"
+  "<li>A systematic literature review on multi-robot task allocation. <i>ACM Computing Surveys</i>, "
+  "2024.</li>"
+  "<li>P. Goarin, G. Loianno. Graph neural network for decentralized multi-robot goal assignment. "
+  "<i>IEEE Robotics and Automation Letters</i>, 2024.</li>"
   "</ol>")
 
 A("<h2>Appendix A. Theory: proofs and an audit (correctness, novelty, utility)</h2>")
