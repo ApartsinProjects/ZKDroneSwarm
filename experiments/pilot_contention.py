@@ -186,6 +186,15 @@ def main():
             if done % 20 == 0 or done == len(jobs):
                 print("  ... %d/%d" % (done, len(jobs)))
 
+    # SAVE RAW FIRST (so a downstream formatting bug can never discard a full run)
+    save_results("contention8", {
+        "meta": {"experiment": "contention capacity-1 matching",
+                 "methods": ORDER, "pools": POOLS, "rho": RHO, "seeds": SEEDS,
+                 "m": pc.M, "n": pc.N, "d": pc.D, "d_hat": pc.D_HAT, "T": pc.T,
+                 "scipy_matching": _HAVE_SCIPY,
+                 "metric": "anytime earned (matching-normalized) + unseen + collision rate"},
+        "raw": raw}, results_dir=os.path.join(ROOT, "results", "pilots"))
+
     L = ["# Contention (capacity-1 matching): does the result survive depletion?\n",
          "Shared offer pool of size `pool` (smaller = more contention; m=%d drones, n=%d). "
          "Each target is awarded to one random contender; losers earn 0. anytime = earned "
@@ -227,14 +236,7 @@ def main():
     os.makedirs(os.path.dirname(out_md), exist_ok=True)
     open(out_md, "w", encoding="utf-8").write("\n".join(L) + "\n")
     print("\n".join(L))
-    save_results("contention8", {
-        "meta": {"experiment": "contention capacity-1 matching",
-                 "methods": ORDER, "pools": POOLS, "rho": RHO, "seeds": SEEDS,
-                 "m": pc.M, "n": pc.N, "d": pc.D, "d_hat": pc.D_HAT, "T": pc.T,
-                 "scipy_matching": _HAVE_SCIPY,
-                 "metric": "anytime earned (matching-normalized) + unseen + collision rate"},
-        "raw": raw}, results_dir=os.path.join(ROOT, "results", "pilots"))
-    print("wrote %s" % out_md)
+    print("wrote %s (raw saved earlier)" % out_md)
 
 
 if __name__ == "__main__":

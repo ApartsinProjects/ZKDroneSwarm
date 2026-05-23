@@ -156,6 +156,18 @@ gracefully as the world leaves exact low-rank; the advantage transfers to the
 realistic tabula\_drone simulator (skill $\approx 0.81$, beating the env's SGD-MF and
 UCB-Indep, approaching the oracle).
 
+\textbf{Scope (when CF beats structure-free).} The advantage is not universal; across a
+structure$\times$observability grid it holds \emph{iff} three conditions co-occur.
+(i) The reward is low-rank but \emph{personalized}, $1<d\ll\min(m,n)$: at $d=1$ the
+reward is a shared popularity order a pooling/bias baseline already captures (Thm.~\ref{t5}),
+and at $d\to\min(m,n)$ there is no structure to exploit (graceful collapse, F14).
+(ii) The regime is \emph{sample-starved}, $n\gg cT$: when sample-rich, a tabular learner
+eventually measures every entry and the unseen advantage vanishes (scaling sweeps).
+(iii) The reward channel is \emph{shared}, $\rho>0$: without a broadcast each agent has
+only its own data and CF degenerates to tabular. This scopes the claim and explains why
+structure-free methods are competitive in sample-rich, low-personalization, or unshared
+settings (our earlier null results).
+
 \begin{figure}[t]\centering\includegraphics[width=0.7\linewidth]{../figures/pdf/F2_unseen_masking.pdf}
 \caption{Unseen-pair skill vs observation density (categorical separation).}\label{fig:unseen}\end{figure}
 \begin{figure}[t]\centering\includegraphics[width=0.7\linewidth]{../figures/pdf/F6_anytime.pdf}

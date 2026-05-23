@@ -78,6 +78,7 @@ H = []
 A = H.append
 A("<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' "
   "content='width=device-width,initial-scale=1'><title>Acting on the Unseen (v2)</title>"
+  "<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'>"
   "<style>%s</style></head><body><div class='wrap'>" % CSS)
 A("<h1>Acting on the Unseen: Collaborative Filtering for Decentralized Multi-Robot Task Allocation "
   "under Minimal Assumptions</h1>")
@@ -94,7 +95,7 @@ A("<div class='abs'><b>Abstract.</b> We study multi-robot task allocation under 
   "filtering over the public broadcast. Against any structure-free learner this is a CATEGORICAL "
   "separation, not a constant factor (the structure-free learner is at the error floor on unseen "
   "pairs by construction), and we prove a matching per-agent sample-complexity theory "
-  "(<code>Theta(d)</code> vs <code>Theta(n)</code>) plus an anytime (cumulative-reward) separation. "
+  "($\\Theta(d)$ vs $\\Theta(n)$) plus an anytime (cumulative-reward) separation. "
   "Against the field of low-rank methods our online, masking-robust, anytime-optimal estimators "
   "dominate throughout the limited-observability regime that defines the problem.</div>")
 
@@ -116,11 +117,15 @@ A("<p><b>Contributions.</b> (1) A minimal-assumption, decentralized, online, bro
   "and collective active exploration via the shared broadcast.</p>")
 
 A("<h2>2. Setting</h2>")
-A("<p><b>World.</b> m drones, n targets, with K1/K2 latent types; reward is the cosine of unit latent "
-  "factors, <code>R[i,j] = &#10216;p_i,u_j&#10217;</code> in [-1,1], genuinely rank "
-  "<code>d=min(d,K1,K2)</code> (no nonlinear link). <b>Observability.</b> A public stream of "
-  "(action, outcome); each agent senses its own outcome cleanly and a per-agent masked (rho), noisy "
-  "(sigma) slice of teammates' outcomes (passive sensing, not transmission, so communication-free). "
+A("<p><b>World.</b> $m$ drones, $n$ targets, with $K_1,K_2$ latent types; the reward is the cosine of "
+  "unit latent factors $p_i,u_j\\in\\mathbb{R}^d$,</p>")
+A("<p style='text-align:center'>$R_{ij} = \\langle p_i, u_j\\rangle \\in [-1,1], \\qquad R = PU^\\top, "
+  "\\qquad \\operatorname{rank}(R)=\\min(d,K_1,K_2)$ (no nonlinear link).</p>")
+A("<p><b>Observability.</b> A public stream of (action, outcome); each agent senses its own outcome "
+  "cleanly (noise $\\sigma_{\\mathrm{own}}$) and a per-agent masked (rate $\\rho$), noisy (noise "
+  "$\\sigma_{\\mathrm{obs}}$) slice of teammates' outcomes (passive sensing, not transmission, so "
+  "communication-free). The observation precision is $\\beta=1/\\sigma^2$, with masked events absent "
+  "(weight $0$). "
   "<b>Baselines.</b> Random, UCBIndep, UCBHomo, Tabular (no-structure); MFSGD, ESTR, PTF, BPMF "
   "(low-rank). <b>Fairness/ZK.</b> Every method gets a guessed rank (or none), an independent "
   "per-agent instance with no parameter sharing, and the same noisy partial stream; the Oracle "
@@ -128,9 +133,13 @@ A("<p><b>World.</b> m drones, n targets, with K1/K2 latent types; reward is the 
   "unseen-pair skill, anytime cumulative-reward skill, state-uniqueness.</p>")
 
 A("<h2>3. Method</h2>")
-A("<p>Each agent runs its own ONLINE weighted alternating least squares over the events it senses, "
-  "weighting each by precision <code>1/sigma^2</code> (a masked event is zero PRECISION, not zero "
-  "VALUE, the key to masking-robustness); estimation is separated from the decision policy. The "
+A("<p>Each agent runs its own ONLINE weighted alternating least squares over the events it senses. "
+  "An unobserved/masked event gets zero WEIGHT, not an imputed zero VALUE; this is what makes the "
+  "estimator masking-robust (batch fill-in methods impute zeros for missing entries and decay under "
+  "masking). Among OBSERVED events, inverse-variance (<code>1/sigma^2</code>) weighting is an optional "
+  "noise-adaptive refinement that pays off when the broadcast is noisy; at low noise uniform weighting "
+  "generalizes slightly better to unseen pairs (we ablate this honestly). Estimation is separated from "
+  "the decision policy. The "
   "family: <b>RewardCF</b> (teammates' rewards; anytime-optimal), <b>ChoiceZK</b> (teammates' actions "
   "only; noise-immune fallback), <b>HybridCFconv</b> (probe, SVD warm-start, then converged online "
   "ALS; best final-policy unseen), and <b>ActiveCFconv</b> (latent-space UCB with a broadcast "
@@ -139,17 +148,16 @@ A("<p>Each agent runs its own ONLINE weighted alternating least squares over the
 
 A("<h2>4. Theory</h2>")
 A("<p>(Full proofs in <code>THEORY_FORMAL.md</code>; step-by-step in the tutorial.)</p>")
-A("<p><b>T1 (tabular floor).</b> A structure-free learner has Omega(1) error and 0 skill on any "
+A("<p><b>T1 (tabular floor).</b> A structure-free learner has $\\Omega(1)$ error and $0$ skill on any "
   "unseen pair, and the broadcast is provably useless to it; pooling recovers only the rank-1 "
-  "popularity term. <b>T2 (CF row completion).</b> Given U, an agent's whole row is recovered exactly "
-  "by an O(d) least-squares fold-in; per-agent <code>Theta(d)</code> vs tabular <code>Theta(n)</code>, "
-  "categorical on unseen pairs. <b>T3 (anytime).</b> Under <code>n &gt;&gt; T</code> any "
-  "structure-free learner's anytime skill <code>&lt;= g(cT/n) -&gt; 0</code> (even with full "
-  "broadcast); CF reaches near-oracle in O(d) rounds. <b>T4 (masking).</b> i.i.d. loss makes "
-  "decentralization transient; persistent masking makes it durable; the categorical results are "
-  "invariant to the choice. <b>T5 (additive ceiling).</b> An additive predictor (drone+target bias) "
-  "has rank &le; 2 and reduces to the popularity order, so it cannot personalize and is strictly below "
-  "CF for d &gt; 1.</p>")
+  "popularity term. <b>T2 (CF row completion).</b> Given $U$, an agent's whole row is recovered exactly "
+  "by an $O(d)$ least-squares fold-in; per-agent $\\Theta(d)$ vs tabular $\\Theta(n)$, "
+  "categorical on unseen pairs. <b>T3 (anytime).</b> Under $n \\gg T$ any structure-free learner's "
+  "anytime skill $\\le g(cT/n) \\to 0$ (even with full broadcast); CF reaches near-oracle in $O(d)$ "
+  "rounds. <b>T4 (masking).</b> i.i.d. loss makes decentralization transient; persistent masking makes "
+  "it durable; the categorical results are invariant to the choice. <b>T5 (additive ceiling).</b> An "
+  "additive predictor $a+b_i+c_j$ has rank $\\le 2$ and reduces to the popularity order, so it cannot "
+  "personalize and is strictly below CF for $d > 1$.</p>")
 
 A("<h2>5. Experiments</h2>")
 A("<p><b>Categorical (acting on the unseen).</b> CF acts well on never-observed pairs at every "
@@ -203,6 +211,20 @@ A("<p>We foreground ONE recommended method (ActiveCFconv) and present the rest a
   "and the robustness to a guessed rank, under one identical config (12 seeds, 95%% CI):</p>")
 A(md_tables("docs/ABLATION_TABLE.md"))
 
+A("<div class='box'><b>Scope: when does CF beat structure-free?</b> The advantage is not "
+  "universal. Across a structure-by-observability grid it holds precisely when THREE "
+  "conditions co-occur. <b>(1) Low-rank but PERSONALIZED</b> (1 &lt; d &lt;&lt; min(m,n)): "
+  "the rank-1 part of the reward is shared 'popularity' that a pooling/bias baseline already "
+  "captures, so at d=1 there is nothing personal to transfer (Theorem 5); at the other "
+  "extreme, d near full means no structure to exploit (graceful collapse, Fig. on stress). "
+  "Personalization is the interaction BEYOND popularity that only a rank&gt;1 model can "
+  "represent. <b>(2) SAMPLE-STARVED</b> (n &gt;&gt; cT): if instead sample-rich, a tabular "
+  "learner eventually measures every entry directly and the unseen advantage vanishes. "
+  "<b>(3) SHARED reward channel</b> (rho &gt; 0): without a broadcast each agent has only its "
+  "own outcomes and CF degenerates to tabular. This scopes the contribution and explains why "
+  "structure-free methods are competitive in sample-rich, low-personalization, or unshared "
+  "settings, our earlier null results.</div>")
+
 A("<h2>6. Related work</h2>")
 A("<p>Matrix completion (Candes-Recht; Keshavan-Montanari-Oh; Recht) gives centralized estimation "
   "bounds; we make them decentralized, online, and broadcast-only, with the unseen-pair floor making "
@@ -231,6 +253,12 @@ A("<p>Under minimal assumptions, collaborative filtering over the public broadca
 A("<p class='small'>Reproducibility: complete per-seed data in <code>results/pilots/</code>; figures "
   "via <code>experiments/make_figures.py</code>; proofs in <code>docs/THEORY_FORMAL.md</code>; ZK "
   "audit in <code>docs/ZK_COMPLIANCE.md</code>; full v1 draft in <code>docs/PAPER_DRAFT.md</code>.</p>")
-A("</div></body></html>")
+A("</div>")
+A("<script defer src='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'></script>")
+A("<script defer src='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js' "
+  "onload='renderMathInElement(document.body,{delimiters:[{left:\"$$\",right:\"$$\",display:true},"
+  "{left:\"$\",right:\"$\",display:false},{left:\"\\\\(\",right:\"\\\\)\",display:false},"
+  "{left:\"\\\\[\",right:\"\\\\]\",display:true}],throwOnError:false})'></script>")
+A("</body></html>")
 open(OUT, "w", encoding="utf-8").write("\n".join(H))
 print("wrote %s (%d KB)" % (OUT, len("\n".join(H).encode("utf-8")) // 1024))

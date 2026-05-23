@@ -36,14 +36,16 @@ RHOS = [1.0, 0.25]
 SEEDS = list(range(8))
 
 
-def run_anytime_clshp(Cls, hp, rho, seed, d_hat=None):
+def run_anytime_clshp(Cls, hp, rho, seed, d_hat=None, sb=None):
     """Core anytime loop driven by an explicit (Cls, hp) -- so ablation variants not
     in pc.REGISTRY can be evaluated through the SAME loop. Returns the cumulative-
-    normalized skill trajectory traj[T] (traj[-1] = whole-episode anytime skill)."""
+    normalized skill trajectory traj[T] (traj[-1] = whole-episode anytime skill).
+    Optional sb overrides the broadcast-observation noise (for noise sweeps)."""
     d_hat = pc.D_HAT if d_hat is None else d_hat
     w = make_world(pc.M, pc.N, pc.D, pc.K, pc.K, within=0.15, seed=seed, signed=True)
     P, U, R = w[:3]; m, n = R.shape
-    T, cand, so, sb = pc.T, pc.CAND, pc.SO, pc.SB
+    T, cand, so = pc.T, pc.CAND, pc.SO
+    sb = pc.SB if sb is None else sb
     rng = np.random.RandomState(seed + 999)
     Mask = rng.rand(m, m) < rho; np.fill_diagonal(Mask, True)
     learners = [Cls(m, n, d_hat, i, seed + 7 * i + 1, **hp) for i in range(m)]

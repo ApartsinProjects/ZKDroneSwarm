@@ -136,12 +136,19 @@ def main():
         L.append("| %d | %s | %s |" % (dh, cell(dhat_raw["unseen"][str(dh)]),
                                        cell(dhat_raw["anytime"][str(dh)])))
     L.append("")
-    L.append("Takeaways: (i) online weighted-ALS dominates batch/explore-then-commit "
-             "(PTF, ESTR) under masking and on anytime; (ii) precision weighting helps under "
-             "the noisy broadcast; (iii) the SVD warm-start mainly lifts dense-rho unseen; "
-             "(iv) active (latent-UCB) exploration improves over eps-greedy; "
-             "(v) the method is robust across guessed rank d_hat (2..20) despite never seeing "
-             "the true rank.\n")
+    L.append("Takeaways: (i) online weighted-ALS dominates batch / explore-then-commit "
+             "(PTF, ESTR) under masking and on anytime (anytime rho=1.0: RewardCFconv 0.39 "
+             "vs PTF 0.28; unseen rho=0.25: 0.37 vs 0.28). (ii) HONEST FINDING: precision "
+             "weighting 1/sigma^2 does NOT help at the default broadcast noise "
+             "(sigma_obs=0.3) -- UNIFORM weighting (noprec) is better on both unseen (0.584 "
+             "vs 0.450 at rho=1.0) and anytime, because it uses the abundant broadcast fully "
+             "(the broadcast carries the cross-target structure that unseen generalization "
+             "needs). Precision weighting only pays off once the broadcast is high-noise; see "
+             "PRECISION_SWEEP.md for the crossover. (iii) the SVD warm-start (HybridCFconv) "
+             "lifts unseen, most at dense rho, at an anytime cost. (iv) active (latent-UCB) "
+             "exploration improves anytime and dense-rho unseen over eps-greedy. (v) robust "
+             "across guessed rank for d_hat >= true d (5..20 all ~0.35 unseen at rho=0.25), "
+             "degrading only when d_hat=2 < true d=5.\n")
 
     out_md = os.path.join(ROOT, "docs", "ABLATION_TABLE.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)

@@ -41,6 +41,8 @@ re-analyzed without re-running. Connected to PROJECT_LOG.md by cycle number.
 | 38 | Real tabula_drone simulator validation | results/pilots/tabula_bench_real.json | per-seed skill + per-episode learning curves for random/oracle/ucb_indep/mf/weighted_als in the real PettingZoo env; -> F13_realsim.png | 3 | 2026-05-22 |
 | 39 | Assumption stress (approx low-rank + nonlinear) | results/pilots/stress_assump_20260522_200547.json | unseen+anytime+effective-rank vs nonlin/approx for 5 methods; graceful degradation; -> F14_stress.png | 8 | 2026-05-22 |
 | 40 | P1-4 20-seed headline bootstrap CIs | results/pilots/headline20_20260522_210110.json | per-seed unseen+anytime for UCBIndep/PTF/RewardCF/HybridCFconv/ActiveCFconv x rho{1.0,0.25}; bootstrap 95% CI; -> docs/HEADLINE_TABLE.md | 20 | 2026-05-22 |
+| 41 | P1-6 consolidated method ablation | results/pilots/ablation12_20260522_214411.json | unseen+anytime for ActiveCFconv/HybridCFconv/RewardCFconv/RewardCFconv_noprec/PTF/ESTR x rho{1.0,0.25} + d_hat sweep {2,5,8,12,20}; FINDING: precision-off best unseen (0.584); -> docs/ABLATION_TABLE.md | 12 | 2026-05-22 |
+| 41b | Precision on/off vs sigma_obs crossover | results/pilots/precision_sweep_20260523_034915.json | unseen+anytime, precision ON vs OFF (uniform) x sigma_obs{0.1..2.0} at rho=1.0; uniform wins unseen at ALL noise, precision edges anytime only at sigma>=1.0; -> docs/PRECISION_SWEEP.md | 12 | 2026-05-23 |
 
 NOTE: cycles 1-17 predate structured saving; their SUMMARY tables are in
 PROJECT_LOG.md and full stdout is in the (ephemeral) task-output files. Complete

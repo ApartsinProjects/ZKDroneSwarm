@@ -403,6 +403,188 @@ class ActiveCF(RewardCF):
         super().observe(t, choices, revealed, cand_sets, rvar)
 
 
+class ConfCF(RewardCF):
+    """Configurable CONFIDENCE estimator: how to USE confidence WITHOUT corrupting the
+    global fit (the ablation showed inverse-variance reweighting of the FIT hurts unseen
+    because it under-uses the broadcast). Knobs, separable:
+
+      conf_mode (how OBSERVED events are weighted in the ALS fit):
+        'uniform'  w=1                       (best generalization at default noise)
+        'full'     w=1/sigma^2               (Gauss-Markov; under-uses broadcast)
+        'rel'      w=(1/sigma^2)/mean        (relative precision: keep ratio, fix the
+                                              data-vs-prior scale that 'full' distorts)
+        'temp'     w=sigma^-alpha            (tempered precision; alpha in [0,2])
+        'cap'      w=min(1/sigma^2, cap)     (bounded precision: noise-aware but no row
+                                              is allowed to dominate the broadcast)
+      shrink>0 : shrink each PREDICTION toward the rank-1 popularity prior by inverse
+                 COVERAGE (confident where well-observed, conservative where sparse).
+                 This puts confidence in the DECISION, not the fit. alpha_j =
+                 shrink/(shrink+count_j); R_hat <- (1-a) R_hat + a (U @ mean_i P_i).
+      post>0  : like shrink but uses the ALS POSTERIOR precision of u_j (trace of the
+                 inverted normal matrix) instead of a raw count (principled confidence).
+      c_active>0 : latent-UCB exploration with the broadcast count bonus.
+
+    All of these LEAVE the broadcast at full weight in the fit (uniform/rel/cap), so
+    they keep the unseen-generalization that 'full' precision threw away, while still
+    being noise-aware (rel/cap/temp) or coverage-aware (shrink/post)."""
+    def __init__(self, *a, conf_mode="uniform", conf_alpha=1.0, conf_cap=5.0,
+                 shrink=0.0, post=0.0, c_active=0.0, **hp):
+        super().__init__(*a, **hp)
+        self.conf_mode = conf_mode; self.conf_alpha = conf_alpha; self.conf_cap = conf_cap
+        self.shrink = shrink; self.post = post; self.c_active = c_active
+        self.rvar_buf = []; self.cnt = np.zeros(self.n); self.uprec = np.zeros(self.n)
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):
+            r = revealed[k]
+            if not np.isnan(r):
+                j = int(choices[k])
+                self.rk.append(k); self.rj.append(j); self.rv.append(float(r))
+                self.rvar_buf.append(float(rvar[k])); self.rw.append(1.0)
+                self.cnt[j] += 1
+        self._decay()
+        if (t + 1) % self.refit_every == 0:
+            self._refit()
+
+    def _weights(self):
+        rv = np.maximum(np.asarray(self.rvar_buf), 1e-6)
+        m = self.conf_mode
+        if m == "full":   w = 1.0 / rv
+        elif m == "rel":  w = 1.0 / rv; w = w / max(w.mean(), 1e-9)
+        elif m == "temp": w = rv ** (-self.conf_alpha / 2.0)
+        elif m == "cap":  w = np.minimum(1.0 / rv, self.conf_cap)
+        elif m == "relcap":   # ratio-bounded precision, mean-normalized: discount noisy
+            w = 1.0 / rv      # obs but never let any row dominate/vanish; fixed prior scale
+            med = np.median(w); R = self.conf_alpha
+            w = np.clip(w, med / R, med * R); w = w / max(w.mean(), 1e-9)
+        else:             w = np.ones(len(rv))            # uniform
+        return w
+
+    def _refit(self):
+        W = self._weights()
+        self._als(self.rk, self.rj, self.rv, W)
+        if self.post > 0 and len(self.rk):                # ALS posterior precision of u_j
+            J = np.asarray(self.rj); Wn = np.asarray(W); Pk = self.P[np.asarray(self.rk)]
+            quad = Wn * np.einsum('ni,ni->n', Pk, Pk)     # w * ||p_k||^2 contribution
+            self.uprec = np.zeros(self.n); np.add.at(self.uprec, J, quad)
+            self.uprec += self.prior_prec
+
+    def predict_scores(self):
+        s = self.U @ self.P[self.idx]
+        if self.shrink > 0 or self.post > 0:
+            pop = self.U @ self.P.mean(0)                 # rank-1 popularity prediction
+            if self.post > 0:                            # confidence = posterior precision
+                a = self.prior_prec / np.maximum(self.uprec, 1e-9)
+            else:                                        # confidence = coverage count
+                a = self.shrink / (self.shrink + self.cnt)
+            s = (1.0 - a) * s + a * pop
+        return s
+
+    def select(self, t, cand):
+        cand = np.asarray(cand)
+        if self.c_active > 0:
+            sc = self.predict_scores()[cand] + self.c_active / np.sqrt(self.cnt[cand] + 1.0)
+            sc = sc + 1e-6 * self.rng.randn(len(cand))
+            a = int(cand[int(np.argmax(sc))])
+        elif self.rng.rand() < self.eps:
+            a = int(cand[self.rng.randint(len(cand))])
+        else:
+            a = int(cand[int(np.argmax(self.predict_scores()[cand]))])
+        self.pulled[a] = True
+        return a
+
+
+class EMCF(_EpsBase):
+    """Variational-EM / BAYESIAN factorization with CONFIDENCE INTERVALS (the principled
+    way to use confidence: put uncertainty in the MODEL, not in ad-hoc observation
+    weights). Mean-field VI for probabilistic matrix factorization:
+        r_ij ~ N(p_i.u_j, sigma_ij^2),  p_i ~ N(0, lam^-1 I),  u_j ~ N(0, lam^-1 I).
+    Each factor keeps a full posterior q(p_i)=N(mu_i, S_i), q(u_j)=N(mu_j, S_j). The
+    M-step propagates uncertainty via the SECOND MOMENT E[u u^T]=S_j+mu_j mu_j^T (so a
+    noisy/poorly-covered factor automatically contributes less, WITHOUT us hand-tuning a
+    weight). Prediction has a real interval: Var(p_i.u_j) = mu_i^T S_j mu_i + mu_j^T S_i
+    mu_j + tr(S_i S_j). em_beta>0 uses that predictive sd as a UCB exploration bonus
+    (confidence-directed probing); shrink>0 shrinks high-variance predictions toward the
+    popularity prior. Uses the TRUE likelihood precision 1/sigma^2 -- correct here because
+    the prior lam (in the model) handles regularization, avoiding the scale confound that
+    made naive precision-ALS fail."""
+    def __init__(self, *a, lam=1.0, em_sweeps=6, refit_every=4, em_beta=1.0, shrink=0.0,
+                 init_scale=0.1, **hp):
+        super().__init__(*a, **hp)
+        self.lam = lam; self.em_sweeps = em_sweeps; self.refit_every = refit_every
+        self.em_beta = em_beta; self.shrink = shrink
+        self.I = np.eye(self.d)
+        self.muP = self.rng.normal(0, init_scale, (self.m, self.d))
+        self.muU = self.rng.normal(0, init_scale, (self.n, self.d))
+        self.SP = np.tile(self.I / lam, (self.m, 1, 1))
+        self.SU = np.tile(self.I / lam, (self.n, 1, 1))
+        self.rk = []; self.rj = []; self.rv = []; self.rb = []     # reward obs + precision
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):
+            r = revealed[k]
+            if not np.isnan(r):
+                self.rk.append(k); self.rj.append(int(choices[k]))
+                self.rv.append(float(r)); self.rb.append(1.0 / max(rvar[k], 1e-6))
+        self._decay()
+        if (t + 1) % self.refit_every == 0:
+            self._refit()
+
+    def _refit(self):
+        if not self.rk:
+            return
+        K = np.asarray(self.rk); J = np.asarray(self.rj)
+        V = np.asarray(self.rv); B = np.asarray(self.rb)
+        for _ in range(self.em_sweeps):
+            EPP = self.SP + np.einsum('id,ie->ide', self.muP, self.muP)   # E[p p^T]
+            LamU = np.tile(self.lam * self.I, (self.n, 1, 1))
+            bU = np.zeros((self.n, self.d))
+            np.add.at(LamU, J, B[:, None, None] * EPP[K])
+            np.add.at(bU, J, (B * V)[:, None] * self.muP[K])
+            self.SU = np.linalg.inv(LamU)
+            self.muU = np.einsum('jde,je->jd', self.SU, bU)
+            EUU = self.SU + np.einsum('jd,je->jde', self.muU, self.muU)   # E[u u^T]
+            LamP = np.tile(self.lam * self.I, (self.m, 1, 1))
+            bP = np.zeros((self.m, self.d))
+            np.add.at(LamP, K, B[:, None, None] * EUU[J])
+            np.add.at(bP, K, (B * V)[:, None] * self.muU[J])
+            self.SP = np.linalg.inv(LamP)
+            self.muP = np.einsum('ide,ie->id', self.SP, bP)
+
+    def _predvar(self):
+        i = self.idx; mi = self.muP[i]; Si = self.SP[i]
+        t1 = np.einsum('d,jde,e->j', mi, self.SU, mi)            # mi^T S_j mi
+        t2 = np.einsum('jd,de,je->j', self.muU, Si, self.muU)    # mu_j^T S_i mu_j
+        t3 = np.einsum('de,jed->j', Si, self.SU)                 # tr(S_i S_j)
+        return np.maximum(t1 + t2 + t3, 0.0)
+
+    def predict_scores(self):
+        s = self.muU @ self.muP[self.idx]
+        if self.shrink > 0:                                      # shrink uncertain -> popularity
+            pop = self.muU @ self.muP.mean(0)
+            sd = np.sqrt(self._predvar()); a = sd / (sd + self.shrink)
+            s = (1.0 - a) * s + a * pop
+        return s
+
+    def select(self, t, cand):
+        cand = np.asarray(cand)
+        s = self.predict_scores()[cand]
+        if self.em_beta > 0:                                    # confidence-interval UCB
+            s = s + self.em_beta * np.sqrt(self._predvar()[cand]) + 1e-6 * self.rng.randn(len(cand))
+            a = int(cand[int(np.argmax(s))])
+        elif self.rng.rand() < self.eps:
+            a = int(cand[self.rng.randint(len(cand))])
+        else:
+            a = int(cand[int(np.argmax(s))])
+        self.pulled[a] = True
+        return a
+
+    def predict_full(self):
+        return self.muP @ self.muU.T
+    def pulled_mask(self):
+        return self.pulled
+
+
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
     P, U, R = world; m, n = R.shape; d = P.shape[1]
     rng = np.random.RandomState(seed + 999)
