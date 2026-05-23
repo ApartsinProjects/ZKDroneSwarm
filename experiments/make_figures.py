@@ -404,4 +404,28 @@ if f:
     plt.legend(fontsize=6); plt.tight_layout(); save_fig("F15_deconfliction")
     print("F15_deconfliction  <-", os.path.basename(f))
 
+# ---- F16: sensing-grounded observability (unseen skill vs sensing coverage) ----
+f = latest("results/pilots/sensing_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; Rs = d["meta"]["R_senses"]; covd = d["meta"].get("coverage", {})
+    xs = [covd.get(str(r), r) for r in Rs]                 # x-axis = effective coverage
+    sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="RewardCF (low-rank CF, ours)"),
+           "KNNCF": dict(color="C1", marker="s", label="KNNCF (memory CF)"),
+           "Tabular": dict(color="C3", marker="x", ls="--", label="Tabular (no structure)"),
+           "UCBIndep": dict(color="C7", marker="d", ls=":", label="UCBIndep (no structure)")}
+    plt.figure(figsize=(5.2, 3.8))
+    for nm in ["RewardCF", "KNNCF", "Tabular", "UCBIndep"]:
+        if nm not in raw[str(Rs[0])]:
+            continue
+        mu = [np.mean(raw[str(r)][nm]["unseen"]) for r in Rs]
+        sd = [np.std(raw[str(r)][nm]["unseen"]) for r in Rs]
+        plt.errorbar(xs, mu, yerr=sd, capsize=2, markersize=5, **sty[nm])
+    plt.axhline(0, color="black", lw=0.7, ls=":")
+    plt.xlabel("effective sensing coverage (fraction of engagements sensed)")
+    plt.ylabel("unseen-pair skill")
+    plt.title("Sensing-grounded observability: the categorical win survives\n"
+              "geometry-limited, distance-noisy sensing (masking emergent from physics)", fontsize=8)
+    plt.grid(alpha=0.25); plt.legend(fontsize=7); plt.tight_layout(); save_fig("F16_sensing")
+    print("F16_sensing  <-", os.path.basename(f))
+
 print("figures written to", OUT)

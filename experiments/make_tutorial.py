@@ -2017,6 +2017,11 @@ A(plain("Read: once a robot can sense more than about a third of the engagements
         "operates in. It degrades only when sensing is very sparse (~10% coverage), which is the honest "
         "and expected limit: with almost no shared observations there is no shared structure to recover."))
 
+A("<figure>%s<figcaption><strong>F16.</strong> Sensing-grounded observability: unseen-pair skill vs "
+  "effective sensing coverage when masking and noise are DERIVED from 2-D sensing geometry (range + "
+  "distance-noise). The low-rank CF win survives geometry-limited sensing; structure-free learners stay "
+  "at the floor at every coverage.</figcaption></figure>" % img("F16_sensing.png", "F16"))
+
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "
