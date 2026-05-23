@@ -524,8 +524,11 @@ A("<ol class='small' style='line-height:1.5'>"
   "</ol>")
 
 A("<h2>Appendix A. Theory: proofs and an audit (correctness, novelty, utility)</h2>")
-A("<p class='small'>Full statements and proofs are maintained in the companion "
-  "<code>docs/THEORY_FORMAL.md</code>; we summarize the proof ideas and an honest audit here.</p>")
+A("<p class='small'>We give self-contained proofs of the main results below, each followed by a brief "
+  "audit of its correctness, novelty, and utility; longer technical versions and a self-critical "
+  "appraisal are in the companion <code>docs/THEORY_FORMAL.md</code>. Throughout, factors are assumed in "
+  "general position (generic $P,U$), the persistent mask is $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ over "
+  "robot pairs, and $\\hat d\\ge d$.</p>")
 A("<p class='small'><b>Theorem 1 (floor).</b> For an unobserved $j$ the estimate is a pre-chosen "
   "constant $b$; $\\mathbb{E}[(b-R_{ij})^2]=(b-\\mu_i)^2+\\mathrm{Var}_j\\ge\\mathrm{Var}_j=\\Omega(1)$, "
   "and on an offer of never-engaged tasks selection is independent of their rewards, giving skill $0$. "
@@ -545,8 +548,13 @@ A("<p class='small'><b>Theorem 4 (recovery).</b> A fully-observed invertible $\\
   "block pins the factor frame; per task, $R_{E_i(j),j}=P_{E_i(j)}u_j$ has a unique solution iff "
   "$P_{E_i(j)}$ has full column rank, giving exact $u_j$ (noiseless) and, with noise, error "
   "$O(\\sigma\\sqrt{d/|E_i(j)|})$; non-identifiability below the spanning threshold is the per-task "
-  "analogue of Theorem 1. The coverage time is a coupon-collector bound on the bipartite observation "
-  "graph. <i>Correct</i> (proved + validated, Appendix C); <i>novel</i> (deterministic condition for "
+  "analogue of Theorem 1. Coverage time (non-adaptive policy): each visible teammate engages each task "
+  "with probability $1/n$ per round, so it has engaged task $j$ at least once after $T$ rounds with "
+  "probability $1-(1-1/n)^T\\approx 1-e^{-T/n}$; the number of distinct visible engagers of $j$ is "
+  "$\\mathrm{Binomial}(|N_i|,1-e^{-T/n})$ with $|N_i|\\approx\\rho m$, and requiring $\\ge d$ spanning "
+  "engagers for all $n$ tasks with a union bound gives $T=O\\!\\big(\\tfrac{nd}{\\rho m}\\log n\\big)$, "
+  "which decreases in the team size $\\rho m$ and requires $\\rho m>d$. <i>Correct</i> (proved + "
+  "validated, Appendix C); <i>novel</i> (deterministic condition for "
   "persistent per-robot masking, where uniform-sampling completion fails); <i>high utility</i> (makes "
   "the categorical claim self-contained). Residual: the finite-time rate under an adaptive policy.</p>")
 A("<p class='small'><b>Theorem 5 (collective speedup).</b> A single row leaves a rank-$d>1$ column space "
