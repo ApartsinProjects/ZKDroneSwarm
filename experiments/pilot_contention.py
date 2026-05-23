@@ -29,7 +29,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 sys.stdout.reconfigure(encoding="utf-8")
 
 import pilot_compare as pc
-from pilot_noise import RewardCF, ActiveCF, ContentionCF
+from pilot_noise import RewardCF, ActiveCF, ContentionCF, ContentionAdaptiveCF
 from pilot_baselines import Random, UCBIndep, PTF
 from core import make_world
 from _results_io import save_results
@@ -44,6 +44,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 _CONV = dict(eps0=0.5, eps_min=0.05, eps_decay=0.97, als_sweeps=20, refit_every=1)
 REG = {
+    "ContentionAdaCF": (ContentionAdaptiveCF, dict(eps_break=0.1, eps_lo=0.02, eps_hi=0.8, lr=0.15,
+                                                   loss0=0.3, coll_pow=2.0, scarcity_k=4.0, **_CONV)),  # self-tuning offset
     "ContentionCF": (ContentionCF, dict(eps_break=0.1, **_CONV)),  # fixed-offset symmetry breaking
     "ActiveCFconv": (ActiveCF,  dict(c_active=0.5, **_CONV)),
     "RewardCFconv": (RewardCF,  dict(**_CONV)),
@@ -51,7 +53,7 @@ REG = {
     "PTF":          pc.REGISTRY["PTF"],
     "Random":       (Random,    {}),
 }
-ORDER = ["ContentionCF", "ActiveCFconv", "RewardCFconv", "PTF", "UCBIndep", "Random"]
+ORDER = ["ContentionAdaCF", "ContentionCF", "ActiveCFconv", "RewardCFconv", "PTF", "UCBIndep", "Random"]
 POOLS = [240, 60, 30, 15]          # n=240 (~no contention) -> 15 (severe; < m=30)
 RHO = 1.0                          # full broadcast: ISOLATE contention from masking
 SEEDS = list(range(8))

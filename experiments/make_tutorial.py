@@ -1752,11 +1752,23 @@ A("<h4>Winning under contention: keep the estimate, change the decision (Content
   "targets, de-conflicting stably while clear winners stay greedy. This <code>ContentionCF</code> "
   "earns $0.105\\,[0.096,0.114]$ at the most severe contention (pool $=15$, $2{:}1$) versus $\\approx "
   "0.05$ for argmax-CF and PTF, non-overlapping CIs, roughly DOUBLE, lifting the swarm off the matching "
-  "floor; it also leads at pool $=30$. It is regime-dependent (the offset costs a little value when "
-  "collisions do not bind, so plain CF is better at pool $\\ge 60$), which points to a "
-  "collision-rate-adaptive offset as the policy that would dominate everywhere. <b>Bottom line:</b> CF "
-  "beats the field across contention levels, and a one-line decentralized symmetry-breaking tweak turns "
-  "the severe-contention floor into a clear win, without any communication.</div>")
+  "floor; it also leads at pool $=30$.</div>")
+A("<div class='box key'><b>Making it self-tuning (ContentionAdaCF, built and tested, 8 seeds).</b> The "
+  "fixed offset has one knob set by hand. We made it ADAPTIVE: each drone scales the offset by its own "
+  "observed loss rate (lose a lot, spread harder) and gates it by a ZK SCARCITY signal (offer size vs "
+  "swarm size), so the offset engages only when targets are actually scarce. This EXTENDS the win from "
+  "the single severe point to the whole contested range: ContentionAdaCF beats the fixed offset across "
+  "pool $\\le 60$ (earned skill $0.153$ vs $0.134$ at pool$=30$; $0.205$ vs $0.178$ at pool$=60$) and "
+  "ties it at the most severe contention (pool$=15$, $0.100$ vs $0.105$), while every no-offset method "
+  "sits at $\\le 0.06$ there. <b>Honest limitation (and the fix):</b> at NO contention (pool$=240$) the "
+  "offset policies trail plain CF ($0.25$-$0.31$ vs $0.44$), because, like the fixed offset, they use a "
+  "pure argmax and drop the $\\epsilon$-greedy exploration that drives target COVERAGE when there is "
+  "nothing to de-conflict (the hard scarcity gate confirmed this: removing the offset entirely did not "
+  "recover plain-CF reward, so the gap is the missing exploration, not the offset). The clean "
+  "unification is to fall back to $\\epsilon$-greedy CF whenever the scarcity gate is off, a one-line "
+  "change, queued. <b>Bottom line:</b> the symmetry-breaking offset is a contention-regime tool; making "
+  "it self-tuning turns the lone severe-contention win into a win across the whole contested range "
+  "(pool $\\le m$), with no communication.</div>")
 
 A("<h3>8.14 When does collaborative filtering actually help? (the honest scope)</h3>")
 A("<p>It would be dishonest to claim CF always wins. It does not. Pinning down EXACTLY when it beats a "

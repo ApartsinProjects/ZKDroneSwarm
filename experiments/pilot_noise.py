@@ -676,6 +676,7 @@ class ContentionCF(RewardCF):
         # have near-identical R_hat, so this fixed perturbation flips which near-tied target each
         # consistently prefers -> they de-conflict stably (unlike random softmax, which re-collides
         # every round). Clear winners (gap > eps_break) stay greedy, so value is preserved.
+        self.eps_break_used = eps_break
         self.offset = self.rng.randn(self.n) * eps_break
 
     def select(self, t, cand):
@@ -684,6 +685,58 @@ class ContentionCF(RewardCF):
         a = int(cand[int(np.argmax(score))])
         self.pulled[a] = True
         return a
+
+
+class ContentionAdaptiveCF(ContentionCF):
+    """Contention-aware policy with a SELF-TUNING symmetry-breaking offset. It keeps the
+    SAME fixed private DIRECTION as ContentionCF (stable de-confliction, Theorem T7) but
+    ADAPTS the MAGNITUDE to the drone's own observed loss rate:
+      scale_t = eps_lo + (eps_hi - eps_lo) * loss_ema
+    When the drone keeps LOSING contests its target is contested, so it spreads harder
+    (large offset => willing to trade some predicted value for an uncontested target);
+    when it WINS freely the offset shrinks back toward greedy (preserve value). This is
+    fully communication-free / ZK: the only feedback used is the drone's OWN public
+    win/loss outcome (choices[idx] == -1 means it lost the contest this round). Goal: match
+    greedy at no-contention and beat the fixed offset at severe contention, i.e. dominate
+    the whole contention range with ONE knob the swarm tunes itself."""
+    def __init__(self, *a, eps_lo=0.02, eps_hi=0.8, lr=0.15, loss0=0.3, coll_pow=2.0,
+                 scarcity_k=2.0, **hp):
+        super().__init__(*a, **hp)
+        # self.offset (fixed direction * eps_break) is inherited; reuse its DIRECTION only.
+        self.dir = self.offset / max(self.eps_break_used, 1e-9)
+        self.eps_lo = eps_lo; self.eps_hi = eps_hi; self.lr = lr
+        self.coll_pow = coll_pow; self.scarcity_k = scarcity_k
+        self.loss_ema = float(loss0)
+
+    def _scale(self):
+        # CONVEX (coll_pow>1) loss->scale law: minor, irreducible taste-collisions (small
+        # loss_ema) leave the offset near-OFF (preserve value, match greedy when targets are
+        # plentiful); only a HIGH sustained loss rate (true scarcity) ramps the offset up to
+        # spread the swarm. coll_pow=1 recovers the plain linear schedule.
+        return self.eps_lo + (self.eps_hi - self.eps_lo) * (self.loss_ema ** self.coll_pow)
+
+    def _scarcity(self, n_offer):
+        # HARD ZK scarcity gate from observables only (swarm size m, offer size |S|): engage the
+        # symmetry-breaking offset ONLY when the offer is at most scarcity_k x the swarm size, i.e.
+        # when targets are scarce enough that collisions actually bind. When targets vastly outnumber
+        # drones there is nothing to de-conflict, and a residual (especially time-varying) offset only
+        # costs value and can re-collide (Theorem T7: symmetry-breaking must be FIXED). So we switch
+        # it OFF entirely there and the method reduces to plain greedy CF. A hard gate (vs a smooth
+        # taper) avoids leaving a small drifting offset that re-synchronizes look-alike drones.
+        return 1.0 if n_offer <= self.scarcity_k * self.m else 0.0
+
+    def select(self, t, cand):
+        cand = np.asarray(cand)
+        sc = self._scale() * self._scarcity(len(cand))
+        score = self.U[cand] @ self.P[self.idx] + sc * self.dir[cand]
+        a = int(cand[int(np.argmax(score))])
+        self.pulled[a] = True
+        return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        lost = 1.0 if (self.idx < len(choices) and int(choices[self.idx]) == -1) else 0.0
+        self.loss_ema = (1.0 - self.lr) * self.loss_ema + self.lr * lost
+        super().observe(t, choices, revealed, cand_sets, rvar)
 
 
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
