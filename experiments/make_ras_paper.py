@@ -60,9 +60,9 @@ A("<!doctype html><html lang='en'><head><meta charset='utf-8'>"
 # ---------------- title / meta ----------------
 A("<h1>Acting on the Unseen: Communication-Free Collaborative Filtering for Decentralized "
   "Multi-Robot Task Allocation</h1>")
-A("<p class='sub'>A first paper targeting <i>Robotics and Autonomous Systems</i>. Companion materials "
-  "(tutorial, full theory, per-seed data) at <a href='https://github.com/ApartsinProjects/ZKDroneSwarm'>"
-  "ApartsinProjects/ZKDroneSwarm</a>. All reported numbers are regenerable from saved per-seed results.</p>")
+A("<p class='sub'>Self-contained manuscript. Companion tutorial, full proofs, and per-seed data: "
+  "<a href='https://github.com/ApartsinProjects/ZKDroneSwarm'>ApartsinProjects/ZKDroneSwarm</a>. "
+  "Every reported number is regenerable from saved results.</p>")
 
 A("<div class='hl'><b>Highlights</b><ul>"
   "<li>A prior-free, communication-free MRTA regime with partial, privately-noisy observation.</li>"
