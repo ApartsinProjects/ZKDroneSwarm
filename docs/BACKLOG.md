@@ -102,8 +102,12 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   EXACT -- 3-source cold-start error, explains the sensing F16 curve), T11 (collective broadcast speedup,
   Theta(m) faster + impossible-alone -- the theory behind rho>0), P17 (minimax Omega(d) lower bound ->
   Theta(d)-vs-Theta(n) tight on both sides). Headlines folded into paper §4.
-- [TODO RAS] concrete SCENARIO sim (search/coverage/inspection with capability-vs-requirement semantics)
-  -- substantial (new env wrapper over the sensing-grounded harness); recommended next RAS step.
+- [DONE cycle 70] concrete SCENARIO sim: pilot_mission.py = AREA-INSPECTION mission (capability-vs-
+  requirement quality, coverage with depletion, range-limited sensing). HONEST result (quality-vs-coverage
+  tradeoff): CF wins MEAN INSPECTION QUALITY per engagement decisively (~0.25 vs ~0 structure-free) -- it
+  dispatches the right drone to the right target; but pure COVERAGE breadth is an EXPLORATION objective
+  that broad explorers (UCB/Random) brute-force, and exploit-CF does not cover faster. So CF's mission
+  edge is DISPATCH QUALITY/EFFICIENCY, not blanket search. -> docs/MISSION.md (catalogue row pending run).
 - [TODO RAS] reformat docs/paper_aamas/main.tex -> Elsevier elsarticle class (do at submission time).
 ## ===== END RAS TRACK =====
 - [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type
