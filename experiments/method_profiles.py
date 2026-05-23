@@ -200,7 +200,7 @@ def _mean(xs):
 
 
 # scorecard method order (grouped by provenance), restricted to the masked-harness family
-SCORE_ORDER = ["RewardCF", "BothCF", "PTF", "MFSGD", "BPMF", "ESTR", "UCBHomo",
+SCORE_ORDER = ["RewardCF", "PTF", "MFSGD", "BPMF", "ESTR", "UCBHomo",
                "UCBIndep", "Tabular", "Random"]
 
 

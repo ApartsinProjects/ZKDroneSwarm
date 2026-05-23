@@ -118,7 +118,6 @@ predict reward on any other entity with factor $b$ as $\langle b,\hat x\rangle$<
 <p class='small'><b>Table 3.</b> Performance scorecard on one canonical masked harness.</p>
 <table><tr><th class='l'>Method</th><th class='l'>Provenance</th><th>unseen skill<br>(&rho;=0.25, masked)</th><th>unseen skill<br>(&rho;=1, full)</th><th>cumulative regret<br>(&rho;=0.25, lower=better)</th><th>rounds to 25%<br>of oracle</th><th class='l'>profile</th></tr>
 <tr><td class='l'><b>SwarmCF (RewardCF)</b></td><td class='l'>ours</td><td>0.336</td><td>0.376</td><td>41.2</td><td>35</td><td class='l'><code>D|0|rho,sig|dhat|online</code></td></tr>
-<tr><td class='l'><b>SwarmCF-RC (BothCF)</b></td><td class='l'>ours</td><td>0.349</td><td>0.372</td><td>41.2</td><td>36</td><td class='l'><code>D|0|rho,sig|dhat|online</code></td></tr>
 <tr><td class='l'><b>SwarmCF-batch (PTF)</b></td><td class='l'>ours (hybrid)</td><td>0.280</td><td>0.516</td><td>46.0</td><td>never</td><td class='l'><code>D|0|rho,sig|dhat|batch</code></td></tr>
 <tr><td class='l'>MFSGD</td><td class='l'>standard, adapted</td><td>-0.019</td><td>0.042</td><td>46.5</td><td>never</td><td class='l'><code>D|0|rho,sig|dhat|online</code></td></tr>
 <tr><td class='l'>BPMF</td><td class='l'>standard, adapted</td><td>0.126</td><td>0.233</td><td>49.9</td><td>never</td><td class='l'><code>D|0|rho,sig|dhat|batch</code></td></tr>
