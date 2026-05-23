@@ -279,18 +279,24 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
 - [P1] H2 = ADAPTIVE ContentionCF. Scale the fixed-offset eps_break by each drone's
   OBSERVED collision rate -> dominate ALL contention levels (currently regime-dep).
   HYP: single adaptive policy >= max(argmax-CF, fixed-offset) everywhere.
-- [BUILT, smoke-validated] H3 = UNIFIED RECOMMENDED METHOD. UnifiedCF (pilot_noise.py):
-  EMCF (confidence + predictive-variance UCB exploration + ARD) UNITED with the loss-
-  self-gating de-confliction offset (offset scale = eps_hi*loss_ema^p; loss_ema=0 until the
-  drone actually loses contests, so it is PURE EMCF in non-contention and de-conflicts only
-  under real contention) AND a loss-gated exploration ANNEAL (explore when targets plentiful,
-  exploit+de-conflict when contested). 1-seed cross-regime smoke: matches EMCF on churn
-  (0.862/0.428) and standard anytime (~0.39); on contention earned-reward ties/beats
-  ContentionAdaCF at pool 60/15 and narrows to 0.365 vs 0.416 at pool=240, WHILE winning the
-  categorical UNSEEN metric everywhere (0.31-0.44). One method, no per-regime tuning,
-  best-or-tied across regimes; residual small earned-reward gap at no-contention = the
-  explore/exploit tension (proposed P13 envelope). TODO: full multi-seed validation + fold into
-  paper/tutorial as the single recommended method (choice channel stays a separate optional module).
+- [VALIDATED (8 seeds), honest residual] H3 = UNIFIED RECOMMENDED METHOD. UnifiedCF
+  (pilot_noise.py): EMCF (confidence + predictive-variance UCB + ARD) UNITED with a loss-
+  self-gating de-confliction offset (=PURE EMCF until the drone actually loses) AND a loss-gated
+  exploration ANNEAL. Full 8-seed validation (pilot_unified.py -> UNIFIED.md): TIES the per-regime
+  specialist in 4 of 5 -- standard anytime 0.437 vs EMCF 0.433; churn active 0.851 vs 0.842,
+  recent 0.347 vs 0.371; contention pool=15 0.104 vs ContentionAdaCF 0.100 (both ~2x greedy 0.059).
+  HONEST RESIDUAL: at pool=240 (no contention) earned reward 0.344 TRAILS ContentionAdaCF/greedy
+  (~0.44) -- the explore/exploit tension: loss is low there so the anneal does not fire and EMCF's
+  UCB exploration costs earned reward under capacity-1. So "ONE method best-or-tied EVERYWHERE" holds
+  except no-contention earned reward; report honestly. FIX idea (P13 envelope): also gate exploration
+  by the scarcity signal (offer<=k*m), not only by loss. TODO: fold UnifiedCF + this honest result
+  into paper/tutorial as the single recommended method (choice channel stays a separate module).
+- [QUEUED per user] STRICT-ZK NEWCOMER/ONBOARDING. pilot_e7_newcomer.py hands the newcomer
+  U_hat = learners[0].U.copy() and p_pop = mean of peers' P (exact only at rho=1, the setting it
+  uses); pilot_c12_onboard.py likely symmetric. FIX: have the newcomer RECOVER U from its OWN
+  passively-observed (masked) broadcast (run its own estimator on the stream) instead of copying a
+  peer's factors, then RE-RUN the categorical onboarding result under rho<1. If the O(d)-vs-O(n) gap
+  survives a strictly-ZK newcomer under masking, the claim is airtight; pending the harness audit.
 - [P1] H4 = CALIBRATION (M5). Reliability diagram: EMCF predictive intervals vs actual
   error. HYP: EMCF well-calibrated, naive-precision mis-calibrated -> justifies the
   UCB/Thompson use of the posterior.
