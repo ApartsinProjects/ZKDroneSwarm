@@ -63,6 +63,18 @@ homogeneity; HYP private-offset matters MORE when all drones share a type -> rec
 to run_contention, sweep K in {1,3,10,30} at pool=15, compare AdaCF/CBBAlite/MusicalChairs/greedy),
 E-C4 (anisotropy: needs an anisotropic make_world variant -- skew the factor singular values -- then
 reuse run_masked; HYP low-rank win survives non-uniform factor importance).
+ALSO TODO (from audits/session, do not forget):
+- E-CTDE / Rank5 BRACKET: centralized matcher WITH a shared model (Hungarian on a pooled CF estimate),
+  reported like the ORACLE (not a competitor), to quantify the cost of the no-comms constraint.
+- AUDIT-FIX (low pri, no headline depends on it): thread an explicit d_hat through the older true-d
+  run_episode diagnostics (pilot_structure/_bootstrap/_confirm/_bakeoff/_em/_rank/_mfaudit/_starvation/
+  _trust/_choice_only) if any ever feeds a paper claim; run_episode already accepts d_hat= (default true d,
+  documented as oracle-rank). pilot_rank stays true-d intentionally (label it oracle-rank reference).
+- OPTIONAL fairness-hardening (audit, conservative-for-us so not urgent): match exploration schedules
+  across baselines (currently per-method eps); note PTF/ESTR clip-to-[-1,1] and BPMF idx-only init seed.
+- HOUSEKEEPING: remove orphan uncatalogued result files (contention8_111224/_152650 [superseded 8-method],
+  explore8_095853/_100154 [old smokes]) -- safe to git-clean; not referenced by any catalogue row.
+- PUSH: local was ~113 commits ahead of origin/main; push when the user asks (DONE this cycle if pushed).
 
 STATUS LINE (update me): cycles 62-65 committed (HEAD a61dfcb). DONE: H3 capstone+WIN (abundance gate,
 best-or-tied everywhere), strict-ZK newcomer, harness+baseline ZK audits, per-observer noise clarified,
@@ -448,6 +460,11 @@ H4 calibration.
   a COMPOSITIONAL-niche framing. TODO: fold the same cites into paper_v2/literature-review.
 
 ## BENCHMARK CANDIDATES (scouted; ranked) -- non-trivial MRTA/MARL baselines to add
+[STATUS cycle 65 -- entries below are the original scout notes; current done-state:]
+  Rank1 CBBA-lite = DONE (cat row 57, we win T7). Rank2 CLUB = DONE (cat row 58). Rank3 UCBIndep = HAVE.
+  Rank4 SIC-MMAB/musical-chairs = DONE as MusicalChairs (cat row 57). Rank5 Hungarian coordination-CEILING
+  bracket = STILL TODO (a centralized-with-shared-model ceiling, reported like the oracle; see CTDE bracket
+  in MARL section). So only the Rank5 ceiling bracket remains unbuilt.
 - [DONE (cycle 64), WE WIN at severe contention] CBBA-lite (broadcast-bid greedy/market auction):
   canonical MRTA baseline, consensus/comms step REMOVED. Implemented as CBBALite(RewardCF) in
   pilot_noise.py (same CF utility; reactive public-loss BACKOFF) + pilot_contention.py 9-method sweep
@@ -470,6 +487,10 @@ H4 calibration.
   (need context features), BanditMF (~= our BPMF), CBBA-with-consensus (needs comms).
 
 ## MARL PERSPECTIVE (analysis 2026-05-23; framing + baselines + improvements)
+[STATUS cycle 65: PAPER FRAMING = DONE (W1, paper Related-work + tutorial §9). SIC-MMAB = DONE
+ (MusicalChairs). Coordinated/negative-correlation exploration = DONE (CoordCF, cat row 59, honest
+ early-coverage win). STILL TODO: the CTDE "ceiling" bracket (centralized matcher w/ shared model,
+ reported like the oracle to quantify the no-comms cost) = same as Rank5 above.]
 WHAT THIS IS, in MARL terms: a COOPERATIVE, DECENTRALIZED, COMMUNICATION-FREE multi-agent
 BANDIT with low-rank structure (a "multiplayer matrix / low-rank bandit"), NOT a sequential
 Markov game (reward R[i,j]=<p_i,u_j> is stateless, no transitions). Family = multi-agent MAB +
