@@ -115,6 +115,24 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   dispatches the right drone to the right target; but pure COVERAGE breadth is an EXPLORATION objective
   that broad explorers (UCB/Random) brute-force, and exploit-CF does not cover faster. So CF's mission
   edge is DISPATCH QUALITY/EFFICIENCY, not blanket search. -> docs/MISSION.md (catalogue row pending run).
+## ----- BATCH cycle 71-72 (user: "anything else to measure?" then "a) after that b)") -----
+- [DONE cycle 71] (a) COLLABORATION VALUE: pilot_collab.py = "what is the broadcast worth?" Sweep rho
+  from 0 (ISOLATED, self-only) to 1 (full passive sensing); COLLAB VALUE = unseen(rho=1) - unseen(rho=0).
+  RESULT (catalogue row 71, docs/COLLAB.md): broadcast worth +0.387 unseen to RewardCF (isolated 0.001 ->
+  full 0.388) and +0.507 to PTF, but only -0.002/+0.005 to UCBIndep/Tabular. A lone agent cannot recover
+  the shared structure from one matrix row (isolated ~0); the comms-free broadcast UNLOCKS generalization
+  for low-rank learners, is worthless to structure-free. The operational "why a swarm / why share?" answer.
+- [DONE cycle 72] (b) POSITIVE SCALING WITH SWARM SIZE: pilot_scale_m.py = "does the swarm get SMARTER as
+  it grows?" Fix n=240, horizon T=50, rho=0.5; grow m {5,10,20,40,80} (K1=min(K,m) so latent rank stays
+  =d=5 for all m -- the fix; was failing because pc.K=10 was passed as K1 > m). RESULT (catalogue row 72,
+  docs/SCALE_M.md): RewardCF unseen RISES 0.084(m=5), 0.217, 0.360, 0.412, 0.430(m=80); m=5-vs-80 CIs
+  non-overlapping (more drones feed ~m*T*rho broadcast obs into the SHARED structure, collective recovery
+  T11); structure-free FLAT (UCBIndep 0.002->-0.004, Tabular ~0): m cannot help an own-row-only learner
+  (Thm 1). Positive scaling with team size is unique to structure-sharing (opposite of interference penalty).
+- [DONE cycle 71-72] FIGURE F18 (make_figures.py): 2-panel (a) unseen vs rho incl isolated + (b) unseen vs
+  swarm size m, from collab_*.json + scale_m_*.json. Folded into paper (new Fig. 5 + "why a swarm" para,
+  before the operational-mission para) + tutorial (new §8.19). Both HTML rebuilt. NOTE run make_figures.py
+  from REPO ROOT (relative results/pilots + docs/figures paths).
 - [TODO RAS] reformat docs/paper_aamas/main.tex -> Elsevier elsarticle class (do at submission time).
 ## ===== END RAS TRACK =====
 - [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type

@@ -2052,6 +2052,32 @@ A("<figure>%s<figcaption><strong>F17.</strong> Operational target-servicing miss
   "structure-free (gray), at full broadcast and under limited observability. The separation over the "
   "whole field opens at $\\rho=0.25$.</figcaption></figure>" % img("F17_mission.png", "F17"))
 
+A("<h3>8.19 Why a swarm at all? Collaboration value and positive scaling</h3>")
+A(plain("<b>What is the broadcast actually worth?</b> Turn it off and see. We sweep the broadcast rate "
+        "from rho=0 (each drone is ISOLATED, sees only its own outcomes) up to rho=1 (it passively senses "
+        "every engagement). At rho=0 a drone holds just ONE row of the reward matrix, its own, and from a "
+        "single row you cannot recover a structure shared across drones, so its skill on pairs it never "
+        "tried is essentially zero. Switching the broadcast on lifts RewardCF's unseen skill by +0.39 "
+        "(and the batch low-rank PTF by +0.51). The structure-free learners gain NOTHING (UCBIndep "
+        "&minus;0.00, Tabular +0.01): they have no model linking one task to another, so observations "
+        "about other targets are useless to them. That single contrast is the cleanest 'why share?' "
+        "answer we have: communication-free sensing converts m isolated, near-useless learners into one "
+        "effective swarm."))
+A(plain("<b>Does the swarm get SMARTER as it gets bigger?</b> Yes, and this is the surprising part. "
+        "Usually adding agents makes coordination HARDER (more interference, more collisions). Here we fix "
+        "the number of targets, the per-drone horizon, and the broadcast rate, and simply grow the swarm "
+        "from m=5 to m=80 drones. RewardCF's unseen skill climbs steadily (0.08, 0.22, 0.36, 0.41, 0.43 "
+        "as m grows), because more drones pour more broadcast observations (about m&times;T&times;rho of "
+        "them) into the ONE shared low-rank structure everyone is estimating, so every drone's prediction "
+        "on targets it never serviced improves as teammates are added (the collective-recovery speedup, "
+        "Theorem 11). The structure-free learner stays FLAT, because m cannot help an agent that only ever "
+        "learns its own row (Theorem 1). A swarm that gets smarter as it grows is exactly the property you "
+        "want from a swarm, and here it is a direct consequence of sharing structure."))
+A("<figure>%s<figcaption><strong>F18.</strong> (a) Collaboration value: unseen-pair skill vs broadcast "
+  "rate (the left edge rho=0 is isolated, self-only); the comms-free broadcast unlocks generalization "
+  "for low-rank CF (RewardCF, PTF) and is worthless to structure-free (UCBIndep, Tabular). (b) Positive "
+  "scaling: unseen skill RISES with swarm size m for CF (the swarm gets smarter as it grows), and is "
+  "flat for structure-free.</figcaption></figure>" % img("F18_collab_scaling.png", "F18"))
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "

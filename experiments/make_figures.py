@@ -456,4 +456,45 @@ if f:
         plt.legend(fontsize=8); plt.tight_layout(); save_fig("F17_mission")
         print("F17_mission  <-", os.path.basename(f))
 
+# ---- F18: (a) collaboration value (vs rho, incl isolated) + (b) positive scaling with swarm size m ----
+fc = latest("results/pilots/collab_*.json")
+fm = latest("results/pilots/scale_m_*.json")
+if fc and fm:
+    dc = json.load(open(fc)); rawc = dc["raw"]; rhos = dc["meta"]["rhos"]
+    dm = json.load(open(fm)); rawm = dm["raw"]; mssz = dm["meta"]["ms"]
+    sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="RewardCF (low-rank CF, ours)"),
+           "PTF":      dict(color="C1", marker="s", lw=2, label="PTF (batch low-rank)"),
+           "UCBIndep": dict(color="C7", marker="d", ls="--", label="UCBIndep (no structure)"),
+           "Tabular":  dict(color="C3", marker="x", ls=":", label="Tabular (no structure)")}
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+    ax = axes[0]                                                 # (a) unseen skill vs broadcast rate rho
+    for nm in ["RewardCF", "PTF", "UCBIndep", "Tabular"]:
+        if nm not in rawc[str(rhos[0])]:
+            continue
+        mu = [np.mean(rawc[str(r)][nm]["unseen"]) for r in rhos]
+        sd = [np.std(rawc[str(r)][nm]["unseen"]) for r in rhos]
+        ax.errorbar(rhos, mu, yerr=sd, capsize=2, markersize=5, **sty[nm])
+    ax.axhline(0, color="black", lw=0.7, ls=":")
+    ax.set_xlabel("broadcast rate $\\rho$  (0 = isolated: each drone sees only its own outcomes)")
+    ax.set_ylabel("unseen-pair skill")
+    ax.set_title("(a) Collaboration value: the comms-free broadcast unlocks\n"
+                 "generalization for low-rank CF, is worthless to structure-free", fontsize=8)
+    ax.grid(alpha=0.25); ax.legend(fontsize=7)
+    ax = axes[1]                                                 # (b) unseen skill vs swarm size m
+    for nm in ["RewardCF", "UCBIndep", "Tabular"]:
+        if nm not in rawm[str(mssz[0])]:
+            continue
+        mu = [np.mean(rawm[str(mm)][nm]["unseen"]) for mm in mssz]
+        sd = [np.std(rawm[str(mm)][nm]["unseen"]) for mm in mssz]
+        ax.errorbar(mssz, mu, yerr=sd, capsize=2, markersize=5, **sty[nm])
+    ax.axhline(0, color="black", lw=0.7, ls=":")
+    ax.set_xscale("log", base=2); ax.set_xticks(mssz); ax.set_xticklabels([str(mm) for mm in mssz])
+    ax.set_xlabel("swarm size $m$  (fixed $n$, horizon $T$, broadcast rate $\\rho$)")
+    ax.set_ylabel("unseen-pair skill")
+    ax.set_title("(b) Positive scaling: the swarm gets SMARTER as it grows;\n"
+                 "more drones feed the SHARED structure (T11); structure-free flat", fontsize=8)
+    ax.grid(alpha=0.25); ax.legend(fontsize=7)
+    fig.tight_layout(); save_fig("F18_collab_scaling")
+    print("F18_collab_scaling  <-", os.path.basename(fc), "+", os.path.basename(fm))
+
 print("figures written to", OUT)
