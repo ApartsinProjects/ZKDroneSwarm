@@ -25,11 +25,20 @@ WRITING / non-CPU (do interleaved while experiments run):
 - [ ] W2 De-confliction FIGURE (make_figures.py new F15): earned reward vs pool {240,60,30,15} for
       ContentionAdaCF/ContentionCF (ours) vs CBBAlite vs MusicalChairs vs greedy RewardCFconv vs PTF,
       from latest results/pilots/contention8_*.json (the 9-method one, _155056). Embed in paper+tutorial 8.13.
-- [ ] W3 LaTeX main.tex sync with the HTML (docs/paper_aamas/main.tex): the HTML moved ahead -- add the
+- [DONE cycle 66, focused] W3 LaTeX main.tex sync: added the 3 highest-value items -- per-observer
+  independent noise (formal model), the CBBA-lite + SIC-MMAB/musical-chairs de-confliction comparison
+  (we win), and the UnifiedCF capstone (best-or-tied everywhere). NOTE: this is a FOCUSED sync of the
+  new headline content, not a full line-by-line reconciliation; a deeper pass (figures, ablation table,
+  anisotropy/CLUB rows) remains if a camera-ready is imminent.
+- [ ] W3-ORIG LaTeX main.tex sync with the HTML (docs/paper_aamas/main.tex): the HTML moved ahead -- add the
       UnifiedCF capstone (best-or-tied everywhere via abundance gate), the CBBA/MusicalChairs
       de-confliction comparison, the per-observer-independent noise model statement, strict-ZK newcomer.
       Careful manual sync; verify it still reads.
-- [ ] W4 Theory writeups in THEORY_FORMAL.md (proposed P11-P15 already sketched there, ~line 465+):
+- [DONE cycle 66] W4 Theory: P11-P15 promoted to full Propositions in THEORY_FORMAL.md (P11 crossover
+  existence EXACT; P12 churn latency ORDER; P13 loss+abundance envelope EXACT at corners, theorizes
+  UnifiedCF+ab; P14 VI discriminative-but-anti-conservative; P15 keystone = partial(rho=1 exact) +
+  precise conjecture(persistent rho<1), honestly OPEN). Original sketch note kept below:
+- [ ] W4-ORIG Theory writeups in THEORY_FORMAL.md (proposed P11-P15 already sketched there, ~line 465+):
       P13 adaptive-envelope (NOW partly realized by the abundance gate -- formalize: exploration should
       vanish when offer abundant OR loss high); P11 choice-vs-reward crossover sigma*; P12 churn fold-in
       latency; P14 calibration/VI; P15 KEYSTONE (decentralized masked low-rank U-recovery -- the central
@@ -48,7 +57,16 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
       homogeneity? vary K (clusters) in the contention world; if all drones same type they all want the
       same targets (max contention) -> private offset should matter MORE. Reuse pilot_contention with a
       type-controlled make_world.
-- [ ] E-C4 anisotropy (skewed singular values / heavy-tailed factor spectrum): does the low-rank win
+- [DONE cycle 66] E-C4 anisotropy: pilot_c4.py (make_world_aniso, decay sweep) -> docs/C4.md, catalogue
+  row 60. FINDING: low-rank unseen win ROBUST to anisotropy and GROWS as spectrum concentrates (RewardCF
+  0.394->0.491), stays >> popularity (BiasModel 0.13-0.16) and floor (~0) at every decay. Honest:
+  hypothesized shrink-to-rank-1, actual = robust/grows (collapse needs near-pure rank-1).
+- [DONE-by-decision cycle 66] OPTIONAL fairness-hardening: intentionally NOT changed. The per-method eps
+  schedules + PTF/ESTR clip + BPMF init are all GENEROUS to baselines (conservative for our claims), so
+  matching them could only weaken baselines (wrong direction) and forces a full bake-off re-run. Left as
+  documented in ZK_COMPLIANCE; no action.
+- [DONE cycle 66] HOUSEKEEPING: removed the 4 orphan uncatalogued result JSONs.
+- [ ] E-C4-ORIG anisotropy (skewed singular values / heavy-tailed factor spectrum): does the low-rank win
       survive non-uniform factor importance? Add an anisotropic make_world variant; reuse run_masked.
 - [RESOLVED cycle 65, SUBSUMED] E-C12: C12 dynamic target onboarding was already run (catalogue row 19,
       cycle 19, c12_onboard) and the harness audit (ZK_COMPLIANCE) confirmed it COMPLIES (centralized

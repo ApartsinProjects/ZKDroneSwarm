@@ -603,3 +603,124 @@ and the centralized phase-structured low-rank-bandit bounds (ESTR, Jun et al. 20
 or decentralized. A self-contained joint, decentralized, masked regret bound is open and would build
 on P15 (decentralized masked U-recovery). Rigor: the given-U reduction is EXACT (it IS LinUCB); the
 joint, U-learning case is OPEN.
+
+---
+
+## Propositions 11-15 (promoted from the proposed-results block; cycle 66)
+
+These flesh out the P11-P15 sketches into standalone statements with the best available proof and an
+HONEST rigor flag. P11/P12/P14 are clean-to-medium; P13 now also covers the cycle-64 abundance gate;
+P15 is the keystone and is stated as a partial result + precise conjecture (it is genuinely open).
+
+### Proposition 11 (choice-vs-reward crossover sigma*). REASONED (existence EXACT, monotonicity heuristic).
+
+Setup: a teammate k chooses a_k = argmax_{j in S} R_{k,j} from a clean offer S of size c (the CHOICE
+channel observes a_k exactly; only the cardinal REWARD channel is noised by sigma_obs). Consider two
+estimators of u_j-direction information from one observed engagement: (R) the noisy reward
+R_{k,a_k}+N(0,sigma_obs^2); (C) the argmax event {a_k = argmax}.
+
+Claim: there is a sigma* > 0 such that for sigma_obs > sigma* the Fisher information the CHOICE
+channel carries about the relevant factor direction exceeds that of the REWARD channel.
+
+Proof (existence). The Gaussian reward likelihood gives per-observation Fisher information
+I_R(theta) = (d mu/d theta)^2 / sigma_obs^2, strictly DECREASING in sigma_obs and -> 0 as
+sigma_obs -> inf. The choice event is generated from the teammate's CLEAN rewards, so its likelihood
+(a max-of-c ordering probability) does NOT depend on sigma_obs at all: I_C(theta) is a constant
+I_C0 > 0 (positive because the argmax is informative about the ordering of the <p_k,u_j>). Since
+I_R -> 0 while I_C = I_C0 > 0, by continuity there is a unique crossover sigma* with
+I_R(sigma*) = I_C0, and I_C > I_R for all sigma_obs > sigma*. QED (existence).
+
+Monotonicity (heuristic): I_C0 increases with c (a max over more alternatives pins the ordering more
+tightly) and the per-direction signal (d mu/d theta)^2 shrinks as the d directions share a unit-norm
+budget (~1/d), so sigma* shifts with c and d; the precise law is not derived here. EXPLAINS the
+CHOICEEM niche: at sigma_obs = 2.0 the noise-immune choice channel overtakes the reward channel on
+BOTH unseen and anytime (catalogue rows 43/48), exactly the sigma_obs > sigma* regime.
+
+### Proposition 12 (churn fold-in latency / recovery condition). ORDER (balance constant heuristic).
+
+Setup: continuous turnover of eta fresh targets per round; each drone is offered c of n targets and
+pulls one. A FRESH target has no observations, so a low-rank model predicts it at its prior mean.
+
+Claim (a, negative): a purely GREEDY (exploitative) policy pulls a fresh target only if its
+prior-mean prediction exceeds the running best; the probability of that -> 0 as the model sharpens,
+so the expected number of rounds before a given fresh target is first pulled is Theta(n/c) when it is
+ever competitive and unbounded when it is dominated. Hence steady-state skill on the RECENT-arrival
+set -> 0 (matches CHURN: plain RewardCF fresh-skill 0.074, catalogue row 53).
+
+Claim (b, fix): a predictive-variance UCB adds a bonus that is largest for unpulled targets and
+decays like 1/sqrt(n_pulls); a fresh target's bonus exceeds the value gap until it has been pulled
+O(d) times (enough to fold its factor in). With eta fresh targets/round and c slots, the swarm can
+service the fresh backlog iff eta * d < c (each arrival needs ~d collective probes, c are available
+per round); under this balance steady-state fresh-skill is bounded below by a constant. EXPLAINS H6b
+(ActiveCF/EMCF fresh-skill 0.36-0.37 vs UCBIndep 0.13). Rigor: ORDER; the iff is a flow-balance
+heuristic (constants not pinned).
+
+### Proposition 13 (loss-and-abundance-gated envelope). EXACT at the extremes, interior empirical.
+
+This now theorizes the deployed ContentionAdaCF AND the cycle-64 UnifiedCF+ab, both omitted by T7.
+Policy: offset scale s(l) = eps_hi * l^p (l = realized loss-rate EMA) AND a UCB-exploration gate that
+is damped when l is high OR when the offer is abundant (|S| > k*m).
+
+Claim: the policy is best-or-statistically-tied to the per-regime specialist at all four corners of
+(loss, abundance):
+- l -> 0, |S| > k*m (no contention, plentiful): s -> 0 and the abundance gate zeroes exploration, so
+  the policy reduces to GREEDY exploitation, which is optimal for one-shot earned reward when there is
+  nothing to learn-vs-exploit and nothing to de-conflict (matches greedy at pool=240).
+- l -> 1, |S| <= k*m (severe contention): s -> eps_hi and the gate is ON, recovering the T7(b) FIXED
+  private offset, which beats greedy by the T7 collision-probability margin (~2x at pool=15).
+- l -> 0, |S| <= k*m (scarce but winning): exploration ON (UCB), offset ~0 = EMCF, the learning regime.
+- l -> 1, |S| > k*m: cannot co-occur for long (losing implies contention implies not-abundant), so the
+  fourth corner is transient.
+Proof: each corner is a reduction to an already-characterized policy (greedy / T7(b) / EMCF) by taking
+the stated limit of s(l) and the gate; EXACT at the limits. The interior trajectory is the
+empirically-validated best-or-tied result (catalogue rows 54/56: UnifiedCF+ab ties or wins every
+regime). Rigor: EXACT corner reductions; interior is empirical (the honest envelope claim).
+
+### Proposition 14 (mean-field VI: discriminative but anti-conservative). REASONED + CITED.
+
+Claim: the VB-PMF predictive standard deviation sd_ij = sqrt(p_i^T Sigma_{u_j} p_i + u_j^T Sigma_{p_i}
+u_j) is (a) MONOTONE in the true conditional RMSE (discrimination), but (b) UNDER-estimates it
+(empirical coverage < nominal).
+(a) Each posterior precision Lambda_{u_j} grows by the (precision-weighted) outer products of the
+observers of j, so Sigma_{u_j} shrinks monotonically in j's effective observation count, which is
+exactly what drives down the true error; hence sd and RMSE move together (matches CALIBRATION: RMSE
+rises monotonically across sd quintiles, Q1 0.231 -> Q5 0.492).
+(b) Mean-field factorizes q(P,U) = q(P)q(U), DROPPING the posterior cross-covariance Cov(p_i,u_j); the
+true predictive variance of <p_i,u_j> includes a positive cross term that the factorized sd omits, so
+sd is biased LOW and nominal intervals under-cover (50% -> 40%, 95% -> 92%). This is the standard
+mean-field variance-underestimation (CITED: Blei-Kucukelbir-McAuliffe 2017; Wang-Titterington). Use:
+the posterior is sound for RELATIVE uncertainty (UCB/shrinkage ordering), not exact coverage.
+
+### Proposition 15 (decentralized masked U-recovery -- THE KEYSTONE). PARTIAL + CONJECTURE (OPEN).
+
+This is the clause T2/T4c silently cite. Goal: each drone recovers col-space(U) (so its row fold-in
+generalizes to UNSEEN targets) from its OWN persistently-masked, noisy broadcast.
+
+Setup: R = P U^T, rank d, mu-incoherent. Drone i sees entry (k,j) iff M_{ik}=1 (persistent,
+M_{ik} ~ Bern(rho) i.i.d. over k) AND teammate k engaged j; observed value noised by sigma_obs.
+
+Partial result (EXACT, rho = 1): with full broadcast every drone sees the same engagement stream;
+the pooled observed matrix is a uniformly-(re)sampled noisy low-rank matrix, so standard
+noisy matrix completion (Candes-Plan / Keshavan-Montanari-Oh) recovers col-space(U) to error
+O(sigma_obs sqrt(d(m+n)/|Omega|)) once |Omega| = Otilde(d(m+n)); this is the centralized regime and
+is where T2/T4c are rigorous.
+
+Conjecture (rho < 1, persistent masking): under the per-drone persistent mask, drone i's visible
+support is a UNION over its rho-fraction of teammates of their engagement columns -- a STRUCTURED,
+non-uniform sample. We conjecture each drone recovers col-space(U) to o(1) once its visible entry
+count exceeds Otilde(d(m+n)/rho), PROVIDED a rho-effective-sampling / leverage condition holds (no
+target column is systematically invisible to drone i, i.e. the persistent mask does not disconnect
+the bipartite observation graph below the completion threshold).
+
+Why off-the-shelf theory does not close it: incoherence-based completion assumes UNIFORM (or
+leverage-reweighted i.i.d.) sampling; persistent per-drone masking induces a fixed, correlated
+sampling pattern (the same teammates are always missing for i), so the sampling operator is not the
+i.i.d. Bernoulli that Candes-Recht/Recht-2011 require. The natural route is weighted/non-uniform
+completion (Negahban-Wainwright 2012; Foygel-Srebro; Chen et al. 2015 on completion with non-uniform
+sampling) plus a graph-connectivity (leverage) argument on the per-drone observation bipartite graph;
+i.i.d.-per-round masking (Theorem 4's transient regime) IS coverable by these and is the easier case.
+
+Status: OPEN. Closing the persistent case makes the categorical Theta(d)-vs-Theta(n) claim
+self-contained rather than CITED. Until then, T2/T4c are stated honestly as holding under the
+centralized/uniform-sampling reduction (rho = 1 exact; rho < 1 i.i.d. coverable; rho < 1 persistent
+conjectured), and the EMPIRICAL masked results (C11, catalogue rows 20+) stand as the evidence.

@@ -71,7 +71,10 @@ genuinely rank $d = \min(d,K_1,K_2)$ (a bilinear form; no nonlinear link).
 (action, outcome). Drone $i$ senses its own outcome cleanly (noise $\sigma_{\text{own}}$)
 and a per-drone-limited, noisy slice of teammates' outcomes: a mask keeps teammate
 $k$ with probability $\rho$ (persistent or i.i.d.), with reward noise $\sigma_{\text{obs}}$.
-This is passive sensing of public outcomes, not transmission; there is no message
+Sensing is \emph{independent per observer}: each drone applies its own mask and draws its own
+noise on every engagement, so the same action $a_k$ is recorded as $R_{k,a_k}+\eta_{ik}$ with
+$\eta_{ik}\perp\eta_{i'k}$ for $i\neq i'$; the same engagement is read differently by different
+drones, never a single shared value. This is passive sensing of public outcomes, not transmission; there is no message
 passing, no parameter sharing, and no coordinator.
 
 \textbf{Baselines.} Structure-free: Random, UCB-Indep (per-(drone,target) UCB1),
@@ -223,6 +226,16 @@ $\sim2\times$ at severe contention (pool $=15$: $0.100$ vs $\le0.06$ for every n
 method), with no communication. (iv) De-confliction must use \emph{private, fixed} randomness: per-round
 softmax and shared-signal (popularity / collective count-bonus) routing both backfire by
 re-colliding or re-synchronizing.
+(v) Against the field's two recognized no-comms de-confliction primitives, each given our SAME CF
+utility so the comparison isolates the primitive, a CBBA-style auction with public-loss backoff and a
+SIC-MMAB / musical-chairs randomized re-seating, the fixed private offset WINS at severe contention
+($0.100$-$0.105$ vs CBBA-lite $0.064$ vs re-seating $0.028$ at pool $=15$, non-overlapping CIs);
+CBBA-lite is competitive only when targets are plentiful (it is a credible baseline, not a strawman),
+and randomized re-seating is worst (it injects collisions).
+(vi) \textbf{Capstone:} uniting the confidence core, the loss-self-gated offset, and a loss-and-abundance
+gated exploration anneal into ONE policy (UnifiedCF) is best-or-statistically-tied across the standard,
+churn, and BOTH contention extremes on the same seeds, with no per-regime tuning, so the design space
+collapses to a single self-tuning policy.
 Consistent soft-contention evidence: the independent tabula\_drone validation runs with
 HP depletion and our method still leads (skill $\approx 0.81$).
 

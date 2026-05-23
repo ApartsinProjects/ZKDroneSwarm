@@ -115,9 +115,12 @@ def _eval_unseen(learners, R, pulled, cand, seed):
     return (gm - rm) / max(om - rm, 1e-6)
 
 
-def run_contention(Cls, hp, rho, pool, seed):
-    """Train under contention; return (anytime_earned_skill, unseen_skill, collision_rate)."""
-    w = make_world(pc.M, pc.N, pc.D, pc.K, pc.K, within=0.15, seed=seed, signed=True)
+def run_contention(Cls, hp, rho, pool, seed, k1=None):
+    """Train under contention; return (anytime_earned_skill, unseen_skill, collision_rate).
+    k1 overrides the number of DRONE types (K1): k1=1 -> all drones share one (rank-1)
+    preference (maximal contention overlap), k1 large -> distinct preferences (E-H11types)."""
+    K1 = pc.K if k1 is None else k1
+    w = make_world(pc.M, pc.N, pc.D, K1, pc.K, within=0.15, seed=seed, signed=True)
     P, U, R = w[:3]; m, n = R.shape
     T, so, sb = pc.T, pc.SO, pc.SB
     rng = np.random.RandomState(seed + 999)
