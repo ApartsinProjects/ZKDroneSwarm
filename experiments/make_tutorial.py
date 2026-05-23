@@ -1120,6 +1120,47 @@ A("<div class='box warn'><b>Honest result (we implemented, rescued, and re-teste
   "drowning, do not pay for learned per-teammate gating, the schedule is enough. We keep this as a "
   "documented negative-with-a-niche, the kind a tutorial should show.</p></div>")
 
+A("<h4>Making it work: held-out informativeness, and a sanity check (the follow-up)</h4>"
+  "<p>The null above is for a HOMOGENEOUS swarm, where every teammate explores then exploits on the "
+  "same schedule, so there is no per-teammate difference for $\\gamma_k$ to exploit and it can only "
+  "match the fixed ramp. The interesting case is HETEROGENEOUS teammates: some discover the structure "
+  "earlier (and their choices are worth trusting sooner), some are unreliable. We built that test "
+  "(<code>pilot_choicehetero.py</code>): real learners alongside SPECIAL teammates that are either "
+  "ORACLE choosers (always engage their true best, maximally informative) or RANDOM choosers (faulty / "
+  "off-objective). It doubles as a SANITY check, a working informativeness estimator MUST drive "
+  "$\\gamma$(oracle) high and $\\gamma$(random) low; if it cannot, it is broken.</p>")
+A(plain("This is a good habit for any negative result: build an experiment whose answer is OBVIOUS "
+        "(oracles should be trusted, random teammates should not) and check the method delivers it. "
+        "Here it did more than validate, it diagnosed the bug."))
+A("<div class='formal'><h4>Why naive ChoiceEM fails the sanity, and the fix (Proposition 9)</h4>"
+  "<p>A uniform-random teammate is the WORST case for the mixture model: its choice is equally likely "
+  "to land anywhere, so the 'is this informative?' posterior averages to $\\gamma$ itself, no force "
+  "pushes it down. Worse, the naive E-step scores each choice against a factor $\\hat p_k$ FIT to that "
+  "same teammate's choices, which OVERFITS and makes even random choices look informative. Result "
+  "(8 seeds): in-sample ChoiceEM gives random teammates $\\gamma\\approx 0.70$ (should be low), barely "
+  "below oracle's $0.95$, it FAILS the sanity. The fix is a HELD-OUT (predictive) responsibility: "
+  "score each choice ONCE against the model BEFORE the refit incorporates it. A random teammate's "
+  "choices are then independent of the scorer, so its $\\gamma$ stays at its low prior; a genuine "
+  "informer's choices are predicted even held-out, so its $\\gamma$ rises. Measured: predictive "
+  "$\\gamma$(oracle) $\\approx 0.49 \\gg \\gamma$(random) $\\approx 0.10$ (about $5\\times$, "
+  "non-overlapping CIs), it PASSES the sanity, and beats in-sample ChoiceEM on skill everywhere.</p></div>")
+A("<div class='box key'><b>The positive that matters: knowledge propagates through the choice channel "
+  "(your teammates' competence is contagious).</b> When knowledgeable teammates are present, the GOOD "
+  "drones' unseen-pair skill LEAPS, from $0.089$ with all-ordinary teammates to $0.55$ with $50\\%$ "
+  "oracle teammates, learned purely from watching their CHOICES, with zero communication and no "
+  "teammate rewards. So a swarm where some agents discover the latent structure earlier can lift the "
+  "rest through actions alone, and held-out $\\gamma_k$ is what lets a drone preferentially absorb the "
+  "knowledgeable teammates while ignoring the noisy ones.</div>")
+A(plain("Honest scope of the fix. Held-out $\\gamma_k$ is a correct ESTIMATOR of who-knows-what (it "
+        "passes the sanity and beats the in-sample version), and it is more robust than the fixed ramp "
+        "when many teammates are unreliable. But it does NOT make the choice channel beat the simple "
+        "ramp on raw skill in every regime: when teammates are mostly GOOD, the ramp's blanket trust "
+        "slightly edges held-out's caution (oracle unseen $0.55$ vs $0.49$), and if you can observe "
+        "teammate REWARDS at all, the reward channel beats every choice-only method (oracle $0.62$). So "
+        "per-teammate informativeness is the right tool for the choice-only, MIXED-reliability regime; "
+        "the next refinement (a reward-improvement gradient, to also down-weight teammates that are "
+        "consistent but WRONG, which held-out still trusts) is in the backlog."))
+
 A("<h3>5.7 Do we even need to guess the rank? (and how to adapt it)</h3>")
 A("<p>A natural worry: every structured method uses a GUESSED rank $\\hat d=8$ while the true rank is "
   "$d=5$, and every drone starts from the SAME guess (it is a shared hyperparameter, not learned or "

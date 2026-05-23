@@ -618,20 +618,28 @@ class ChoiceEM(ChoiceCF):
     fit weights each choice's positive/negative pair by r, so a near-random choice barely
     moves the structure (the fix for low-confidence teammates poisoning the latent model).
     Replaces ChoiceCF's fixed temporal competence ramp with this learned, per-choice r."""
-    def __init__(self, *a, tau=0.3, gamma_init=0.5, warm_em=0.0, **hp):
+    def __init__(self, *a, tau=0.3, gamma_init=0.5, warm_em=0.0, predictive=False, **hp):
         super().__init__(*a, **hp)
         self.tau = tau; self.warm_em = warm_em   # warm_em: ignore choices before warm_em*T_total
+        self.predictive = predictive  # HELD-OUT responsibility: score each choice ONCE, against the
         self.gamma = np.full(self.m, float(gamma_init))   # per-teammate informativeness estimate
+        self.csoft = []               # model BEFORE this refit incorporates it, then freeze (so a
+        self.coffn = []               # random teammate's choices can't be overfit into looking good)
 
-    def _resp(self, k, c, off):
+    def _soft(self, k, c, off):
+        """Model probability that teammate k picks its observed target c from offer off
+        (softmax on OUR current estimate of k's preference). The gamma-free evidence that
+        a choice is model-consistent; returns (soft_c, offer_size)."""
         off = np.asarray(off)
         logits = (self.U[off] @ self.P[k]) / max(self.tau, 1e-6)
         logits = logits - logits.max()
         w = np.exp(logits); Z = max(w.sum(), 1e-12)
         pos = np.where(off == c)[0]
-        soft_c = float(w[pos[0]] / Z) if len(pos) else 1.0 / len(off)
+        return (float(w[pos[0]] / Z) if len(pos) else 1.0 / len(off)), int(len(off))
+
+    def _resp_from(self, k, soft_c, n_off):
         gk = float(self.gamma[k])
-        return gk * soft_c / (gk * soft_c + (1.0 - gk) / len(off) + 1e-12)
+        return gk * soft_c / (gk * soft_c + (1.0 - gk) / n_off + 1e-12)
 
     def _refit(self):
         own_r = [v for kk, v in zip(self.rk, self.rv) if kk == self.idx]
@@ -640,17 +648,38 @@ class ChoiceEM(ChoiceCF):
         # warm-up: ignore choices made before warm_em*T_total (build the model on REWARDS
         # first so the E-step has a decent model to judge choices -> breaks the cold-start deadlock)
         t0 = self.warm_em * self.T_total
-        # E-step: responsibility per buffered choice + per-teammate accumulation (post-warmup)
-        resp = []; gsum = np.zeros(self.m); gcnt = np.zeros(self.m)
-        for k, c, off, ts in zip(self.ck, self.cc, self.coff, self.cstep):
+        # E-step evidence (soft_c per buffered choice). predictive=True: score each choice ONCE,
+        # against the model BEFORE this refit's ALS incorporates it (the choices added since the last
+        # refit are NOT yet in self.P), then FREEZE it -> a uniform-random teammate gets soft_c~1/|S|
+        # held-out (cannot be overfit), so its gamma stays low. predictive=False: in-sample each refit.
+        if self.predictive:
+            while len(self.csoft) < len(self.ck):
+                i = len(self.csoft); ts = self.cstep[i]
+                if ts < t0:
+                    self.csoft.append(0.0); self.coffn.append(len(self.coff[i]))
+                else:
+                    s, no = self._soft(self.ck[i], self.cc[i], self.coff[i])
+                    self.csoft.append(s); self.coffn.append(no)
+            softs = self.csoft; offns = self.coffn
+        else:
+            softs = []; offns = []
+            for k, c, off, ts in zip(self.ck, self.cc, self.coff, self.cstep):
+                if ts < t0:
+                    softs.append(0.0); offns.append(len(off))
+                else:
+                    s, no = self._soft(k, c, off); softs.append(s); offns.append(no)
+        # E-step responsibility (fresh gamma) + M-step (1): gamma_k = mean responsibility (post-warmup)
+        resp = [0.0] * len(self.ck); gsum = np.zeros(self.m); gcnt = np.zeros(self.m)
+        for i, (k, ts) in enumerate(zip(self.ck, self.cstep)):
             if ts < t0:
-                resp.append(0.0); continue
-            r = self._resp(k, c, off); resp.append(r); gsum[k] += r; gcnt[k] += 1.0
-        # M-step (1): update informativeness gamma_k = mean responsibility (post-warmup choices)
+                continue
+            r = self._resp_from(k, softs[i], offns[i]); resp[i] = r
+            gsum[k] += r; gcnt[k] += 1.0
         self.gamma = np.where(gcnt > 0, gsum / np.maximum(gcnt, 1.0), self.gamma)
         # M-step (2): weighted ALS; choice contributions weighted by responsibility r
         K = list(self.rk); J = list(self.rj); V = list(self.rv); W = list(self.rw)
-        for (k, c, off, ts), r in zip(zip(self.ck, self.cc, self.coff, self.cstep), resp):
+        for i, (k, c, off) in enumerate(zip(self.ck, self.cc, self.coff)):
+            r = resp[i]
             if r <= 1e-3:
                 continue
             wc = r / self.s2c
