@@ -222,11 +222,22 @@ A("<p><b>Foundational results.</b> <b>Fold-in error bound (exact):</b> the cold-
   "tabular floor the $\\Theta(d)$-vs-$\\Theta(n)$ separation is minimax-tight on both sides.</p>")
 
 A("<h2>5. Experiments</h2>")
-A("<p><b>Method operating profiles.</b> Before the results, this table fixes the SETTING each method "
-  "runs in, so the comparison is honest about who gets more power. Our methods occupy the hardest cell "
-  "(decentralized, no communication, masked + noisy observation, only a guessed rank, online); any "
-  "baseline that beats us in some regime relaxes one of these axes (ESTR is centralized; the Oracle and "
-  "CTDE rows are reference upper bounds, not competitors).</p>")
+A("<p><b>How to read the comparison.</b> The ZK-MRTA setting itself is new, so this is not 'our method "
+  "vs external rivals' but a CONTROLLED SWEEP across the low-rank design space we instantiate in the "
+  "setting, measured against the genuinely external structure-free paradigm and full-information "
+  "reference ceilings. Provenance is explicit: the CF family (RewardCF, EMCF, and the contention / "
+  "unified / choice variants) is ours, and PTF is also ours, a strong batch-flavored hybrid we built "
+  "from standard parts; MFSGD, ESTR, BPMF, SoftImpute, KNNCF and CLUB are named prior-work estimators we "
+  "ADAPT to the setting (the algorithms are theirs, the decentralized broadcast-only application is part "
+  "of our framework); the per-arm UCB and tabular learners are the structure-free paradigm we beat; the "
+  "Oracle and the comms-full CTDE matcher are upper bounds, not competitors. <b>Harness fact:</b> the "
+  "evaluation builds one estimator PER drone, each seeing only the broadcast it observes and acting on "
+  "its own row, so every method in the sweep is decentralized and communication-free in-harness; the "
+  "low-rank methods differ in the UPDATE RULE (online vs batch-refit vs explore-then-commit) and the "
+  "refinements, not the information regime (ESTR is spectral/centralized only in its origin and is run "
+  "here as a per-drone explore-then-commit reduction). Our online CF sits in the hardest cell and any "
+  "method that beats it in some regime relaxes one axis (a batch refit at full broadcast, full "
+  "information for the ceilings).</p>")
 A(mp.html_profiles())
 A("<p><b>Categorical (acting on the unseen).</b> CF acts well on never-observed pairs at every "
   "observation density while structure-free learners sit at the floor (Fig. 1); new targets onboard "
@@ -370,7 +381,7 @@ A("<p><b>Operational mission (application).</b> The abstract result is an operat
   "fit; effectiveness $\\langle p_i,u_j\\rangle$ is the match. Over the mission each robot repeatedly "
   "services an offered target and earns that match (our standard reward), under range-limited, "
   "distance-noisy passive sensing. On the SAME metric (servicing skill), against the FULL field "
-  "(decentralized low-rank PTF/BPMF/SoftImpute/MFSGD, the centralized ESTR, AND structure-free) under limited observability "
+  "(low-rank PTF/BPMF/SoftImpute/MFSGD and the explore-then-commit ESTR, AND structure-free) under limited observability "
   "($\\rho{=}0.25$): ours $0.36$ vs the best of the entire field $0.29$ (SoftImpute), non-overlapping "
   "CIs, structure-free at the random-dispatch floor; at full broadcast the structured field is "
   "competitive and the separation opens under masking. The swarm dispatches the right asset to targets "
@@ -404,8 +415,15 @@ A("<figure>%s<figcaption><b>Fig. 6.</b> Operational metrics (re-analysis of exis
   "it fastest, most competitors never do. (b) Cumulative lost mission value over the run (lower is "
   "better). (c) New-asset readiness: a new drone's skill on never-tried targets vs its own engagements; "
   "a structure-free newcomer never becomes ready. (d) Resilience to attrition under continuous turnover. "
-  "ESTR is centralized (reference); all other baselines are decentralized.</figcaption></figure>"
+  "All methods run decentralized and communication-free in-harness; they differ in the update rule "
+  "(online vs batch-refit vs explore-then-commit).</figcaption></figure>"
   % img("F19_operational.png", "F19"))
+A("<p><b>Performance scorecard.</b> One view of the design-space sweep on a single canonical masked "
+  "harness: our online CF leads the masked-observation column and both operational columns (lowest "
+  "cumulative regret, fastest to competence); our batch hybrid PTF wins only the full-broadcast column "
+  "(its one-shot refit is best when the matrix is densely observed); the standard low-rank estimators "
+  "trail; and the structure-free learners sit at the floor on every column.</p>")
+A(mp.html_scorecard(ROOT))
 A("<div class='box'><b>Scope: when does CF beat structure-free?</b> The advantage is not "
   "universal. Across a structure-by-observability grid it holds precisely when THREE "
   "conditions co-occur. <b>(1) Low-rank but PERSONALIZED</b> (1 &lt; d &lt;&lt; min(m,n)): "

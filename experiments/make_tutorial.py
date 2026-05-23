@@ -711,11 +711,22 @@ A("<div class='box key'><b>The whole section in one map: ONE method, a menu of s
   "de-confliction</i> (a fixed private offset, 8.13). Read 5.1-5.2 for the method; treat 5.3-5.7 as the "
   "menu.</div>")
 A("<h3>5.0 Every method on the operating axes (who gets more power)</h3>")
-A("<p>Before the details, here is every method, the baselines from Section 4 and ours below, on the "
-  "axes that decide fairness: distribution, communication, observability, prior knowledge, and "
-  "computation. Our methods sit in the HARDEST cell (decentralized, no communication, masked + noisy "
-  "observation, only a guessed rank, online); a method that beats us in some regime relaxes one of these "
-  "axes (ESTR is centralized; Oracle and CTDE are reference upper bounds, not competitors).</p>")
+A(plain("A framing point first, because it changes how to read everything below. The ZK-MRTA setting "
+        "itself is new, so this is NOT 'our method versus external rivals'. It is a controlled SWEEP "
+        "across the low-rank design space that we instantiate in the setting, measured against the one "
+        "genuinely external paradigm (structure-free, per-arm UCB / tabular) and a couple of "
+        "full-information upper bounds. Being honest about who built what: the CF family is ours, and PTF "
+        "is also ours, a strong batch-flavored hybrid we built from standard parts; MFSGD, ESTR, BPMF, "
+        "SoftImpute, KNNCF and CLUB are named prior-work estimators we ADAPT to the setting (the algorithm "
+        "is theirs, the decentralized broadcast-only application is part of our framework); UCB and "
+        "tabular are the structure-free paradigm we beat; the Oracle and the comms-full CTDE matcher are "
+        "ceilings, not competitors. And one crucial implementation fact: our evaluation builds ONE "
+        "estimator per drone, each seeing only the broadcast it observes, so EVERY method here is "
+        "decentralized and communication-free; the low-rank methods differ in the update rule (online vs "
+        "batch-refit vs explore-then-commit) and the refinements, not the information regime (ESTR is "
+        "spectral / centralized only in its origin and runs here as a per-drone explore-then-commit "
+        "reduction). The table below puts all of them on the fairness axes; our online CF sits in the "
+        "hardest cell."))
 A(mp.html_profiles())
 A("<p>And here is the design space of OUR methods by mechanism, so the named variants read as one core "
   "plus a few scoped switches (signal channel, exploration, confidence, contention, rank, coordination) "
@@ -2128,8 +2139,17 @@ A("<figure>%s<figcaption><strong>F19.</strong> Operational metrics (a re-analysi
   "broadcast; ours reach it fastest, most competitors never do. (b) Cumulative lost mission value "
   "(lower is better). (c) New-asset readiness: a new drone's skill on never-tried targets versus its own "
   "engagements; a structure-free newcomer never becomes ready. (d) Resilience to attrition under "
-  "continuous turnover. ESTR is a centralized method (reference, not directly comparable); every other "
-  "baseline is decentralized.</figcaption></figure>" % img("F19_operational.png", "F19"))
+  "continuous turnover. All methods run decentralized and communication-free in-harness; they differ in "
+  "the update rule (online vs batch-refit vs explore-then-commit).</figcaption></figure>" % img("F19_operational.png", "F19"))
+A("<h3>8.21 The whole sweep in one scorecard</h3>")
+A(plain("Finally, the design-space sweep on a single canonical masked harness, in one table. Read it by "
+        "provenance group: our online CF (RewardCF, BothCF) leads the masked-observation column and both "
+        "operational columns (lowest cumulative regret, fastest to reach competence); our batch hybrid PTF "
+        "wins only the full-broadcast column, the one regime where a one-shot refit on a densely-observed "
+        "matrix is best; the standard low-rank estimators trail; and the structure-free learners sit at the "
+        "floor on every column. That single picture is the paper: structure beats no-structure "
+        "categorically, and within the low-rank family the online updater wins the regime that matters."))
+A(mp.html_scorecard(ROOT))
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "

@@ -179,6 +179,23 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   batch PTF marginally edges, same rho=1 batch edge) vs online-earning (reward/round: WE win, lowest regret,
   batch pays a probe phase). opmetrics.py computes the treatment; OPMETRICS.md + paper Fig.6 para + tutorial
   8.20 updated. Catalogue row 73 updated (new opmetrics JSON 183104; removed superseded 180810).
+## ----- BATCH cycle 75 (user: design-space reframe + scorecard + ESTR relabel + harness clarification) -----
+- [DONE cycle 75] POSITIONING REFRAME (user confirmed "design-space sweep we instantiate"): paper + tutorial
+  now frame the comparison as a controlled sweep across the low-rank design space we bring INTO ZK-MRTA,
+  vs the external structure-free paradigm + full-info ceilings, NOT us-vs-rivals. Provenance explicit in
+  method_profiles.py: CF family + PTF = ours (PTF = our batch hybrid); MFSGD/ESTR/BPMF/SoftImpute/KNNCF/CLUB
+  = standard estimators we adapt (cited); UCB/Tabular/Random = structure-free; Oracle/CTDE = references.
+- [DONE cycle 75] HARNESS FACT CLARIFIED (user flagged the ESTR-centralized tension): run_masked builds ONE
+  estimator per drone -> every bake-off method is decentralized + comms-free in-harness. So ESTR RELABELLED
+  from "centralized" to "explore-then-commit" in F5/F6/F17/F19 + prose (it is spectral/centralized only in
+  ORIGIN; run here as a per-drone reduction). Genuine full-info reserved for Oracle + CTDE ceilings. The
+  low-rank methods differ in UPDATE RULE (online/batch/ETC), not information regime.
+- [DONE cycle 75] PERFORMANCE SCORECARD (user "yes build it"): method_profiles.html_scorecard reads the
+  bake-off + opmetrics and renders methods x {unseen@0.25, unseen@1.0, regret@0.25, time-to-competence} +
+  profile badge + provenance. Added to paper (end of Experiments) + tutorial (8.21) + docs/METHOD_PROFILES.md
+  (table D). Story in one view: our online CF leads masked + operational columns; our batch PTF wins only the
+  full-broadcast column; structure-free at the floor everywhere.
+- [TODO] P15 keystone attempt (decentralized masked U-recovery) -- IN PROGRESS next.
 - [TODO RAS] reformat docs/paper_aamas/main.tex -> Elsevier elsarticle class (do at submission time).
 ## ===== END RAS TRACK =====
 - [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type

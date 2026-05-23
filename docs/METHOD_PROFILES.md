@@ -1,12 +1,14 @@
-# Method operating profiles and comparison tables
+# Method operating profiles, paradigms, and performance scorecard
 
-Single source of truth (experiments/method_profiles.py) for how every method and paradigm sits on the axes that matter, so our wins read honestly: who gets more power is explicit.
+Single source of truth (experiments/method_profiles.py). The ZK-MRTA setting is itself new, so this is a CONTROLLED SWEEP across the low-rank design space we instantiate in the setting, against the external structure-free paradigm and full-information reference ceilings, not 'our method vs rivals'. Provenance is explicit: PTF and the CF family are ours; MFSGD/ESTR/BPMF/SoftImpute/KNNCF/CLUB are standard estimators we adapt (cited); UCB/Tabular/Random are the structure-free paradigm; Oracle/CTDE are upper bounds.
 
-**Notation** `[dist | comm | obs | prior | compute]`: dist D=decentralized / C=centralized; comm 0=none(passive) / B=broadcast params / full=message-passing; obs full / rho=masked / rho,sig=masked+noisy / self; prior none / d-hat=guessed rank / d=true rank / U*=oracle factors; compute online / batch / ETC=explore-then-commit / mem. Our flagship is the hardest cell `[D | 0 | rho,sig | d-hat | online]`.
+**Harness fact:** run_masked builds ONE estimator per drone, so every bake-off method is decentralized and communication-free in-harness; ESTR is spectral/centralized only in ORIGIN and runs here as a per-drone explore-then-commit reduction. Genuine full information applies only to Oracle and the CTDE ceiling.
+
+**Notation** `[dist | comm | obs | prior | compute]`.
 
 ## A. Method operating profiles
 
-| Method | Class | Dist | Comm | Observability | Prior | Compute | Profile |
+| Method | Provenance | Dist | Comm | Observability | Prior | Compute | Profile |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | **RewardCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
 | **EMCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
@@ -15,20 +17,20 @@ Single source of truth (experiments/method_profiles.py) for how every method and
 | **ContentionAdaCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
 | **UnifiedCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
 | **HybridCF** | ours | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
-| MFSGD | low-rank (online) | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
-| KNNCF | low-rank (online) | D | 0 | rho,sig | none | memory | `D|0|rho,sig|none|memory` |
-| BiasModel | low-rank (online) | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
-| PTF | low-rank (batch) | D | 0 | rho,sig | dhat | batch | `D|0|rho,sig|dhat|batch` |
-| BPMF | low-rank (batch) | D | 0 | rho,sig | dhat | batch | `D|0|rho,sig|dhat|batch` |
-| SoftImpute | low-rank (batch) | D | 0 | rho,sig | dhat | batch | `D|0|rho,sig|dhat|batch` |
-| CLUB | low-rank (batch) | D | 0 | rho,sig | none | batch | `D|0|rho,sig|none|batch` |
-| ESTR | centralized reference | C | full | rho | dhat | ETC | `C|full|rho|dhat|ETC` |
-| UCBIndep | structure-free | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
-| UCBHomo | structure-free | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
-| Tabular | structure-free | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
-| Random | structure-free | D | 0 | - | none | - | `D|0|-|none|-` |
-| CTDE-ceiling | reference ceiling | C | full | full | dhat | batch | `C|full|full|dhat|batch` |
-| Oracle | reference ceiling | C | full | full | U* | - | `C|full|full|U*|-` |
+| **PTF** | ours (hybrid) | D | 0 | rho,sig | dhat | batch | `D|0|rho,sig|dhat|batch` |
+| MFSGD | standard, adapted | D | 0 | rho,sig | dhat | online | `D|0|rho,sig|dhat|online` |
+| KNNCF | standard, adapted | D | 0 | rho,sig | none | memory | `D|0|rho,sig|none|memory` |
+| BiasModel | standard, adapted | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
+| BPMF | standard, adapted | D | 0 | rho,sig | dhat | batch | `D|0|rho,sig|dhat|batch` |
+| SoftImpute | standard, adapted | D | 0 | rho,sig | dhat | batch | `D|0|rho,sig|dhat|batch` |
+| CLUB | standard, adapted | D | 0 | rho,sig | none | batch | `D|0|rho,sig|none|batch` |
+| ESTR | standard, adapted | D | 0 | rho | dhat | ETC | `D|0|rho|dhat|ETC` |
+| UCBIndep | structure-free baseline | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
+| UCBHomo | structure-free baseline | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
+| Tabular | structure-free baseline | D | 0 | rho,sig | none | online | `D|0|rho,sig|none|online` |
+| Random | structure-free baseline | D | 0 | - | none | - | `D|0|-|none|-` |
+| CTDE-ceiling | reference (upper bound) | C | full | full | dhat | batch | `C|full|full|dhat|batch` |
+| Oracle | reference (upper bound) | C | full | full | U* | - | `C|full|full|U*|-` |
 
 ## B. MRTA / decentralized-learning paradigms in context
 
@@ -60,4 +62,20 @@ Single source of truth (experiments/method_profiles.py) for how every method and
 | **ContentionAdaCF** | reward | eps-greedy | none | scarcity-gated offset | fixed d-hat | explicit de-confliction (no comms) |
 | **ARD-EMCF** | reward | collective-UCB | Bayesian posterior | none | ARD (self-tuned) | implicit |
 | **HybridCF** | reward | probe-then-exploit | none | none | fixed d-hat | implicit |
+| **PTF** | reward | probe-then-exploit | none | none | fixed d-hat | implicit (batch refit) |
 | **UnifiedCF** | reward | gated collective-UCB | Bayesian posterior | gated offset | fixed d-hat | both (conditionally) |
+
+## D. Performance scorecard (one canonical masked harness)
+
+| Method | Provenance | unseen@rho=0.25 | unseen@rho=1.0 | regret@0.25 | rounds-to-25%-oracle | profile |
+| --- | --- | --- | --- | --- | --- | --- |
+| **RewardCF** | ours | 0.336 | 0.376 | 41.2 | 35 | `D|0|rho,sig|dhat|online` |
+| **BothCF** | ours | 0.349 | 0.372 | 41.2 | 36 | `D|0|rho,sig|dhat|online` |
+| **PTF** | ours (hybrid) | 0.280 | 0.516 | 46.0 | never | `D|0|rho,sig|dhat|batch` |
+| MFSGD | standard, adapted | -0.019 | 0.042 | 46.5 | never | `D|0|rho,sig|dhat|online` |
+| BPMF | standard, adapted | 0.126 | 0.233 | 49.9 | never | `D|0|rho,sig|dhat|batch` |
+| ESTR | standard, adapted | 0.058 | 0.232 | 46.4 | never | `D|0|rho|dhat|ETC` |
+| UCBHomo | structure-free baseline | 0.070 | 0.167 | 50.3 | never | `D|0|rho,sig|none|online` |
+| UCBIndep | structure-free baseline | 0.003 | 0.004 | 50.4 | never | `D|0|rho,sig|none|online` |
+| Tabular | structure-free baseline | 0.003 | -0.001 | 43.0 | 46 | `D|0|rho,sig|none|online` |
+| Random | structure-free baseline | 0.004 | 0.007 | 50.0 | never | `D|0|-|none|-` |

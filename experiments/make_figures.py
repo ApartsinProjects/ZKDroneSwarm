@@ -94,7 +94,7 @@ if f:
         "RewardCF": dict(marker="o", color="C0", lw=2.2, label="RewardCF (ours, online ALS)"),
         "BothCF":   dict(marker="o", color="C1", lw=2.2, label="BothCF (ours, online ALS)"),
         "PTF":      dict(marker="s", color="C3", ls="--", label="PTF (probe->SVD->finetune)"),
-        "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore->SVD->commit, centralized ref)"),
+        "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "BPMF":     dict(marker="v", color="C5", ls="--", label="BPMF (Bayesian PMF)"),
         "UCBIndep": dict(marker="x", color="gray", ls=":", label="UCBIndep (no-structure floor)"),
     }
@@ -124,7 +124,7 @@ if f:
         "RewardCF": dict(color="C0", lw=2.3, label="RewardCF (ours, online ALS)"),
         "BothCF":   dict(color="C1", lw=2.3, label="BothCF (ours, online ALS)"),
         "PTF":      dict(color="C3", ls="--", label="PTF (probe-then-fit)"),
-        "ESTR":     dict(color="C4", ls="--", label="ESTR (explore-then-commit, centralized ref)"),
+        "ESTR":     dict(color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "Tabular":  dict(color="C2", ls="-.", label="Tabular (eps-greedy own-row)"),
         "UCBIndep": dict(color="gray", ls=":", label="UCBIndep (n>>T: stuck exploring)"),
     }
@@ -443,17 +443,14 @@ if f:
             sd = [np.std(sk[str(r)][nm]) for nm in methods]
             plt.bar(x + (bi - (len(rhos) - 1) / 2.0) * wbar, mu, wbar, yerr=sd, capsize=2,
                     label="$\\rho$=%.2f" % r, alpha=0.6 + 0.4 * bi)
-        cols = ["C0" if nm in ("RewardCF", "EMCF") else ("C3" if nm == "ESTR"
-                else ("C1" if nm in struct else "C7")) for nm in methods]
-        disp = [nm if nm != "ESTR" else "ESTR (centralized)" for nm in methods]
-        plt.xticks(x, disp, rotation=30, ha="right", fontsize=7.5)
+        cols = ["C0" if nm in ("RewardCF", "EMCF") else ("C1" if nm in struct else "C7") for nm in methods]
+        plt.xticks(x, methods, rotation=30, ha="right", fontsize=7.5)
         for tl, c in zip(plt.gca().get_xticklabels(), cols):
             tl.set_color(c)
         plt.ylabel("servicing skill  (0=random dispatch, 1=oracle)")
         plt.axhline(0, color="black", lw=0.6)
-        plt.title("Operational target-servicing mission: ours (blue) vs decentralized low-rank (orange) vs\n"
-                  "structure-free (gray); ESTR (red) is centralized (reference). Separation opens at $\\rho$=0.25",
-                  fontsize=8)
+        plt.title("Operational target-servicing mission: our online CF (blue) vs the low-rank field (orange,\n"
+                  "incl. our batch hybrid) vs structure-free (gray); separation opens at $\\rho$=0.25", fontsize=8)
         plt.legend(fontsize=8); plt.tight_layout(); save_fig("F17_mission")
         print("F17_mission  <-", os.path.basename(f))
 
@@ -506,13 +503,13 @@ if f:
     M = json.load(open(f))["raw"]
     a = M["anytime"]; rd = M["readiness"]; rs = M["resilience"]; T = a["T"]
     OURS = {"RewardCF", "BothCF", "HybridCF", "EMCF", "ActiveCFconv"}
-    CENTRAL = {"ESTR"}; BATCH = {"PTF", "BPMF", "SoftImpute", "MFSGD", "KNNCF"}
+    LOWRANK = {"PTF", "BPMF", "SoftImpute", "MFSGD", "KNNCF", "ESTR"}   # low-rank field (incl our batch hybrid PTF)
 
     def mcol(nm):
-        return "C0" if nm in OURS else ("C3" if nm in CENTRAL else ("C1" if nm in BATCH else "C7"))
+        return "C0" if nm in OURS else ("C1" if nm in LOWRANK else "C7")
 
     def xlab(nm):
-        return nm + "\n(centralized)" if nm in CENTRAL else nm
+        return nm
     order_ab = [m for m in ["RewardCF", "BothCF", "PTF", "BPMF", "MFSGD", "ESTR", "Tabular", "UCBIndep", "Random"]
                 if m in a["methods"]]
     xs = np.arange(len(order_ab))
