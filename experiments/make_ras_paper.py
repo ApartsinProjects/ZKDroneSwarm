@@ -265,6 +265,13 @@ A("<p><b>What SwarmCF does and does not assume.</b> It is fully decentralized (o
   "guessed rank $\\hat d$ (which it does not need to be exact, and which can itself be removed by a "
   "rank-adaptive variant we defer to follow-up work). It does not assume the noise level is known: "
   "uniform weighting suffices and is what we use for the headline results.</p>")
+A("<p><b>On-board cost.</b> SwarmCF is light enough to run on each robot. Acting is $O(c\\hat d)$ per "
+  "round (score the offered set). A periodic refit is a few alternating ridge sweeps, each solving "
+  "$O(m+n)$ linear systems of size $\\hat d\\times\\hat d$, i.e. $O\\big(\\text{sweeps}\\cdot(m+n)\\hat "
+  "d^3 + |\\Omega_i|\\hat d^2\\big)$ time, with $O((m+n)\\hat d + |\\Omega_i|)$ memory; since $\\hat d$ is "
+  "a small guessed rank this is negligible for swarm-scale $m,n$. Onboarding a new task or robot is a "
+  "single $O(\\hat d^3)$ ridge solve. There is no inter-robot computation: each robot updates only its "
+  "own factors and reads the passive stream.</p>")
 
 # ---------------- 5. theory ----------------
 A("<h2>5. Theory: why the advantage is categorical</h2>")
@@ -331,9 +338,14 @@ A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a
   "free learners (independent UCB, tabular) are the external paradigm; standard low-rank estimators "
   "(online SGD-MF, batch spectral/Bayesian/convex completion) are adapted to the setting for the "
   "low-rank comparison; the Oracle and a centralized full-communication matcher are upper bounds, not "
-  "competitors. In our harness <b>every</b> method runs decentralized and communication-free (one "
-  "estimator per robot); the low-rank methods differ only in the update rule. Table 2 fixes each "
-  "method's operating profile.</p>")
+  "competitors. We emphasize that communication-based methods (auctions/CBBA, CTDE training, "
+  "federated/gossip CF) are <b>inadmissible by the problem definition</b>, not omitted: they require "
+  "messages or a coordinator, which our setting forbids, so they can appear only as the centralized "
+  "ceilings. The admissible communication-free competitors are exactly the structure-free learners "
+  "(independent UCB / tabular), which are the per-arm reductions of no-communication multiplayer-bandit "
+  "methods. In our harness <b>every</b> method runs decentralized and communication-free (one estimator "
+  "per robot); the low-rank methods differ only in the update rule. Table 2 fixes each method's operating "
+  "profile.</p>")
 A("<p class='small'><b>Table 2.</b> Operating profiles. Notation [distribution | communication | "
   "observability | prior | computation].</p>")
 A(mp.html_profiles())
@@ -566,6 +578,14 @@ A("<p class='small'>All numbers come from saved per-seed JSON under <code>result
   "<code>experiments/pilot_noise.py</code> and <code>pilot_baselines.py</code>; proofs in "
   "<code>docs/THEORY_FORMAL.md</code>. Block-model world, signed-cosine reward, 8 seeds, bootstrap "
   "95% CIs throughout.</p>")
+A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robots, $n=240$ tasks, true "
+  "rank $d=5$, guessed rank $\\hat d=8$, horizon $T=50$, offer size $c=20$, own-observation noise "
+  "$\\sigma_{\\mathrm{own}}=0.1$, broadcast-observation noise $\\sigma_{\\mathrm{obs}}=0.3$, persistent "
+  "mask rate $\\rho$ swept. SwarmCF: $\\varepsilon$-greedy with $\\varepsilon_0=0.5$ decaying by $0.93$ "
+  "per round to $\\varepsilon_{\\min}=0.05$; ridge $\\lambda=10^{-2}$; 8 alternating-least-squares sweeps "
+  "per refit; refit every 3 rounds; uniform observation weights (the noise level is not used). Identical "
+  "exploration schedules and the same guessed rank $\\hat d$ are given to every structured baseline for "
+  "fairness; the choices are conservative for our claims (generous to baselines).</p>")
 
 A("</div></body></html>")
 open(OUT, "w", encoding="utf-8").write("\n".join(H))
