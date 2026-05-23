@@ -297,3 +297,40 @@ IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
   (not just popularity). HYP: faster newcomer warm-up than popularity shrinkage.
 NEXT EXPERIMENTS (queued): c=n candidate-set independence (running next); H1 C10
 info-directed exploration; H2 adaptive ContentionCF; H4 calibration.
+
+## NEGATIVE / WEAK RESULTS: root cause + fix (2026-05-23 rigor review)
+All results below use >=6 seeds + bootstrap 95% CIs (single-seed numbers were only
+SMOKE PREVIEWS, never reported). Confirmed not ALS/convergence artifacts: the precision
+and ablation findings used the CONVERGED config (als_sweeps=20, refit_every=1).
+
+NEGATIVES:
+- ChoiceEM (choice-EM < ChoiceCF). ROOT CAUSE (code validated, NOT a bug): gamma_init=0.5
+  + no warm-up -> choice channel weighted ~0.5/s2c from round 1 when choices are RANDOM
+  (early exploration) -> noise injection -> model corruption -> responsibilities stay
+  uniform -> deadlock (the cold-start gate the backlog predicted). FIX (testing):
+  gamma_init=0.1 + warm-up (warm_em=0.3, build the model on rewards first), at HIGH
+  sigma_obs (the choice channel's only winning regime). DEEPER: choice channel is a
+  weaker signal than rewards until sigma_obs >> 1.
+- Full precision weighting (1/sigma^2) < uniform on unseen. ROOT CAUSE: regularization-
+  scale confound (weights 11-100 >> prior 1.0 -> under-regularizes) + over-weights own
+  data irrelevant to the unseen u_j. FIX = relcap (bounded+normalized) ~ uniform; EM
+  (Bayesian) is the principled answer (won the bake-off). CI-confirmed (precision sweep,
+  12 seeds), NOT a convergence artifact.
+- Posterior-UCB exploration (big beta) over-explores. ROOT CAUSE: own-factor uncertainty
+  term uniformly large early -> bonus dominates -> charged by anytime. FIX = collective
+  term only + SMALL beta (0.3) -> best final anytime (shown).
+WEAK POSITIVES (improvements):
+- ContentionCF regime-dependent (loses pool>=60). FIX = H2 collision-rate-adaptive offset.
+- ARD recovers rank ~3.2 < true 5. ROOT CAUSE: weak directions unidentifiable under
+  masking+spread; ARD prior b0 sets aggressiveness. FIX (optional): sweep b0 (less
+  pruning -> closer to 5, at cost of keeping noise dims). The recovered rank IS the
+  identifiable rank (honest).
+- collective-UCB(0.3) best final anytime but slow early. FIX: anneal beta, or fuse with
+  the count-bonus (fast early + structure-info late).
+MORE BASELINES (user: "surprised there aren't more"): we already run 11 (Random,
+UCBIndep, UCBHomo, Tabular, MFSGD, ESTR, PTF, BPMF, SoftImpute, kNN-CF, BiasModel)
+under identical limits. Methods NOT included are either INADMISSIBLE (MAPPO/QMIX/IPPO
+need centralized training/comms; LinUCB needs context features we lack) or REDUNDANT
+(Thompson-MF/BanditMF ~ our BPMF; IQL ~ UCBIndep). Candidate ADDITIONS if useful:
+item-kNN (we have user-kNN), a GLM/logistic-link MF (for binary rewards, H7), and an
+explicit oracle-rank CF upper bound (bracket).

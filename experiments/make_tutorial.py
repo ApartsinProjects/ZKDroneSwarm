@@ -7,8 +7,9 @@ Output: docs/tutorial.html   (regenerable; reads PNGs from docs/figures/).
 import base64
 import os
 
-FIG = "docs/figures"
-OUT = "docs/tutorial.html"
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FIG = os.path.join(ROOT, "docs", "figures")
+OUT = os.path.join(ROOT, "docs", "tutorial.html")
 
 
 def img(name, alt, w="100%"):
@@ -851,19 +852,29 @@ A("<div class='box'><b>Scouted ideas it builds on.</b> Dawid-Skene EM for annota
   "crowdsourcing reliability estimation. Our novelty is the DECENTRALIZED, ZK, ONLINE instance: each "
   "agent infers its teammates' choice-informativeness from public actions alone and fuses it with "
   "low-rank completion in one EM loop, no labels, no communication, no shared parameters.</p></div>")
-A("<div class='box warn'><b>Honest result (we implemented and tested it): ChoiceEM does NOT win, and "
-  "the reason is instructive.</b> Across reward noise $\\sigma_{\\mathrm{obs}}\\in\\{0.3,0.6,1.0\\}$ "
-  "(8 seeds), ChoiceEM underperforms even the fixed-ramp ChoiceCF (unseen $\\approx 0.01$ vs $0.09$), "
-  "and BOTH choice-only methods are dominated by RewardCF up to $\\sigma_{\\mathrm{obs}}=1.0$ "
-  "(RewardCF unseen $0.16$-$0.45$). Two lessons: (1) the choice channel is a fundamentally WEAKER "
-  "signal than rewards until noise is extreme ($\\sigma_{\\mathrm{obs}}\\gg 1$), an action reveals only "
-  "an argmax, a reward reveals a value; (2) the EM gating DEADLOCKS at cold-start, the E-step needs a "
-  "good model to tell a model-based choice from a random one, but down-weighting choices keeps the "
-  "model from improving, a chicken-and-egg the fixed ramp sidesteps by trusting choices on a schedule. "
-  "The principled fix is to break the deadlock by judging choices against a model the REWARD channel "
-  "already fit (reward-warm-started EM fusion), and to deploy it only as extreme-noise insurance; pure "
-  "choice-EM is not worth its complexity in the realistic-noise regime. We keep this as a documented "
-  "negative, the kind a tutorial should show.</p></div>")
+A("<div class='box warn'><b>Honest result (we implemented, rescued, and re-tested it): ChoiceEM does "
+  "NOT win on skill, but the rescue confirms exactly WHY, and reveals where the choice channel does "
+  "win.</b> Across reward noise $\\sigma_{\\mathrm{obs}}\\in\\{0.6,1.0,2.0\\}$ (8 seeds, bootstrap 95% "
+  "CI), the naive ChoiceEM ($\\gamma_0=0.5$, no warm-up) DEADLOCKS, unseen $0.012$, anytime $0.163$, "
+  "below even the fixed-ramp ChoiceCF (unseen $0.093$, anytime $0.219$). The principled fix we then "
+  "tested, ChoiceEM-rescue, starts skeptical ($\\gamma_0=0.1$) and freezes the EM gate for the first "
+  "$30\\%$ of rounds so the reward channel can fit a usable model first. It WORKS as a deadlock fix: "
+  "anytime climbs $0.163\\to0.217$, statistically tied with the ramp's $0.219$. But the learned "
+  "per-teammate gate still buys NO skill edge over the crude fixed ramp (rescue unseen $0.031$ vs "
+  "ChoiceCF $0.093$). Two lessons: (1) the EM gating genuinely DEADLOCKS at cold-start, the E-step "
+  "needs a good model to tell a model-based choice from a random one, but down-weighting choices keeps "
+  "the model from improving; the rescue's reward-warm-start breaks exactly this chicken-and-egg, "
+  "validating the root cause. (2) Once the deadlock is gone, a learned gate and a scheduled ramp are "
+  "indistinguishable here, so the extra machinery is not worth its complexity.</p>"
+  "<p><b>The positive that fell out:</b> the choice channel is not useless, it is extreme-noise "
+  "insurance. At $\\sigma_{\\mathrm{obs}}=2.0$ the noise-immune ChoiceCF (an action's argmax is "
+  "unaffected by reward noise) overtakes RewardCF on BOTH metrics, unseen $0.093$ vs $0.042$ and "
+  "anytime $0.219$ vs $0.179$ (non-overlapping CIs), whereas at $\\sigma_{\\mathrm{obs}}=0.6$ RewardCF "
+  "still dominates ($0.295$ vs $0.093$). The choice methods are flat in $\\sigma_{\\mathrm{obs}}$ by "
+  "construction (they never read the noisy reward), so they cross over RewardCF as rewards degrade. "
+  "Practical reading: fuse the channels and lean on choices only when your own reward signal is "
+  "drowning, do not pay for learned per-teammate gating, the schedule is enough. We keep this as a "
+  "documented negative-with-a-niche, the kind a tutorial should show.</p></div>")
 
 A("<h3>5.7 Do we even need to guess the rank? (and how to adapt it)</h3>")
 A("<p>A natural worry: every structured method uses a GUESSED rank $\\hat d=8$ while the true rank is "

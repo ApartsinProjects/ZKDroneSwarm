@@ -618,10 +618,10 @@ class ChoiceEM(ChoiceCF):
     fit weights each choice's positive/negative pair by r, so a near-random choice barely
     moves the structure (the fix for low-confidence teammates poisoning the latent model).
     Replaces ChoiceCF's fixed temporal competence ramp with this learned, per-choice r."""
-    def __init__(self, *a, tau=0.3, **hp):
+    def __init__(self, *a, tau=0.3, gamma_init=0.5, warm_em=0.0, **hp):
         super().__init__(*a, **hp)
-        self.tau = tau
-        self.gamma = np.full(self.m, 0.5)        # per-teammate informativeness estimate
+        self.tau = tau; self.warm_em = warm_em   # warm_em: ignore choices before warm_em*T_total
+        self.gamma = np.full(self.m, float(gamma_init))   # per-teammate informativeness estimate
 
     def _resp(self, k, c, off):
         off = np.asarray(off)
@@ -637,11 +637,16 @@ class ChoiceEM(ChoiceCF):
         own_r = [v for kk, v in zip(self.rk, self.rv) if kk == self.idx]
         pos = float(np.percentile(own_r, 75)) if len(own_r) >= 4 else 0.55
         neg = float(np.percentile(own_r, 25)) if len(own_r) >= 4 else 0.15
-        # E-step: responsibility per buffered choice + per-teammate accumulation
+        # warm-up: ignore choices made before warm_em*T_total (build the model on REWARDS
+        # first so the E-step has a decent model to judge choices -> breaks the cold-start deadlock)
+        t0 = self.warm_em * self.T_total
+        # E-step: responsibility per buffered choice + per-teammate accumulation (post-warmup)
         resp = []; gsum = np.zeros(self.m); gcnt = np.zeros(self.m)
         for k, c, off, ts in zip(self.ck, self.cc, self.coff, self.cstep):
+            if ts < t0:
+                resp.append(0.0); continue
             r = self._resp(k, c, off); resp.append(r); gsum[k] += r; gcnt[k] += 1.0
-        # M-step (1): update informativeness gamma_k = mean responsibility
+        # M-step (1): update informativeness gamma_k = mean responsibility (post-warmup choices)
         self.gamma = np.where(gcnt > 0, gsum / np.maximum(gcnt, 1.0), self.gamma)
         # M-step (2): weighted ALS; choice contributions weighted by responsibility r
         K = list(self.rk); J = list(self.rj); V = list(self.rv); W = list(self.rw)

@@ -31,11 +31,13 @@ REG = {
     "RewardCF": (RewardCF, dict(**_CONV)),
     "ChoiceCF": (ChoiceCF, dict(comp=True, s2c=0.2, n_neg=1, within=True,
                                warm_frac=0.3, T_total=pc.T, **_CONV)),
-    "ChoiceEM": (ChoiceEM, dict(tau=0.3, s2c=0.2, n_neg=1, within=True,
-                               T_total=pc.T, **_CONV)),
+    "ChoiceEM(g0=.5)": (ChoiceEM, dict(tau=0.3, s2c=0.2, n_neg=1, within=True,
+                               T_total=pc.T, **_CONV)),                       # original (deadlock)
+    "ChoiceEM-rescue": (ChoiceEM, dict(tau=0.3, s2c=0.2, n_neg=1, within=True,
+                               T_total=pc.T, gamma_init=0.1, warm_em=0.3, **_CONV)),  # low init + warm-up
 }
-ORDER = ["RewardCF", "ChoiceCF", "ChoiceEM"]
-SIGMAS = [0.3, 0.6, 1.0]          # broadcast reward noise (own fixed at sigma_own=0.10)
+ORDER = ["RewardCF", "ChoiceCF", "ChoiceEM(g0=.5)", "ChoiceEM-rescue"]
+SIGMAS = [0.6, 1.0, 2.0]          # broadcast reward noise (own fixed 0.10); HIGH noise = choice regime
 RHO = 1.0
 SEEDS = list(range(8))
 RNG = np.random.RandomState(0)
@@ -95,12 +97,12 @@ def main():
             lab = "**%s**" % nm if nm == "ChoiceEM" else nm
             L.append("| %s | %s |" % (lab, " | ".join(cells)))
         L.append("")
-    # ChoiceEM vs ChoiceCF deltas
-    L.append("## ChoiceEM - ChoiceCF (mean; + = EM better)\n")
+    # ChoiceEM-rescue vs ChoiceCF deltas (does the fix beat the fixed-ramp baseline?)
+    L.append("## ChoiceEM-rescue - ChoiceCF (mean; + = rescued EM better)\n")
     L.append("| metric | " + " | ".join("sigma_obs=%.1f" % s for s in SIGMAS) + " |")
     L.append("|" + "---|" * (len(SIGMAS) + 1))
     for k in ("unseen", "anytime"):
-        d = ["%+.3f" % (np.mean(raw[k][str(sb)]["ChoiceEM"]) - np.mean(raw[k][str(sb)]["ChoiceCF"]))
+        d = ["%+.3f" % (np.mean(raw[k][str(sb)]["ChoiceEM-rescue"]) - np.mean(raw[k][str(sb)]["ChoiceCF"]))
              for sb in SIGMAS]
         L.append("| %s | %s |" % (k, " | ".join(d)))
     L.append("")

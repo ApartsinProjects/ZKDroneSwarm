@@ -4,26 +4,28 @@ Does EM-learned per-choice informativeness beat a fixed competence ramp? Sweep t
 
 ## UNSEEN skill
 
-| method | sigma_obs=0.3 | sigma_obs=0.6 | sigma_obs=1.0 |
+| method | sigma_obs=0.6 | sigma_obs=1.0 | sigma_obs=2.0 |
 |---|---|---|---|
-| RewardCF | 0.446 [0.408, 0.477] | 0.295 [0.251, 0.337] | 0.162 [0.128, 0.196] |
+| RewardCF | 0.295 [0.252, 0.337] | 0.162 [0.128, 0.197] | 0.042 [0.010, 0.075] |
 | ChoiceCF | 0.093 [0.064, 0.126] | 0.093 [0.063, 0.126] | 0.093 [0.063, 0.125] |
-| **ChoiceEM** | 0.012 [-0.011, 0.036] | 0.012 [-0.011, 0.036] | 0.012 [-0.011, 0.036] |
+| ChoiceEM(g0=.5) | 0.012 [-0.011, 0.036] | 0.012 [-0.011, 0.036] | 0.012 [-0.011, 0.036] |
+| ChoiceEM-rescue | 0.031 [0.005, 0.055] | 0.031 [0.006, 0.056] | 0.031 [0.006, 0.056] |
 
 ## ANYTIME skill
 
-| method | sigma_obs=0.3 | sigma_obs=0.6 | sigma_obs=1.0 |
+| method | sigma_obs=0.6 | sigma_obs=1.0 | sigma_obs=2.0 |
 |---|---|---|---|
-| RewardCF | 0.374 [0.355, 0.389] | 0.290 [0.266, 0.311] | 0.227 [0.199, 0.253] |
-| ChoiceCF | 0.219 [0.197, 0.241] | 0.219 [0.197, 0.241] | 0.219 [0.196, 0.241] |
-| **ChoiceEM** | 0.163 [0.146, 0.181] | 0.163 [0.146, 0.180] | 0.163 [0.146, 0.180] |
+| RewardCF | 0.290 [0.266, 0.311] | 0.227 [0.199, 0.253] | 0.179 [0.152, 0.206] |
+| ChoiceCF | 0.219 [0.196, 0.241] | 0.219 [0.196, 0.241] | 0.219 [0.196, 0.241] |
+| ChoiceEM(g0=.5) | 0.163 [0.146, 0.180] | 0.163 [0.146, 0.180] | 0.163 [0.146, 0.180] |
+| ChoiceEM-rescue | 0.217 [0.199, 0.235] | 0.217 [0.200, 0.235] | 0.217 [0.199, 0.235] |
 
-## ChoiceEM - ChoiceCF (mean; + = EM better)
+## ChoiceEM-rescue - ChoiceCF (mean; + = rescued EM better)
 
-| metric | sigma_obs=0.3 | sigma_obs=0.6 | sigma_obs=1.0 |
+| metric | sigma_obs=0.6 | sigma_obs=1.0 | sigma_obs=2.0 |
 |---|---|---|---|
-| unseen | -0.081 | -0.081 | -0.081 |
-| anytime | -0.056 | -0.056 | -0.056 |
+| unseen | -0.062 | -0.062 | -0.062 |
+| anytime | -0.002 | -0.002 | -0.002 |
 
 Read: if the choice channel is valuable (high sigma_obs), ChoiceEM should match or beat ChoiceCF by trusting model-based choices and discounting random ones; both choice methods should hold up better than RewardCF as rewards get noisy.
 
