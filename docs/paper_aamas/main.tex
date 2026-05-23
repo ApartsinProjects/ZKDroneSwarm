@@ -37,7 +37,7 @@ sample-complexity result ($\Theta(d)$ vs.\ $\Theta(n)$) and an anytime
 (cumulative-reward) separation. Against a broad, fairly-constrained field of
 low-rank and structured methods, our online, masking-robust, anytime-optimal
 estimators dominate throughout the limited-observability regime, and the advantage
-transfers to a realistic simulator.
+transfers to an independent simulator.
 \end{abstract}
 
 \section{Introduction}
@@ -59,7 +59,7 @@ $\Theta(n)$). (3) An anytime separation under sample starvation. (4) A masking-m
 dichotomy (durable vs transient decentralization) and an additive rank-ceiling
 result. (5) A method family that is masking-robust and anytime-optimal, dominating
 prior-art low-rank methods, plus collective active exploration; validated in a
-realistic simulator. An interactive tutorial with all figures and proofs is
+independent simulator. An interactive tutorial with all figures and proofs is
 public.\footnote{\url{https://apartsinprojects.github.io/ZKDroneSwarm/tutorial.html}}
 
 \section{Problem statement}
@@ -153,7 +153,7 @@ strongest competitors (PTF, SoftImpute) under masking and on anytime
 (Fig.~\ref{fig:pareto}); SoftImpute leads only dense-broadcast unseen.
 \textbf{Robustness.} Results are invariant to the masking model and degrade
 gracefully as the world leaves exact low-rank; the advantage transfers to the
-realistic tabula\_drone simulator (skill $\approx 0.81$, beating the env's SGD-MF and
+independent tabula\_drone simulator (skill $\approx 0.81$, beating the env's SGD-MF and
 UCB-Indep, approaching the oracle).
 
 \textbf{Scope (when CF beats structure-free).} The advantage is not universal; across a
@@ -193,7 +193,7 @@ explicit coordination may add value beyond preference quality. We expect the
 \emph{categorical} unseen-pair and onboarding results to persist, because they concern
 the quality of each agent's preference estimate (which contention does not change),
 while the operational gap may narrow as collisions, not preferences, become the
-bottleneck. Preliminary evidence: the realistic tabula\_drone validation already runs
+bottleneck. Preliminary evidence: the independent tabula\_drone validation already runs
 \emph{with} HP depletion, a soft contention in which engaged targets are drawn down, and
 our method still leads (skill $\approx 0.81$, beating SGD-MF and UCB-Indep). A
 controlled hard-contention study (capacity-limited targets, with and without a

@@ -668,6 +668,77 @@ A("<p class='small'>Status: Level-1 bounded weighting (relcap), Level-2 predicti
   "the L3 gate to lift the choice channel specifically at high broadcast noise where rewards are "
   "unreliable but choices are not.</p>")
 
+A("<h3>5.6 Joint estimation of latent structure and choice-informativeness (an EM framework)</h3>")
+A("<p>Level 3 above raises a real failure of the naive choice channel. When drone $i$ learns from a "
+  "teammate $k$'s CHOICE $a_k$ (treating the chosen target as a revealed positive), it implicitly "
+  "assumes $k$ chose because $k$'s model says $a_k$ is good. But early on, $k$ has LOW confidence in "
+  "its own latent structure, so $k$ is largely EXPLORING, its choices are almost random and carry "
+  "little preference information. Folding such choices in as positives corrupts the latent estimate. "
+  "We want to estimate, JOINTLY with the factors, how INFORMATIVE each teammate's choices are, so "
+  "non-informative choices automatically get a small weight.</p>")
+A("<div class='box key'><b>The framework: teammates as noisy preference 'annotators'.</b> This is "
+  "exactly the structure of <em>learning the truth from unreliable annotators</em> (the Dawid-Skene "
+  "model), fused with matrix factorization and a rational-choice (inverse-RL) likelihood. Each "
+  "teammate is an annotator whose 'label' is a discrete CHOICE; its unknown RELIABILITY "
+  "$\\gamma_k\\in[0,1]$ is how often it acts on its model rather than at random; and the shared "
+  "ground truth being recovered is the latent geometry $(P,U)$. Reliability and structure are "
+  "estimated TOGETHER by EM, so unreliable annotators are discounted automatically.</p></div>")
+A("<div class='formal'><h4>Generative model of a choice (mixture of rational and random)</h4>"
+  "<p>Teammate $k$ offered set $S_k^t$ chooses target $a_k^t$ via a latent indicator "
+  "$z_k^t\\in\\{\\text{informative},\\text{random}\\}$ with $\\Pr(z=\\text{informative})=\\gamma_k$:</p>"
+  "$$ a_k^t \\mid z_k^t=\\text{informative} \\ \\sim\\ \\mathrm{softmax}_{j\\in S_k^t}\\!\\Big(\\tfrac{1}{\\tau}"
+  "\\langle p_k, u_j\\rangle\\Big), \\qquad a_k^t \\mid z_k^t=\\text{random}\\ \\sim\\ \\mathrm{Unif}(S_k^t). $$"
+  "<p>The informative component is the Boltzmann-rational / conditional-logit choice (the standard "
+  "inverse-RL and discrete-choice model): a confident agent picks high-preference targets with high "
+  "probability; the temperature $\\tau$ sets how sharp. The marginal choice likelihood is the mixture "
+  "$\\;p(a_k^t) = \\gamma_k\\,\\mathrm{softmax}_{a_k^t}(\\cdot) + (1-\\gamma_k)/|S_k^t|$.</p></div>")
+A("<div class='formal'><h4>EM (each drone runs this locally over the teammates it senses)</h4>"
+  "<p><b>E-step</b> (per-choice responsibility = posterior that the choice was informative):</p>"
+  "$$ r_k^t = \\frac{\\gamma_k\\,\\mathrm{softmax}_{a_k^t}\\!\\big(\\langle \\hat p_k, u\\rangle/\\tau\\big)}"
+  "{\\gamma_k\\,\\mathrm{softmax}_{a_k^t}\\!\\big(\\langle \\hat p_k, u\\rangle/\\tau\\big) + (1-\\gamma_k)/|S_k^t|}. $$"
+  "<p>$r_k^t\\to 1$ when $k$ picked what our current model predicts it prefers (looks model-based); "
+  "$r_k^t\\to 0$ when the choice looks no better than random. <b>M-step</b>:</p>"
+  "$$ \\gamma_k \\leftarrow \\tfrac{1}{T_k}\\textstyle\\sum_t r_k^t \\quad(\\text{closed form}); \\qquad "
+  "(P,U) \\leftarrow \\arg\\max \\ \\underbrace{\\textstyle\\sum_{\\text{rewards}} \\beta\\,\\text{(reward fit)}}"
+  "_{\\text{reward channel}} + \\underbrace{\\textstyle\\sum_{k,t} r_k^t\\,\\log\\mathrm{softmax}_{a_k^t}"
+  "(\\langle p_k,u_j\\rangle/\\tau)}_{\\text{choice channel, weighted by informativeness}}. $$"
+  "<p>The choice channel's contribution is scaled by $r_k^t$, so a random-looking choice barely moves "
+  "the factors, exactly the desired effect. In practice the choice log-likelihood is optimized by a "
+  "few gradient steps, or replaced by the implicit-feedback least-squares surrogate (positive at "
+  "$a_k^t$, sampled negatives from the public active set) with weight $r_k^t$, so it slots into the "
+  "same weighted-ALS solver (Section 5.1).</p></div>")
+A("<div class='algo'>"
+  "<span class='kw'>class</span> ChoiceEM:        <span class='cm'># joint latent + per-teammate informativeness</span>\n"
+  "  state: P,U (factors);  gamma[k] in [0,1] init 0.5  <span class='cm'># reliability of each teammate</span>\n"
+  "  <span class='kw'>def</span> refit():\n"
+  "    <span class='kw'>repeat</span> em_sweeps:\n"
+  "      <span class='cm'># E-step: responsibility each sensed choice is model-based, not random</span>\n"
+  "      <span class='kw'>for</span> each sensed (k, S, a):  r[k,t] = gamma[k]*soft(k,a) / (gamma[k]*soft(k,a) + (1-gamma[k])/|S|)\n"
+  "      <span class='cm'># M-step: update reliabilities, then factors weighting choices by r</span>\n"
+  "      <span class='kw'>for</span> k:  gamma[k] = mean_t r[k,t]\n"
+  "      weighted-ALS on  rewards(precision beta)  +  choices(positive a, neg ~ active set, weight r[k,t])\n"
+  "</div>")
+A("<p><b>Why this is the right tool, and what it predicts.</b> (i) It DEGRADES GRACEFULLY: a teammate "
+  "that is exploring contributes $\\approx 0$ to the latent update (low $r$), so the choice channel "
+  "never poisons the structure, the core fix you asked for. (ii) $\\gamma_k$ is INTERPRETABLE, drone "
+  "$i$'s estimate of how 'expert' teammate $k$ currently is, learned purely from public actions (ZK). "
+  "(iii) It is SELF-CALIBRATING over time: early, everyone explores so all $\\gamma_k$ are low and the "
+  "swarm relies on the reward channel; late, $\\gamma_k$ rise and the (noise-immune) choice channel "
+  "takes over, the explore-to-exploit regime shift falls out of the model rather than being "
+  "scheduled. (iv) It unifies our heuristics: ChoiceCF's competence ramp is a crude proxy for "
+  "$\\gamma_k$, and the predictive-variance shrinkage (EMCF) is the structure-confidence half; "
+  "ChoiceEM is the principled joint version.</p>")
+A("<div class='box'><b>Scouted ideas it builds on.</b> Dawid-Skene EM for annotator reliability + "
+  "true labels (and its matrix-factorization variants, coupled/symmetric NMF; spectral-meets-EM); "
+  "inverse RL from heterogeneous suboptimal demonstrators via a Boltzmann-rationality model of "
+  "expertise (IRLEED, MaxEnt-IRL); McFadden conditional-logit / Plackett-Luce discrete choice; and "
+  "crowdsourcing reliability estimation. Our novelty is the DECENTRALIZED, ZK, ONLINE instance: each "
+  "agent infers its teammates' choice-informativeness from public actions alone and fuses it with "
+  "low-rank completion in one EM loop, no labels, no communication, no shared parameters. This is the "
+  "natural next method to implement and test (we expect it to dominate the fixed-ramp ChoiceCF most at "
+  "early rounds and high reward-noise, where distinguishing model-based from random choices matters "
+  "most).</p></div>")
+
 # 6 METRICS
 A("<h2 id='metrics'>6. Metrics (and why each one matters)</h2>")
 A("<p>To compare methods fairly we put every score on the same 0-to-1 ruler, called <b>skill</b>: the "
@@ -1032,18 +1103,32 @@ A("<p><b>Takeaway.</b> The story holds and widens. SoftImpute is excellent when 
   "these new baselines with non-overlapping error bars. No competitor wins in the regime that defines "
   "the problem.</p>")
 
-A("<h3>8.10 Validation in a realistic simulator</h3>")
-A("<p>Everything above is in our clean, controlled world. Does it survive a realistic simulator? We "
-  "dropped our method into the existing tabula_drone PettingZoo environment, which has spatial "
-  "targets, target health that depletes as drones engage (so it is partly a contention setting), and "
-  "episodic resets, and benchmarked it (3 seeds, learning over episodes) against the environment's own "
-  "policies. Score = efficiency (reward per step), normalized to skill (Figure F13).</p>")
-A("<figure>%s<figcaption><strong>F13.</strong> Real tabula_drone simulator: converged skill (left) "
-  "and learning curves (right).</figcaption></figure>" % img("F13_realsim.png", "F13"))
-A("<p><b>Takeaway.</b> The story holds in the real simulator: our method reaches skill ~0.81 (with "
-  "low variance), clearly beating the environment's own SGD matrix-factorization (~0.25) and the "
-  "per-arm bandit UCBIndep (~0.72), and approaching the centralized oracle. So the advantage is not "
-  "an artifact of our clean generative model; it transfers to spatial, depleting, episodic dynamics.</p>")
+A("<h3>8.10 External validation: an independently-built simulator (transfer, not 'realism')</h3>")
+A("<div class='box warn'><b>A note on naming.</b> We previously called this 'a realistic simulator', "
+  "which over-claims, so we are precise here. <code>tabula_drone</code> is still a SIMULATOR (a "
+  "PettingZoo environment), not real hardware or field data, and it is itself a LATENT-compatibility "
+  "world, so it does not independently prove the world is low-rank. What it genuinely provides is "
+  "<b>out-of-harness transfer</b>: a SEPARATELY-built codebase, which we did not design for this "
+  "experiment, with DIFFERENT dynamics our generative model lacks, spatial geometry (drones/targets "
+  "with positions and distances), target HEALTH that depletes as it is engaged (a soft CONTENTION / "
+  "matching pressure), episodic resets, and its own reward/observation noise. Its oracle is a Hungarian "
+  "OPTIMAL-ASSIGNMENT matcher. So this is a test of TRANSFER and partial-contention robustness, not of "
+  "realism.</div>")
+A("<p>We drop our estimator in as a drop-in policy (WeightedALS = RewardCF in the env's policy "
+  "interface) and benchmark it (3 seeds, learning over 16 episodes) against the environment's OWN "
+  "policies: its SGD matrix-factorization, a per-arm UCB-Indep, random, and the optimal-assignment "
+  "oracle. Score = efficiency (mean reward per step over the converged second half of episodes), "
+  "normalized to skill = (policy &minus; random)/(oracle &minus; random) (Figure F13).</p>")
+A("<figure>%s<figcaption><strong>F13.</strong> Independent tabula_drone simulator (spatial, depleting "
+  "HP, episodic; matching oracle): converged skill (left) and per-episode learning curves "
+  "(right).</figcaption></figure>" % img("F13_realsim.png", "F13"))
+A("<p><b>Takeaway.</b> The advantage TRANSFERS out of our own harness: our method reaches skill ~0.81 "
+  "(low variance), clearly beating the environment's own SGD matrix-factorization (~0.25) and the "
+  "per-arm UCB-Indep (~0.72), and approaching the matching oracle. So the result is not an artifact of "
+  "our specific generative code: it survives a different implementation with spatial, depleting, "
+  "episodic dynamics and a matching (contention) objective. <b>What it does NOT show:</b> real-world "
+  "realism, or an independent confirmation of low-rankness (the sim is also latent-based); for the "
+  "latter see the assumption-stress test next.</p>")
 
 A("<h3>8.11 Stress-testing the low-rank assumption</h3>")
 A("<p>A fair worry: what if the world is not exactly low-rank? We deliberately break the assumption "
