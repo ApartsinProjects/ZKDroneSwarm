@@ -50,10 +50,24 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
       type-controlled make_world.
 - [ ] E-C4 anisotropy (skewed singular values / heavy-tailed factor spectrum): does the low-rank win
       survive non-uniform factor importance? Add an anisotropic make_world variant; reuse run_masked.
-- [ ] E-C12 verify C12 two-phase onboarding is SUBSUMED by E7/C12-done (analysis + maybe a tiny run);
-      if subsumed, mark done and note in catalogue; else run.
+- [RESOLVED cycle 65, SUBSUMED] E-C12: C12 dynamic target onboarding was already run (catalogue row 19,
+      cycle 19, c12_onboard) and the harness audit (ZK_COMPLIANCE) confirmed it COMPLIES (centralized
+      als_fit over pooled OBSERVED tuples + ridge fold-in for the new target, uses d_hat, no true
+      factors). E7 (rows 32/55) is the strict-ZK transpose (new DRONE). The "two-phase" framing is the
+      same fold-in result viewed twice; no new run needed. If a paper wants a single onboarding figure,
+      reuse F3 (target onboarding) + F10 (newcomer). DONE.
 
-STATUS LINE (update me): cycle 64 committed (e583410). Next: W1+W2 (cheap, parallel with E-CLUB/E-COORD runs).
+STILL TODO (next turn / post-compaction): W3 (LaTeX main.tex sync), W4 (theory P11-P15, esp P13
+abundance-gate envelope now realizable + P15 keystone), E-H11types (contention K-sweep: vary type
+homogeneity; HYP private-offset matters MORE when all drones share a type -> recommend: add Kover param
+to run_contention, sweep K in {1,3,10,30} at pool=15, compare AdaCF/CBBAlite/MusicalChairs/greedy),
+E-C4 (anisotropy: needs an anisotropic make_world variant -- skew the factor singular values -- then
+reuse run_masked; HYP low-rank win survives non-uniform factor importance).
+
+STATUS LINE (update me): cycles 62-65 committed (HEAD a61dfcb). DONE: H3 capstone+WIN (abundance gate,
+best-or-tied everywhere), strict-ZK newcomer, harness+baseline ZK audits, per-observer noise clarified,
+CBBA+MusicalChairs de-confliction baselines (we win T7), CLUB baseline, CoordCF, MARL framing, F15,
+W1, W2, E-C12. REMAINING: W3 LaTeX sync, W4 theory, E-H11types, E-C4. ~113 commits ahead of origin (push is the user's call).
 ## ===== END ACTIVE WORKLOG =====
 
 ## SCOPE ANCHOR (do not drift)
