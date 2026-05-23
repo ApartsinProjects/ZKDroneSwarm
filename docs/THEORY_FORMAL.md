@@ -532,3 +532,67 @@ give the CATEGORICAL unseen gap vs tabular (the headline). (i) d>1 is what's add
 beat the POPULARITY baseline. (ii) starvation is what makes the unseen advantage OPERATIONALLY
 dominant. Three conditions, three distinct roles, the paper/tutorial scope box should say so rather
 than ANDing them against one baseline. Promotes proposed-T9 to a stated result.
+
+---
+
+## Proposition 10 (bounded precision dominates under HETEROGENEOUS source noise). EXACT (a) + REASONED (b,c).
+
+Fixes P6's overreach and explains PRECISION_HETERO. Estimate an UNSEEN target's factor by ridge
+fold-in from the teammates k that engaged it, û_j = (Σ_k w_k p_k p_k^T + λI)^{-1} Σ_k w_k r_{kj} p_k,
+with r_{kj} = ⟨p_k,u_j⟩ + N(0,σ_k²) and weights w_k > 0; predict R̂_{ij} = ⟨p_i, û_j⟩.
+
+(a) [Homogeneous noise: weighting only rescales λ.] If all σ_k = σ (so the variance-optimal weights
+are uniform), any constant weight w gives û_j = (Σ p_k p_k^T + (λ/w)I)^{-1} Σ r_{kj} p_k: changing w
+only rescales the regularizer, not the relative source weighting. So under homogeneous teammate
+noise, "precision" buys nothing over uniform. (This is the regime of P6: there, naive precision
+still LOSES because it over-weights the drone's OWN clean row, σ_own ≪ σ_obs, which carries zero
+information about an unseen u_j and shrinks the broadcast that does, inflating Var(û_j). P10 is the
+complementary teammate-vs-teammate story; P6 is the own-vs-teammate story.)
+
+(b) [Heterogeneous noise: noise-aware weighting helps.] If Var_k(σ_k²) > 0, the
+variance-minimizing (Gauss-Markov / BLUE) weighting is w_k ∝ 1/σ_k², PROVIDED the weighted design
+G(w) = Σ_k w_k p_k p_k^T stays full-rank. Uniform weighting ignores the heterogeneity (it weights a
+σ=1.9 source like a σ=0.1 one), so it is strictly suboptimal whenever the variances differ.
+
+(c) [Why it must be BOUNDED.] Unbounded w_k = 1/σ_k² concentrates almost all mass on the lowest-noise
+sources. If those clean sources do NOT span ℝ^d (their {p_k} lie in a proper subspace), then in the
+unspanned directions λ_min(G(w)) collapses to the prior λ, so û_j there is dominated by the prior
+(bias), and the prediction error is LARGE for any p_i with a component in that subspace. A
+ratio-bounded weight w_k ∝ min(1/σ_k², κ·min_{k'} 1/σ_{k'}²) caps the concentration: it still
+down-weights the noisiest sources (noise-awareness) but keeps every direction excited (coverage),
+so G(w) stays full-rank. Hence bounded precision DOMINATES BOTH uniform (it uses the noise
+information) AND unbounded precision (it preserves coverage) exactly when sources are heterogeneous
+and the clean ones are coverage-deficient (the generic case under sparse per-target engagement).
+
+**Confirmed by** PRECISION_HETERO: ratio-capped "relcap" beats uniform by +0.093 unseen / +0.089
+anytime under heterogeneous noise (non-overlapping CIs) and loses under homogeneous; UNBOUNDED
+"full" 1/σ² loses in BOTH (it over-concentrates and starves coverage), exactly as (a)/(c) predict.
+**Correction to P6:** the right statement is "uniform dominates UNBOUNDED precision for unseen; but
+BOUNDED precision dominates both iff teammate sources differ in reliability." Rigor: (a) exact;
+(b) Gauss-Markov is standard, the full-rank proviso is the operative new condition; (c) is the
+coverage/eigenvalue mechanism, correct but stated rather than fully derived (REASONED).
+
+---
+
+## Proposition 16 (H5b: predictive-variance UCB regret). EXACT given U (reduction to LinUCB) + OPEN (joint).
+
+This is the requested H5(b): why confidence-DIRECTED exploration (EMCF) beats a fixed ε-schedule.
+GIVEN the target factors U (or after U is recovered; see KEYSTONE/P15), each drone's per-round
+problem is a LINEAR bandit in the known feature u_j with unknown parameter p_i: it earns
+⟨p_i,u_j⟩ + noise and updates the Gaussian posterior Σ_{p_i} = (Σ_j β_{ij} u_j u_j^T + λI)^{-1}.
+EMCF's index, score(j) = ⟨p̂_i,u_j⟩ + β·sqrt(u_j^T Σ_{p_i} u_j), is EXACTLY the LinUCB / OFUL
+optimistic index with that posterior confidence ellipsoid. Therefore, by the standard
+self-normalized / elliptical-potential argument (Abbasi-Yadkori, Pál, Szepesvári 2011), the
+per-drone cumulative regret of learning its own factor is Õ(d√T) w.h.p., and the predictive-variance
+bonus is precisely the term that drives probes to the LEAST-explored latent directions, which is why
+directed exploration beats a fixed ε-schedule on sample efficiency (confirmed: H1 collective
+exploration best final anytime; H6b EMCF dominates under churn by probing fresh arrivals).
+**Caveat (P6/H1):** for the bonus use the COLLECTIVE term p_i^T Σ_{u_j} p_i (shared-U uncertainty,
+target-specific, anneals as U is pinned down), NOT the full predictive variance, whose own-factor
+term u_j^T Σ_{p_i} u_j is uniformly large early and over-explores.
+**OPEN (the hard part, tied to P15):** the JOINT regret when U is learned SIMULTANEOUSLY from the
+masked broadcast is a bilinear/low-rank bandit under STRUCTURED masking; LinUCB does not cover it
+and the centralized phase-structured low-rank-bandit bounds (ESTR, Jun et al. 2019) are not anytime
+or decentralized. A self-contained joint, decentralized, masked regret bound is open and would build
+on P15 (decentralized masked U-recovery). Rigor: the given-U reduction is EXACT (it IS LinUCB); the
+joint, U-learning case is OPEN.
