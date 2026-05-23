@@ -38,7 +38,9 @@ from _results_io import save_results
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-_CONV = dict(eps0=0.5, eps_min=0.05, eps_decay=0.97, als_sweeps=20, refit_every=1)
+# lighter-but-converged config for the RELATIVE mechanism comparison (faster sweep);
+# absolute headline numbers use als_sweeps=20/refit=1 elsewhere.
+_CONV = dict(eps0=0.5, eps_min=0.05, eps_decay=0.97, als_sweeps=12, refit_every=2)
 _EM = dict(em_beta=1.0, em_sweeps=6, refit_every=4, eps0=0.5, eps_min=0.05, eps_decay=0.97)
 CONF = {                                        # name -> (Class, hp)
     "uniform":   (ConfCF, dict(conf_mode="uniform", **_CONV)),
@@ -52,9 +54,11 @@ CONF = {                                        # name -> (Class, hp)
     "EM":        (EMCF,   dict(**_EM)),                       # variational EM-PMF, CI-UCB
     "EMshrink":  (EMCF,   dict(shrink=0.3, **_EM)),           # + predictive-var shrinkage
 }
-ORDER = ["uniform", "full", "rel", "cap5", "relcap4", "shrink", "post", "relshrink", "EM", "EMshrink"]
+# key contrasts only (uniform baseline; full = the one that hurt; relcap4 = bounded
+# precision; EM/EMshrink = Bayesian factorization w/ confidence intervals)
+ORDER = ["uniform", "full", "relcap4", "EM", "EMshrink"]
 CONDS = [(1.0, 0.3), (1.0, 1.0), (0.25, 0.3), (0.25, 1.0)]   # (rho, sigma_obs)
-SEEDS = list(range(8))
+SEEDS = list(range(6))
 RNG = np.random.RandomState(0)
 
 
@@ -104,10 +108,10 @@ def main():
         return float(np.mean(raw[k][cond_key(*c)][nm]))
 
     L = ["# Confidence mechanisms: can we use confidence WITHOUT losing generalization?\n",
-         "All variants are the same converged online weighted-ALS (ConfCF); they differ "
-         "only in HOW confidence enters. Baseline = uniform. Skill 0=random, 1=oracle, "
-         "8 seeds, bootstrap 95%% CI. sigma_obs is the broadcast noise (own fixed at "
-         "%.2f).\n" % pc.SO]
+         "All variants are the same online weighted-ALS (ConfCF) or variational EM (EMCF); "
+         "they differ only in HOW confidence enters. Baseline = uniform. Skill 0=random, "
+         "1=oracle, %d seeds, bootstrap 95%% CI. sigma_obs is the broadcast noise (own fixed "
+         "at %.2f).\n" % (len(SEEDS), pc.SO)]
     for k in ("unseen", "anytime"):
         L.append("## %s skill\n" % k.upper())
         L.append("| mechanism | " + " | ".join("rho=%.2f, s=%.1f" % c for c in CONDS) + " |")
