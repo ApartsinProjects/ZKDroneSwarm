@@ -356,7 +356,7 @@ A("<div class='formal'><h4>Definition (fold-in)</h4>"
   "<p>A new drone with observed rewards $\\{r_a\\}$ on targets with known factors $\\{u_a\\}_{a=1}^k$ "
   "gets factor $\\hat p = \\big(\\sum_a u_a u_a^\\top + \\lambda I\\big)^{-1}\\sum_a r_a u_a$, after which "
   "$\\hat R_{\\cdot j}=\\langle\\hat p, u_j\\rangle$ is available for ALL targets $j$. Exact once $k\\ge d$ "
-  "and $\\{u_a\\}$ span $\\mathbb{R}^d$ (Theorem 2). We reuse this symmetrically for onboarding new "
+  "and $\\{u_a\\}$ span $\\mathbb{R}^d$ (row completion). We reuse this symmetrically for onboarding new "
   "TARGETS (fold-in a $u$ from drones' probes) and welcoming new DRONES.</p></div>")
 A(plain("<b>Cold-start</b> is the everyday problem 'a brand-new user (or product) has no history, so "
         "how do we recommend anything?'. <b>Fold-in</b> is the cheap fix: if the swarm already knows the "
@@ -489,7 +489,7 @@ A("<div class='formal'><h4>Observation model (exact)</h4>"
   "1/\\sigma_{\\mathrm{obs}}^2$). Two masking regimes: PERSISTENT ($M$ drawn once, "
   "$M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$, fixed for all $t$) gives durably-different per-drone views; "
   "i.i.d. ($M^t_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ redrawn each round, packet-loss style) gives the "
-  "same headline results (Theorem 4, Section 8.7).</p>"
+  "same headline results (the masking-model result, Section 8.7).</p>"
   "<p><b>Data format a learner sees.</b> A stream of tuples $(k, a_k^t, \\tilde r^{(i)}_{k,t})$ for the "
   "$k$ it sensed: the actor id, the discrete action (which target), and the noisy scalar outcome. No "
   "factors, no ids of TYPES, no rank, no teammate parameters, ever.</p></div>")
@@ -602,7 +602,7 @@ A("<div class='formal'><h4>No-structure class (each (drone,target) is its own un
   "<p><b>Tabular ($\\epsilon$-greedy).</b> <i>Intuition:</i> treat each target independently; average "
   "your OWN rewards on it. <i>Rule:</i> $\\hat R_{ij}=\\bar r_{ij}$ if $N_{ij}>0$, else the global mean "
   "of your observed rewards (a prior constant). <i>Fails because:</i> any never-pulled $j$ stays at the "
-  "constant, so it cannot rank the unseen, the floor of Theorem 1.</p>"
+  "constant, so it cannot rank the unseen, the tabular floor.</p>"
   "<p><b>UCB-Indep.</b> <i>Intuition:</i> one UCB1 bandit per (drone,target) pair; be optimistic about "
   "rarely-tried arms. It updates ALL arms it senses from the broadcast but selects on its own row. "
   "<i>Rule:</i> $\\text{score}_j=\\bar r_{ij}+c\\sqrt{\\ln(t)/N_{ij}}$, with an untried arm scored "
@@ -673,7 +673,7 @@ A("<div class='formal'><h4>Memory-based and additive</h4>"
   "easy and some drones generally good, but no personalized interaction. <i>Rule:</i> "
   "$\\hat R_{ij}=\\mu+b_i+c_j$ (fit by alternating means over observed entries). <i>Fails because:</i> "
   "the prediction matrix has rank $\\le 2$, so for a fixed drone the ranking is by $c_j$ alone, a single "
-  "shared popularity order, which cannot personalize (Theorem 5).</p></div>")
+  "shared popularity order, which cannot personalize (the additive-ceiling result).</p></div>")
 A("<p class='small'>Common thread: the no-structure methods are at the unseen floor by construction; "
   "the batch low-rank methods (ESTR/PTF/SoftImpute) generalize but pay a probe phase and/or decay under "
   "masking because they impute missing entries; BPMF generalizes but over-explores. Our online "
@@ -687,7 +687,7 @@ A("<div class='box warn'><b>Why not standard MARL baselines (MAPPO, QMIX, IPPO)?
   "would hand a competitor information we deny everyone else. The one fully-decentralized, "
   "communication-free MARL baseline, INDEPENDENT learners (Independent Q-Learning / independent "
   "bandits), is, in our stateless per-round task-selection problem, exactly a per-agent bandit, which "
-  "<b>UCB-Indep and Tabular already instantiate</b> (and which sit at the unseen floor, Theorem 1). So "
+  "<b>UCB-Indep and Tabular already instantiate</b> (and which sit at the unseen floor). So "
   "the relevant MARL class is covered; the rest are out of scope by construction, not omitted by "
   "choice.</div>")
 
@@ -729,7 +729,7 @@ A("<div class='box'><b>What 'global negatives, no menu' means (and the masking q
   "$S_k$ (the $c$ targets $k$ chose among), which requires observing that menu, or (ii) GLOBAL "
   "negatives, sample uniformly from ALL $n$ targets (within=False). ChoiceZK uses (ii), so it needs "
   "only the single observed fact 'drone $k$ engaged target $a_k$', not the set $k$ was choosing from. "
-  "That is the stricter zero-knowledge channel, and E13 shows it costs nothing (ChoiceZK $\\approx$ "
+  "That is the stricter zero-knowledge channel, and the choice-only ablation shows it costs nothing (ChoiceZK $\\approx$ "
   "ChoiceCF), the menu carries no extra value. <b>On masking:</b> a CHOICE is observed exactly when "
   "the engagement is DETECTED (the same $\\rho$ detection that gates the reward); a masked (undetected) "
   "engagement reveals neither action nor reward. So ChoiceZK sees the detected SUBSET of teammates' "
@@ -970,7 +970,7 @@ A("<div class='formal'><h4>Level 2, structure confidence (the posterior over the
   "has only sampled a low-dimensional slice of target-space, $U$ is under-determined no matter how many "
   "rewards were seen.</li>"
   "<li><b>Each drone's confidence in its own factor $p_i$.</b> "
-  "$\\Sigma_{p_i}=\\big(\\sum_j \\beta_{ij}\\,u_j u_j^\\top + \\lambda I\\big)^{-1}$. By Theorem 2, "
+  "$\\Sigma_{p_i}=\\big(\\sum_j \\beta_{ij}\\,u_j u_j^\\top + \\lambda I\\big)^{-1}$. By the row-completion result, "
   "$p_i$ is identified only once drone $i$ has observed $\\ge d$ targets whose factors span "
   "$\\mathbb{R}^d$; $\\Sigma_{p_i}$ quantifies HOW WELL, its top eigenvector is the drone's "
   "worst-known taste direction.</li>"
@@ -1314,7 +1314,7 @@ metric("Unseen-pair skill (the categorical one)",
        "$\\rho_i = \\mathbb{E}_{S\\subseteq\\mathcal{U}_i}[R_{i,\\hat\\pi_i(S)}]$ and the references "
        "$\\mu_i,\\rho^{\\mathrm{or}}_i$ to $\\mathcal{U}_i$. A structure-free learner has "
        "$\\hat R_{ij}=\\text{const}$ on $\\mathcal{U}_i$, so $\\rho_i=\\mu_i$ and "
-       "$\\mathrm{skill}=0$ exactly (Theorem 1).</p>")
+       "$\\mathrm{skill}=0$ exactly (the tabular floor).</p>")
 metric("Anytime / AUC skill (the operational one)",
        "The reward actually EARNED while learning, summed over the rounds ('how many targets did you "
        "destroy by round K'), not just the quality of the policy at the end.",
@@ -1357,7 +1357,7 @@ metric("Onboarding / newcomer skill vs number of probes",
        formal="<p>For a new target with factor $u_\\star$ seen via $k$ shared probes "
        "$\\{(p_{a},r_a)\\}_{a=1}^k$ and a basis $U$, the fold-in solves a $d$-dim least squares: "
        "$\\hat u_\\star=(\\sum_a p_a p_a^\\top+\\lambda I)^{-1}\\sum_a r_a p_a$, exact once $k\\ge d$ and "
-       "the $p_a$ span $\\mathbb{R}^d$ (Theorem 2); tabular needs $k\\approx m$ (one probe per drone). "
+       "the $p_a$ span $\\mathbb{R}^d$ (row completion); tabular needs $k\\approx m$ (one probe per drone). "
        "We plot newcomer skill vs $k$. <b>Strict ZK note:</b> for a new DRONE the basis is the "
        "targets' factors $U$, which the newcomer does NOT receive from any peer; it RECOVERS $\\hat U$ "
        "itself by running its own factorization on the public broadcast it passively observed (under "
@@ -1386,16 +1386,17 @@ A("<h2 id='thy'>7. Theory, step by step (why the win is categorical)</h2>")
 A("<p>The empirical results are not luck: a short chain of arguments PREDICTS them. We give each "
   "result as: <em>statement</em>, <em>why it matters</em>, <em>proof (key steps)</em>, and "
   "<em>confirmed by</em> (which experiment). Full formal proofs: <code>docs/THEORY_FORMAL.md</code>.</p>")
-A(plain("The whole theory in everyday language, before the symbols. <b>Theorem 1:</b> a learner that "
-        "treats each target separately is HELPLESS on any target it never tried, its best guess is just "
-        "the overall average, so it scores zero on the unseen, period. <b>Theorem 2:</b> a learner that "
-        "uses the shared hidden structure can fill in its ENTIRE row of preferences from only about $d$ "
-        "tries (one per hidden dial), a few samples buy opinions on everything. <b>Theorem 3:</b> when "
-        "there are far more targets than rounds, the separate-targets learner cannot even earn well "
-        "WHILE learning, no matter how long it runs; the structured learner is near-perfect after ~$d$ "
-        "rounds. <b>Theorem 4:</b> whether each drone is permanently or just occasionally blind to "
-        "teammates does not change the headline, it only changes whether the drones' views stay "
-        "permanently different. <b>Later results</b> formalize the confidence and contention findings. "
+A(plain("The whole theory in everyday language, before the symbols. <b>The tabular floor:</b> a learner "
+        "that treats each target separately is HELPLESS on any target it never tried, its best guess is "
+        "just the overall average, so it scores zero on the unseen, period. <b>Row completion:</b> a "
+        "learner that uses the shared hidden structure can fill in its ENTIRE row of preferences from only "
+        "about $d$ tries (one per hidden dial), a few samples buy opinions on everything. <b>Anytime "
+        "separation:</b> when there are far more targets than rounds, the separate-targets learner cannot "
+        "even earn well WHILE learning, no matter how long it runs; the structured learner is near-perfect "
+        "after ~$d$ rounds. <b>Masking dichotomy:</b> whether each drone is permanently or just "
+        "occasionally blind to teammates does not change the headline, it only changes whether the drones' "
+        "views stay permanently different. <b>Later results</b> formalize the confidence and contention "
+        "findings. "
         "If you read nothing else here: the advantage is CATEGORICAL (a zero-versus-nonzero gap), not a "
         "matter of tuning."))
 A("<h4>Setup and notation (recap of Sections 3 and 6)</h4>")
@@ -1416,7 +1417,7 @@ A(plain("A few proof shorthands you will meet below. <b>$\\Omega(1)$, $\\Theta(d
         "a steady positive chance each round is guaranteed to happen infinitely often given enough "
         "rounds. None of these change the story; they are just the tools that make it airtight."))
 
-A("<div class='step'><h3>Theorem 1: the tabular floor (EXACT)</h3>")
+A("<div class='step'><h3>The tabular floor (EXACT)</h3>")
 A("<p><b>Statement.</b> For a structure-free learner and any target j drone i never pulled, the "
   "estimate is the prior constant, so its squared error is at least the row variance "
   "$\\mathrm{Var}_j(R_{ij}) = \\Omega(1)$, and its expected unseen-pair skill is exactly 0.</p>")
@@ -1434,7 +1435,7 @@ A("<p><b>Confirmed by.</b> Tabular/UCBIndep unseen ~0 at every density (F2), eve
   "estimates the column mean $\\langle \\bar p, u_j\\rangle$ = the rank-1 'popularity' term, "
   "so it gets PARTIAL unseen skill (~0.17), not zero and not full, exactly as measured.</p></div>")
 
-A("<div class='step'><h3>Theorem 2: CF completes a whole row from O(d) (EXACT)</h3>")
+A("<div class='step'><h3>CF completes a whole row from O(d) observations (EXACT)</h3>")
 A("<p><b>Statement.</b> If the target factors U are known (rank d) and drone i observes its true "
   "rewards on any set Omega with |Omega| &gt;= d whose factors {u_j} span R^d, then p_i is the unique "
   "least-squares solution and $R_{ij} = \\langle p_i, u_j\\rangle$ is recovered EXACTLY for "
@@ -1452,7 +1453,7 @@ A("<p><b>Proof (key steps).</b> (1) Stacking $j\\in\\Omega$ gives the linear sys
 A("<p><b>Confirmed by.</b> Target onboarding at ~d shared probes (F3) and newcomer cold-start at ~d "
   "own probes (F10), both vs tabular's ~n; and unseen skill rising as the rank falls (F4).</p></div>")
 
-A("<div class='step'><h3>Theorem 3: anytime separation under starvation (ORDER)</h3>")
+A("<div class='step'><h3>Anytime separation under starvation (ORDER)</h3>")
 A("<p><b>Statement.</b> With $n$ targets, offers of size $c$, horizon $T$, ANY structure-free learner "
   "has anytime (cumulative-reward) skill at most $g(cT/n)$, which $\\to 0$ when $cT = o(n)$, EVEN with "
   "full broadcast (here $g(x)=\\mathbb{E}[\\max \\text{ of } \\lceil x\\rceil \\text{ i.i.d. draws}]-\\mu$ "
@@ -1466,12 +1467,12 @@ A("<p><b>Proof (key steps).</b> (1) A structure-free learner only earns above th
   "targets are chosen blind to their reward, the pulled set is reward-blind, so the offered-and-pulled "
   "rewards are like a few i.i.d. draws; by concavity of expected order statistics (Jensen) the "
   "per-round surplus is &lt;= g(c(t-1)/n). (3) Summing over t and using g increasing gives "
-  "&lt;= g(cT/n) -&gt; 0 for cT = o(n). The broadcast does not change the pulled set (Theorem 1). "
+  "&lt;= g(cT/n) -&gt; 0 for cT = o(n). The broadcast does not change the pulled set (the tabular floor). "
   "(UCB is even lower: its infinite untried-arm bonus makes it explore forever while n &gt; t.)</p>")
 A("<p><b>Confirmed by.</b> UCBIndep stuck at ~0 anytime even at T=200 with n=240 (F9); online CF "
   "earns from round one and dominates at every horizon (F6).</p></div>")
 
-A("<div class='step'><h3>Theorem 4: masking-model dichotomy (EXACT limits)</h3>")
+A("<div class='step'><h3>Masking-model dichotomy (EXACT limits)</h3>")
 A("<p><b>Statement.</b> Under i.i.d. per-round loss, every drone eventually senses every teammate "
   "(Borel-Cantelli), so all drones converge to the same model (heterogeneity is TRANSIENT). Under "
   "PERSISTENT masking each drone has a permanent blind set, so models stay distinct (DURABLE). The "
@@ -1485,12 +1486,12 @@ A("<p><b>Proof (key steps).</b> (1) i.i.d.: each teammate is observed with prob 
   "every drone recovers the full true model, a common limit. (2) Persistent: a blind teammate's rows "
   "appear in NONE of drone i's observations, so they are non-identifiable for i and stay at the prior "
   "for all T; distinct blind sets give distinct models, bounded away in distance uniformly in T. "
-  "(3) The categorical results use only own pulls (Theorem 1) and U-identification (Theorem 2), which "
+  "(3) The categorical results use only own pulls (the tabular floor) and U-identification (row completion), which "
   "both hold under either mask.</p>")
 A("<p><b>Confirmed by.</b> i.i.d. vs persistent give the same unseen/anytime curves, but "
   "state-uniqueness is flat in T under persistent and DECAYS under i.i.d. (F8), exactly as "
   "predicted.</p></div>")
-A("<div class='step'><h3>Theorem 5: an additive model cannot personalize (EXACT)</h3>")
+A("<div class='step'><h3>An additive model cannot personalize (EXACT)</h3>")
 A("<p><b>Statement.</b> A predictor of the form 'global + drone-bias + target-bias' (the BiasModel "
   "baseline) has a prediction matrix of rank at most 2, and for ranking targets it reduces to the "
   "shared 'popularity' order, so its unseen skill is the popularity skill, strictly below CF whenever "
@@ -1506,49 +1507,49 @@ A("<p><b>Proof (key steps).</b> The matrix a+b_i+c_j = (a&middot;1+b) 1^T + 1 c^
 A("<p><b>Confirmed by.</b> BiasModel unseen ~0.12 and UCBHomo ~0.17 (both additive/popularity) vs CF "
   "~0.49 at d=5 (Section 8.9).</p></div>")
 A("<p class='small'>A full theory-vs-experiment alignment table (every prediction mapped to its "
-  "measured value, with honest tensions: T3's constant is loose though its mechanism is exact; T2 "
-  "idealizes 'U known' vs finite-data recovery) is in <code>docs/THEORY_FORMAL.md</code>.</p>")
-A("<div class='step'><h3>Recent findings, formalized (P6, T7, T8)</h3>"
-  "<p>The cycle 40-45 results each have a matching statement (full versions + justifications in "
-  "<code>THEORY_FORMAL.md</code>):</p>"
-  "<p><b>Proposition 6 (confidence).</b> For an UNSEEN pair, $\\hat u_j$ comes only from the broadcast, "
+  "measured value, with honest tensions: the anytime constant is loose though its mechanism is exact; the "
+  "row-completion result idealizes 'U known' vs finite-data recovery) is in <code>docs/THEORY_FORMAL.md</code>.</p>")
+A("<div class='step'><h3>Recent findings, formalized</h3>"
+  "<p>The later confidence, contention, and rank results each have a matching statement (full versions + "
+  "justifications in <code>THEORY_FORMAL.md</code>):</p>"
+  "<p><b>Confidence.</b> For an UNSEEN pair, $\\hat u_j$ comes only from the broadcast, "
   "so inverse-own-variance ('precision') fit weighting, which over-weights a drone's own rewards that "
   "carry no information about $\\hat u_j$, inflates $\\mathrm{Var}(\\hat u_j)$ and is SUBOPTIMAL vs "
   "uniform; the Bayesian posterior (EMCF) is the consistent full-information estimator with a valid "
   "predictive interval. Caveat: the FULL predictive-variance UCB over-explores (the own-factor term is "
   "uniformly large early), so info-directed exploration should use the COLLECTIVE term "
   "$p_i^\\top\\Sigma_{u_j}p_i$. (Confirms 8.12, the precision sweep, and the EM win.)</p>"
-  "<p><b>Theorem 7 (contention symmetry-breaking).</b> Under a shared pool with no communication, "
+  "<p><b>Contention symmetry-breaking.</b> Under a shared pool with no communication, "
   "deterministic argmax makes each same-type group of size $g$ lose $g-1$ engagements (the matching "
   "floor); a FIXED private offset $\\hat R_{ij}+\\varepsilon h_i[j]$ makes same-type picks a.s. "
   "distinct (collisions $\\to 0$) while preserving any target with margin $>2\\varepsilon\\lVert "
   "h\\rVert_\\infty$, and only a fixed-AND-private offset is stable (per-round-random re-collides, "
   "shared-signal re-synchronizes). (Confirms the 8.13 contention win and the 4-design meta-finding.)</p>"
-  "<p><b>Theorem 8 (ARD rank).</b> ARD retains a latent column iff the masked design excites it above "
+  "<p><b>ARD rank.</b> ARD retains a latent column iff the masked design excites it above "
   "the prior floor, so the recovered effective rank = the data-IDENTIFIABLE rank $\\le d$ (strictly "
   "$<d$ under masking), and it does not depend on the guessed $\\hat d$, removing the rank "
   "hyperparameter. (Confirms 5.7: effective rank $\\approx 3.2$ at both $\\hat d=8,20$.)</p></div>")
-A(plain("These three in plain words. <b>P6 (confidence):</b> to judge a target you never tried, ALL your "
+A(plain("These three in plain words. <b>Confidence:</b> to judge a target you never tried, ALL your "
         "useful information comes from teammates, so leaning extra-hard on your own (here irrelevant) "
         "readings actually HURTS, the humble 'treat all data evenly' rule beats the clever "
-        "'trust-my-own-clean-data' rule. <b>T7 (contention):</b> if look-alike drones all grab their "
+        "'trust-my-own-clean-data' rule. <b>Contention:</b> if look-alike drones all grab their "
         "identical favorite they keep colliding; giving each drone its own small, FIXED tie-breaking "
         "nudge makes them pick different near-ties and stop colliding, and it has to be both private and "
-        "fixed (re-rolling it each round, or sharing it, undoes the benefit). <b>T8 (rank):</b> the "
+        "fixed (re-rolling it each round, or sharing it, undoes the benefit). <b>Rank:</b> the "
         "automatic-rank method keeps exactly as many hidden dials as the data can actually support and "
         "ignores the rest, so you never have to guess the number of dials yourself."))
-A("<div class='step'><h3>Newest theory (a self-audit pass): scope corrected, P6 fixed, a regret reason, and the honest keystone</h3>"
-  "<p><b>T9 (precise scope).</b> The boxed '3-condition iff' was loose. Correctly: the CATEGORICAL "
+A("<div class='step'><h3>Newest theory (a self-audit pass): scope corrected, precision fixed, a regret reason, and the honest keystone</h3>"
+  "<p><b>Precise scope.</b> The boxed '3-condition iff' was loose. Correctly: the CATEGORICAL "
   "unseen gap vs a tabular learner needs only a shared channel ($\\rho>0$) and some structure (it holds "
   "even at $d=1$, even when sample-rich); $d>1$ is what additionally beats a POPULARITY baseline; and "
   "sample-starvation is what makes the unseen edge OPERATIONALLY dominant. Three conditions, three "
   "distinct roles, not one AND against one baseline.</p>"
-  "<p><b>P10 (precision, corrected from P6).</b> Our earlier P6 ('uniform beats precision') over-reached. "
+  "<p><b>Precision (corrected).</b> Our earlier claim ('uniform beats precision') over-reached. "
   "Under HETEROGENEOUS teammate noise, bounded ratio-capped precision WINS (it down-weights the noisy "
   "sources yet preserves coverage), while UNBOUNDED $1/\\sigma^2$ over-concentrates on the clean ones and "
   "starves coverage. So noise-aware weighting helps iff sources differ in reliability, and only in a "
   "bounded form, matching the heterogeneous-noise sanity (8.12).</p>"
-  "<p><b>P16 / H5(b) (why directed exploration helps).</b> Given the recovered target factors, EMCF's "
+  "<p><b>Why directed exploration helps.</b> Given the recovered target factors, EMCF's "
   "predictive-variance UCB is exactly LinUCB on the latent features, so per-drone regret is "
   "$\\tilde O(d\\sqrt T)$, the formal reason confidence-directed probing beats a fixed schedule (and is "
   "what wins under churn). The JOINT case (learning the factors WHILE exploring) is open.</p>"
@@ -1558,7 +1559,7 @@ A("<div class='step'><h3>Newest theory (a self-audit pass): scope corrected, P6 
   "does not directly apply. It is the central open problem; we label it plainly. (Full statements, "
   "proofs, and the critical audit: <code>docs/THEORY_FORMAL.md</code>.)</p></div>")
 A(plain("Why this matters: good research polices its own claims. This pass DEMOTED the results that were "
-        "textbook or over-labeled, FIXED one (P6 to P10) that the experiments actually contradicted, ADDED "
+        "textbook or over-labeled, FIXED the precision claim that the experiments actually contradicted, ADDED "
         "the missing regret reason for the exploration win, and NAMED the single gap the categorical story "
         "still rests on. The theory section came out smaller, sharper, and honest about its edges, which "
         "is the point."))
@@ -1712,7 +1713,7 @@ A("<figure>%s<figcaption><strong>F12.</strong> More fair baselines vs ours, unse
 A("<p><b>Takeaway.</b> The story holds and widens. SoftImpute is excellent when the broadcast is full "
   "(it even tops everyone on unseen at rho=1), but, like all the batch 'fill-in' methods, it collapses "
   "as observation is masked and it loses on earned reward. kNN-CF generalizes but earns little. "
-  "BiasModel stays near the additive ceiling (it cannot personalize, exactly as Theorem 5 says). "
+  "BiasModel stays near the additive ceiling (it cannot personalize, exactly as the additive-ceiling result says). "
   "Under masking (the regime that matters) and on the anytime metric, our methods beat the best of "
   "these new baselines with non-overlapping error bars. No competitor wins in the regime that defines "
   "the problem.</p>")
@@ -1971,7 +1972,7 @@ A("<ul>"
   "self-determination, always on (it is the core).</li>"
   "<li><b>De-confliction offset (8.13):</b> a fixed PRIVATE per-target offset whose strength scales "
   "with the drone's OWN observed loss rate, so it is exactly 0 until the drone actually starts losing "
-  "contests, and engages only under real contention (Theorem 7).</li>"
+  "contests, and engages only under real contention (the private-offset result).</li>"
   "<li><b>Exploration gate:</b> the same loss signal damps exploration when the drone is losing "
   "(exploring wastes scarce capacity), and an ABUNDANCE gate also damps it when the offer is plentiful "
   "($|S|>4m$, nothing left to explore-for-coverage), so it exploits when targets are abundant.</li>"
@@ -2057,27 +2058,57 @@ A(plain("<b>What is the broadcast actually worth?</b> Turn it off and see. We sw
         "from rho=0 (each drone is ISOLATED, sees only its own outcomes) up to rho=1 (it passively senses "
         "every engagement). At rho=0 a drone holds just ONE row of the reward matrix, its own, and from a "
         "single row you cannot recover a structure shared across drones, so its skill on pairs it never "
-        "tried is essentially zero. Switching the broadcast on lifts RewardCF's unseen skill by +0.39 "
-        "(and the batch low-rank PTF by +0.51). The structure-free learners gain NOTHING (UCBIndep "
-        "&minus;0.00, Tabular +0.01): they have no model linking one task to another, so observations "
-        "about other targets are useless to them. That single contrast is the cleanest 'why share?' "
-        "answer we have: communication-free sensing converts m isolated, near-useless learners into one "
-        "effective swarm."))
+        "tried is essentially zero. Switching the broadcast on lifts RewardCF's unseen skill by +0.39. "
+        "The structure-free learners gain NOTHING (UCBIndep &minus;0.00, Tabular +0.01): they have no "
+        "model linking one task to another, so observations about other targets are useless to them. (The "
+        "batch-refit baseline PTF actually gains the most, +0.51, and overtakes us at full broadcast, "
+        "because a one-shot refit on a near-fully-observed matrix is the easy case for batch low-rank "
+        "completion; in the masked regime that matters operationally, our online method leads.) That "
+        "single contrast is the cleanest 'why share?' answer we have: communication-free sensing converts "
+        "m isolated, near-useless learners into one effective swarm."))
 A(plain("<b>Does the swarm get SMARTER as it gets bigger?</b> Yes, and this is the surprising part. "
         "Usually adding agents makes coordination HARDER (more interference, more collisions). Here we fix "
         "the number of targets, the per-drone horizon, and the broadcast rate, and simply grow the swarm "
         "from m=5 to m=80 drones. RewardCF's unseen skill climbs steadily (0.08, 0.22, 0.36, 0.41, 0.43 "
         "as m grows), because more drones pour more broadcast observations (about m&times;T&times;rho of "
         "them) into the ONE shared low-rank structure everyone is estimating, so every drone's prediction "
-        "on targets it never serviced improves as teammates are added (the collective-recovery speedup, "
-        "Theorem 11). The structure-free learner stays FLAT, because m cannot help an agent that only ever "
-        "learns its own row (Theorem 1). A swarm that gets smarter as it grows is exactly the property you "
-        "want from a swarm, and here it is a direct consequence of sharing structure."))
+        "on targets it never serviced improves as teammates are added (the collective-recovery speedup). "
+        "The structure-free learner stays FLAT, because m cannot help an agent that only ever learns its "
+        "own row. A swarm that gets smarter as it grows is exactly the property you want from a swarm, and "
+        "here it is a direct consequence of sharing structure."))
 A("<figure>%s<figcaption><strong>F18.</strong> (a) Collaboration value: unseen-pair skill vs broadcast "
   "rate (the left edge rho=0 is isolated, self-only); the comms-free broadcast unlocks generalization "
   "for low-rank CF (RewardCF, PTF) and is worthless to structure-free (UCBIndep, Tabular). (b) Positive "
   "scaling: unseen skill RISES with swarm size m for CF (the swarm gets smarter as it grows), and is "
   "flat for structure-free.</figcaption></figure>" % img("F18_collab_scaling.png", "F18"))
+A("<h3>8.20 Operational metrics: what the swarm value looks like in mission terms</h3>")
+A(plain("The same runs, restated in the language a mission planner cares about. <b>Time-to-competence</b> "
+        "(how fast is the swarm useful?): under limited observability our online CF reaches a quarter of "
+        "oracle dispatch in about 35 rounds on every seed, while structure-free learners and the batch "
+        "competitors mostly never reach that bar within the mission. <b>Cumulative lost value</b> (how much "
+        "mission value is left on the table?): adding up oracle-minus-earned over the whole run, our "
+        "methods waste the least. <b>New-asset readiness</b> (how quickly is a NEW drone useful?): a drone "
+        "that just joined becomes effective on targets it has never personally serviced after only a "
+        "handful of engagements, on the order of the number of hidden traits and independent of how many "
+        "targets exist, whereas a structure-free newcomer never becomes ready. <b>Resilience to "
+        "attrition</b> (does it survive turnover?): when drones are continually lost and replaced, our "
+        "confidence-directed CF keeps the highest skill both on the standing fleet and, especially, on the "
+        "freshly arrived drones."))
+A(plain("Two metrics we computed but deliberately do NOT claim as wins, in the same honest spirit as the "
+        "rest of this tutorial. Raw collision / redundancy rate is minimized trivially by random dispatch "
+        "(spreading out avoids collisions but earns nothing), the same effectiveness-versus-coverage "
+        "tension we met in the inspection mission; among methods that actually chase reward our "
+        "private-offset sits on the efficient frontier. And information-per-observation separates low-rank "
+        "from structure-free (low-rank methods turn a tiny observation budget into real skill, structure-"
+        "free turns it into nothing) but does not separate us from other low-rank methods, so it is a "
+        "structure story, not an ours story."))
+A("<figure>%s<figcaption><strong>F19.</strong> Operational metrics (a re-analysis of existing runs, no "
+  "new simulation). (a) Time-to-competence: rounds to reach 25%% of oracle dispatch under partial "
+  "broadcast; ours reach it fastest, most competitors never do. (b) Cumulative lost mission value "
+  "(lower is better). (c) New-asset readiness: a new drone's skill on never-tried targets versus its own "
+  "engagements; a structure-free newcomer never becomes ready. (d) Resilience to attrition under "
+  "continuous turnover. ESTR is a centralized method (reference, not directly comparable); every other "
+  "baseline is decentralized.</figcaption></figure>" % img("F19_operational.png", "F19"))
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "
@@ -2099,7 +2130,7 @@ A(plain("<b>Multi-agent-RL view (where this sits).</b> In MARL language this is 
         "thing standard MARL does not give you here is generalization to UNSEEN tasks, which is the "
         "whole point."))
 A("<figure>%s<figcaption><strong>F15.</strong> De-confliction under capacity-1 contention: our "
-  "proactive private offset (T7) beats the no-comms field primitives (CBBA auction-with-backoff, "
+  "proactive private offset beats the no-comms field primitives (CBBA auction-with-backoff, "
   "SIC-MMAB/musical-chairs re-seating) and plain greedy at severe contention, while matching them "
   "when targets are plentiful.</figcaption></figure>" % img("F15_deconfliction.png", "F15"))
 A("<div class='box warn'><strong>Honest positioning.</strong> The categorical unseen win is shared "

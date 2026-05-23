@@ -94,7 +94,7 @@ if f:
         "RewardCF": dict(marker="o", color="C0", lw=2.2, label="RewardCF (ours, online ALS)"),
         "BothCF":   dict(marker="o", color="C1", lw=2.2, label="BothCF (ours, online ALS)"),
         "PTF":      dict(marker="s", color="C3", ls="--", label="PTF (probe->SVD->finetune)"),
-        "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore->SVD->commit)"),
+        "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore->SVD->commit, centralized ref)"),
         "BPMF":     dict(marker="v", color="C5", ls="--", label="BPMF (Bayesian PMF)"),
         "UCBIndep": dict(marker="x", color="gray", ls=":", label="UCBIndep (no-structure floor)"),
     }
@@ -124,7 +124,7 @@ if f:
         "RewardCF": dict(color="C0", lw=2.3, label="RewardCF (ours, online ALS)"),
         "BothCF":   dict(color="C1", lw=2.3, label="BothCF (ours, online ALS)"),
         "PTF":      dict(color="C3", ls="--", label="PTF (probe-then-fit)"),
-        "ESTR":     dict(color="C4", ls="--", label="ESTR (explore-then-commit)"),
+        "ESTR":     dict(color="C4", ls="--", label="ESTR (explore-then-commit, centralized ref)"),
         "Tabular":  dict(color="C2", ls="-.", label="Tabular (eps-greedy own-row)"),
         "UCBIndep": dict(color="gray", ls=":", label="UCBIndep (n>>T: stuck exploring)"),
     }
@@ -196,7 +196,7 @@ if f:
     ax[2].set_xlabel("horizon T"); ax[2].set_ylabel("state-uniqueness"); ax[2].grid(alpha=0.25)
     ax[2].set_title("decentralization durability (rho=0.25)\npersistent durable, iid transient", fontsize=9)
     ax[2].legend(fontsize=8)
-    fig.suptitle("Theorem 4: unseen/anytime invariant to masking model; "
+    fig.suptitle("Unseen/anytime skill is invariant to the masking model; "
                  "state-uniqueness durable (persistent) vs transient (iid)", fontsize=10)
     fig.tight_layout(rect=[0, 0, 1, 0.93]); save_fig("F8_iid_vs_persistent")
     print("F8_iid_vs_persistent  <-", os.path.basename(f))
@@ -386,7 +386,7 @@ if f:
            "MusicalChairs": dict(color="C4", marker="^"),
            "RewardCFconv": dict(color="C3", marker="x", ls=":"),
            "PTF": dict(color="C5", marker="d", ls=":")}
-    lab = {"ContentionAdaCF": "ContentionAdaCF (ours, T7)", "ContentionCF": "ContentionCF (ours, T7)",
+    lab = {"ContentionAdaCF": "ContentionAdaCF (ours)", "ContentionCF": "ContentionCF (ours)",
            "CBBAlite": "CBBAlite (CBBA auction+backoff)", "MusicalChairs": "MusicalChairs (SIC-MMAB re-seat)",
            "RewardCFconv": "greedy RewardCF", "PTF": "PTF (batch low-rank)"}
     x = list(range(len(pools)))
@@ -443,16 +443,17 @@ if f:
             sd = [np.std(sk[str(r)][nm]) for nm in methods]
             plt.bar(x + (bi - (len(rhos) - 1) / 2.0) * wbar, mu, wbar, yerr=sd, capsize=2,
                     label="$\\rho$=%.2f" % r, alpha=0.6 + 0.4 * bi)
-        cols = ["C0" if nm in ("RewardCF", "EMCF") else ("C1" if nm in struct else "C7") for nm in methods]
-        for xi, c in zip(x, cols):
-            plt.gca().get_xticklabels()
-        plt.xticks(x, methods, rotation=30, ha="right", fontsize=7.5)
+        cols = ["C0" if nm in ("RewardCF", "EMCF") else ("C3" if nm == "ESTR"
+                else ("C1" if nm in struct else "C7")) for nm in methods]
+        disp = [nm if nm != "ESTR" else "ESTR (centralized)" for nm in methods]
+        plt.xticks(x, disp, rotation=30, ha="right", fontsize=7.5)
         for tl, c in zip(plt.gca().get_xticklabels(), cols):
             tl.set_color(c)
         plt.ylabel("servicing skill  (0=random dispatch, 1=oracle)")
         plt.axhline(0, color="black", lw=0.6)
-        plt.title("Operational target-servicing mission: ours (blue) vs structured low-rank (orange) vs\n"
-                  "structure-free (gray); the separation opens under limited observability ($\\rho$=0.25)", fontsize=8)
+        plt.title("Operational target-servicing mission: ours (blue) vs decentralized low-rank (orange) vs\n"
+                  "structure-free (gray); ESTR (red) is centralized (reference). Separation opens at $\\rho$=0.25",
+                  fontsize=8)
         plt.legend(fontsize=8); plt.tight_layout(); save_fig("F17_mission")
         print("F17_mission  <-", os.path.basename(f))
 
@@ -463,7 +464,7 @@ if fc and fm:
     dc = json.load(open(fc)); rawc = dc["raw"]; rhos = dc["meta"]["rhos"]
     dm = json.load(open(fm)); rawm = dm["raw"]; mssz = dm["meta"]["ms"]
     sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="RewardCF (low-rank CF, ours)"),
-           "PTF":      dict(color="C1", marker="s", lw=2, label="PTF (batch low-rank)"),
+           "PTF":      dict(color="C1", marker="s", lw=2, label="PTF (batch-refit low-rank)"),
            "UCBIndep": dict(color="C7", marker="d", ls="--", label="UCBIndep (no structure)"),
            "Tabular":  dict(color="C3", marker="x", ls=":", label="Tabular (no structure)")}
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
@@ -492,9 +493,72 @@ if fc and fm:
     ax.set_xlabel("swarm size $m$  (fixed $n$, horizon $T$, broadcast rate $\\rho$)")
     ax.set_ylabel("unseen-pair skill")
     ax.set_title("(b) Positive scaling: the swarm gets SMARTER as it grows;\n"
-                 "more drones feed the SHARED structure (T11); structure-free flat", fontsize=8)
+                 "more drones feed the SHARED structure; structure-free stays flat", fontsize=8)
     ax.grid(alpha=0.25); ax.legend(fontsize=7)
     fig.tight_layout(); save_fig("F18_collab_scaling")
     print("F18_collab_scaling  <-", os.path.basename(fc), "+", os.path.basename(fm))
+
+# ---- F19: operational metrics (re-analysis): time-to-competence, cumulative regret,
+#          new-asset readiness latency, resilience to attrition ----
+f = latest("results/pilots/opmetrics_*.json")
+if f:
+    from matplotlib.patches import Patch
+    M = json.load(open(f))["raw"]
+    a = M["anytime"]; rd = M["readiness"]; rs = M["resilience"]; T = a["T"]
+    OURS = {"RewardCF", "BothCF", "HybridCF", "EMCF", "ActiveCFconv"}
+    CENTRAL = {"ESTR"}; BATCH = {"PTF", "BPMF", "SoftImpute", "MFSGD", "KNNCF"}
+
+    def mcol(nm):
+        return "C0" if nm in OURS else ("C3" if nm in CENTRAL else ("C1" if nm in BATCH else "C7"))
+
+    def xlab(nm):
+        return nm + "\n(centralized)" if nm in CENTRAL else nm
+    order_ab = [m for m in ["RewardCF", "BothCF", "PTF", "BPMF", "MFSGD", "ESTR", "Tabular", "UCBIndep", "Random"]
+                if m in a["methods"]]
+    xs = np.arange(len(order_ab))
+    fig, ax = plt.subplots(2, 2, figsize=(11.5, 8.4))
+    # (a) time-to-competence: rounds to 25% of oracle (partial broadcast rho=0.25)
+    A = ax[0, 0]
+    for xi, nm in zip(xs, order_ab):
+        c = a["ttc"]["0.25"][nm]["0.25"]; reached = c["rounds_mean"] and c["frac_reached"] >= 0.5
+        A.bar(xi, c["rounds_mean"] if reached else T, color=mcol(nm), alpha=0.85,
+              hatch=None if reached else "//", edgecolor=(None if reached else "black"))
+        if not reached:
+            A.text(xi, T * 0.5, "never", ha="center", va="center", fontsize=6.5)
+    A.set_xticks(xs); A.set_xticklabels([xlab(nm) for nm in order_ab], rotation=30, ha="right", fontsize=7)
+    A.set_ylabel("rounds to reach 25% of oracle dispatch")
+    A.set_title("(a) Time-to-competence (partial broadcast): ours reach mission-\ncompetence fastest; most competitors never reach it", fontsize=9)
+    A.grid(alpha=0.2, axis="y")
+    # (b) cumulative regret (lost mission value), lower is better
+    B = ax[0, 1]
+    mu = [a["regret"]["0.25"][nm]["mean"] for nm in order_ab]; sd = [a["regret"]["0.25"][nm]["sd"] for nm in order_ab]
+    B.bar(xs, mu, yerr=sd, capsize=2, color=[mcol(nm) for nm in order_ab], alpha=0.85)
+    B.set_xticks(xs); B.set_xticklabels([xlab(nm) for nm in order_ab], rotation=30, ha="right", fontsize=7)
+    B.set_ylabel("cumulative regret over the run (lower = better)")
+    B.set_title("(b) Cumulative lost mission value = sum of (oracle - earned):\nours leave the least value on the table", fontsize=9)
+    B.grid(alpha=0.2, axis="y")
+    # (c) new-asset readiness latency (full broadcast): skill on unseen vs own engagements
+    C = ax[1, 0]; probes = rd["probes"]
+    for who, col, mk, labl, lw, ls in [("cf", "C0", "o", "new drone via CF fold-in", 2.2, "-"),
+                                       ("pop", "C5", "d", "popularity prior", 1.5, "--"),
+                                       ("tab", "C7", "x", "structure-free newcomer", 1.5, "--")]:
+        C.plot(probes, rd["lat"]["1.0"][who]["curve"], marker=mk, color=col, label=labl, lw=lw, ls=ls)
+    C.axhline(0, color="black", lw=0.6, ls=":")
+    C.set_xlabel("own engagements since joining the swarm"); C.set_ylabel("skill on never-tried targets")
+    C.set_title("(c) New-asset readiness: a new drone becomes effective on unseen\ntargets after a few engagements; a structure-free newcomer never does", fontsize=9)
+    C.grid(alpha=0.25); C.legend(fontsize=7.5)
+    # (d) resilience to attrition: skill retained under continuous turnover
+    D = ax[1, 1]; rmeth = rs["methods"]; xr = np.arange(len(rmeth)); w = 0.38
+    act = [rs["res"][nm]["active_mean"] for nm in rmeth]; rec = [rs["res"][nm]["recent_mean"] for nm in rmeth]
+    D.bar(xr - w / 2, act, w, color=[mcol(nm) for nm in rmeth], alpha=0.95)
+    D.bar(xr + w / 2, rec, w, color=[mcol(nm) for nm in rmeth], alpha=0.95, hatch="//", edgecolor="white")
+    D.set_xticks(xr); D.set_xticklabels(rmeth, rotation=30, ha="right", fontsize=7)
+    D.set_ylabel("skill retained under turnover")
+    D.set_title("(d) Resilience to attrition: confidence-directed CF keeps skill on the\nactive set AND recent arrivals; structure-free collapses on newcomers", fontsize=9)
+    D.grid(alpha=0.2, axis="y")
+    D.legend(handles=[Patch(facecolor="gray", label="active set"),
+                      Patch(facecolor="gray", hatch="//", edgecolor="white", label="recent arrivals")], fontsize=7.5)
+    fig.tight_layout(); save_fig("F19_operational")
+    print("F19_operational  <-", os.path.basename(f))
 
 print("figures written to", OUT)

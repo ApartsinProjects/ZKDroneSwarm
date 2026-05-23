@@ -133,6 +133,30 @@ EXPERIMENTS / CPU (build first = non-CPU, then run <=2 pools at once):
   swarm size m, from collab_*.json + scale_m_*.json. Folded into paper (new Fig. 5 + "why a swarm" para,
   before the operational-mission para) + tutorial (new §8.19). Both HTML rebuilt. NOTE run make_figures.py
   from REPO ROOT (relative results/pilots + docs/figures paths).
+## ----- BATCH cycle 73 (user: operational metrics 3-8 + mark centralized + remove project tags) -----
+- [DONE cycle 73] OPERATIONAL METRICS (3-8) from existing runs (no new sim): experiments/opmetrics.py reads
+  the anytime/newcomer/churn/contention/collab JSONs and derives (3) time-to-competence, (4) new-asset
+  readiness latency, (5) resilience to attrition, (6) cumulative regret, (7) redundancy/collision (HONEST
+  non-win: random spreads to win it), (8) info-efficiency (HONEST: structure-vs-no-structure, PTF edges us).
+  Saves opmetrics_*.json + docs/OPMETRICS.md (catalogue row 73). CLEAN WINS = 3,4,5,6 (ours fastest to
+  competence, newcomer ready in ~rank engagements vs never, retains skill under turnover, least lost value).
+  FIGURE F19_operational (4-panel) in make_figures.py. Added to paper (Operational-metrics para + Fig. 6)
+  and tutorial (new section 8.20).
+- [DONE cycle 73] CENTRALIZED MARKING: per user, mark ONLY ESTR (centralized explore-then-commit) + the
+  CTDE ceiling as not-directly-comparable. ESTR now labelled "(centralized ref)" in F5/F6/F19 legends, red +
+  "ESTR (centralized)" in F17, and called out in paper mission + Fig. 6 prose. Harness fact recorded: run_masked
+  builds one estimator PER drone, so ALL bake-off methods are decentralized in-harness; what the batch low-rank
+  baselines (PTF/BPMF/SoftImpute) relax is the ONLINE constraint, not decentralization (so they stay comparable).
+- [DONE cycle 73] PTF clarified: renamed "PTF (batch-refit low-rank)" in F18; added honest crossover note
+  (paper + tutorial) -- PTF overtakes us at rho=1 because a one-shot SVD on a near-fully-observed matrix is
+  batch completion's best case; we lead in the masked regime rho<=0.5 that defines the problem.
+- [DONE cycle 73] REMOVED project item tags (T*/P*/Thm/Theorem N/C*/H*/E* codes) from ALL reader-facing
+  figures + the paper and tutorial PROSE; converted the numbered-theorem exposition to NAMED results
+  (tabular floor, row completion, anytime separation, masking dichotomy, additive ceiling, collective
+  broadcast speedup, etc.) consistently across paper + tutorial. (Internal docs/registries keep their codes.)
+  NOTE on figure method-sets (user "suggest where it makes sense"): used per-figure relevant subsets with a
+  CONSISTENT class colouring on the new operational figures (ours=blue, structure-free=gray, batch low-rank=
+  orange, ESTR=red centralized); recolouring ALL legacy figures to one palette is an optional follow-up.
 - [TODO RAS] reformat docs/paper_aamas/main.tex -> Elsevier elsarticle class (do at submission time).
 ## ===== END RAS TRACK =====
 - [SUPERSEDED] E-H11types-ORIG contention with IDENTICAL vs DISTINCT drone types: does de-confliction depend on type
