@@ -428,4 +428,32 @@ if f:
     plt.grid(alpha=0.25); plt.legend(fontsize=7); plt.tight_layout(); save_fig("F16_sensing")
     print("F16_sensing  <-", os.path.basename(f))
 
+# ---- F17: operational target-servicing mission (ours vs FULL field, masked) ----
+f = latest("results/pilots/strike_*.json")
+if f:
+    d = json.load(open(f))
+    sk = d.get("skill", {}); rhos = d["meta"]["rhos"]; methods = d["meta"]["methods"]
+    if sk and all(str(r) in sk for r in rhos):
+        x = np.arange(len(methods)); wbar = 0.8 / max(len(rhos), 1)
+        cls = {"RewardCF": "C0", "EMCF": "C0"}                       # ours = blue; structured = orange; sf = gray
+        struct = {"PTF", "ESTR", "BPMF", "SoftImpute", "MFSGD"}
+        plt.figure(figsize=(7.2, 3.8))
+        for bi, r in enumerate(rhos):
+            mu = [np.mean(sk[str(r)][nm]) for nm in methods]
+            sd = [np.std(sk[str(r)][nm]) for nm in methods]
+            plt.bar(x + (bi - (len(rhos) - 1) / 2.0) * wbar, mu, wbar, yerr=sd, capsize=2,
+                    label="$\\rho$=%.2f" % r, alpha=0.6 + 0.4 * bi)
+        cols = ["C0" if nm in ("RewardCF", "EMCF") else ("C1" if nm in struct else "C7") for nm in methods]
+        for xi, c in zip(x, cols):
+            plt.gca().get_xticklabels()
+        plt.xticks(x, methods, rotation=30, ha="right", fontsize=7.5)
+        for tl, c in zip(plt.gca().get_xticklabels(), cols):
+            tl.set_color(c)
+        plt.ylabel("servicing skill  (0=random dispatch, 1=oracle)")
+        plt.axhline(0, color="black", lw=0.6)
+        plt.title("Operational target-servicing mission: ours (blue) vs structured low-rank (orange) vs\n"
+                  "structure-free (gray); the separation opens under limited observability ($\\rho$=0.25)", fontsize=8)
+        plt.legend(fontsize=8); plt.tight_layout(); save_fig("F17_mission")
+        print("F17_mission  <-", os.path.basename(f))
+
 print("figures written to", OUT)

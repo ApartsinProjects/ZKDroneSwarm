@@ -2047,6 +2047,11 @@ A("<p>Framed as an operational target-servicing / dispatch MISSION (each robot r
   "Applications: limited-resource servicing under degraded comms (firefighting, medical-evac, precision "
   "agriculture), search-and-service, and sensor-target matching.</p>")
 
+A("<figure>%s<figcaption><strong>F17.</strong> Operational target-servicing mission: servicing skill "
+  "(0=random dispatch, 1=oracle) for OURS (blue) vs the structured low-rank field (orange) vs "
+  "structure-free (gray), at full broadcast and under limited observability. The separation over the "
+  "whole field opens at $\\rho=0.25$.</figcaption></figure>" % img("F17_mission.png", "F17"))
+
 A("<h2 id='nov'>9. Novelty and honest positioning</h2>")
 A("<p><strong>Novelty.</strong> (1) The decentralized, online, broadcast-only, per-drone-masked "
   "formulation of CF for MRTA, with the unseen-pair / onboarding categorical separations and a "
