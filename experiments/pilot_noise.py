@@ -585,6 +585,87 @@ class EMCF(_EpsBase):
         return self.pulled
 
 
+class ChoiceEM(ChoiceCF):
+    """JOINT EM over latent factors AND per-teammate choice-informativeness gamma_k
+    (Section 5.6). Each sensed teammate CHOICE is modeled as a mixture: with probability
+    gamma_k a Boltzmann-rational (softmax) pick on the teammate's true preference, else a
+    uniform-random pick. E-step: per-choice responsibility r (posterior that the choice
+    was model-based, not random). M-step: gamma_k <- mean responsibility, and the factor
+    fit weights each choice's positive/negative pair by r, so a near-random choice barely
+    moves the structure (the fix for low-confidence teammates poisoning the latent model).
+    Replaces ChoiceCF's fixed temporal competence ramp with this learned, per-choice r."""
+    def __init__(self, *a, tau=0.3, **hp):
+        super().__init__(*a, **hp)
+        self.tau = tau
+        self.gamma = np.full(self.m, 0.5)        # per-teammate informativeness estimate
+
+    def _resp(self, k, c, off):
+        off = np.asarray(off)
+        logits = (self.U[off] @ self.P[k]) / max(self.tau, 1e-6)
+        logits = logits - logits.max()
+        w = np.exp(logits); Z = max(w.sum(), 1e-12)
+        pos = np.where(off == c)[0]
+        soft_c = float(w[pos[0]] / Z) if len(pos) else 1.0 / len(off)
+        gk = float(self.gamma[k])
+        return gk * soft_c / (gk * soft_c + (1.0 - gk) / len(off) + 1e-12)
+
+    def _refit(self):
+        own_r = [v for kk, v in zip(self.rk, self.rv) if kk == self.idx]
+        pos = float(np.percentile(own_r, 75)) if len(own_r) >= 4 else 0.55
+        neg = float(np.percentile(own_r, 25)) if len(own_r) >= 4 else 0.15
+        # E-step: responsibility per buffered choice + per-teammate accumulation
+        resp = []; gsum = np.zeros(self.m); gcnt = np.zeros(self.m)
+        for k, c, off, ts in zip(self.ck, self.cc, self.coff, self.cstep):
+            r = self._resp(k, c, off); resp.append(r); gsum[k] += r; gcnt[k] += 1.0
+        # M-step (1): update informativeness gamma_k = mean responsibility
+        self.gamma = np.where(gcnt > 0, gsum / np.maximum(gcnt, 1.0), self.gamma)
+        # M-step (2): weighted ALS; choice contributions weighted by responsibility r
+        K = list(self.rk); J = list(self.rj); V = list(self.rv); W = list(self.rw)
+        for (k, c, off, ts), r in zip(zip(self.ck, self.cc, self.coff, self.cstep), resp):
+            if r <= 1e-3:
+                continue
+            wc = r / self.s2c
+            K.append(k); J.append(c); V.append(pos); W.append(wc)
+            for _ in range(self.n_neg):
+                o = int(self.rng.choice(off)) if self.within else self.rng.randint(self.n)
+                if o != c:
+                    K.append(k); J.append(o); V.append(neg); W.append(wc)
+        self._als(K, J, V, W)
+
+
+class ContentionCF(RewardCF):
+    """RewardCF ESTIMATE + a CONTENTION-AWARE DECISION (keep the estimate, change the
+    policy). Two de-confliction ingredients, both communication-free: (1) a popularity
+    penalty, discount a target by how often the public broadcast shows it engaged
+    (contested targets get engaged repeatedly), routing drones off crowded targets onto
+    their personal-but-uncontested favorites; (2) softmax SAMPLING instead of argmax, so
+    drones with similar tastes diverge (symmetry breaking). Aims to WIN under contention,
+    where greedy argmax makes everyone collide on the same few high-value targets."""
+    def __init__(self, *a, c_pen=0.5, tau=0.15, **hp):
+        super().__init__(*a, **hp)
+        self.c_pen = c_pen; self.tau = tau
+        self.gcount = np.zeros(self.n)
+
+    def select(self, t, cand):
+        cand = np.asarray(cand)
+        score = self.U[cand] @ self.P[self.idx]
+        score = score - self.c_pen * np.log1p(self.gcount[cand])    # discount contested targets
+        logits = (score - score.max()) / max(self.tau, 1e-6)
+        p = np.exp(logits); s = float(p.sum())
+        if not np.isfinite(s) or s <= 0:
+            a = int(cand[self.rng.randint(len(cand))])
+        else:
+            a = int(cand[self.rng.choice(len(cand), p=p / s)])      # softmax sample (de-synchronize)
+        self.pulled[a] = True
+        return a
+
+    def observe(self, t, choices, revealed, cand_sets, rvar):
+        for k in range(self.m):
+            if not np.isnan(revealed[k]):
+                self.gcount[int(choices[k])] += 1                   # broadcast engagement counts
+        super().observe(t, choices, revealed, cand_sets, rvar)
+
+
 def run_episode(Cls, hp, world, T, p_share, seed, sigma_own, sigma_obs, cand):
     P, U, R = world; m, n = R.shape; d = P.shape[1]
     rng = np.random.RandomState(seed + 999)

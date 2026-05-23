@@ -29,7 +29,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 sys.stdout.reconfigure(encoding="utf-8")
 
 import pilot_compare as pc
-from pilot_noise import RewardCF, ActiveCF
+from pilot_noise import RewardCF, ActiveCF, ContentionCF
 from pilot_baselines import Random, UCBIndep, PTF
 from core import make_world
 from _results_io import save_results
@@ -44,13 +44,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 _CONV = dict(eps0=0.5, eps_min=0.05, eps_decay=0.97, als_sweeps=20, refit_every=1)
 REG = {
+    "ContentionCF": (ContentionCF, dict(c_pen=0.5, tau=0.15, **_CONV)),  # contention-aware decision
     "ActiveCFconv": (ActiveCF,  dict(c_active=0.5, **_CONV)),
     "RewardCFconv": (RewardCF,  dict(**_CONV)),
     "UCBIndep":     (UCBIndep,  dict(c=2.0)),
     "PTF":          pc.REGISTRY["PTF"],
     "Random":       (Random,    {}),
 }
-ORDER = ["ActiveCFconv", "RewardCFconv", "PTF", "UCBIndep", "Random"]
+ORDER = ["ContentionCF", "ActiveCFconv", "RewardCFconv", "PTF", "UCBIndep", "Random"]
 POOLS = [240, 60, 30, 15]          # n=240 (~no contention) -> 15 (severe; < m=30)
 RHO = 1.0                          # full broadcast: ISOLATE contention from masking
 SEEDS = list(range(8))

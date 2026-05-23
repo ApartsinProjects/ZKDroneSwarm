@@ -844,10 +844,20 @@ A("<div class='box'><b>Scouted ideas it builds on.</b> Dawid-Skene EM for annota
   "expertise (IRLEED, MaxEnt-IRL); McFadden conditional-logit / Plackett-Luce discrete choice; and "
   "crowdsourcing reliability estimation. Our novelty is the DECENTRALIZED, ZK, ONLINE instance: each "
   "agent infers its teammates' choice-informativeness from public actions alone and fuses it with "
-  "low-rank completion in one EM loop, no labels, no communication, no shared parameters. This is the "
-  "natural next method to implement and test (we expect it to dominate the fixed-ramp ChoiceCF most at "
-  "early rounds and high reward-noise, where distinguishing model-based from random choices matters "
-  "most).</p></div>")
+  "low-rank completion in one EM loop, no labels, no communication, no shared parameters.</p></div>")
+A("<div class='box warn'><b>Honest result (we implemented and tested it): ChoiceEM does NOT win, and "
+  "the reason is instructive.</b> Across reward noise $\\sigma_{\\mathrm{obs}}\\in\\{0.3,0.6,1.0\\}$ "
+  "(8 seeds), ChoiceEM underperforms even the fixed-ramp ChoiceCF (unseen $\\approx 0.01$ vs $0.09$), "
+  "and BOTH choice-only methods are dominated by RewardCF up to $\\sigma_{\\mathrm{obs}}=1.0$ "
+  "(RewardCF unseen $0.16$-$0.45$). Two lessons: (1) the choice channel is a fundamentally WEAKER "
+  "signal than rewards until noise is extreme ($\\sigma_{\\mathrm{obs}}\\gg 1$), an action reveals only "
+  "an argmax, a reward reveals a value; (2) the EM gating DEADLOCKS at cold-start, the E-step needs a "
+  "good model to tell a model-based choice from a random one, but down-weighting choices keeps the "
+  "model from improving, a chicken-and-egg the fixed ramp sidesteps by trusting choices on a schedule. "
+  "The principled fix is to break the deadlock by judging choices against a model the REWARD channel "
+  "already fit (reward-warm-started EM fusion), and to deploy it only as extreme-noise insurance; pure "
+  "choice-EM is not worth its complexity in the realistic-noise regime. We keep this as a documented "
+  "negative, the kind a tutorial should show.</p></div>")
 
 A("<h3>5.7 Do we even need to guess the rank? (and how to adapt it)</h3>")
 A("<p>A natural worry: every structured method uses a GUESSED rank $\\hat d=8$ while the true rank is "
