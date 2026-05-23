@@ -509,10 +509,12 @@ class EMCF(_EpsBase):
     the prior lam (in the model) handles regularization, avoiding the scale confound that
     made naive precision-ALS fail."""
     def __init__(self, *a, lam=1.0, em_sweeps=6, refit_every=4, em_beta=1.0, shrink=0.0,
-                 init_scale=0.1, **hp):
+                 init_scale=0.1, ard=False, **hp):
         super().__init__(*a, **hp)
         self.lam = lam; self.em_sweeps = em_sweeps; self.refit_every = refit_every
         self.em_beta = em_beta; self.shrink = shrink
+        self.ard = ard                          # automatic relevance determination on factor columns
+        self.alpha = np.full(self.d, float(lam))   # per-column prior precision (ARD self-prunes rank)
         self.I = np.eye(self.d)
         self.muP = self.rng.normal(0, init_scale, (self.m, self.d))
         self.muU = self.rng.normal(0, init_scale, (self.n, self.d))
@@ -536,20 +538,31 @@ class EMCF(_EpsBase):
         K = np.asarray(self.rk); J = np.asarray(self.rj)
         V = np.asarray(self.rv); B = np.asarray(self.rb)
         for _ in range(self.em_sweeps):
+            Lam0 = np.diag(self.alpha)                                    # ARD per-column prior
             EPP = self.SP + np.einsum('id,ie->ide', self.muP, self.muP)   # E[p p^T]
-            LamU = np.tile(self.lam * self.I, (self.n, 1, 1))
+            LamU = np.tile(Lam0, (self.n, 1, 1))
             bU = np.zeros((self.n, self.d))
             np.add.at(LamU, J, B[:, None, None] * EPP[K])
             np.add.at(bU, J, (B * V)[:, None] * self.muP[K])
             self.SU = np.linalg.inv(LamU)
             self.muU = np.einsum('jde,je->jd', self.SU, bU)
             EUU = self.SU + np.einsum('jd,je->jde', self.muU, self.muU)   # E[u u^T]
-            LamP = np.tile(self.lam * self.I, (self.m, 1, 1))
+            LamP = np.tile(Lam0, (self.m, 1, 1))
             bP = np.zeros((self.m, self.d))
             np.add.at(LamP, K, B[:, None, None] * EUU[J])
             np.add.at(bP, K, (B * V)[:, None] * self.muU[J])
             self.SP = np.linalg.inv(LamP)
             self.muP = np.einsum('ide,ie->id', self.SP, bP)
+            if self.ard:                                                  # M-step for alpha (ARD)
+                EP2 = (self.muP ** 2).sum(0) + np.einsum('idd->d', self.SP)
+                EU2 = (self.muU ** 2).sum(0) + np.einsum('jdd->d', self.SU)
+                self.alpha = np.clip((self.m + self.n) / (EP2 + EU2 + 2e-3), 1e-3, 1e6)
+
+    def eff_rank(self, thresh=0.05):
+        """Effective number of latent dimensions ARD keeps: columns whose 'energy'
+        1/alpha_r is above a fraction `thresh` of the largest (the rest are pruned)."""
+        energy = 1.0 / np.maximum(self.alpha, 1e-12)
+        return int((energy > thresh * energy.max()).sum())
 
     def _predvar(self):
         i = self.idx; mi = self.muP[i]; Si = self.SP[i]

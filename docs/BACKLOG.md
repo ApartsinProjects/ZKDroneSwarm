@@ -257,3 +257,43 @@ explore_knob. C1 + C8 DONE (below). Method work (C6/C10/C3/C2) demoted to P1
   vs rho) under IID per-round masking to confirm T4(c) empirically and measure the
   durable-vs-transient state-uniqueness gap. Motivation: iid (packet loss) is equally
   realistic; persistent (fixed topology/sensor) chosen for DURABLE decentralization.
+
+## STATE REVIEW + NEXT DIRECTIONS (2026-05-23)
+DONE this arc: 20-seed headline CIs; CONFIDENCE bake-off (EM/Bayesian factorization
+with predictive-interval UCB DOMINATES uniform; EMshrink best-unseen Pareto);
+precision-vs-noise crossover (coverage, not noise, is the binding constraint);
+ChoiceEM (HONEST NEGATIVE: cold-start deadlock + choice channel weaker than rewards);
+CONTENTION WIN (ContentionCF = CF estimate + fixed private per-target offset; ~2x at
+severe contention; de-confliction needs PRIVATE FIXED randomness); ARD rank
+self-determination (IN PROGRESS); full formal tutorial+paper (KaTeX), 3-condition
+scope iff. Positioning scout: NO direct competitor for decentralized broadcast-only
+no-comms online CF for MRTA (BanditMF = centralized; decentralized MRTA = auction/GA,
+need comms). 
+
+IMPROVEMENT HYPOTHESES / DIRECTIONS (general; ranked):
+- [P0] H1 = C10 COLLECTIVE INFO-DIRECTED EXPLORATION. Use EMCF's factor posterior:
+  probe argmax predictive-variance / info-gain (D-optimal / IDS in latent space),
+  broadcast-shared so one probe helps all. HYP: beats eps-greedy + the count-bonus on
+  rounds-to-X%-oracle (M3) and anytime, esp. when the explored latent slice is
+  low-dim. Grounded: Russo-VanRoy IDS; info-guided low-rank MC sampling (1706.08037).
+- [P1] H2 = ADAPTIVE ContentionCF. Scale the fixed-offset eps_break by each drone's
+  OBSERVED collision rate -> dominate ALL contention levels (currently regime-dep).
+  HYP: single adaptive policy >= max(argmax-CF, fixed-offset) everywhere.
+- [P1] H3 = UNIFIED RECOMMENDED METHOD. Fold EMCF (confidence) + info-directed
+  exploration (H1) + symmetry-breaking decision (contention) into ONE estimator+policy
+  -> kills the "method zoo", one method dominating the whole design space.
+- [P1] H4 = CALIBRATION (M5). Reliability diagram: EMCF predictive intervals vs actual
+  error. HYP: EMCF well-calibrated, naive-precision mis-calibrated -> justifies the
+  UCB/Thompson use of the posterior.
+- [P1] H5 = THEORY for the new wins. (a) fixed-private-offset de-confliction =
+  decentralized symmetry-breaking / matching-without-comms mini-result; (b)
+  predictive-variance-UCB regret (why EM-confidence helps); (c) ARD rank-recovery.
+- [P2] H6 = NON-STATIONARITY / churn (K3): targets+drones change over time. HYP: CF
+  fold-in re-adapts in O(d) vs tabular O(n) -> categorical under churn (a 3rd
+  categorical result, like unseen + onboarding).
+- [P2] H7 = NON-GAUSSIAN rewards (K4): logistic/GLM-link weighted-ALS for BINARY
+  outcomes. HYP: handles binarized rewards where linear MF degrades; extends scope.
+- [P2] H8 = TYPE-PRIOR shrinkage (D7): newcomer cold-start shrinks to its TYPE prior
+  (not just popularity). HYP: faster newcomer warm-up than popularity shrinkage.
+NEXT EXPERIMENTS (queued): c=n candidate-set independence (running next); H1 C10
+info-directed exploration; H2 adaptive ContentionCF; H4 calibration.
