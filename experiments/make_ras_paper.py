@@ -212,12 +212,12 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "scarcity (Section 5).</li>"
   "<li>We give a <b>deterministic condition</b> under which decentralized recovery of the shared "
   "structure from the privately-masked broadcast is exact, with a coverage-time bound that improves as "
-  "the team grows, and validate the condition empirically (Section 5, Appendix C).</li>"
+  "the team grows, and validate the condition empirically (Section 5, Appendix A).</li>"
   "<li>We quantify the <b>value of the broadcast</b>, a "
   "<b>positive scaling law</b> (per-robot competence rises with team size), and a strong "
   "<b>masking-robustness and anytime profile</b> among low-rank methods under limited observability (the "
   "online anytime lead holds at the body's size-$c$ menu and narrows under the unrestricted all-tasks "
-  "menu, Appendix F), recovering a substantial fraction (about a third) of a centralized "
+  "menu, Appendix E), recovering a substantial fraction (about a third) of a centralized "
   "full-communication ceiling on earned (anytime) skill; and we show the advantage <b>persists under capacity-1 contention</b> (Section 6.5) and in a "
   "<b>robotics-grounded instance</b> with heterogeneous sensing traits and a range-limited line-of-sight "
   "mask (Section 6.7).</li>"
@@ -226,7 +226,7 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "extension; with it we show the separation survives contention and "
   "that SwarmCF's heterogeneous per-robot models <b>implicitly de-conflict</b> where structure-free "
   "learners instead collide, isolating communication-free de-confliction as the main open problem "
-  "(Section 6.5, Appendix E).</li></ol>")
+  "(Section 6.5, Appendix D).</li></ol>")
 
 # ---------------- 2. related work ----------------
 A("<h2>2. Related work</h2>")
@@ -295,7 +295,7 @@ A("<p><b>Reward.</b> A team of $m$ robots faces $n$ tasks. Robot $i$ has a hidde
 A("<p><b>Interaction.</b> Each round $t=1,\\dots,T$ every robot $i$ is offered a menu "
   "$S_{it}\\subseteq[n]$ of tasks (the model permits the full menu of all $n$ tasks; to control scarcity "
   "the body experiments offer a uniform random size-$c$ subset, $c=20$, with the all-tasks menu $c=n$ "
-  "studied in Appendix F), selects one $a_{it}\\in S_{it}$, engages it, and earns $R_{i,a_{it}}$. The operating "
+  "studied in Appendix E), selects one $a_{it}\\in S_{it}$, engages it, and earns $R_{i,a_{it}}$. The operating "
   "regime is <b>task-scarce</b>: $n \\gg T$, so each robot personally engages only $O(T)$ of the $n$ "
   "tasks.</p>")
 A("<p><b>The observation channel (central to the setting).</b> There is no communication. "
@@ -310,7 +310,7 @@ A("<p><b>The observation channel (central to the setting).</b> There is no commu
   "No robot ever sees the clean stream, and no two robots see the same stream. We take this "
   "<b>persistent</b> mask as the primary case: an i.i.d., per-round mask reduces to standard uniform "
   "sampling, so the persistent (structured) mask is the harder regime where our recovery condition "
-  "(Theorem 2) applies; the released suite supports both, and Appendix F confirms the headline results "
+  "(Theorem 2) applies; the released suite supports both, and Appendix E confirms the headline results "
   "are unchanged under the i.i.d. mask.</p>")
 A("<p>This channel is the formal counterpart of physical sensing: a robot perceives a teammate's "
   "engagement and its outcome only when the teammate is within range (the persistent partial mask) and "
@@ -444,7 +444,7 @@ A("<p>Theorem 2 turns the previously-cited completion step into a self-contained
   "teammates that engaged $j$, and not otherwise, with the threshold reached faster the larger the team. "
   "The coverage condition needs $\\rho m\\gt d$ on average, so at very low broadcast ($\\rho m\\lt d$, e.g. "
   "$\\rho=0.1$ with $m=30,d=5$) recovery is only partial and the low-$\\rho$ skill in Figure 2 is "
-  "correspondingly reduced. Appendix C validates it directly: on the actual observation patterns the swarm produces, "
+  "correspondingly reduced. Appendix A validates it directly: on the actual observation patterns the swarm produces, "
   "reconstruction error collapses from the prior floor to (numerically) zero exactly at the spanning "
   "threshold.</p>")
 A("<div class='thm'><b>Theorem 3 (collective speedup, why a swarm).</b> <b>(a) Necessity.</b> An isolated "
@@ -461,16 +461,16 @@ A("<p>Theorems 2-3 are, to our knowledge, the first results that pin decentraliz
   "proofs are given in Appendix A.</p>")
 A("<p><b>Relation to the experiments.</b> Theorems 1-3 are worst-case <i>sufficient</i> guarantees: they "
   "certify <i>when</i> recovery and the categorical gap are achievable and how the rate improves with team "
-  "size, and Appendix C confirms the governing spanning condition directly on the swarm's actual coverage. "
+  "size, and Appendix A confirms the governing spanning condition directly on the swarm's actual coverage. "
   "SwarmCF then realizes the advantage <b>sample-efficiently</b>: acting well requires only correct "
   "<i>ranking</i> of each offered set, not exact reconstruction of the entire row, and recovery is "
-  "<i>graded</i> in the local spanning rank (Appendix C), so a robot scores a task accurately as soon as a "
+  "<i>graded</i> in the local spanning rank (Appendix A), so a robot scores a task accurately as soon as a "
   "few similar teammates have engaged it. The headline horizon $T=50$ is in fact well below the worst-case "
   "<i>full</i>-recovery time $T_{\\mathrm{rec}}=O\\!\\big(\\tfrac{nd}{\\rho m}\\log n\\big)$, which is "
   "numerically several hundred rounds at the headline $n=240,d=5,m=30,\\rho=0.25$; the method nonetheless "
   "reaches strong skill within $T=50$ because <i>partial, graded</i> recovery is enough to rank well. The "
   "theory thus establishes feasibility and the team-size scaling of full recovery, while the experiments "
-  "operate in the earlier graded-spanning regime (Appendix C), not at the full-recovery threshold.</p>")
+  "operate in the earlier graded-spanning regime (Appendix A), not at the full-recovery threshold.</p>")
 
 # ---------------- 6. experiments ----------------
 A("<h2>6. Experiments</h2>")
@@ -478,7 +478,7 @@ A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$,
   "$\\hat d$ drawn at random in $[d,2d]$ per run (no method is given the true rank; this range over-specifies "
   "and so never under-ranks, with Figure 8 separately showing graceful degradation when $\\hat d<d$), horizon "
   "$T=50$, partial broadcast $\\rho$ swept, private noise on own ($\\sigma_{\\mathrm{own}}=0.1$) and "
-  "observed ($\\sigma_{\\mathrm{obs}}=0.3$) outcomes (Appendix D), 16 random seeds, bootstrap 95% "
+  "observed ($\\sigma_{\\mathrm{obs}}=0.3$) outcomes (Appendix C), 16 random seeds, bootstrap 95% "
   "confidence intervals. <b>World generation.</b> Each robot's capability vector $p_i$ and each task's "
   "requirement vector $u_j$ is sampled i.i.d. as a $d$-dimensional standard Gaussian and L2-normalized "
   "to the unit sphere (the latents are thus uniform on the sphere, with no discrete robot or task types), "
@@ -489,13 +489,13 @@ A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$,
   "the $n$ tasks; the body sweeps restrict each offer to a uniform random size-$c$ subset ($c=20$) to "
   "control scarcity and to supply the per-round engagement diversity the online estimator relies on. "
   "This is a moderate scarcity (each task is offered about $cT/n\\approx 4$ times); Theorem 1's strict "
-  "scarce-offer regime ($cT=o(n)$) is shown separately in Appendix F (Figure 9a). "
-  "Appendix F reports the unrestricted all-tasks menu ($c=n$) as a robustness check: the categorical "
+  "scarce-offer regime ($cT=o(n)$) is shown separately in Appendix E (Figure 9a). "
+  "Appendix E reports the unrestricted all-tasks menu ($c=n$) as a robustness check: the categorical "
   "low-rank separation is unchanged, while the online method's lead over batch completion narrows. "
   "Because no existing benchmark instantiates the ZK-MRTA regime (a hidden low-rank robot-task reward seen "
   "only through a persistent, per-observer-private, masked and noisy broadcast under communication-free, "
   "task-scarce decentralized choice), we built and openly released the <b>LatentSwarm</b> simulator and "
-  "run every experiment on it (Section 6.5 adds capacity-1 contention; Appendix E details the simulator).</p>")
+  "run every experiment on it (Section 6.5 adds capacity-1 contention; Appendix D details the simulator).</p>")
 A("<p><b>How to read the comparison.</b> The setting is new, so this is a controlled sweep across the "
   "low-rank design space against the external structure-free paradigm and full-information ceilings, not a "
   "contest of rival systems: SwarmCF is ours; the structure-free learners (Independent-UCB, a per-arm "
@@ -507,8 +507,8 @@ A("<p><b>How to read the comparison.</b> The setting is new, so this is a contro
   "exactly our MF-SGD and PTF (SwarmCF is its online-ALS member); and a Gang-of-Bandits method needs a "
   "prior similarity graph, so its data-driven successor CLUB is the admissible clustered-bandit. Two "
   "further structure-sharing baselines, memory-based kNN-CF and convex nuclear-norm SoftImpute, are "
-  "evaluated in Appendix G. In our harness <b>every</b> method runs decentralized and communication-free "
-  "(one estimator per robot), differing only in the update rule; Table 3 (Appendix D) gives each method's "
+  "evaluated in Appendix F. In our harness <b>every</b> method runs decentralized and communication-free "
+  "(one estimator per robot), differing only in the update rule; Table 3 (Appendix C) gives each method's "
   "operating profile.</p>")
 
 A("<h3>6.1 The categorical separation and masking robustness</h3>")
@@ -533,7 +533,7 @@ A("<p>Final-policy quality can overstate a method that explores cheaply. The ope
   "penalty early. An $\\varepsilon$-greedy tabular learner does earn some reward by re-exploiting tasks it "
   "has already engaged (each task recurs in offers about $cT/n\\approx 4$ times here), but it stays well "
   "below SwarmCF and at the floor on unseen pairs (Table 3). The clean anytime collapse of Theorem 1 holds "
-  "in the strict regime $cT=o(n)$ (demonstrated in Appendix F, Figure 9a); SwarmCF's early-earning advantage is broader, as seen here.</p>")
+  "in the strict regime $cT=o(n)$ (demonstrated in Appendix E, Figure 9a); SwarmCF's early-earning advantage is broader, as seen here.</p>")
 A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill ($\\rho=0.25$). SwarmCF earns "
   "from round one; explore-then-commit pays a probe phase; Independent-UCB stays near the random floor, while "
   "$\\varepsilon$-greedy tabular earns only by re-exploiting tasks it has already "
@@ -651,7 +651,7 @@ A("<p>The separation is structural rather than tuned: it follows from the three 
   "additional sweeps over $n$, $d$, and reward heterogeneity in the released data show the same pattern; "
   "and it stays intact when the reward is only approximately low-rank, under the offer size (size-$c$ "
   "versus all $n$ tasks), under the masking model (persistent versus i.i.d.), and under a randomly guessed "
-  "rank swept from $d/2$ to $3d$, all detailed in Appendix F.</p>")
+  "rank swept from $d/2$ to $3d$, all detailed in Appendix E.</p>")
 
 A("<h3>6.7 A robotics-grounded instance</h3>")
 A("<p>To check the separation is not an artifact of the abstract traits and Bernoulli mask, we "
@@ -684,7 +684,7 @@ A("<p><b>What the results say.</b> Under the least information (no prior, no com
 A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
   "trait-based premise; the categorical advantage degrades gracefully as the structure becomes only "
   "approximately low-rank or the rank grows toward full, vanishing only "
-  "when there is no exploitable structure (Appendix F, Figure 10). All our evidence is in simulation: as "
+  "when there is no exploitable structure (Appendix E, Figure 10). All our evidence is in simulation: as "
   "no existing benchmark captures this regime (Section 6) we evaluate on our own released LatentSwarm "
   "simulator, and the low-rank premise, though standard for trait-based MRTA, is an assumption rather than "
   "a measured property of any specific deployment; building a higher-fidelity or physical instantiation of "
@@ -693,7 +693,7 @@ A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and sta
   "recovery rate of Theorem 2 is established for non-adaptive "
   "exploration, so the finite-time rate under the strongly exploiting $\\varepsilon$-decay policy our "
   "experiments actually use (which can starve low-reward tasks of spanning coverage) remains an open "
-  "guarantee, with Appendix C the empirical coverage evidence.</p>")
+  "guarantee, with Appendix A the empirical coverage evidence.</p>")
 A("<p><b>Scope of the advantage.</b> It is not universal, and holds when three conditions co-occur: "
   "<b>(i) low-rank but personalized</b> structure ($1\\lt d\\ll\\min(m,n)$): at $d=1$ the reward reduces "
   "to a shared popularity order a bias/pooling baseline already captures; <b>(ii) task scarcity</b> "
@@ -853,7 +853,7 @@ A("<ol class='small' style='line-height:1.5'>"
   "Economy</i>, 122(6):1271&ndash;1319, 2014.</li>"
   "</ol>")
 
-A("<h2>Appendix A. Proofs of the main results</h2>")
+A("<h2>Appendix A. Proofs and empirical validation of the main results</h2>")
 A("<p class='small'>We give proofs of the main results below (full for Proposition 1, Lemma 1, Theorem 1, and Theorem 2; "
   "Theorem 3 follows as a corollary of Theorem 2), each closed by a short "
   "remark on the proof technique and its relation to existing results. Throughout, factors are assumed "
@@ -896,7 +896,7 @@ A("<p class='small'><b>Theorem 2 (recovery).</b> A fully-observed invertible $\\
   "$\\mathrm{Binomial}(|N_i|,1-e^{-T/n})$ with $|N_i|\\approx\\rho m$, and requiring $\\ge d$ spanning "
   "engagers for all $n$ tasks with a union bound gives $T=O\\!\\big(\\tfrac{nd}{\\rho m}\\log n\\big)$, "
   "which decreases in the team size $\\rho m$ and requires $\\rho m>d$. <i>Remark:</i> the condition is "
-  "deterministic and is validated directly in Appendix C. We are not aware of a comparable recovery "
+  "deterministic and is validated empirically at the end of this appendix. We are not aware of a comparable recovery "
   "condition for a persistent, per-observer mask, the regime where uniform-sampling matrix-completion "
   "guarantees do not apply; the finite-time rate under a strongly-exploiting (adaptive) policy is left "
   "open.</p>")
@@ -909,6 +909,13 @@ A("<p class='small'><b>Theorem 3 (collective speedup).</b> <i>(a)</i> At $\\rho=
   "it is the formal counterpart of the value-of-broadcast and positive-scaling results in Section 6.3. The "
   "fold-in perturbation bound used above (cold-start error $=$ basis-recovery $+$ own-probe noise $+$ ridge "
   "bias, exact at $k\\ge d$) is stated in Appendix B.</p>")
+A("<p class='small'><b>Empirical validation of the recovery condition (Theorem 2).</b> On the swarm's "
+  "actual coverage patterns ($m=30,n=240,d=5,\\rho=0.5$, noiseless to isolate identifiability), "
+  "reconstructing each unseen pair $(i,j)$ from the observed entries by least squares gives error at "
+  "numerical zero (below $10^{-10}$) when robot $i$'s factor lies in the span of its visible engagers of "
+  "$j$ (the condition of Theorem 2), versus a prior-floor reconstruction error of $\\approx0.30$ (an "
+  "error, not a skill) otherwise, with graceful partial recovery as the spanning rank rises to $d$. The "
+  "identifiability threshold is therefore exactly the spanning condition of Theorem 2.</p>")
 
 A("<h2>Appendix B. The fold-in error bound</h2>")
 A("<p class='small'>For a newcomer factor $x_\\star$ probed against an estimated basis "
@@ -928,15 +935,7 @@ A("<div class='algo'><div class='cap'>Algorithm 2: Fold-in (solve a new entity's
   "and observations $y$ (the few rewards seen for the newcomer), with weights $W$:\n"
   "    $\\hat x \\leftarrow (B^\\top W B+\\lambda I)^{-1} B^\\top W y$    // $O(\\hat d^3)$ ridge solve\n"
   "predict reward on any other entity with factor $b$ as $\\langle b,\\hat x\\rangle$</div>")
-A("<h2>Appendix C. Empirical validation of the recovery condition (Theorem 2)</h2>")
-A("<p class='small'>On the swarm's actual coverage patterns ($m=30,n=240,d=5,\\rho=0.5$, noiseless to "
-  "isolate identifiability), reconstructing each unseen pair $(i,j)$ from the observed entries by least "
-  "squares gives error at numerical zero (below $10^{-10}$) when robot $i$'s factor lies in the span of "
-  "its visible engagers of $j$ (the condition of Theorem 2), versus a prior-floor reconstruction error of $\\approx0.30$ (an "
-  "error, not a skill) otherwise, with graceful "
-  "partial recovery as the spanning rank rises to $d$. The identifiability threshold is therefore "
-  "exactly the spanning condition of Theorem 2.</p>")
-A("<h2>Appendix D. Reproducibility</h2>")
+A("<h2>Appendix C. Reproducibility</h2>")
 A("<p class='small'>All experiments draw the latent traits i.i.d. and uniformly on the unit sphere "
   "(no discrete robot or task types), giving the signed low-rank reward of "
   "Section 3, and report bootstrap 95% "
@@ -946,7 +945,7 @@ A("<p class='small'>All experiments draw the latent traits i.i.d. and uniformly 
   "runs. The code and per-seed data needed to regenerate every figure and table are openly available "
   "(see Data availability).</p>")
 A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robots, $n=240$ tasks, true "
-  "rank $d=5$, guessed rank $\\hat d$ drawn at random per run in $[d,2d]$, horizon $T=50$, offer size $c=20$ (the unrestricted all-tasks menu, $c=n$, is the offer-size variant of Appendix F), own-observation noise "
+  "rank $d=5$, guessed rank $\\hat d$ drawn at random per run in $[d,2d]$, horizon $T=50$, offer size $c=20$ (the unrestricted all-tasks menu, $c=n$, is the offer-size variant of Appendix E), own-observation noise "
   "$\\sigma_{\\mathrm{own}}=0.1$, broadcast-observation noise $\\sigma_{\\mathrm{obs}}=0.3$, persistent "
   "mask rate $\\rho$ swept. SwarmCF: $\\varepsilon$-greedy with $\\varepsilon_0=0.5$ decaying by $0.93$ "
   "per round to $\\varepsilon_{\\min}=0.05$; ridge $\\lambda=10^{-2}$; 8 alternating-least-squares sweeps "
@@ -959,7 +958,7 @@ A("<p class='small'><b>Table 3.</b> Operating profiles of the methods compared (
 A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "CLUB", "BiasModel",
                            "UCBIndep", "Tabular", "Random", "CentralClean-ceiling", "CTDE-ceiling", "Oracle"]))
 
-A("<h2>Appendix E. The LatentSwarm environment</h2>")
+A("<h2>Appendix D. The LatentSwarm environment</h2>")
 A("<p class='small'>The LatentSwarm <b>package</b> (a modular, pip-installable Python package) is our "
   "simulator for ZK-MRTA (Section 6.5 adds capacity-1 contention). Its components are registered by name and selected by "
   "configuration: scenario builders (latent-trait generation), the environment, the policy library, the "
@@ -1000,7 +999,7 @@ A("<div class='algo'><div class='cap'>Algorithm 3: LatentSwarm mission (a ZK-MRT
   "        $(k,\\,a_k,\\,\\langle p_k,u_{a_k}\\rangle+\\eta_{ik})$, private $\\eta_{ik}\\sim\\mathcal N(0,\\sigma^2)$\n"
   "score: earned skill vs random / Hungarian oracle; unseen-pair skill on never-engaged tasks</div>")
 
-A("<h2>Appendix F. Robustness to the offer size, the masking model, and approximate low-rank</h2>")
+A("<h2>Appendix E. Robustness to the offer size, the masking model, and approximate low-rank</h2>")
 A("<p class='small'>Two evaluation choices in the body are robustness knobs rather than load-bearing "
   "assumptions: the offer size and the masking model. We vary each here and find the categorical "
   "separation and the masking-robustness of SwarmCF unchanged.</p>")
@@ -1093,7 +1092,7 @@ A("<figure>%s<figcaption><b>Figure 10.</b> Approximate-low-rank robustness: unse
   "bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
   % img("F27_approxrank.png", "approximate low-rank robustness"))
 
-A("<h2>Appendix G. Sensitivity to the trait distribution</h2>")
+A("<h2>Appendix F. Sensitivity to the trait distribution</h2>")
 A("<p class='small'>The body draws latent traits i.i.d. on the unit sphere with no discrete types "
   "(uniform_cosine). To check the categorical separation is a property of shared low-rank structure "
   "rather than of that particular distribution, we re-run the masked bake-off (the Table 2 harness, "
@@ -1101,7 +1100,7 @@ A("<p class='small'>The body draws latent traits i.i.d. on the unit sphere with 
   "<b>block</b> (discrete latent types, the regime most favorable to clustering), <b>uniform</b> (the "
   "body's no-types headline), and <b>approximate low-rank</b> (continuous traits perturbed off the "
   "rank-$d$ subspace, $\\varepsilon=0.5$, so about 80% of the reward energy is low-rank; the full "
-  "$\\varepsilon$-sweep is Appendix F). This is also where we evaluate the two further structure-sharing "
+  "$\\varepsilon$-sweep is Appendix E). This is also where we evaluate the two further structure-sharing "
   "baselines noted in Section 6, memory-based <b>kNN-CF</b> and convex nuclear-norm completion "
   "<b>SoftImpute</b>. Table 4 reports held-out unseen-pair skill.</p>")
 A("<p class='small'><b>Table 4.</b> Unseen-pair skill by trait distribution (masked harness, "
@@ -1132,7 +1131,7 @@ A("<p class='small'>Three things hold across all three distributions. <i>(i)</i>
   "quantitative form of the Section 6.4 observation that continuous low-rank's advantage over hard "
   "clustering widens as discrete types disappear. Under approximate low-rank every method degrades "
   "gracefully and SwarmCF stays about three times CLUB, consistent with the $\\varepsilon$-sweep of "
-  "Appendix F. The separation is therefore a property of exploiting shared low-rank structure, not an "
+  "Appendix E. The separation is therefore a property of exploiting shared low-rank structure, not an "
   "artifact of the uniform trait distribution.</p>")
 A("</div></body></html>")
 html_str = renumber_refs("\n".join(H))
