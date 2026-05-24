@@ -418,7 +418,11 @@ A("<div class='thm'><b>Theorem 1 (anytime separation under task scarcity).</b> O
   "window $\\omega(nd/\\rho m\\,\\log n)=T=o(n/c)$) the separation is categorical: structure-free anytime "
   "skill $\\to 0$ while SwarmCF stays $\\Omega(1)$.</div>")
 A("<p>Proposition 1, Lemma 1, and Theorem 1 make the separation categorical (zero versus nonzero) and "
-  "operational (it shows up in reward earned while learning), but Lemma 1 assumes $U$ is known. The "
+  "operational (it shows up in reward earned while learning). The zero side is <b>by construction</b>: a "
+  "structure-free learner is <i>defined</i> to fall back on the prior off its own engagements, so its "
+  "floor on unseen pairs characterizes that class (independent per-task bandits, tabular value tables) "
+  "rather than reflecting a contest; the weight of the claim rests on the nonzero side, that SwarmCF can "
+  "in fact recover and act, which is not automatic. Since Lemma 1 still assumes $U$ is known, the "
   "remaining question, the central problem "
   "of the decentralized setting, is whether each robot can <b>recover</b> the shared structure from its "
   "own privately-masked, noisy stream. Because the mask is over robot pairs, robot $i$'s observations form "
