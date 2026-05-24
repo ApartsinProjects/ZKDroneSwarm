@@ -43,6 +43,9 @@ table{border-collapse:collapse;width:100%;margin:12px 0;font-size:12.5px;font-fa
 th,td{border:1px solid #e2e8ee;padding:5px 8px;text-align:center}th{background:#f5f8fb}td.l,th.l{text-align:left}
 .small{font-size:13px;color:#5b6570}a{color:#1f5fa8}
 ol.contrib>li{margin:4px 0}
+.docxlink{position:fixed;top:10px;right:12px;z-index:50;background:#1f5fa8;color:#fff;text-decoration:none;font:600 12px/1.2 -apple-system,Segoe UI,Roboto,sans-serif;padding:7px 11px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.docxlink:hover{background:#17487f}
+@media print{.docxlink{display:none}}
 """
 
 KATEX = ("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'>"
@@ -58,6 +61,7 @@ A("<!doctype html><html lang='en'><head><meta charset='utf-8'>"
   "<title>Acting on the Unseen</title>%s<style>%s</style></head><body><div class='wrap'>" % (KATEX, CSS))
 
 # ---------------- title / meta ----------------
+A("<a class='docxlink' href='ras_paper.docx'>Download .docx</a>")
 A("<h1>Acting on the Unseen: Communication-Free Collaborative Filtering for Decentralized "
   "Multi-Robot Task Allocation</h1>")
 A("<p class='sub'>Author One<sup>a,&lowast;</sup>, Author Two<sup>a</sup><br>"
@@ -696,5 +700,8 @@ A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robot
   "fairness; the choices are conservative for our claims (generous to baselines).</p>")
 
 A("</div></body></html>")
-open(OUT, "w", encoding="utf-8").write("\n".join(H))
-print("wrote", OUT, "(%d KB)" % (len(("\n".join(H)).encode("utf-8")) // 1024))
+html_str = "\n".join(H)
+open(OUT, "w", encoding="utf-8").write(html_str)
+# Publish the same paper as the GitHub Pages landing page.
+open(os.path.join(ROOT, "docs", "index.html"), "w", encoding="utf-8").write(html_str)
+print("wrote", OUT, "and docs/index.html (%d KB)" % (len(html_str.encode("utf-8")) // 1024))

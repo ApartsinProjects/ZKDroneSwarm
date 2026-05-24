@@ -571,3 +571,12 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   negative; fixed two missing-space merges. Verified: cross-references (Figs 1-6, Tables 1-3,
   Prop 1 + Thms 1-4, Appendices A-D) all resolve; 48 refs all cited. Committed rounds 21-23,
   pushed. Reviewer recommendation: accept.
+- Cycle 68 (publish: GitHub Pages index + Word export): fixed Table 2's guessed-rank symbol
+  (combining circumflex "d&#770;" rendered poorly in the sans-serif table; switched to KaTeX
+  "$\hat d$"). make_ras_paper.py now also writes docs/index.html, so the RAS paper is the
+  GitHub Pages landing page (Pages serves main:/docs at apartsinprojects.github.io/ZKDroneSwarm/;
+  the old "Zero-Knowledge MRTA" index was replaced). Exported a Microsoft Word version via the
+  html2doc skill (KaTeX -> MathML -> OMML -> academic styling): docs/ras_paper.docx, 273 native
+  editable Word equations, figures embedded, Tables full-width. Added a fixed top-right
+  "Download .docx" link in the HTML/index (hidden in print; the docx was generated before the
+  link so it stays clean). Committed + pushed.

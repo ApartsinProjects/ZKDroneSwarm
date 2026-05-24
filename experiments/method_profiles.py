@@ -31,7 +31,7 @@ OBS = {"full": "full (every engagement, noiseless)", "fullsig": "full but noisy 
        "rho,sig": "masked + noisy (fraction &rho;, per-observer noise &sigma;)",
        "self": "self-only (isolated)", "-": "n/a"}
 SHORT = {"rho,sig": "&rho;&sigma;", "rho": "&rho;", "full": "full", "fullsig": "full&sigma;", "self": "self", "-": "&ndash;",
-         "dhat": "d&#770;", "ard": "ARD", "none": "&ndash;", "d": "d", "U*": "U*", "0": "0", "B": "B",
+         "dhat": "$\\hat d$", "ard": "ARD", "none": "&ndash;", "d": "d", "U*": "U*", "0": "0", "B": "B",
          "online": "online", "batch": "batch", "ETC": "ETC", "memory": "mem"}
 PROV = {"ours": "ours", "ours-hybrid": "ours (hybrid)", "standard": "standard, adapted",
         "structfree": "structure-free baseline", "reference": "reference (upper bound)"}
@@ -142,7 +142,7 @@ def _legend_html():
     return ("<p class='small'><b>Column key.</b> <b>Observability:</b> full = every engagement seen "
             "noiselessly; &rho; = a fraction &rho; of engagements seen (masked); &rho;&sigma; = masked and "
             "read with per-observer noise; full&sigma; = unmasked but noisy; self = own outcomes only. "
-            "<b>Prior:</b> &ndash; = none; d&#770; = a guessed rank; d = the true rank; U* = oracle "
+            "<b>Prior:</b> &ndash; = none; $\\hat d$ = a guessed rank; d = the true rank; U* = oracle "
             "factors. <b>Computation:</b> ETC = explore-then-commit. In our harness every method runs "
             "decentralized and communication-free (one estimator per robot on the passive broadcast); the "
             "low-rank methods differ only in the update rule, so the comparison is controlled. "
