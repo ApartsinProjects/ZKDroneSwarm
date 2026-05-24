@@ -883,4 +883,136 @@ if f:
     fig.tight_layout(); save_fig("F27_approxrank")
     print("F27_approxrank  <-", os.path.basename(f))
 
+# ============================================================================================
+# MERGED figures for the compacted paper (optimization branch): one figure number per topic.
+# These reuse the same JSON sources as F13/F23 and F22/F8; the standalone blocks above are left
+# intact (their PNGs are simply not embedded by the compacted paper).
+# ============================================================================================
+
+# ---- F13F23_contention: MERGED capacity-1 contention figure (was Fig 5 + Fig 6) ----
+# 2x2: (a) earned skill, (b) unseen-pair skill, (c) earned-vs-collision frontier, (d) collision by menu.
+_f13 = "results/pilots/latentswarm_main.json"
+_f23 = latest("results/pilots/latentswarm_contention_*.json")
+if os.path.exists(_f13) and _f23:
+    _d13 = json.load(open(_f13)); _esk = _d13["earned"]; _usk = _d13["unseen"]
+    _order = ["random", "ucb_indep", "mf_sgd", "bias_model", "club", "knn_cf", "soft_impute", "swarm_cf", "oracle"]
+    _lab = {"random": "Random", "ucb_indep": "Independent-UCB", "mf_sgd": "MF-SGD",
+            "bias_model": "BiasModel", "club": "CLUB", "knn_cf": "kNN-CF", "soft_impute": "SoftImpute",
+            "swarm_cf": "SwarmCF (ours)", "oracle": "Oracle"}
+    _col = {"random": "gray", "ucb_indep": "C4", "mf_sgd": "C3", "bias_model": "C5",
+            "club": "C1", "knn_cf": "C6", "soft_impute": "C8", "swarm_cf": "C2", "oracle": "k"}
+
+    def _boot2(xs, B=5000):
+        a = np.asarray([x for x in xs if x is not None], float)
+        if a.size == 0:
+            return 0.0, 0.0, 0.0
+        if a.size == 1:
+            return float(a[0]), 0.0, 0.0
+        r = np.random.RandomState(0); bs = a[r.randint(0, a.size, (B, a.size))].mean(1)
+        m = float(a.mean())
+        return m, m - float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5)) - m
+
+    _d23 = json.load(open(_f23)); _raw = _d23["raw"]; _offers = _d23["meta"]["offers"]
+    _PRETTY = {"swarm_cf": "SwarmCF", "mf_sgd": "MF-SGD", "club": "CLUB", "knn_cf": "kNN-CF",
+               "soft_impute": "SoftImpute", "ucb_indep": "Independent-UCB", "random": "Random"}
+    _COL = {"swarm_cf": "C0", "mf_sgd": "C1", "club": "C4", "knn_cf": "C6", "soft_impute": "C8",
+            "ucb_indep": "C7", "random": "C3"}
+    _o0 = "0" if 0 in _offers else str(_offers[0])
+    _algos = [a for a in ["swarm_cf", "mf_sgd", "club", "knn_cf", "soft_impute", "ucb_indep", "random"] if a in _raw[_o0]]
+
+    fig, ax = plt.subplots(2, 2, figsize=(11, 8))
+    for axi, (data, ttl, ylab) in enumerate([
+            (_esk, "(a) Earned (anytime) skill", "skill = (policy - random)/(oracle - random)"),
+            (_usk, "(b) Unseen-pair skill (generalization)", "unseen-pair skill (oracle=1, random=0)")]):
+        present = [p for p in _order if p in data and data[p]]
+        mu = []; lo = []; hi = []
+        for p in present:
+            m, l, h = _boot2(data[p]); mu.append(m); lo.append(l); hi.append(h)
+        ax[0, axi].bar(range(len(present)), mu, yerr=[lo, hi], capsize=4, color=[_col[p] for p in present])
+        ax[0, axi].set_xticks(range(len(present)))
+        ax[0, axi].set_xticklabels([_lab[p] for p in present], rotation=20, ha="right", fontsize=8)
+        ax[0, axi].axhline(0, color="k", lw=0.6); ax[0, axi].set_ylabel(ylab, fontsize=8.5)
+        ax[0, axi].set_title(ttl, fontsize=10); ax[0, axi].grid(alpha=0.25, axis="y")
+    for a in _algos:
+        e = np.mean(_raw[_o0][a]["earned"]); c = np.mean(_raw[_o0][a]["coll"])
+        ax[1, 0].scatter([c], [e], s=95, color=_COL[a], edgecolor="black", zorder=3)
+        ax[1, 0].annotate(_PRETTY[a], (c, e), textcoords="offset points", xytext=(6, 5), fontsize=8.5)
+    ax[1, 0].axhline(0, color="black", lw=0.8, ls=":")
+    ax[1, 0].set_xlabel("collision rate (fraction of robots colliding per round)")
+    ax[1, 0].set_ylabel("earned (anytime) skill")
+    ax[1, 0].set_title("(c) All-tasks menu, capacity-1: structure-free UCB collides\n"
+                       "almost always and earns ~0; SwarmCF and CLUB collide rarely", fontsize=9)
+    ax[1, 0].grid(alpha=0.25)
+    _x = np.arange(len(_algos)); _w = 0.38
+    for k, o in enumerate(_offers):
+        vals = [np.mean(_raw[str(o)][a]["coll"]) for a in _algos]
+        labo = "all tasks ($c=n$)" if o == 0 else ("size-$c$ menu ($c=%d$)" % o)
+        ax[1, 1].bar(_x + (k - 0.5) * _w, vals, _w, label=labo, alpha=0.92,
+                     color=("#444444" if o == 0 else "#9ecae1"), edgecolor="black")
+    ax[1, 1].set_xticks(_x); ax[1, 1].set_xticklabels([_PRETTY[a] for a in _algos], rotation=20, ha="right", fontsize=8)
+    ax[1, 1].set_ylabel("collision rate"); ax[1, 1].set_ylim(0, 1)
+    ax[1, 1].set_title("(d) Restricting the menu reduces collisions", fontsize=9)
+    ax[1, 1].legend(fontsize=8); ax[1, 1].grid(alpha=0.2, axis="y")
+    fig.tight_layout(); save_fig("F13F23_contention")
+    print("F13F23_contention  <- latentswarm_main.json + contention (merged Fig 5)")
+
+# ---- F22F8_robustness: MERGED appendix robustness figure (was Fig 9 + Fig 10) ----
+# top row offer size (a,b); bottom row masking model (c,d,e).
+_cx2 = _by_cand("results/pilots/c15_crossover_*.json")
+_an2 = _by_cand("results/pilots/c16_anytime_*.json")
+_cn2 = max(_cx2) if _cx2 else None
+_fe2 = latest("results/pilots/e12_iid_masking_*.json")
+if _cn2 is not None and 20 in _cx2 and _cn2 != 20 and _fe2:
+    dn = json.load(open(_cx2[_cn2])); d20 = json.load(open(_cx2[20])); rhos = dn["meta"]["rhos"]
+    de = json.load(open(_fe2)); A = de["rawA"]; B = de["rawB"]; erhos = de["meta"]["rhos"]; Tgrid = de["meta"]["Tgrid"]
+
+    def _ser2(dd, nm):
+        return [np.mean(dd["raw"][str(r)][nm]["unseen"]) for r in rhos]
+    fig = plt.figure(figsize=(13, 8))
+    gs = fig.add_gridspec(2, 6)
+    axA0 = fig.add_subplot(gs[0, 0:3]); axA1 = fig.add_subplot(gs[0, 3:6])
+    axB0 = fig.add_subplot(gs[1, 0:2]); axB1 = fig.add_subplot(gs[1, 2:4]); axB2 = fig.add_subplot(gs[1, 4:6])
+    axA0.plot(rhos, _ser2(d20, "RewardCF"), marker="o", color="C0", lw=2.4, label="SwarmCF, $c=20$ (body)")
+    axA0.plot(rhos, _ser2(dn, "RewardCF"), marker="s", color="C0", lw=2.0, ls="--", label="SwarmCF, $c=n$")
+    axA0.plot(rhos, _ser2(d20, "PTF"), marker="^", color="C3", lw=2.0, label="batch completion, $c=20$")
+    axA0.plot(rhos, _ser2(dn, "PTF"), marker="v", color="C3", lw=1.8, ls="--", label="batch completion, $c=n$")
+    if "CLUB" in d20["raw"][str(rhos[0])]:
+        axA0.plot(rhos, _ser2(d20, "CLUB"), marker="D", color="C1", lw=1.6, label="CLUB, $c=20$")
+    axA0.plot(rhos, _ser2(d20, "UCBIndep"), marker="x", color="gray", lw=1.2, ls=":", label="structure-free floor")
+    axA0.axhline(0, color="black", lw=0.8, ls=":"); axA0.invert_xaxis()
+    axA0.set_xlabel("broadcast rate  $\\rho$"); axA0.set_ylabel("UNSEEN-pair skill")
+    axA0.set_title("(a) Categorical separation is offer-size invariant;\nSwarmCF's lead over batch narrows at $c=n$", fontsize=9)
+    axA0.legend(fontsize=6.5, loc="upper right")
+    if _an2 and _cn2 in _an2 and 20 in _an2:
+        an_n = json.load(open(_an2[max(_an2)])); an_20 = json.load(open(_an2[20]))
+        Tn = an_20["meta"]["T"]; rounds = np.arange(1, Tn + 1)
+        def _traj2(dd, nm):
+            rk = "0.25" if "0.25" in dd["raw"] else list(dd["raw"].keys())[-1]
+            return np.array(dd["raw"][rk][nm]).mean(0)
+        axA1.plot(rounds, _traj2(an_20, "RewardCF"), color="C0", lw=2.4, label="SwarmCF, $c=20$")
+        axA1.plot(rounds, _traj2(an_n, "RewardCF"), color="C0", lw=2.0, ls="--", label="SwarmCF, $c=n$")
+        axA1.plot(rounds, _traj2(an_20, "Tabular"), color="C2", lw=2.0, label="Tabular, $c=20$")
+        axA1.plot(rounds, _traj2(an_n, "Tabular"), color="C2", lw=1.6, ls="--", label="Tabular, $c=n$ (re-exploits)")
+        axA1.axhline(0, color="black", lw=0.8, ls=":")
+        axA1.set_xlabel("round  $t$"); axA1.set_ylabel("cumulative-normalized skill")
+        axA1.set_title("(b) Anytime ($\\rho=0.25$): tabular re-exploits under $c=n$", fontsize=9)
+        axA1.legend(fontsize=6.5, loc="upper left")
+    for axi, metric, ttl in [(axB0, "unseen", "(c) Unseen skill: persistent vs iid"),
+                             (axB1, "anytime", "(d) Anytime skill: persistent vs iid")]:
+        for nm, color in [("RewardCF", "C0"), ("CLUB", "C1"), ("PTF", "C3")]:
+            for mode, ls, mk in [("persistent", "-", "o"), ("iid", "--", "x")]:
+                if nm in A[mode][str(erhos[0])]:
+                    mu = [np.mean(A[mode][str(r)][nm][metric]) for r in erhos]
+                    axi.plot(erhos, mu, ls=ls, marker=mk, color=color, markersize=4, label="%s %s" % (nm, mode[:4]))
+        axi.invert_xaxis(); axi.set_xlabel("$\\rho$"); axi.grid(alpha=0.25); axi.set_title(ttl, fontsize=9)
+    axB0.set_ylabel("skill"); axB0.legend(fontsize=6, loc="lower left")
+    for mode, ls, mk, color in [("persistent", "-", "o", "C0"), ("iid", "--", "x", "C3")]:
+        mu = [np.nanmean(B[mode][str(T)]["uniq"]) for T in Tgrid]
+        axB2.plot(Tgrid, mu, ls=ls, marker=mk, color=color, label="%s" % mode)
+    axB2.set_xlabel("horizon T"); axB2.set_ylabel("state-uniqueness"); axB2.grid(alpha=0.25)
+    axB2.set_title("(e) Decentralization durability\n(persistent durable, iid transient)", fontsize=9)
+    axB2.legend(fontsize=8)
+    fig.tight_layout(); save_fig("F22F8_robustness")
+    print("F22F8_robustness  <- offer-size + masking (merged Fig 8)")
+
 print("figures written to", OUT)
