@@ -580,3 +580,11 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   editable Word equations, figures embedded, Tables full-width. Added a fixed top-right
   "Download .docx" link in the HTML/index (hidden in print; the docx was generated before the
   link so it stays clean). Committed + pushed.
+- Cycle 69 (onboarding semantics fix): the fold-in O(d-hat) onboarding claim was conflating new
+  TASKS with new ROBOTS. A new task folds in instantly because the swarm already holds the
+  robot-factor basis; a new robot has NO memory and, with no communication, cannot be handed the
+  basis, so it must first recover the task factors from the passive broadcast (Theorem 3 coverage
+  time) and only then fold in -- bounded by recovery, not O(d-hat). Renamed Section 4 to
+  "New-task onboarding (fold-in)", added the honest new-robot caveat, and dropped "and robots"
+  from the abstract/contribution fold-in claim (team-growth benefit stays under Theorem 4 /
+  positive scaling). Rebuilt docs/ras_paper.docx from a link-stripped copy. Committed + pushed.
