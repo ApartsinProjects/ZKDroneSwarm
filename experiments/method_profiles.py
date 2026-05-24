@@ -273,7 +273,7 @@ def html_scorecard(root):
             "time-to-competence are means from the anytime trajectories. SwarmCF leads the operational "
             "columns (lowest regret, fastest to competence) and is the most masking-robust; on masked "
             "unseen skill its margin over the batch variant SwarmCF-batch is within the 16-seed interval, "
-            "and SwarmCF-batch wins only the full-broadcast column. Structure-free learners are at the "
+            "and the batch and clustering baselines win only the full-broadcast column. Structure-free learners are at the "
             "floor on the unseen columns (intervals straddling zero); on the operational columns an "
             "&epsilon;-greedy tabular learner is competitive by re-exploiting already-engaged tasks, so "
             "the categorical separation is specifically an unseen-pair (generalization) phenomenon.</p>")
