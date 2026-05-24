@@ -117,7 +117,7 @@ PARADIGMS = [
     ("Trait-based MRTA [5,25]", "known traits", "varies",
      "decentralized", "full", "traits given, not learned"),
     ("Ours: ZK-MRTA (this paper)", "low-rank, guessed rank only", "none (passive sensing)",
-     "decentralized", "masked + per-observer noisy", "none: the open cell (hardest)"),
+     "decentralized", "masked + per-observer noisy", "none: the open cell (most constrained)"),
 ]
 
 # ---- TABLE C: our methods by mechanism ----

@@ -5,7 +5,7 @@ the strongest empirical evidence; advanced machinery is deferred to "future work
 
 Output: docs/ras_paper.html. Run from REPO ROOT (reads docs/figures/*.png, imports method_profiles).
 """
-import base64, os, sys
+import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import method_profiles as mp
 
@@ -15,12 +15,14 @@ OUT = os.path.join(ROOT, "docs", "ras_paper.html")
 
 
 def img(name, alt, w="90%"):
+    # External PNG reference (GitHub Pages serves docs/figures/ alongside the HTML),
+    # not a base64 data URI: keeps the page ~20x smaller and the prose diffs readable.
+    # The build-time existence check is retained so missing figures still surface.
     p = os.path.join(FIG, name)
     if not os.path.exists(p):
         return "<p><em>[missing %s]</em></p>" % name
-    b = base64.b64encode(open(p, "rb").read()).decode("ascii")
-    return ('<img alt="%s" src="data:image/png;base64,%s" style="max-width:%s;height:auto;'
-            'border:1px solid #d7dde3;border-radius:6px">' % (alt, b, w))
+    return ('<img alt="%s" src="figures/%s" loading="lazy" style="max-width:%s;height:auto;'
+            'border:1px solid #d7dde3;border-radius:6px">' % (alt, name, w))
 
 
 CSS = """
@@ -106,10 +108,6 @@ A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized 
 
 # ---------------- 1. introduction ----------------
 A("<h2>1. Introduction</h2>")
-A("<div class='box'><b>The setting in brief.</b> No prior knowledge, no communication, and only a "
-  "partial, noisy, privately-sensed view of teammates' outcomes, with every decision made independently. "
-  "Can a swarm still act on tasks it has never attempted? We show that it can, and that the separation "
-  "from structure-free learning is categorical.</div>")
 A("<p>Consider a team of autonomous robots, for example aerial vehicles, that must repeatedly decide which task "
   "to engage: which area to inspect, which target to service, which sensor reading to pursue. Whether a "
   "given robot does well on a given task depends on a match between the robot's <b>capabilities</b> "
@@ -158,7 +156,7 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "the guessed rank $\\hat d$, independent of the task count $n$; Section 4) that lets it act on unseen "
   "tasks and onboard new tasks.</li>"
   "<li>We prove the advantage is <b>categorical</b>: a structure-free learner is at the error floor on "
-  "unseen pairs and the broadcast is provably useless to it, whereas SwarmCF attains a per-robot sample "
+  "unseen pairs and the broadcast is provably uninformative to it, whereas SwarmCF attains a per-robot sample "
   "complexity of $\\Theta(d)$ versus $\\Theta(n)$, with a matching <b>anytime</b> separation under task "
   "scarcity (Section 5).</li>"
   "<li>We give a <b>deterministic condition</b> under which decentralized recovery of the shared "
@@ -237,22 +235,25 @@ A("<p><b>Reward.</b> A team of $m$ robots faces $n$ tasks. Robot $i$ has a hidde
   "traits so that $R_{ij}$ is bounded and zero-mean across tasks; this is the bounded, normalized reward "
   "referenced by Proposition 1.</p>")
 A("<p><b>Interaction.</b> Each round $t=1,\\dots,T$ every robot $i$ is offered a menu "
-  "$S_{it}\\subseteq[n]$ of tasks (by default all $n$ tasks; optionally a uniform random size-$c$ subset, "
-  "a scarcity knob), selects one $a_{it}\\in S_{it}$, engages it, and earns $R_{i,a_{it}}$. The operating "
+  "$S_{it}\\subseteq[n]$ of tasks (the model permits the full menu of all $n$ tasks; to control scarcity "
+  "the body experiments offer a uniform random size-$c$ subset, $c=20$, with the all-tasks menu $c=n$ "
+  "studied in Appendix F), selects one $a_{it}\\in S_{it}$, engages it, and earns $R_{i,a_{it}}$. The operating "
   "regime is <b>task-scarce</b>: $n \\gg T$, so each robot personally engages only $O(T)$ of the $n$ "
   "tasks.</p>")
-A("<div class='box'><b>The observation channel (central to the setting).</b> There is no communication. "
+A("<p><b>The observation channel (central to the setting).</b> There is no communication. "
   "Each robot instead <b>passively senses</b> a public stream of engagement outcomes, but only partially "
   "and noisily, and <b>privately</b>: <b>(persistent partial visibility)</b> robot $i$ observes "
   "teammate $k$'s engagements only if $M_{ik}=1$, where $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ is fixed "
   "for the whole mission ($M_{ii}=1$); <b>(private per-observer noise)</b> when $i$ observes the outcome "
   "of action $a_{kt}$ it reads $R_{k,a_{kt}}+\\eta_{ikt}$ with $\\eta_{ikt}\\sim\\mathcal N(0,\\sigma^2)$ "
-  "drawn independently per observer, so the same action is read differently by different robots. No robot "
-  "ever sees the clean stream, and no two robots see the same stream. We take this <b>persistent</b> mask "
-  "as the primary case: an i.i.d., per-round mask reduces to standard uniform sampling, so the persistent "
-  "(structured) mask is the harder regime where our recovery condition (Theorem 3) applies; the released "
-  "suite supports both, and Appendix F confirms the headline results are unchanged under the i.i.d. "
-  "mask.</div>")
+  "drawn independently per observer, so the same action is read differently by different robots. A robot "
+  "reads its own engaged outcome with a smaller own-observation noise $\\sigma_{\\mathrm{own}}<\\sigma$ "
+  "(Section 6 uses $\\sigma_{\\mathrm{own}}=0.1$ and broadcast noise $\\sigma=\\sigma_{\\mathrm{obs}}=0.3$). "
+  "No robot ever sees the clean stream, and no two robots see the same stream. We take this "
+  "<b>persistent</b> mask as the primary case: an i.i.d., per-round mask reduces to standard uniform "
+  "sampling, so the persistent (structured) mask is the harder regime where our recovery condition "
+  "(Theorem 3) applies; the released suite supports both, and Appendix F confirms the headline results "
+  "are unchanged under the i.i.d. mask.</p>")
 A("<p>This channel is the formal counterpart of physical sensing: a robot perceives a teammate's "
   "engagement and its outcome only when the teammate is within range (the persistent partial mask) and "
   "reads it with a fidelity that degrades with distance and with its own sensor (the per-observer noise), "
@@ -337,7 +338,7 @@ A("<div class='thm'><b>Proposition 1 (structure-free floor).</b> For a structure
   "$j$ that robot $i$ never engaged, the estimate is the prior constant, so its expected unseen-pair "
   "skill is exactly $0$ and its squared error is at least the row variance $\\Omega(1)$ (under the bounded, "
   "normalized reward of Section 3). Moreover the "
-  "broadcast is provably useless to it: its per-task estimate is by definition not a function of any "
+  "broadcast is provably uninformative to it: its per-task estimate is by definition not a function of any "
   "other task or robot.</div>")
 A("<div class='thm'><b>Theorem 1 (CF row completion, $\\Theta(d)$ versus $\\Theta(n)$).</b> If the task "
   "factors $U$ are known (rank $d$) and robot $i$ observes its true rewards on any set $\\Omega$ with "
@@ -437,7 +438,8 @@ A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. 
 A("<figure>%s<figcaption><b>Figure 2.</b> Unseen-pair skill versus broadcast rate $\\rho$. Structure-"
   "free learners are pinned at the floor at every broadcast rate; SwarmCF acts on the "
   "unseen throughout and is robust under masking, while the batch variant SwarmCF-batch decays as observation "
-  "becomes partial.</figcaption></figure>" % img("F5_crossover.png", "categorical + masking"))
+  "becomes partial. Means with bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
+  % img("F5_crossover.png", "categorical + masking"))
 
 A("<h3>6.2 The operational (anytime) separation</h3>")
 A("<p>Final-policy quality can overstate a method that explores cheaply. The operationally relevant measure "
@@ -451,7 +453,8 @@ A("<p>Final-policy quality can overstate a method that explores cheaply. The ope
 A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill ($\\rho=0.25$). SwarmCF earns "
   "from round one; explore-then-commit pays a probe phase; Independent-UCB stays near the random floor, while "
   "$\\varepsilon$-greedy tabular earns only by re-exploiting tasks it has already "
-  "engaged.</figcaption></figure>" % img("F6_anytime.png", "anytime"))
+  "engaged. Means with bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
+  % img("F6_anytime.png", "anytime"))
 
 A("<h3>6.3 Why a swarm: the value of the broadcast and a positive scaling law</h3>")
 A("<p>Two experiments isolate what the team and the broadcast contribute (Figure 4). "
@@ -473,7 +476,8 @@ A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen ski
   "(left edge $=$ isolated). (b) Positive scaling: unseen skill versus team size $m$ at fixed broadcast "
   "rate $\\rho=0.5$ (and fixed $n$, horizon $T$). In both panels our online SwarmCF and its batch variant "
   "SwarmCF-batch rise (the gain is structural), while structure-free learners stay "
-  "flat.</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
+  "flat. Means with bootstrap 95%% CIs over 8 seeds.</figcaption></figure>"
+  % img("F18_collab_scaling.png", "why a swarm"))
 
 A("<h3>6.4 The cost of communication-free operation: a centralized ceiling</h3>")
 A("<p>Table 3 consolidates the masked-harness comparison across all methods. Here we ask how far "
@@ -610,9 +614,9 @@ A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and sta
   "when there is no exploitable structure. Rewards are real-valued and bilinear in latent traits; and the "
   "recovery rate of Theorem 3 is established for non-adaptive "
   "exploration, the finite-time rate under a strongly exploiting policy (which can starve low-reward "
-  "tasks of coverage) remains open. We state the regime boundaries: the advantage requires "
-  "structure beyond mere popularity ($d>1$), task scarcity ($n\\gg T$), and a shared channel "
-  "($\\rho>0$); outside these, structure-free methods are competitive.</p>")
+  "tasks of coverage) remains open. The scope conditions for the advantage (low-rank but personalized "
+  "structure, task scarcity, and a shared channel) are stated precisely in the scope box of Section 6.7; "
+  "outside them, structure-free methods are competitive.</p>")
 A("<p><b>Future work (a planned follow-up).</b> The present paper deliberately keeps to a single core "
   "estimator. In a follow-up we plan to study the refinements that this foundation enables, each of "
   "which we have prototyped: <i>(i)</i> confidence-directed exploration via a Bayesian posterior over the "

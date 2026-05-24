@@ -958,3 +958,23 @@ full-communication ceiling 0.52 and the noiseless matcher 0.55, ~84%), and updat
 ~80% to 42%" in 6.5 to ~84%. Verified in the rebuilt HTML: SoftImpute count 0, no stale "about 80%" or "made
 precise", g-definition LaTeX well-formed (balanced), both notes present. Word .docx not rebuilt; ras_paper2
 untouched.
+
+## Cycle 91 (external PNG figures + callout-box processing + minor review points; HTML only)
+Three groups of changes, all in the generator. (1) Figures: switched the make_ras_paper.py img() helper from
+inline base64 data URIs to external references (src="figures/NAME.png", loading="lazy"); the build-time
+existence check is retained and the base64 import dropped. docs/ras_paper.html and docs/index.html fell from
+~1683 KB to 83 KB (~20x), and prose diffs are now readable instead of being buried under megabyte image
+blobs. GitHub Pages serves docs/figures/ alongside the HTML, so the relative refs resolve; all 12 referenced
+PNGs are git-tracked. (2) Callout boxes, per the reviewer recommendation: cut box #1 ("The setting in brief",
+redundant with the abstract and highlights), de-boxed box #2 ("The observation channel") into normal body
+text (it is a core definition, not a sidebar), and kept box #3 (the Section 6.7 scope box) once while removing
+its verbatim duplicate from Section 7 (now a pointer to the box). The Highlights, theorem, and algorithm
+environments are standard and were left as-is; only the scope callout remains as a box. (3) Minor / line-level
+review points: defined sigma_own in the Section 3 model (own-observation noise sigma_own < sigma, with the
+Section 6 values), removed the "default" offer-size ambiguity (the model permits all n; the body uses c=20,
+Appendix F studies c=n), added seed counts to the Figure 2 / 3 / 4 captions (16 / 16 / 8), softened "provably
+useless" -> "provably uninformative" (x2), and changed Table 1's "the open cell (hardest)" -> "(most
+constrained)". Not done: demoting Theorem 1 to a Lemma (a "consider" item; it would cascade a renumber, was
+already weighed in the Cycle-80 theorem audit, and the theorem already carries a "standard given U" remark),
+and trimming the abstract (it is ~230 words, within the RAS 250-word limit). Word .docx not rebuilt
+(HTML phase); follow-up paper ras_paper2 untouched.
