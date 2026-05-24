@@ -245,7 +245,8 @@ A("<p><b>Objective and metric.</b> We measure decision quality by the normalized
   "(a Murphy skill score [17] / normalized return),"
   "$$ \\mathrm{skill} \\;=\\; \\frac{\\text{earned} - \\text{random}}{\\text{oracle} - \\text{random}}, $$"
   "where for an offered set the <i>oracle</i> picks $\\arg\\max_{j\\in S}R_{ij}$ and <i>random</i> picks "
-  "uniformly; skill $=0$ is the no-information floor and $1$ is omniscient. We report <b>unseen-pair "
+  "uniformly; skill $=0$ is the no-information floor and $1$ is omniscient (a policy worse than random "
+  "scores below $0$). We report <b>unseen-pair "
   "skill</b> (restricted to tasks the robot never engaged, the generalization test), and the "
   "<b>anytime</b> (cumulative-reward) skill over the mission.</p>")
 
@@ -313,7 +314,8 @@ A("<div class='thm'><b>Theorem 1 (CF row completion, $\\Theta(d)$ versus $\\Thet
   "complexity is therefore $\\Theta(d)$, versus $\\Theta(n)$ for any structure-free learner.</div>")
 A("<div class='thm'><b>Theorem 2 (anytime separation under task scarcity).</b> With $n$ tasks, offers of "
   "size $c$ and horizon $T$, any structure-free learner has anytime (cumulative-reward) skill at most "
-  "$g(cT/n)\\to 0$ when $cT=o(n)$, even with a full broadcast; once the shared basis is available "
+  "$g(cT/n)$, where $g$ is increasing with $g(0)=0$ so the bound vanishes when $cT=o(n)$, even with a "
+  "full broadcast; once the shared basis is available "
   "(Theorem 1, recovered per Theorem 3) SwarmCF reaches near-oracle in $O(d)$ further rounds and earns "
   "$\\Theta(1)$ anytime skill, a categorical gap.</div>")
 A("<p>Proposition 1 and Theorems 1-2 make the separation categorical (zero versus nonzero) and "
@@ -426,12 +428,13 @@ A("<p>Framed as a target-servicing / dispatch mission, latent factors are robot 
   "$\\approx 0.35$ versus the best alternative "
   "$\\approx 0.29$ with non-overlapping intervals, while structure-free learners sit at the random-"
   "dispatch floor (Figure 5). To bound the cost of our constraints we add two reference ceilings (not "
-  "competitors): a centralized full-communication matcher with Hungarian assignment [47], and the same with"
-  "noiseless, unmasked observation. SwarmCF's communication-free de-confliction recovers about 81% of "
-  "the full-communication ceiling when targets are plentiful; the residual gap is the genuine price of "
-  "within-round coordination under contention. Both ceilings sit below the omniscient oracle, and the "
-  "price of observation noise is small, indicating that coordination, not estimation, is the binding "
-  "constraint.</p>")
+  "competitors): a centralized full-communication matcher with Hungarian assignment [47], and the same "
+  "with noiseless, unmasked observation. When targets are plentiful (low contention), SwarmCF recovers "
+  "about 80% of the full-communication ceiling (servicing skill $\\approx 0.44$ versus $\\approx 0.55$); "
+  "the residual gap is the price of within-round coordination under contention, which a communication-free "
+  "de-confliction mechanism (deferred to future work) is designed to close. The two ceilings differ "
+  "little (both $\\approx 0.5$), so the price of observation noise is small: coordination, not estimation, "
+  "is the binding constraint.</p>")
 A("<figure>%s<figcaption><b>Figure 5.</b> Operational target-servicing mission: our online SwarmCF "
   "(blue) versus the other low-rank methods (orange, including our batch variant SwarmCF-batch) versus "
   "structure-free learners (gray). The separation opens under limited observability ($\\rho=0.25$); at "
