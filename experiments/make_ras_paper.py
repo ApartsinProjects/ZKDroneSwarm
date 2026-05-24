@@ -5,7 +5,7 @@ the strongest empirical evidence; advanced machinery is deferred to "future work
 
 Output: docs/ras_paper.html. Run from REPO ROOT (reads docs/figures/*.png, imports method_profiles).
 """
-import os, sys
+import os, sys, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import method_profiles as mp
 
@@ -23,6 +23,49 @@ def img(name, alt, w="90%"):
         return "<p><em>[missing %s]</em></p>" % name
     return ('<img alt="%s" src="figures/%s" loading="lazy" style="max-width:%s;height:auto;'
             'border:1px solid #d7dde3;border-radius:6px">' % (alt, name, w))
+
+
+def renumber_refs(html):
+    """Renumber [n] citations and the reference list into order of first appearance
+    in the text (elsarticle-num convention). Citations are [d] or [d,d,...] with no
+    spaces/decimals (so CI/interval brackets like [0.40, 0.44] or set [n] are not
+    touched). If anything looks off, the original HTML is returned unchanged."""
+    mark = "<h2>References</h2>"
+    if mark not in html:
+        return html
+    i = html.index(mark)
+    head, rest = html[:i], html[i:]
+    om = re.search(r"<ol[^>]*>(.*?)</ol>", rest, re.S)
+    if not om:
+        return html
+    refs = re.findall(r"<li>.*?</li>", om.group(1), re.S)
+    n = len(refs)
+    before_ol, after_ol = rest[:om.start()], rest[om.end():]
+    cite_re = re.compile(r"\[(\d+(?:,\d+)*)\]")
+    order, seen = [], set()
+    for region in (head, after_ol):                 # reading order: body, then appendices
+        for mm in cite_re.finditer(region):
+            for x in mm.group(1).split(","):
+                v = int(x)
+                if 1 <= v <= n and v not in seen:
+                    seen.add(v); order.append(v)
+    for v in range(1, n + 1):                        # uncited refs (if any) keep trailing order
+        if v not in seen:
+            order.append(v)
+    if sorted(order) != list(range(1, n + 1)):
+        print("renumber_refs: skipped (citation/ref mismatch)")
+        return html
+    newmap = {old: new for new, old in enumerate(order, 1)}
+
+    def sub(mm):
+        nums = sorted(newmap[int(x)] for x in mm.group(1).split(","))
+        return "[" + ",".join(map(str, nums)) + "]"
+
+    head2, after2 = cite_re.sub(sub, head), cite_re.sub(sub, after_ol)
+    inv = {new: old for old, new in newmap.items()}
+    ol_open = om.group(0)[:om.group(0).index(">") + 1]
+    new_ol = ol_open + "".join(refs[inv[k] - 1] for k in range(1, n + 1)) + "</ol>"
+    return head2 + before_ol + new_ol + after2
 
 
 CSS = """
@@ -1043,7 +1086,7 @@ A("<figure>%s<figcaption><b>Figure 12.</b> Approximate-low-rank robustness: unse
   "bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
   % img("F27_approxrank.png", "approximate low-rank robustness"))
 A("</div></body></html>")
-html_str = "\n".join(H)
+html_str = renumber_refs("\n".join(H))
 open(OUT, "w", encoding="utf-8").write(html_str)
 # Publish the same paper as the GitHub Pages landing page.
 open(os.path.join(ROOT, "docs", "index.html"), "w", encoding="utf-8").write(html_str)
