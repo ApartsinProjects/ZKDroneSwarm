@@ -106,7 +106,7 @@ def is_reference(name):
 PARADIGMS = [
     ("Auction / consensus / DCOP MRTA [3,4]", "task utilities or costs", "message-passing",
      "decentralized", "full task info", "needs communication and known utilities"),
-    ("Cooperative MARL (CTDE) [14,33]", "none (learned)", "central training or messages",
+    ("Cooperative MARL (CTDE) [14,33]", "none (learned)", "central training or messages (decentralized exec.)",
      "central train, decentral. exec", "full (in training)", "needs a central critic or messages"),
     ("No-communication multiplayer bandits [6,7]", "none (per-arm)", "none",
      "decentralized", "own pulls + collisions", "structure-free: no unseen generalization"),
@@ -116,7 +116,7 @@ PARADIGMS = [
      "decentralized", "partial", "shares parameters, not a passive stream"),
     ("Trait-based MRTA [5,25]", "known traits", "varies",
      "decentralized", "full", "traits given, not learned"),
-    ("Ours: ZK-MRTA (this paper)", "low-rank, guessed rank only", "none (passive sensing)",
+    ("Ours: ZK-MRTA (this paper)", "low-rank, guessed rank only", "none (passive sensing); decentralized",
      "decentralized", "masked + per-observer noisy", "none: the open cell (most constrained)"),
 ]
 
@@ -174,15 +174,15 @@ def html_profiles(subset=None):
 
 def html_paradigms():
     rows = ["<table><tr><th class='l'>Paradigm</th><th class='l'>Prior knowledge</th>"
-            "<th class='l'>Communication</th><th class='l'>Decisions</th>"
+            "<th class='l'>Communication (and decision locus)</th>"
             "<th class='l'>Observation</th><th class='l'>Constraint it relaxes vs. ours</th></tr>"]
-    for para, prior, comm, dist, obs, note in PARADIGMS:
+    for para, prior, comm, _dist, obs, note in PARADIGMS:   # decision locus (_dist) folded into Communication
         ours = para.startswith("Ours")
         cell = ("<b>%s</b>" % para) if ours else para
         tr = "<tr style='background:#eef6ff'>" if ours else "<tr>"
         rows.append(tr + "<td class='l'>%s</td><td class='l'>%s</td><td class='l'>%s</td>"
-                    "<td class='l'>%s</td><td class='l'>%s</td><td class='l'>%s</td></tr>"
-                    % (cell, prior, comm, dist, obs, note))
+                    "<td class='l'>%s</td><td class='l'>%s</td></tr>"
+                    % (cell, prior, comm, obs, note))
     rows.append("</table>")
     return "\n".join(rows)
 

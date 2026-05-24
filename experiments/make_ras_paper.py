@@ -141,8 +141,9 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "the task count $n$), an anytime "
   "(cumulative-reward) separation under task scarcity, and a deterministic condition under which "
   "decentralized recovery from the masked broadcast is exact (validated empirically). Experiments quantify "
-  "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and the "
-  "strongest masking-robustness and anytime profile among low-rank methods, with the advantage over "
+  "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and a "
+  "strong masking-robustness and anytime profile among low-rank methods (the anytime lead holds under the "
+  "body's restricted task menu and narrows under an unrestricted all-tasks menu), with the advantage over "
   "discrete-clustering and batch baselines persisting (and widening) when the latent traits are continuous "
   "rather than type-clustered, and holding under capacity-1 "
   "contention and in a robotics-grounded sensing instance.</div>")
@@ -271,8 +272,8 @@ A("<p>Table 1 places the major paradigms on the four axes that define our proble
   "family relaxes at least one axis we hold fixed, and our cell, low-rank with only a guessed rank, no "
   "communication, decentralized, masked and noisy, is the one left open.</p>")
 A("<p class='small'><b>Table 1.</b> Established paradigms versus our regime across prior knowledge, "
-  "communication, decision locus, and observation; the final column names the constraint each relaxes "
-  "(ours relaxes none).</p>")
+  "communication (with decision locus folded in), and observation; the final column names the constraint "
+  "each relaxes (ours relaxes none).</p>")
 A(mp.html_paradigms())
 
 # ---------------- 3. problem setting ----------------
@@ -629,20 +630,10 @@ A("<p><b>(b) The coordination gap, and how SwarmCF already mitigates it.</b> Bec
   "models send different robots to different tasks, an implicit de-confliction that emerges from the "
   "personalized low-rank estimate with no message passing. Restricting the offer to a size-$c$ menu "
   "reduces collisions for every method (independent-UCB from $0.97$ to $0.25$), one reason the body uses a "
-  "size-$c$ menu.</p>")
-A("<p><b>Coordination versus estimation.</b> To quantify how much of the gap to the centralized ceiling "
-  "is coordination rather than estimation, we add a minimal communication budget as a reference point "
-  "(not part of the communication-free method): each robot announces its intended task each round and "
-  "contention is resolved by sequential greedy assignment over still-unclaimed tasks, at a cost of $O(m)$ "
-  "one-task-id messages per round. This removes SwarmCF's residual collisions (rate $0.135\\to 0$) and "
-  "lifts its earned skill from $0.300$ to $0.385$ of the capacity-1 ceiling, a gain of $+0.085$; the "
-  "dominant remaining gap (to $1.0$) is <b>estimation</b> under the masked, private broadcast, not "
-  "coordination. So for SwarmCF, whose heterogeneous models already de-conflict implicitly, coordination "
-  "is the smaller limiter and estimation the larger, and this $+0.085$ bounds the earned-skill gain that "
-  "any communication-free de-confliction can recover here. Closing this residual collision gap without "
-  "communication is what a follow-up will study, where candidate mechanisms (for example fixed private "
-  "per-robot offsets, or randomized near-best action selection that breaks ties stochastically rather "
-  "than greedily) can be evaluated against the collision baseline measured here.</p>")
+  "size-$c$ menu. How much of the residual gap to the centralized ceiling is coordination versus "
+  "estimation, measured with a minimal communication budget purely as a reference point, is quantified in "
+  "Appendix E; the short answer is that for SwarmCF estimation, not coordination, is the dominant "
+  "limiter.</p>")
 
 A("<h3>6.6 Robustness across configurations</h3>")
 A("<p>The separation is structural rather than tuned: it follows from the three scope conditions of "
@@ -1132,6 +1123,20 @@ A("<p class='small'>Three things hold across all three distributions. <i>(i)</i>
   "gracefully and SwarmCF stays about three times CLUB, consistent with the approximate-low-rank "
   "sweep above. The separation is therefore a property of exploiting shared low-rank structure, not an "
   "artifact of the uniform trait distribution.</p>")
+A("<p class='small'><b>Coordination versus estimation (a partial-communication reference point).</b> "
+  "Section 6.4 attributes the gap to the centralized capacity-1 ceiling to two forces, imperfect "
+  "estimation and within-round coordination. To quantify the split we add a minimal communication budget "
+  "purely as a reference point (it is not part of the communication-free method): each robot announces its "
+  "intended task each round and contention is resolved by sequential greedy assignment over still-unclaimed "
+  "tasks, at a cost of $O(m)$ one-task-id messages per round. This removes SwarmCF's residual collisions "
+  "(rate $0.135\\to 0$) and lifts its earned skill from $0.300$ to $0.385$ of the capacity-1 ceiling, a "
+  "gain of $+0.085$; the dominant remaining gap (to $1.0$) is <b>estimation</b> under the masked, private "
+  "broadcast, not coordination. So for SwarmCF, whose heterogeneous models already de-conflict implicitly, "
+  "coordination is the smaller limiter and estimation the larger, and this $+0.085$ bounds the earned-skill "
+  "gain that any communication-free de-confliction can recover here. Closing this residual collision gap "
+  "without communication is a follow-up direction, where candidate mechanisms (fixed private per-robot "
+  "offsets, or randomized near-best action selection that breaks ties stochastically rather than greedily) "
+  "can be evaluated against the collision baseline measured here.</p>")
 A("</div></body></html>")
 html_str = renumber_refs("\n".join(H))
 open(OUT, "w", encoding="utf-8").write(html_str)
