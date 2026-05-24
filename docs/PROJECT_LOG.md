@@ -1002,3 +1002,22 @@ headings 6.1-6.8 in order, CRediT present with all three authors, cross-referenc
 count 6, no stale "convex completion". HTML ~84 KB (external PNGs). Deferred (cosmetic/optional): one-term
 standardization of the "privately-*" adjective, and adding an earned-skill/percent-of-ceiling column to
 Table 3. Word .docx not rebuilt; ras_paper2 untouched.
+
+## Cycle 93 (close the last two review points + CRediT role correction; HTML only)
+Cleared the two deferred round-3 items and applied an author-supplied CRediT correction. (4) Sourced the
+ceiling claim in a table: added <b>Table 4</b> in Section 6.4 (centralized full-communication Hungarian
+ceiling 0.52, SwarmCF 0.44 = 0.84 of the ceiling, Independent-UCB 0.01; matching-normalized anytime earned
+skill, rho=0.25, n=240, 8 seeds, from results/pilots/ctde) and referenced it from the 6.4 prose, so the 84%
+no longer lives only in prose. (7) Terminology: standardized the overall private-observation property to the
+dominant "privately-noisy", collapsing the abstract's "partial, noisy, privately-perceived" to "partial and
+privately-noisy" and the intro's "partial (range-limited), noisy, and privately-perceived" to "partial
+(range-limited) and privately-noisy" (removes the noisy/privately redundancy); "privately-perceived" now
+appears 0 times, and the one remaining "per-observer-private observation mask" is mask-specific and correct,
+so kept. CRediT: per the corresponding author, Yigal Meshulam's contributions are Software, Validation,
+Investigation (rephrased from "Implementation, Validation, Experiment running" into CRediT terms), and the
+overlapping Software/Investigation were removed from A. Apartsin (now Conceptualization, Methodology, Formal
+analysis, Visualization, Writing - original draft); Aperstein unchanged (Conceptualization, Supervision,
+Writing - review & editing). Verified in the rebuild: Table labels 1-4 present, 6.4 references Table 4,
+Yigal = Software/Validation/Investigation, zero "privately-perceived". With this, round-3 review points 1-7
+are all addressed (1,2,3,5,6 in Cycle 92; 4,7 here) and the scope subsection 6.8 is in. Word .docx not
+rebuilt; ras_paper2 untouched.

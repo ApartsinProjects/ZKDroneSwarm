@@ -88,7 +88,7 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "common in practice yet largely overlooked in theory, which we name <b>Zero-Knowledge MRTA</b> "
   "(ZK-MRTA): a robot team with <b>no prior knowledge</b> (no "
   "task models, not even the latent rank), <b>no communication</b> (no messages, no parameter sharing, "
-  "no coordinator), and only a <b>partial, noisy, privately-perceived</b> view of a public stream of "
+  "no coordinator), and only a <b>partial and privately-noisy</b> view of a public stream of "
   "teammates' outcomes. A hidden low-rank structure governs which robot suits which task, and there are "
   "far more tasks than rounds, so most (robot, task) pairs are never attempted. Yet each robot can act "
   "well on tasks it never attempted, and onboard new tasks, by running online low-rank "
@@ -122,8 +122,8 @@ A("<p>Most multi-robot task allocation (MRTA) methods obtain coordination from a
   "withheld for stealth; the task structure is unknown a priori; and there is no coordinator. What a "
   "robot can often still do is <b>passively sense</b> some of what its teammates are doing and how it "
   "turned out, imperfectly, at a distance, and differently from every other robot. This is the regime we "
-  "formalize and solve: a robot observes a <b>partial</b> (range-limited), <b>noisy</b>, and "
-  "<b>privately-perceived</b> slice of a public outcome stream, never the same slice as a teammate.</p>")
+  "formalize and solve: a robot observes a <b>partial</b> (range-limited) and "
+  "<b>privately-noisy</b> slice of a public outcome stream, never the same slice as a teammate.</p>")
 A("<p>The technical crux is <b>generalization to the unseen</b>. There are far more tasks than rounds "
   "($n \\gg T$), so each robot personally attempts only a vanishing fraction of tasks. A learner that "
   "estimates each task only from its own attempts (a <b>structure-free</b> learner: independent "
@@ -488,13 +488,25 @@ A("<p>Table 3 consolidates the masked-harness comparison across all methods. Her
   "matching [47], and the same matcher with noiseless, unmasked observation. Under limited observability "
   "($\\rho=0.25$, matching-normalized anytime earned skill at the headline $n=240$) SwarmCF earns $0.44$ "
   "against the full-communication ceiling's $0.52$ (the noiseless unmasked matcher reaches $0.55$), "
-  "recovering about 84% of the ceiling; the two ceilings differ little, so the price of the masked, "
+  "recovering about 84% of the ceiling (Table 4); the two ceilings differ little, so the price of the masked, "
   "privately-noisy observation is small: "
   "<b>estimation is nearly solved</b>, and the residual gap to the centralized optimum is within-round "
   "<b>coordination</b>, not estimation. Coordination is therefore the binding constraint, which "
   "Section 6.5 isolates by adding capacity-1 contention.</p>")
 A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical masked harness.</p>")
 A(mp.html_scorecard(ROOT))
+A("<p class='small'><b>Table 4.</b> The cost of communication-free operation: earned (anytime) skill "
+  "against the centralized full-communication ceiling (matching-normalized, $\\rho=0.25$, $n=240$, means "
+  "over 8 seeds). SwarmCF recovers about 84% of the ceiling with no communication, while the structure-"
+  "free learner is near the floor; a noiseless unmasked matcher reaches a similar 0.55, so the two "
+  "ceilings differ little.</p>")
+A("<table><tr><th class='l'>Method</th><th>earned skill<br>(&rho;=0.25, anytime)</th>"
+  "<th>fraction of the ceiling</th></tr>"
+  "<tr><td class='l'>Centralized full-communication, Hungarian (ceiling)</td><td>0.52</td><td>1.00</td></tr>"
+  "<tr style='background:#eef6ff'><td class='l'><b>SwarmCF</b> (ours, communication-free)</td><td>0.44</td>"
+  "<td>0.84</td></tr>"
+  "<tr><td class='l'>Independent-UCB (structure-free)</td><td>0.01</td><td>0.01</td></tr>"
+  "</table>")
 
 A("<h3>6.5 Capacity-1 contention and communication-free de-confliction</h3>")
 A("<p>The experiments so far impose no contention: two robots may service the same target. We now turn on "
@@ -644,10 +656,9 @@ A("<p>We formalized multi-robot task allocation in its most restrictive but prac
 
 # ---------------- declarations ----------------
 A("<h2>CRediT authorship contribution statement</h2>")
-A("<p class='small'><b>Alexander Apartsin:</b> Conceptualization, Methodology, Software, Formal analysis, "
-  "Investigation, Visualization, Writing - original draft. <b>Yigal Meshulam:</b> Methodology, Validation, "
-  "Writing - review &amp; editing. <b>Yehudit Aperstein:</b> Conceptualization, Supervision, Writing - "
-  "review &amp; editing.</p>")
+A("<p class='small'><b>Alexander Apartsin:</b> Conceptualization, Methodology, Formal analysis, "
+  "Visualization, Writing - original draft. <b>Yigal Meshulam:</b> Software, Validation, Investigation. "
+  "<b>Yehudit Aperstein:</b> Conceptualization, Supervision, Writing - review &amp; editing.</p>")
 A("<h2>Declaration of competing interest</h2>")
 A("<p class='small'>The authors declare that they have no known competing financial interests or personal "
   "relationships that could have appeared to influence the work reported in this paper.</p>")
