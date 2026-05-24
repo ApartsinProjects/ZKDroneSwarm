@@ -936,3 +936,25 @@ dtype as the columns argument; now np.eye(mm, dtype=bool)) so F18/F26 generate. 
 docs/ras_paper.html + docs/index.html (1682 KB). Per standing instruction the Word .docx was NOT rebuilt
 (HTML phase) and the follow-up paper (ras_paper2) was untouched. The scaling sweeps (Figure 4) were not
 re-run, so they remain at 8 seeds, as stated in the Setup and caption.
+
+## Cycle 90 (second RAS-reviewer pass: address review points M1-M4; HTML only)
+A line-by-line top-tier-reviewer read of the rendered HTML surfaced four substantive points; addressed all
+four in the generator (make_ras_paper.py) and rebuilt (no figures or data changed). M1 (reconcile the
+unseen-pair-skill numbers that appear as 0.316 in Table 3, 0.58 in Section 6.5, and 0.19 in Section 6.7):
+added a non-comparability note in 6.5 (the contention study uses rho=0.5, the all-tasks menu, and the
+stricter capacity-1 Hungarian normalization, so its values run higher and are not directly comparable to
+Table 3's rho=0.25 size-c numbers; only the categorical above-floor-vs-at-floor pattern carries across) and
+a matching note in 6.7 (geometry-limited line-of-sight is a harsher channel, hence lower absolute skill, a
+separate grounded instance). M2 (Theorem 2's g was promised "made precise in Appendix A" but never
+defined): defined g explicitly in Appendix A as the expected order statistic
+g(y)=E[(max_{j in A} R_ij - mu_i)/(max_{j in S} R_ij - mu_i)] (A = engaged-and-offered subset of expected
+size y), increasing and concave with g(0)=0, with the Jensen step across rounds and the honest loose-constant
+remark; body wording changed "made precise" -> "defined in Appendix A". M3 (SoftImpute appeared in Table 2
+but had no row in the Table 3 scorecard, since the c14 bake-off data contains no SoftImpute): removed
+SoftImpute from the Table 2 method list so the two tables' non-ceiling method sets match. M4 (the "about 80%
+of the ceiling" claim was asserted in prose only): sourced it from the released results/pilots/ctde JSON,
+now stated with the actual matching-normalized anytime earned-skill numbers at n=240 (SwarmCF 0.44 vs the
+full-communication ceiling 0.52 and the noiseless matcher 0.55, ~84%), and updated the dependent "drop from
+~80% to 42%" in 6.5 to ~84%. Verified in the rebuilt HTML: SoftImpute count 0, no stale "about 80%" or "made
+precise", g-definition LaTeX well-formed (balanced), both notes present. Word .docx not rebuilt; ras_paper2
+untouched.

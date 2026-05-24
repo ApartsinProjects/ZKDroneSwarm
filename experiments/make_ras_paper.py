@@ -347,7 +347,7 @@ A("<div class='thm'><b>Theorem 1 (CF row completion, $\\Theta(d)$ versus $\\Thet
 A("<div class='thm'><b>Theorem 2 (anytime separation under task scarcity).</b> With $n$ tasks, offers of "
   "size $c$ and horizon $T$, any structure-free learner has anytime (cumulative-reward) skill at most "
   "$g(cT/n)$, where $cT/n$ is the expected number of times each task is offered over the mission and $g$ "
-  "is a concave, increasing order-statistic function with $g(0)=0$ (made precise in Appendix A), so the "
+  "is a concave, increasing order-statistic function with $g(0)=0$ (defined in Appendix A), so the "
   "bound vanishes when $cT=o(n)$, even with a full broadcast; once the shared basis is available "
   "(Theorem 1, recovered per Theorem 3) SwarmCF reaches near-oracle in $O(d)$ further rounds and earns "
   "$\\Theta(1)$ anytime skill, a categorical gap. (The structure-free bound is an order argument, exact "
@@ -422,7 +422,7 @@ A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a
   "profile.</p>")
 A("<p class='small'><b>Table 2.</b> Operating profiles of the methods compared; SwarmCF-family "
   "refinements are deferred to future work (column abbreviations are defined in the key).</p>")
-A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "SoftImpute",
+A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF",
                            "UCBIndep", "Tabular", "Random", "CentralClean-ceiling", "CTDE-ceiling", "Oracle"]))
 
 A("<h3>6.1 The categorical separation and masking robustness</h3>")
@@ -481,8 +481,10 @@ A("<p>Table 3 consolidates the masked-harness comparison across all methods. Her
   "reference <b>ceilings</b> (upper bounds, not competitors): a centralized full-communication matcher "
   "that sees every reward and computes the optimal one-to-one robot-task assignment by Hungarian "
   "matching [47], and the same matcher with noiseless, unmasked observation. Under limited observability "
-  "($\\rho=0.25$) SwarmCF recovers about 80% of the full-communication ceiling, and the two ceilings "
-  "differ little (both $\\approx 0.5$), so the price of the masked, privately-noisy observation is small: "
+  "($\\rho=0.25$, matching-normalized anytime earned skill at the headline $n=240$) SwarmCF earns $0.44$ "
+  "against the full-communication ceiling's $0.52$ (the noiseless unmasked matcher reaches $0.55$), "
+  "recovering about 84% of the ceiling; the two ceilings differ little, so the price of the masked, "
+  "privately-noisy observation is small: "
   "<b>estimation is nearly solved</b>, and the residual gap to the centralized optimum is within-round "
   "<b>coordination</b>, not estimation. Coordination is therefore the binding constraint, which "
   "Section 6.5 isolates by adding capacity-1 contention.</p>")
@@ -499,13 +501,16 @@ A("<p>The experiments so far impose no contention: two robots may service the sa
 A("<p><b>(a) The categorical separation survives contention.</b> SwarmCF earns the most of any learner "
   "($0.42$ of the centralized capacity-1 ceiling, bootstrap 95% CI $[0.40,0.44]$ over 16 seeds; this "
   "capacity-1 ceiling is stricter than the full-communication ceiling of Section 6.4, so the drop from "
-  "about 80% there to 42% here is the coordination gap that contention introduces), well "
+  "about 84% there to 42% here is the coordination gap that contention introduces), well "
   "above the MF-SGD baseline ($0.20$) and the structure-free independent-UCB learner, which sits below the "
   "random floor ($-0.17$) because under contention its persistent exploration collides without "
   "coordinating. On the categorical generalization metric, SwarmCF is the <b>only</b> method whose "
   "<b>unseen-pair</b> skill is significantly above the floor ($0.58$, CI $[0.52,0.64]$; MF-SGD, UCB, and "
   "random all have intervals straddling zero): the Proposition 1 separation holds under contention "
-  "(Figure 5).</p>")
+  "(Figure 5). This contention study uses $\\rho=0.5$, the all-tasks menu, and the stricter capacity-1 "
+  "Hungarian normalization, so its skill values run higher than, and are not directly comparable to, the "
+  "masked-harness numbers of Table 3 (which use $\\rho=0.25$ and a size-$c$ menu); only the categorical "
+  "above-floor-versus-at-floor pattern is meant to carry across settings.</p>")
 A("<figure>%s<figcaption><b>Figure 5.</b> The categorical separation under capacity-1 contention "
   "(LatentSwarm: signed low-rank reward, persistent partial and private broadcast, task scarcity). Left: "
   "earned (anytime) skill, SwarmCF best among learners and far above the structure-free floor "
@@ -570,7 +575,9 @@ A("<p>The experiments above use abstract latent traits and a Bernoulli visibilit
   "quasi-static. Under capacity-1 contention and a randomly guessed rank, the categorical separation "
   "holds: SwarmCF reaches unseen-pair skill $0.19$ (95% CI $[0.15,0.24]$) and earns $0.32$ of the "
   "centralized ceiling, while structure-free Independent-UCB and MF-SGD sit at the floor (intervals "
-  "straddling zero) and Independent-UCB earns below random by colliding (Figure 8). The separation is a "
+  "straddling zero) and Independent-UCB earns below random by colliding (Figure 8). The absolute skill is "
+  "lower than in the body because geometry-limited line-of-sight visibility is a harsher channel, so these "
+  "values are a separate grounded instance rather than a restatement of Table 3; the separation itself is a "
   "property of the shared low-rank structure, not of the abstract trait or mask model.</p>")
 A("<figure>%s<figcaption><b>Figure 8.</b> A robotics-grounded instance (LatentSwarm): non-negative "
   "sensing-modality traits and a geometry-induced range-limited line-of-sight mask with distance-dependent "
@@ -755,11 +762,18 @@ A("<p class='small'><b>Theorem 1 (row completion).</b> Stacking the observed ent
   "$p_i=(U_\\Omega^\\top U_\\Omega)^{-1}U_\\Omega^\\top R_{i,\\Omega}$ is unique and exact, hence all "
   "$R_{ij}$. <i>Remark:</i> the linear algebra is standard given $U$; the contribution is the "
   "$\\Theta(d)$-versus-$\\Theta(n)$ contrast against the floor of Proposition 1.</p>")
-A("<p class='small'><b>Theorem 2 (anytime).</b> A structure-free learner earns above the mean only on an "
-  "offer containing an already-engaged task; the engaged set has size $\\le t-1$ and is reward-blind, so "
-  "by concavity of expected order statistics the per-round surplus is $\\le g(c(t-1)/n)$; summing gives "
-  "$\\le g(cT/n)\\to 0$. <i>Remark:</i> an order argument (the mechanism is exact, the constant loose); "
-  "it justifies reporting the anytime metric alongside final-policy skill.</p>")
+A("<p class='small'><b>Theorem 2 (anytime).</b> A structure-free learner earns above the prior mean only on "
+  "an offer containing a task it has already engaged; at round $t$ that engaged set has size $\\le t-1$ "
+  "and, being chosen before its reward is known, is a reward-blind subset of the offer. Define "
+  "$g(y)=\\mathbb{E}\\big[(\\max_{j\\in A}R_{ij}-\\mu_i)/(\\max_{j\\in S}R_{ij}-\\mu_i)\\big]$, the expected "
+  "skill of selecting the best already-engaged option, where $S$ is the size-$c$ offer, $A\\subseteq S$ is "
+  "the engaged-and-offered subset of expected size $y$, and $\\mu_i$ is the row mean (the random baseline); "
+  "$g$ is an expected order statistic, increasing and concave in $y$ with $g(0)=0$ (an empty informative "
+  "set forces reward-blind selection, skill $0$). The expected number of engaged tasks in the offer is "
+  "$\\le c(t-1)/n$, so the per-round skill is $\\le g(c(t-1)/n)$ and, by concavity (Jensen) across rounds, "
+  "the anytime skill is $\\le g(cT/n)\\to 0$ as $cT/n\\to 0$. <i>Remark:</i> the mechanism is exact; $g$ is "
+  "distribution-dependent and the constant is loose, which is why we also report the anytime metric "
+  "empirically alongside final-policy skill.</p>")
 A("<p class='small'><b>Theorem 3 (recovery).</b> A fully-observed invertible $\\hat d\\times\\hat d$ "
   "block pins the factor frame; per task, $R_{E_i(j),j}=B\\,u_j$ with $B=P_{E_i(j)}$ determines $u_j$ "
   "uniquely iff $B$ has full column rank, and determines the pair $\\langle p_i,u_j\\rangle$ iff "
