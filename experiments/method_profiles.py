@@ -45,7 +45,7 @@ FAMILY = {"RewardCF": "SwarmCF", "ChoiceCF": "SwarmCF-Ch", "BothCF": "SwarmCF-RC
 
 # Clean single display names for the literature / structure-free / reference methods (cite by name).
 DISPLAY_EXT = {"MFSGD": "MF-SGD", "UCBIndep": "Independent-UCB", "UCBHomo": "Homogeneous-UCB",
-               "CentralClean-ceiling": "Centralized (clean)", "CTDE-ceiling": "Centralized (CTDE)"}
+               "CentralClean-ceiling": "Centralized (clean)", "CTDE-ceiling": "Centralized (noisy)"}
 
 
 def disp(name):

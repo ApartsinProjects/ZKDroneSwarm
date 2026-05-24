@@ -1165,3 +1165,17 @@ jobs including the heavier capacity-1 contention cells) with buffered stdout, so
 mid-run; it completed cleanly (exit 0), it was not killed. A redundant 2-seed smoke launched during
 diagnosis was deleted; docs/CTDE.md (a secondary dev data doc, not referenced by the paper) was restored to
 its committed state rather than regenerated. HTML 88 KB; .docx not rebuilt.
+
+## Cycle 103 (round-5 review M1: fix the clean-vs-noisy ceiling labeling inconsistency)
+A fresh review caught a real internal contradiction: method_profiles correctly marks the two centralized
+references as CentralClean ("Centralized (clean)", noiseless, observability full) and CTDE-ceiling
+("full comms, but noisy observation", fullsig), but Section 6.4 and Table 4 called the NOISY 0.54 variant
+"the noiseless unmasked matcher" (and Table 4's ceiling row, 0.528, is actually the clean one). Made all
+three consistent: (a) Section 6.4 now states SwarmCF earns 0.42 against the CLEAN full-communication
+Hungarian ceiling's 0.53 (recovering about 80%), and that the same matcher under realistic per-observer
+noise reaches a statistically indistinguishable 0.54, so observation noise costs the centralized matcher
+essentially nothing; (b) Table 4's caption says the ceiling is "with clean observation" and the row label is
+"(clean ceiling)"; (c) renamed Table 2's opaque "Centralized (CTDE)" reference-ceiling label to "Centralized
+(noisy)" (method_profiles.py) so it no longer conflates with the inadmissible CTDE training paradigm, which
+remains correctly named in Related Work and Section 6. Verified: no stale "noiseless unmasked matcher", no
+stale "Centralized (CTDE)", the CTDE paradigm references intact. HTML 89 KB; .docx not rebuilt.
