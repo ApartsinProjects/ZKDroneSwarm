@@ -6,8 +6,8 @@ space we instantiate in the setting, against the genuinely external structure-fr
 paradigm and full-information reference ceilings.
 
 Provenance is explicit:
-  - ours          : the CF family we built (RewardCF, EMCF, BothCF, contention/unified, ...)
-  - ours (hybrid) : PTF -- a strong batch-flavored low-rank method we built from standard parts
+  - ours          : the CF family we built (RewardCF/SwarmCF and variants: EMCF, BothCF,
+                    contention/unified, and the batch variant PTF/SwarmCF-batch)
   - standard      : named prior-work estimators we ADAPT to the setting (MFSGD, ESTR, BPMF,
                     SoftImpute, KNNCF, CLUB, BiasModel) -- algorithm not ours, application is
   - structure-free: the external paradigm we beat (per-arm UCB, tabular, random)
@@ -66,7 +66,7 @@ PROFILES = [
     ("UnifiedCF",       "ours",        "D", "0",   "rho,sig", "dhat", "online", "one method; refinements activate only on their condition"),
     ("HybridCF",        "ours",        "D", "0",   "rho,sig", "dhat", "online", "UCB probe then SVD warm-start then online ALS"),
     ("ARD-EMCF",        "ours",        "D", "0",   "rho,sig", "ard",  "online", "EMCF + ARD rank self-determination: LEARNS the rank, removing the guessed d-hat"),
-    ("PTF",             "ours-hybrid", "D", "0",   "rho,sig", "dhat", "batch",  "probe-then-fit hybrid WE built: SVD warm-start + finetune (batch refit)"),
+    ("PTF",             "ours",        "D", "0",   "rho,sig", "dhat", "batch",  "probe-then-fit batch variant WE built: SVD warm-start + finetune (batch refit)"),
     ("MFSGD",           "standard",    "D", "0",   "rho,sig", "dhat", "online", "SGD matrix factorization (standard)"),
     ("KNNCF",           "standard",    "D", "0",   "rho,sig", "none", "memory", "neighborhood (memory) CF (standard)"),
     ("BiasModel",       "standard",    "D", "0",   "rho,sig", "none", "online", "global + row + col bias (popularity, rank&le;2)"),

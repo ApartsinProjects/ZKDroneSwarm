@@ -346,9 +346,9 @@ if os.path.exists(f):
         ax[axi].axhline(0, color="k", lw=0.6)
         ax[axi].set_ylabel(ylab, fontsize=8.5)
         ax[axi].set_title(ttl, fontsize=10); ax[axi].grid(alpha=0.25, axis="y")
-    fig.suptitle("LatentSwarm: a faithful, independent ZK-MRTA instantiation (signed low-rank reward, "
-                 "persistent\npartial + private broadcast, task scarcity, capacity-1 contention). SwarmCF "
-                 "leads; structure-free at the floor", fontsize=8.5)
+    fig.suptitle("LatentSwarm: an independent ZK-MRTA implementation (signed low-rank reward, persistent\n"
+                 "partial + private broadcast, task scarcity, capacity-1 contention). SwarmCF leads; "
+                 "structure-free at the floor", fontsize=8.5)
     fig.tight_layout(rect=[0, 0, 1, 0.91]); save_fig("F13_realsim")
     print("F13_realsim  <- tabula_bench_real.json")
 

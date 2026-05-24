@@ -235,7 +235,7 @@ A("<p><b>Interaction.</b> Each round $t=1,\\dots,T$ every robot $i$ is offered a
   "subset $S_{it}\\subseteq[n]$ of tasks, selects one $a_{it}\\in S_{it}$, engages it, and earns "
   "$R_{i,a_{it}}$. The operating regime is <b>task-scarce</b>: $n \\gg T$, so each robot personally "
   "engages only $O(T)$ of the $n$ tasks.</p>")
-A("<div class='box'><b>The observation channel (the heart of the setting).</b> There is no communication. "
+A("<div class='box'><b>The observation channel (central to the setting).</b> There is no communication. "
   "Each robot instead <b>passively senses</b> a public stream of engagement outcomes, but only partially "
   "and noisily, and <b>privately</b>: <b>(persistent partial visibility)</b> robot $i$ observes "
   "teammate $k$'s engagements only if $M_{ik}=1$, where $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ is fixed "
@@ -271,7 +271,7 @@ A("<p><b>Objective and metric.</b> We measure decision quality by the normalized
 A("<h2>4. Method: SwarmCF</h2>")
 A("<p>Each robot independently maintains low-rank factor estimates $\\hat P\\in\\mathbb{R}^{m\\times\\hat "
   "d}$, $\\hat U\\in\\mathbb{R}^{n\\times\\hat d}$ and updates them online from whatever it senses, using "
-  "<b>noise-weighted alternating least squares</b> (weighted ridge ALS [28,31], the workhorse of low-rank "
+  "<b>noise-weighted alternating least squares</b> (weighted ridge ALS [28,31], a standard estimator for low-rank "
   "completion) on the observed entries. The key design choice for masking-robustness: an unobserved "
   "entry receives zero <i>weight</i>, never an imputed zero <i>value</i>. The robot then acts greedily "
   "(with a small $\\varepsilon$ for exploration) on its <b>completed</b> reward row, which is defined for "
@@ -311,7 +311,7 @@ A("<p><b>Computational cost.</b> SwarmCF is light enough to run on each robot. A
   "round (score the offered set). A periodic refit is a few alternating ridge sweeps, each solving "
   "$O(m+n)$ linear systems of size $\\hat d\\times\\hat d$, i.e. $O\\big(\\text{sweeps}\\cdot(m+n)\\hat "
   "d^3 + |\\Omega_i|\\hat d^2\\big)$ time, with $O((m+n)\\hat d + |\\Omega_i|)$ memory; since $\\hat d$ is "
-  "a small guessed rank this is negligible for swarm-scale $m,n$. Folding a new task (or an unseen pair) "
+  "a small guessed rank this is small for swarm-scale $m,n$. Folding a new task (or an unseen pair) "
   "into the recovered basis is a single $O(\\hat d^3)$ ridge solve. There is no inter-robot computation: each robot updates only its "
   "own factors and reads the passive stream.</p>")
 
@@ -343,7 +343,7 @@ A("<div class='thm'><b>Theorem 2 (anytime separation under task scarcity).</b> W
   "$\\Theta(1)$ anytime skill, a categorical gap.</div>")
 A("<p>Proposition 1 and Theorems 1-2 make the separation categorical (zero versus nonzero) and "
   "operational (it shows up in reward earned while learning), but Theorem 1 assumes $U$ is known. The "
-  "remaining question, the crux "
+  "remaining question, the central problem "
   "of the decentralized setting, is whether each robot can <b>recover</b> the shared structure from its "
   "own privately-masked, noisy stream. Because the mask is over robot pairs, robot $i$'s observations form "
   "a structured (non-uniform) sub-sample, exactly where off-the-shelf uniform-sampling completion does "
@@ -422,7 +422,7 @@ A("<figure>%s<figcaption><b>Figure 2.</b> Unseen-pair skill versus broadcast rat
   "becomes partial.</figcaption></figure>" % img("F5_crossover.png", "categorical + masking"))
 
 A("<h3>6.2 The operational (anytime) separation</h3>")
-A("<p>Final-policy quality can flatter a method that explores cheaply. The operationally honest measure "
+A("<p>Final-policy quality can overstate a method that explores cheaply. The operationally relevant measure "
   "is reward <i>earned while learning</i>. Figure 3 shows cumulative-reward skill over the mission: "
   "SwarmCF earns from the first rounds. Per-arm UCB stays near the random floor: with $n\\gg T$ arms its "
   "optimism keeps it exploring untried tasks. Phase-structured low-rank methods pay an explore-then-commit "
@@ -490,7 +490,7 @@ A("<p><b>An independent implementation with contention (LatentSwarm).</b> The re
   "artifact of that one implementation, we re-run the comparison in the spatial environment of our "
   "<b>LatentSwarm</b> suite, a separate multi-robot environment (PettingZoo/Gymnasium) whose dynamics "
   "were written independently of the collaborative-filtering code. It instantiates the Section 3 setting "
-  "<i>faithfully</i>: the same signed low-rank inner-product reward $R_{ij}=\\langle p_i,u_j\\rangle$ over "
+  "using the same model: the same signed low-rank inner-product reward $R_{ij}=\\langle p_i,u_j\\rangle$ over "
   "latent capability and requirement traits, the same persistent Bernoulli($\\rho$) partial and "
   "per-observer-private observation mask, the same task scarcity $n\\gg T$ with size-$c$ offers, and the "
   "same guessed rank $\\hat d$ for every method, and it adds one element the analytical harness omits: "
@@ -524,7 +524,7 @@ A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b
   "transfer; <b>(ii) task scarcity</b> ($n\\gg T$): if instead sample-rich, a tabular learner eventually "
   "measures every entry and the unseen advantage vanishes; <b>(iii) a shared channel</b> ($\\rho>0$): "
   "with no broadcast each robot has only its own row and collaborative filtering degenerates to tabular. "
-  "These are exactly the conditions of the regime we target, and they delimit honestly where "
+  "These are exactly the conditions of the regime we target, and they delimit where "
   "structure-free methods remain competitive.</div>")
 
 # ---------------- 7. discussion ----------------
@@ -541,7 +541,7 @@ A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and sta
   "when there is no exploitable structure. Rewards are real-valued and bilinear in latent traits; and the "
   "recovery rate of Theorem 3 is established for non-adaptive "
   "exploration, the finite-time rate under a strongly exploiting policy (which can starve low-reward "
-  "tasks of coverage) remains open. We report the regime boundaries honestly: the advantage requires "
+  "tasks of coverage) remains open. We state the regime boundaries: the advantage requires "
   "structure beyond mere popularity ($d>1$), task scarcity ($n\\gg T$), and a shared channel "
   "($\\rho>0$); outside these, structure-free methods are competitive.</p>")
 A("<p><b>Future work (a planned follow-up).</b> The present paper deliberately keeps to a single core "
@@ -565,7 +565,7 @@ A("<p>We formalized multi-robot task allocation in its most restrictive but prac
   "tasks it has never attempted. The advantage over structure-free learning is categorical and proven; "
   "the broadcast is what makes it possible and the team is what makes it fast; and the method recovers "
   "most of a centralized full-communication ceiling while assuming far less. We hope the setting, a swarm "
-  "that must learn to coordinate from nothing but what it can quietly see, becomes a useful baseline "
+  "that must learn to coordinate from only what it passively senses, becomes a useful baseline "
   "regime for autonomous multi-robot systems.</p>")
 
 # ---------------- declarations ----------------
@@ -755,7 +755,7 @@ A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robot
 A("<h2>Appendix E. The LatentSwarm environment</h2>")
 A("<p class='small'>The spatial environment of the LatentSwarm suite is the PettingZoo/Gymnasium "
   "environment used for the independent-implementation test of Section 6.5. Its dynamics were written "
-  "independently of the collaborative-filtering code; it instantiates the Section 3 setting faithfully "
+  "independently of the collaborative-filtering code; it uses the Section 3 reward and observation model "
   "and adds capacity-1 contention, and SwarmCF enters only as one drop-in policy among the simulator's "
   "own (random, oracle, MF-SGD, independent UCB).</p>")
 A("<p class='small'><b>Traits and reward.</b> Each robot $i$ and task $j$ is assigned a hidden "
@@ -785,7 +785,7 @@ A("<p class='small'><b>Metrics.</b> <b>Earned (anytime) skill</b> normalizes the
   "from its learned model, self-normalized so the oracle is $1$ and random is $0$. The configuration is "
   "$m=30$, $n=240$, $d=5$, $\\hat d=8$, $c=20$, $T=50$, $\\rho=0.5$, $\\sigma=0.3$, with 16 seeds and "
   "bootstrap 95% confidence intervals.</p>")
-A("<div class='algo'><div class='cap'>Algorithm 3: LatentSwarm mission (a faithful ZK-MRTA instantiation "
+A("<div class='algo'><div class='cap'>Algorithm 3: LatentSwarm mission (a ZK-MRTA instantiation "
   "with capacity-1 contention; each robot runs a policy, e.g. SwarmCF)</div>"
   "draw signed low-rank traits $p_i$ (robots), $u_j$ (tasks) from a shared $K$-type Gaussian mixture (rank $d$)\n"
   "draw a persistent broadcast mask $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$, $M_{ii}=1$ (fixed for the mission)\n"
