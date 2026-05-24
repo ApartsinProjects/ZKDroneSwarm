@@ -750,7 +750,16 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   stays non-identifiable (orange dashed), i.e. the Theorem 3 condition. Column callouts moved above the
   matrix to avoid the legend. Updated the Figure 1 caption to match. Regenerated F20 + HTML (870 KB);
   docx not rebuilt. OPEN: unit tests for latentswarm; deprecate tabula_drone; finish the win/advantage
-  voice pass. Per user instruction,
+  voice pass.
+- Cycle 81 (latentswarm tests + tabula_drone deprecation): added latentswarm/tests/test_latentswarm.py
+  (8 smoke + contract tests: registries populated; scenario shapes; env contract incl. all-tasks menu
+  and capacity-1; persistent mask + self-visibility; every policy runs and predict_rows has the right
+  shape/None; metrics + Hungarian oracle; random rank-guess in range; SwarmCF > random end-to-end) -- all
+  pass via `python -m latentswarm.tests.test_latentswarm`. Marked tabula_drone DEPRECATED (docstring +
+  DeprecationWarning in its __init__), superseded by latentswarm. Updated README: reproducibility now
+  uses `python -m latentswarm.run` and `experiments/ranksweep.py`, describes the modular latentswarm
+  package, notes tabula_drone deprecated, and refreshed the LatentSwarm description + validation numbers
+  (earned 0.42, unseen 0.58). OPEN: finish the win/advantage scientific-voice pass. Per user instruction,
   regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
   intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
   setting) was delivered to the user separately.

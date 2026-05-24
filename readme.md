@@ -22,9 +22,9 @@ fully distributed decisions.
 - **SwarmCF** (the method): a decentralized, online, low-rank collaborative filter
   that each robot runs over the passive broadcast, with a constant-time fold-in that
   lets it act on tasks it never attempted.
-- **LatentSwarm** (the software): an open PettingZoo/Gymnasium evaluation suite for
-  ZK-MRTA, comprising an analytical masked-broadcast harness (the headline results)
-  and a spatial environment.
+- **LatentSwarm** (the software): an open, modular Python package for ZK-MRTA,
+  comprising an analytical masked-broadcast harness (the headline results) and an
+  independent environment that adds capacity-1 contention.
 
 ## The setting in one breath
 
@@ -72,10 +72,12 @@ categorical on unseen pairs (error to 0 versus a constant floor).
 - **Theory (with proofs).** A structure-free floor (Proposition 1) plus four
   theorems: `Theta(d)` row completion, anytime separation under scarcity, a
   deterministic decentralized-recovery condition, and a collective-speedup law.
-- **Validated in LatentSwarm.** Dropped into the LatentSwarm spatial environment
-  (fixed layout, depleting-target health, contention, episodic), SwarmCF reaches
-  converged skill about 0.81, beating an MF-SGD baseline (about 0.25) and
-  independent-UCB (about 0.72) and approaching the oracle.
+- **Validated in LatentSwarm.** In the independent `latentswarm` package (signed
+  low-rank reward, persistent partial + private broadcast, task scarcity, capacity-1
+  contention), SwarmCF leads on earned skill (0.42 of the Hungarian ceiling) and is the
+  only method with unseen-pair skill above the floor (0.58); MF-SGD 0.20 / 0.09;
+  structure-free at the floor. Robust to the guessed rank (graceful degradation below d,
+  flat above).
 
 ## Methods (all strictly zero-knowledge, fully distributed)
 
@@ -116,15 +118,18 @@ All numbers come from per-seed JSON in `results/pilots/` (registry in
 python experiments/make_figures.py        # figures -> docs/figures/
 python experiments/make_ras_paper.py      # docs/ras_paper.html + docs/index.html
 python experiments/make_ras_paper2.py     # docs/ras_paper2.html
-python experiments/tabula_bench.py        # LatentSwarm spatial-env validation
+python -m latentswarm.run                 # LatentSwarm package validation -> results/pilots/latentswarm_main.json
+python experiments/ranksweep.py           # rank-guess robustness (Figure F21)
 ```
 
 The analytical masked-broadcast harness and our methods and baselines live in
 `experiments/` (the core world / reward / oracle, the SwarmCF family, and the
-structure-free and low-rank baselines). The LatentSwarm spatial environment and its
-policies live in the `tabula_drone/` package (PettingZoo/Gymnasium). Every method
-uses a guessed rank and broadcast-only inputs; the Oracle is used only to normalize
-scores.
+structure-free and low-rank baselines). The **`latentswarm/`** package is the modular,
+pluggable ZK-MRTA suite used in Section 6.5 (separate `config` / `scenarios` / `env` /
+`algorithms` / `metrics` / `viz` modules, registered by name; `pip install -e .`, tests in
+`latentswarm/tests/`). The older `tabula_drone/` package is **deprecated** and superseded by
+`latentswarm/`. Every method uses a guessed rank and broadcast-only inputs; the Oracle is used
+only to normalize scores.
 
 ## Authors
 
