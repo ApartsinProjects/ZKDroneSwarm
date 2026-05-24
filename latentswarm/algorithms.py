@@ -181,3 +181,31 @@ class SwarmCF(_LowRankPolicy):
             np.add.at(b2, J, V[:, None] * Pk)
             U = np.linalg.solve(A2, b2[..., None])[..., 0]
         self.P[i], self.U[i] = P, U
+
+
+@algorithm("swarm_cf_r")
+class SwarmCFRand(SwarmCF):
+    """SwarmCF with RANDOMIZED near-best selection (communication-free de-confliction). Identical
+    estimator, learning, and eps-greedy exploration as SwarmCF; the only change is the exploit step:
+    instead of strict argmax it picks UNIFORMLY among the offered tasks whose predicted score is
+    within `near_best_margin` of the best. This is NOT exploration (the candidate set is the
+    near-OPTIMAL tasks only, never a uniformly random task): it is a stochastic tie-break that spreads
+    robots with similar models across near-equivalent tasks, reducing capacity-1 collisions with no
+    communication. With a small margin it reduces to argmax when one task is clearly best, so it costs
+    almost nothing where there is no near-tie / no contention."""
+    name = "swarm_cf_r"
+
+    def act(self, obs):
+        a = np.full(self.m, NO_OP, dtype=int)
+        for i in range(self.m):
+            off = self._offered(obs[i])
+            if not off.size:
+                continue
+            if self.rng.random() < self.eps:
+                a[i] = int(self.rng.choice(off))                      # exploration (same as SwarmCF)
+            else:
+                scores = self.P[i][i] @ self.U[i][off].T
+                near = off[scores >= scores.max() - self.cfg.near_best_margin]   # near-best set
+                a[i] = int(self.rng.choice(near))                     # randomized greedy (de-conflict)
+        self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
+        return a

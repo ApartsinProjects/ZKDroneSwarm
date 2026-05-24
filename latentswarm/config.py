@@ -71,6 +71,8 @@ class RunConfig:
     ucb_c: float = 2.0
     factor_init_scale: float = 0.1  # std of the low-rank factor random init (was rng.normal(0, 0.1, ...))
     buffer_window: int = 6000       # SwarmCF per-robot observation buffer length (was self.window=6000)
+    near_best_margin: float = 0.05  # SwarmCF-R: pick uniformly among offered tasks within this score
+    #                                 margin of the best (randomized near-best tie-break for de-confliction)
 
     # --- baselines.py hyperparameters (mirror the analytical-harness REGISTRY) ---
     estr_explore_frac: float = 0.4  # ESTR uniform-explore fraction of the horizon before the SVD commit
