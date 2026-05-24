@@ -721,7 +721,15 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   latentswarm_main.json; Figure 1 redesign (unseen target + unseen pair + identifiability); paper
   integration (Section 3 all-targets default + random rank + mask-pluggable note; Section 6.5 /
   Appendix E rewrite to the package + new numbers); unit tests; deprecate tabula_drone; finish the
-  win/advantage voice pass. Per user instruction,
+  win/advantage voice pass.
+- Cycle 78 (graceful-degradation rank ablation): added experiments/ranksweep.py (uses the latentswarm
+  package) sweeping the guessed rank d-hat from d/2 (=2) through 3d (=15) at true d=5, 8 seeds, with
+  SwarmCF and MF-SGD earned + unseen-pair skill (bootstrap CI). SwarmCF unseen-pair skill degrades
+  smoothly under-ranking (0.43 at d-hat=2, 0.52 at 4) and is robust at/above the true rank (0.55-0.65,
+  d-hat=5..15); earned skill rises 0.24 -> ~0.42 plateau; MF-SGD stays low throughout. Confirms the
+  claim that over-guessing is safe (surplus dims are regularized) and under-guessing degrades gracefully
+  (mis-specification, not collapse). Saved results/pilots/latentswarm_ranksweep.json and figure
+  F21_ranksweep (png+pdf); to be embedded as a robustness figure during the Section 6.5 integration. Per user instruction,
   regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
   intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
   setting) was delivered to the user separately.
