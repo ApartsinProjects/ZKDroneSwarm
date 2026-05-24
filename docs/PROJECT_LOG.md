@@ -647,3 +647,33 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   (reward = Beta@omega) and a bilinear bandit; we do NOT have LBF code and should not replace
   LatentSwarm with it. Regenerated paper + Word docx (324 equations). Pushed. OPEN: ras_paper2 is
   a first DRAFT (theorem numbering + content want a review pass).
+- Cycle 74 (three names locked + suite promoted + Figure 5 trim + 16-point clarity pass): named
+  the problem setting Zero-Knowledge MRTA (ZK-MRTA) and promoted it through the abstract,
+  Contribution 1, the Section 3 heading, and Table 1 (Ours row now "Ours: ZK-MRTA (this paper)"),
+  so the paper carries three crisp names: ZK-MRTA (problem), SwarmCF (method family), LatentSwarm
+  (software). Promoted LatentSwarm from "a simulator" to a RELEASED evaluation suite and added it
+  as a sixth contribution: an open PettingZoo/Gymnasium suite for ZK-MRTA comprising the analytical
+  masked-broadcast harness (headline results) and the spatial environment; also mentioned in
+  Setup, Section 6.5, Appendix E, and Data availability. Trimmed the old Figure 5 (the F17
+  operational-mission embed): kept the operational categorical result as a sentence plus the
+  centralized-ceiling comparison in Section 6.4, and renumbered the LatentSwarm transfer figure
+  from Figure 6 to Figure 5 (the paper now has 5 figures). Then applied a background line-by-line
+  clarity/completeness review (16 findings, all small, none altering a claim): glossed d/n in the
+  abstract; introduced d-hat with a gloss at first use; stated the bounded, normalized reward in
+  Section 3 (the one Proposition 1 references); named cT/n as the expected offers per task and g as
+  a concave order-statistic function in Theorem 2; glossed sigma_min and the rotation-gauge anchor
+  block in Theorem 3; glossed tilde-O in Theorem 4; named sigma_own/sigma_obs in Setup; pointed the
+  80% / 0.44-vs-0.55 ceiling numbers to the contention sweep and released data; glossed Hungarian
+  assignment (optimal one-to-one matching); stated E=16 episodes (converged skill = last 8) in
+  Appendix E; made the signed-cosine-vs-inner-product variant explicit in Section 6.5; relabeled
+  the Appendix C 0.30 as a reconstruction error (not a skill). One genuine consistency fix: the
+  fold-in cost read O(d) in Contribution 2 and O(d-hat) in the Algorithm 2 comment but O(d-hat^3)
+  in the Section 4 body, so standardized on O(d-hat^3) (constant in n, m). Also fixed the scope
+  condition (i) math for a clean Word export: it used the HTML entity for less-than (so the browser
+  parser would not treat the following letter as a tag), which node-KaTeX could not parse; switched
+  to the \lt macro (renders the less-than sign in both the browser and the converter, no entity and
+  no literal angle bracket). Regenerated paper + index (750 KB) and rebuilt the Word docx via
+  html2doc (336 equations, 0 unconverted $, 5 images, Tables 1-3); both nav links and the KaTeX
+  loader scripts are stripped from the Word source, and the docx was verified to contain no link
+  text and to render every less-than as native OMML math. Pushed. OPEN: ras_paper2 follow-up still
+  wants a theorem-numbering and ZK-MRTA/LatentSwarm naming review pass.

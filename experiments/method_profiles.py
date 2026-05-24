@@ -116,7 +116,7 @@ PARADIGMS = [
      "decentralized", "partial", "shares parameters, not a passive stream"),
     ("Trait-based MRTA [5,25]", "known traits", "varies",
      "decentralized", "full", "traits given, not learned"),
-    ("Ours: communication-free MRTA (this paper)", "low-rank, guessed rank only", "none (passive sensing)",
+    ("Ours: ZK-MRTA (this paper)", "low-rank, guessed rank only", "none (passive sensing)",
      "decentralized", "masked + per-observer noisy", "none: the open cell (hardest)"),
 ]
 
