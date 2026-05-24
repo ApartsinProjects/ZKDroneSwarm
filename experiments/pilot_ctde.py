@@ -27,7 +27,7 @@ except Exception:
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 POOLS = [240, 60, 30, 15]
-SEEDS = list(range(8))
+SEEDS = list(range(int(os.environ.get("ZK_SEEDS", "16"))))   # 8->16 for Table 4 consistency (referee Moderate-4)
 RNG = np.random.RandomState(0)
 _CONV = dict(eps0=0.5, eps_min=0.05, eps_decay=0.97, als_sweeps=20, refit_every=1)
 

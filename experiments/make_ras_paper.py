@@ -99,7 +99,7 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "(cumulative-reward) separation under task scarcity, and a deterministic condition under which "
   "decentralized recovery from the masked broadcast is exact (validated empirically). Experiments quantify "
   "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and the "
-  "strongest masking-robustness and anytime profile among low-rank methods, recovering most (about 84%) of a centralized "
+  "strongest masking-robustness and anytime profile among low-rank methods, recovering most (about 80%) of a centralized "
   "full-communication ceiling, and holding under capacity-1 "
   "contention and in a robotics-grounded sensing instance.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
@@ -498,9 +498,9 @@ A("<p>Table 3 consolidates the masked-harness comparison across all methods. Her
   "reference <b>ceilings</b> (upper bounds, not competitors): a centralized full-communication matcher "
   "that sees every reward and computes the optimal one-to-one robot-task assignment by Hungarian "
   "matching [47], and the same matcher with noiseless, unmasked observation. Under limited observability "
-  "($\\rho=0.25$, matching-normalized anytime earned skill at the headline $n=240$) SwarmCF earns $0.44$ "
-  "against the full-communication ceiling's $0.52$ (the noiseless unmasked matcher reaches $0.55$), "
-  "recovering about 84% of the ceiling (Table 4); the two ceilings differ little, so the price of the masked, "
+  "($\\rho=0.25$, matching-normalized anytime earned skill at the headline $n=240$) SwarmCF earns $0.42$ "
+  "against the full-communication ceiling's $0.53$ (the noiseless unmasked matcher reaches $0.54$), "
+  "recovering about 80% of the ceiling (Table 4); the two ceilings differ little, so the price of the masked, "
   "privately-noisy observation is small <i>on this operational metric</i>: on earned (anytime) skill the "
   "estimator is <b>nearly at the centralized ceiling</b> (the harder unseen-pair generalization of Table 3 "
   "is naturally lower), so the residual gap to the centralized optimum is within-round "
@@ -510,15 +510,15 @@ A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical maske
 A(mp.html_scorecard(ROOT))
 A("<p class='small'><b>Table 4.</b> The cost of communication-free operation: earned (anytime) skill "
   "against the centralized full-communication ceiling (matching-normalized, $\\rho=0.25$, $n=240$, means "
-  "with bootstrap 95% CIs over 8 seeds). SwarmCF recovers about 84% of the ceiling with no communication, while the structure-"
-  "free learner is near the floor; a noiseless unmasked matcher reaches a similar 0.55, so the two "
+  "with bootstrap 95% CIs over 16 seeds). SwarmCF recovers about 80% of the ceiling with no communication, while the structure-"
+  "free learner is near the floor; a noiseless unmasked matcher reaches a similar 0.54, so the two "
   "ceilings differ little.</p>")
 A("<table><tr><th class='l'>Method</th><th>earned skill<br>(&rho;=0.25, anytime)</th>"
   "<th>fraction of the ceiling</th></tr>"
-  "<tr><td class='l'>Centralized full-communication, Hungarian (ceiling)</td><td>0.520 [0.483, 0.559]</td><td>1.00</td></tr>"
-  "<tr style='background:#eef6ff'><td class='l'><b>SwarmCF</b> (ours, communication-free)</td><td>0.439 [0.418, 0.462]</td>"
-  "<td>0.84</td></tr>"
-  "<tr><td class='l'>Independent-UCB (structure-free)</td><td>0.005 [-0.004, 0.014]</td><td>0.01</td></tr>"
+  "<tr><td class='l'>Centralized full-communication, Hungarian (ceiling)</td><td>0.528 [0.505, 0.552]</td><td>1.00</td></tr>"
+  "<tr style='background:#eef6ff'><td class='l'><b>SwarmCF</b> (ours, communication-free)</td><td>0.423 [0.407, 0.441]</td>"
+  "<td>0.80</td></tr>"
+  "<tr><td class='l'>Independent-UCB (structure-free)</td><td>0.003 [-0.003, 0.009]</td><td>0.01</td></tr>"
   "</table>")
 
 A("<h3>6.5 Capacity-1 contention and communication-free de-confliction</h3>")
@@ -531,7 +531,7 @@ A("<p>The experiments so far impose no contention: two robots may service the sa
 A("<p><b>(a) The categorical separation survives contention.</b> SwarmCF earns the most of any learner "
   "($0.42$ of the centralized capacity-1 ceiling, bootstrap 95% CI $[0.40,0.44]$ over 16 seeds; this "
   "capacity-1 ceiling is stricter than the full-communication ceiling of Section 6.4, so the drop from "
-  "about 84% there to 42% here is the coordination gap that contention introduces), well "
+  "about 80% there to 42% here is the coordination gap that contention introduces), well "
   "above the MF-SGD baseline ($0.20$) and the structure-free independent-UCB learner, which sits below the "
   "random floor ($-0.17$) because under contention its persistent exploration collides without "
   "coordinating. On the categorical generalization metric, SwarmCF is the <b>only</b> method whose "

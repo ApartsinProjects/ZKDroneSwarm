@@ -1151,3 +1151,17 @@ orphaned F24/F25 PNG+PDF outputs. The paper now has 12 figures (was 13). Figure-
 make_figures.py (new combined F28 builder replacing the F24/F25 builders); PDF timestamp churn from the
 rebuild was reverted (only F28 added). HTML 88 KB; .docx not rebuilt. (B1, Table 4 at 16 seeds, still
 running; will integrate on completion.)
+
+## Cycle 102 (B1: ceiling re-run at 16 seeds -> Table 4 + dependent numbers)
+Re-ran the centralized-ceiling experiment (pilot_ctde.py) at 16 seeds (was 8) so Table 4 matches the rest
+of the paper's seed budget; parametrized its SEEDS via ZK_SEEDS. 16-seed result (bootstrap 95% CI, pool
+n=240): full-communication clean ceiling 0.528 [0.505,0.552], SwarmCF 0.423 [0.407,0.441], Independent-UCB
+0.003 [-0.003,0.009]; the noisy unmasked matcher reaches 0.537. SwarmCF/ceiling ratio is now ~0.80 (was
+0.84 at 8 seeds). Updated Table 4 (three rows + CIs + caption "8 seeds" -> "16 seeds", "~84%" -> "~80%",
+noiseless matcher 0.55 -> 0.54) and the dependent prose: Section 6.4 (SwarmCF 0.44 -> 0.42, ceiling 0.52 ->
+0.53, matcher 0.55 -> 0.54, ~84% -> ~80%), Section 6.5 (drop "from ~84%" -> "from ~80%"), and the abstract
+("most (about 84%)" -> "(about 80%)"). Note on the run: the first 16-seed background launch was slow (320
+jobs including the heavier capacity-1 contention cells) with buffered stdout, so its output file looked empty
+mid-run; it completed cleanly (exit 0), it was not killed. A redundant 2-seed smoke launched during
+diagnosis was deleted; docs/CTDE.md (a secondary dev data doc, not referenced by the paper) was restored to
+its committed state rather than regenerated. HTML 88 KB; .docx not rebuilt.
