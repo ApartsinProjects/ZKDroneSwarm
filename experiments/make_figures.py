@@ -582,9 +582,13 @@ axS.set_xticks(np.arange(-.5, ns_, 1), minor=True); axS.set_yticks(np.arange(-.5
 axS.grid(which="minor", color="white", lw=1.4); axS.tick_params(which="minor", length=0)
 
 foc = 3                                    # focal robot row
-own = [2, 6, 9]                            # focal robot's own clean engagements (columns)
+own = [2, 5, 9]                            # focal robot's own clean engagements (columns)
 masked_rows = [5, 6]                       # teammates persistently invisible to the focal robot
 visible_rows = [r for r in range(ms_) if r != foc and r not in masked_rows]
+j_rec = 7                                  # unseen TARGET covered by visible teammates -> recoverable
+j_non = 10                                 # unseen TARGET with no visible engagers -> not identifiable
+# deterministic visible engagements (dots): column j_rec is covered by several teammates; j_non is empty
+seen = {0: [1, j_rec], 1: [4, j_rec], 2: [0, j_rec], 4: [3, j_rec, 8], 7: [0, 11]}
 
 for r in masked_rows:                      # persistently-masked teammate rows: hatch out
     axS.add_patch(mpatches.Rectangle((-0.5, r - 0.5), ns_, 1, facecolor="#9aa3ad", alpha=0.6,
@@ -594,27 +598,43 @@ for j in own:                              # focal robot's own clean engagements
     axS.add_patch(mpatches.Rectangle((j - 0.5, foc - 0.5), 1, 1, fill=False, edgecolor="#0a7d4d", lw=3))
 for j in range(ns_):                       # rest of the focal row is UNSEEN: '?'
     if j not in own:
-        axS.text(j, foc, "?", ha="center", va="center", fontsize=11, color="#16191d", fontweight="bold")
-for r in visible_rows:                     # partial, per-observer-noisy view of visible teammates
-    for j in _r.choice(ns_, 3, replace=False):
+        axS.text(j, foc, "?", ha="center", va="center", fontsize=10, color="#16191d", fontweight="bold")
+for r, cols in seen.items():               # partial, per-observer-noisy view of visible teammates
+    for j in cols:
         axS.add_patch(mpatches.Circle((j, r), 0.17, facecolor="black", edgecolor="white", lw=0.6, alpha=0.85))
+
+# unseen TARGET (column) that IS recoverable: visible teammates engaged it
+axS.add_patch(mpatches.Rectangle((j_rec - 0.5, -0.5), 1, ms_, fill=False, edgecolor="#6f42c1", lw=2.5))
+# the focal x j_rec UNSEEN PAIR that thereby becomes predictable
+axS.add_patch(mpatches.Rectangle((j_rec - 0.5, foc - 0.5), 1, 1, fill=False, edgecolor="#6f42c1", lw=3))
+# unseen TARGET (column) that is NOT identifiable: no visible engagers
+axS.add_patch(mpatches.Rectangle((j_non - 0.5, -0.5), 1, ms_, fill=False, edgecolor="#b3541e", lw=2.5, ls="--"))
 
 axS.set_xticks(range(ns_)); axS.set_xticklabels(["t%d" % (j + 1) for j in range(ns_)], fontsize=7.5)
 axS.set_yticks(range(ms_))
 axS.set_yticklabels([("robot %d (focal)" % (r + 1)) if r == foc else ("robot %d" % (r + 1))
                      for r in range(ms_)], fontsize=7.5)
 axS.set_xlabel("tasks", fontsize=9)
-axS.set_title(r"The setting: a hidden low-rank reward $R = P\,U^\top$ that each robot must act on "
-              "from partial, private observation", fontsize=10.5)
+axS.set_title(r"The setting: a hidden low-rank reward $R=P\,U^\top$. From a partial, private view a robot "
+              "predicts unseen\npairs and even unseen targets, exactly when visible teammates cover them "
+              r"(Theorem 3)", fontsize=9.5)
+axS.set_ylim(ms_ - 0.5, -2.6)              # headroom above the matrix for the column callouts
+axS.annotate("unseen target,\nrecoverable", xy=(j_rec, -0.5), xytext=(j_rec - 1.5, -1.95),
+             fontsize=7.2, color="#6f42c1", ha="center", va="center",
+             arrowprops=dict(arrowstyle="->", color="#6f42c1", lw=1.2))
+axS.annotate("unseen target,\nnot identifiable", xy=(j_non, -0.5), xytext=(j_non + 1.3, -1.95),
+             fontsize=7.2, color="#b3541e", ha="center", va="center",
+             arrowprops=dict(arrowstyle="->", color="#b3541e", lw=1.2))
 
-leg = [mpatches.Patch(facecolor="none", edgecolor="#1f5fa8", lw=3, label="focal robot's full row (must act on all of it)"),
+leg = [mpatches.Patch(facecolor="none", edgecolor="#1f5fa8", lw=3, label="focal robot's full row (acts on all of it)"),
        mpatches.Patch(facecolor="none", edgecolor="#0a7d4d", lw=3, label="own clean engagement"),
        Line2D([0], [0], marker="o", linestyle="None", markerfacecolor="black", markeredgecolor="white",
               markersize=8, label="partial, per-observer-noisy view of a teammate"),
        mpatches.Patch(facecolor="#9aa3ad", alpha=0.6, hatch="//", edgecolor="none", label="teammate persistently masked"),
-       Line2D([0], [0], marker="$?$", linestyle="None", color="black", markersize=10,
-              label="unseen (robot, task) pair to predict")]
-axS.legend(handles=leg, loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=2, fontsize=8, frameon=False)
+       Line2D([0], [0], marker="$?$", linestyle="None", color="black", markersize=10, label="unseen (robot, task) pair"),
+       mpatches.Patch(facecolor="none", edgecolor="#6f42c1", lw=2.5, label="unseen target + pair, recoverable"),
+       mpatches.Patch(facecolor="none", edgecolor="#b3541e", lw=2.5, ls="--", label="unseen target, not identifiable")]
+axS.legend(handles=leg, loc="upper center", bbox_to_anchor=(0.5, -0.16), ncol=2, fontsize=7.5, frameon=False)
 cb = figS.colorbar(imS, ax=axS, fraction=0.025, pad=0.01); cb.set_label("reward (green good, red poor)", fontsize=8)
 figS.tight_layout(); save_fig("F20_setting")
 print("F20_setting  <- (conceptual)")

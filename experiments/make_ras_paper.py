@@ -259,10 +259,14 @@ A("<p>This channel is the formal counterpart of physical sensing: a robot percei
   "illustrates the setting.</p>")
 A("<figure>%s<figcaption><b>Figure 1.</b> The setting. The robot $\\times$ task reward is hidden and "
   "low-rank, $R=PU^\\top$ (capability traits $p_i$, requirement traits $u_j$). A focal robot (blue row) "
-  "must act on its <i>whole</i> row, including the many pairs it never engaged ('?'), using only its own "
-  "clean engagements (green), a partial and per-observer-noisy view of the teammates it can sense (dots; "
-  "greyed rows are persistently invisible to it), and no communication.</figcaption></figure>"
-  % img("F20_setting.png", "setting schematic"))
+  "must act on its <i>whole</i> row, including pairs it never engaged ('?'), using only its own clean "
+  "engagements (green), a partial, per-observer-noisy view of the teammates it can sense (dots; greyed "
+  "rows are persistently masked), and no communication. From this it recovers not only unseen pairs but "
+  "a <i>completely unseen target</i>: the purple column is recoverable because visible teammates engaged "
+  "it (so the focal robot's unseen pair there, purple cell, is predictable), whereas the orange-dashed "
+  "column has no visible engagers and stays non-identifiable, exactly the condition of Theorem "
+  "3.</figcaption></figure>"
+  % img("F20_setting.png", "setting schematic: unseen pairs and unseen targets"))
 A("<p><b>Objective and metric.</b> We measure decision quality by the normalized <b>skill</b> "
   "(a Murphy skill score [17] / normalized return),"
   "$$ \\mathrm{skill} \\;=\\; \\frac{\\text{earned} - \\text{random}}{\\text{oracle} - \\text{random}}, $$"

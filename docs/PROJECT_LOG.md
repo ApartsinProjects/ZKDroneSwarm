@@ -742,7 +742,15 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   Algorithm 3 updated). Replaced the "PettingZoo/Gymnasium" claims with "modular Python package" (the new
   package is plain, not PettingZoo). Regenerated F13 (only F13 churned) + HTML (848 KB); docx not rebuilt
   (HTML phase). OPEN: Figure 1 redesign (unseen target + unseen pair + identifiability); unit tests for
-  latentswarm; deprecate tabula_drone; finish the win/advantage voice pass. Per user instruction,
+  latentswarm; deprecate tabula_drone; finish the win/advantage voice pass.
+- Cycle 80 (Figure 1 redesign): redrew F20_setting to deliver the confirmed message. Beyond the focal
+  row's unseen pairs ('?'), it now shows (i) a COMPLETELY UNSEEN TARGET (a column the focal robot never
+  engaged) that is recoverable because visible teammates engaged it (purple column + purple focal cell =
+  the predictable unseen pair), and (ii) a second unseen-target column with NO visible engagers that
+  stays non-identifiable (orange dashed), i.e. the Theorem 3 condition. Column callouts moved above the
+  matrix to avoid the legend. Updated the Figure 1 caption to match. Regenerated F20 + HTML (870 KB);
+  docx not rebuilt. OPEN: unit tests for latentswarm; deprecate tabula_drone; finish the win/advantage
+  voice pass. Per user instruction,
   regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
   intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
   setting) was delivered to the user separately.
