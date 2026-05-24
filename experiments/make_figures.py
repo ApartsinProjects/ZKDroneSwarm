@@ -34,6 +34,14 @@ def ms(xs):
     return a.mean(), a.std()
 
 
+def bootci(vals, B=10000, seed=0):
+    """Bootstrap 95% CI of the mean: returns (mean, lo, hi)."""
+    a = np.asarray(vals, float)
+    rng = np.random.RandomState(seed)
+    bs = a[rng.randint(0, len(a), (B, len(a)))].mean(1)
+    return a.mean(), float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))
+
+
 # ---- F2: C11 unseen-pair under masking ----
 f = latest("results/pilots/c11_masking_*.json")
 if f:
@@ -100,9 +108,9 @@ if f:
     for nm, st in styles.items():
         if nm not in raw[str(rhos[0])]:
             continue
-        mu = [np.mean(raw[str(r)][nm]["unseen"]) for r in rhos]
-        sd = [np.std(raw[str(r)][nm]["unseen"]) for r in rhos]
-        plt.errorbar(rhos, mu, yerr=sd, capsize=2, markersize=5, **st)
+        ci = [bootci(raw[str(r)][nm]["unseen"]) for r in rhos]
+        mu = [c[0] for c in ci]; yerr = [[c[0] - c[1] for c in ci], [c[2] - c[0] for c in ci]]
+        plt.errorbar(rhos, mu, yerr=yerr, capsize=2, markersize=5, **st)
     plt.axhline(0, color="black", lw=0.8, ls=":")
     plt.gca().invert_xaxis()  # left = full broadcast, right = heavy masking
     plt.xlabel("broadcast rate  $\\rho$  (fraction of broadcast seen)")
@@ -130,9 +138,10 @@ if f:
         if nm not in raw[rho_key]:
             continue
         A = np.array(raw[rho_key][nm])           # (seeds, T)
-        mu = A.mean(0); sd = A.std(0)
+        cis = [bootci(A[:, t], B=2000) for t in range(A.shape[1])]
+        mu = np.array([c[0] for c in cis]); lo = np.array([c[1] for c in cis]); hi = np.array([c[2] for c in cis])
         plt.plot(rounds, mu, **st)
-        plt.fill_between(rounds, mu - sd, mu + sd, color=st.get("color"), alpha=0.12)
+        plt.fill_between(rounds, lo, hi, color=st.get("color"), alpha=0.12)
     plt.axhline(0, color="black", lw=0.8, ls=":")
     plt.axvline(int(0.4 * T), color="red", lw=0.8, ls=":", alpha=0.6)
     plt.text(int(0.4 * T) + 0.5, plt.ylim()[0] + 0.02, "probe-phase end\n(ESTR/SwarmCF-batch)",
@@ -648,9 +657,9 @@ if fc and fm:
     for nm in ["RewardCF", "PTF", "UCBIndep", "Tabular"]:
         if nm not in rawc[str(rhos[0])]:
             continue
-        mu = [np.mean(rawc[str(r)][nm]["unseen"]) for r in rhos]
-        sd = [np.std(rawc[str(r)][nm]["unseen"]) for r in rhos]
-        ax.errorbar(rhos, mu, yerr=sd, capsize=2, markersize=5, **sty[nm])
+        ci = [bootci(rawc[str(r)][nm]["unseen"]) for r in rhos]
+        mu = [c[0] for c in ci]; yerr = [[c[0] - c[1] for c in ci], [c[2] - c[0] for c in ci]]
+        ax.errorbar(rhos, mu, yerr=yerr, capsize=2, markersize=5, **sty[nm])
     ax.axhline(0, color="black", lw=0.7, ls=":")
     ax.set_xlabel("broadcast rate $\\rho$  (0 = isolated: each robot sees only its own outcomes)")
     ax.set_ylabel("unseen-pair skill")
@@ -661,9 +670,9 @@ if fc and fm:
     for nm in ["RewardCF", "PTF", "UCBIndep", "Tabular"]:
         if nm not in rawm[str(mssz[0])]:
             continue
-        mu = [np.mean(rawm[str(mm)][nm]["unseen"]) for mm in mssz]
-        sd = [np.std(rawm[str(mm)][nm]["unseen"]) for mm in mssz]
-        ax.errorbar(mssz, mu, yerr=sd, capsize=2, markersize=5, **sty[nm])
+        ci = [bootci(rawm[str(mm)][nm]["unseen"]) for mm in mssz]
+        mu = [c[0] for c in ci]; yerr = [[c[0] - c[1] for c in ci], [c[2] - c[0] for c in ci]]
+        ax.errorbar(mssz, mu, yerr=yerr, capsize=2, markersize=5, **sty[nm])
     ax.axhline(0, color="black", lw=0.7, ls=":")
     ax.set_xscale("log", base=2); ax.set_xticks(mssz); ax.set_xticklabels([str(mm) for mm in mssz])
     ax.set_xlabel("swarm size $m$  (fixed $n$, horizon $T$, broadcast rate $\\rho=0.5$)")
