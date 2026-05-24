@@ -133,10 +133,10 @@ only to normalize scores.
 
 ## Authors
 
-- **Alexander Apartsin** (corresponding author), Afeka Tel Aviv Academic College of
-  Engineering
+- **Alexander Apartsin**, Holon Institute of Technology
 - **Yigal Meshulam**, Afeka Tel Aviv Academic College of Engineering
-- **Yehudit Aperstein**, Afeka Tel Aviv Academic College of Engineering
+- **Yehudit Aperstein** (corresponding author), Afeka Tel Aviv Academic College of
+  Engineering
 
 ## License
 

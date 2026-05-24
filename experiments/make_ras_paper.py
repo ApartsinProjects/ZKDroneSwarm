@@ -67,9 +67,10 @@ A("<a class='docxlink' href='ras_paper.docx'>Download .docx</a>")
 A("<a class='followlink' href='ras_paper2.html'>Follow-up paper &#8599;</a>")
 A("<h1>Acting on the Unseen: Communication-Free Collaborative Filtering for Decentralized "
   "Multi-Robot Task Allocation</h1>")
-A("<p class='sub'>Alexander Apartsin<sup>a,&lowast;</sup>, Yigal Meshulam<sup>a</sup>, "
-  "Yehudit Aperstein<sup>a</sup><br>"
-  "<span class='small'><sup>a</sup>Afeka Tel Aviv Academic College of Engineering, Tel Aviv, Israel.&ensp;"
+A("<p class='sub'>Alexander Apartsin<sup>a</sup>, Yigal Meshulam<sup>b</sup>, "
+  "Yehudit Aperstein<sup>b,&lowast;</sup><br>"
+  "<span class='small'><sup>a</sup>Holon Institute of Technology, Holon, Israel.&ensp;"
+  "<sup>b</sup>Afeka Tel Aviv Academic College of Engineering, Tel Aviv, Israel.&ensp;"
   "<sup>&lowast;</sup>Corresponding author.</span></p>")
 
 A("<div class='hl'><b>Highlights</b><ul>"
@@ -97,8 +98,8 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "decentralized recovery from the masked broadcast is exact (validated empirically). Experiments quantify "
   "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and dominance "
   "over the other low-rank methods under limited observability, recovering most of a centralized "
-  "full-communication ceiling; the advantage also reproduces in a separate, independently-implemented "
-  "simulator that adds capacity-1 contention.</div>")
+  "full-communication ceiling; the advantage also reproduces in a separate implementation (the released "
+  "LatentSwarm package) that adds capacity-1 contention.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
   "filtering; low-rank matrix completion; communication-free coordination; multi-agent bandits; swarm "
   "robotics.</p>")
@@ -166,8 +167,8 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "<li>We quantify, on a robotics-grounded task-servicing mission, the <b>value of the broadcast</b>, a "
   "<b>positive scaling law</b> (per-robot competence rises with team size), and <b>dominance over the "
   "other low-rank methods</b> under limited observability, recovering most of a centralized full-communication "
-  "ceiling; and we show the advantage <b>reproduces in a separate, independently-implemented "
-  "simulator</b> with capacity-1 contention (Section 6).</li>"
+  "ceiling; and we show the advantage <b>reproduces in a separate implementation</b> (the LatentSwarm "
+  "package) with capacity-1 contention (Section 6).</li>"
   "<li>We release <b>LatentSwarm</b>, an open, modular Python package for ZK-MRTA, "
   "comprising the controlled analytical masked-broadcast harness used for our headline results and a "
   "contention-augmented environment (Section 6.5, Appendix E), so communication-free low-rank MRTA methods can be "
@@ -259,14 +260,10 @@ A("<p>This channel is the formal counterpart of physical sensing: a robot percei
   "illustrates the setting.</p>")
 A("<figure>%s<figcaption><b>Figure 1.</b> The setting. The robot $\\times$ task reward is hidden and "
   "low-rank, $R=PU^\\top$ (capability traits $p_i$, requirement traits $u_j$). A focal robot (blue row) "
-  "must act on its <i>whole</i> row, including pairs it never engaged ('?'), using only its own clean "
-  "engagements (green), a partial, per-observer-noisy view of the teammates it can sense (dots; greyed "
-  "rows are persistently masked), and no communication. From this it recovers not only unseen pairs but "
-  "a <i>completely unseen target</i>: the purple column is recoverable because visible teammates engaged "
-  "it (so the focal robot's unseen pair there, purple cell, is predictable), whereas the orange-dashed "
-  "column has no visible engagers and stays non-identifiable, exactly the condition of Theorem "
-  "3.</figcaption></figure>"
-  % img("F20_setting.png", "setting schematic: unseen pairs and unseen targets"))
+  "must act on its <i>whole</i> row, including the many pairs it never engaged ('?'), using only its own "
+  "clean engagements (green), a partial and per-observer-noisy view of the teammates it can sense (dots; "
+  "greyed rows are persistently invisible to it), and no communication.</figcaption></figure>"
+  % img("F20_setting.png", "setting schematic"))
 A("<p><b>Objective and metric.</b> We measure decision quality by the normalized <b>skill</b> "
   "(a Murphy skill score [17] / normalized return),"
   "$$ \\mathrm{skill} \\;=\\; \\frac{\\text{earned} - \\text{random}}{\\text{oracle} - \\text{random}}, $$"
@@ -330,7 +327,7 @@ A("<p>We formalize the separation between structure-free learning and SwarmCF, g
   "complexity, and state the conditions under which decentralized recovery from the masked broadcast "
   "succeeds. Proofs are in Appendix A; here we give the statements and the intuition. A learner is "
   "<b>structure-free</b> if its estimate of $R_{ij}$ depends only on robot $i$'s own past engagements of "
-  "task $j$ and equals a fixed prior on any task it never engaged (the per-arm class: independent UCB, "
+  "task $j$ and equals a fixed prior on any task it never engaged (the per-arm class: Independent-UCB, "
   "tabular).</p>")
 A("<div class='thm'><b>Proposition 1 (structure-free floor).</b> For a structure-free learner and any task "
   "$j$ that robot $i$ never engaged, the estimate is the prior constant, so its expected unseen-pair "
@@ -402,14 +399,14 @@ A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$,
 A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a controlled sweep across "
   "the low-rank design space against the genuinely external structure-free paradigm and "
   "full-information reference ceilings, not a contest of rival systems. SwarmCF is our method; structure-"
-  "free learners (independent UCB1 [45], tabular) are the external paradigm; standard low-rank estimators "
+  "free learners (Independent-UCB, a per-arm UCB1 [45]; tabular) are the external paradigm; standard low-rank estimators "
   "(online MF-SGD, batch spectral/Bayesian/convex completion) are adapted to the setting for the "
   "low-rank comparison; the Oracle and a centralized full-communication matcher are upper bounds, not "
   "competitors. We emphasize that communication-based methods (auctions/CBBA, CTDE training, "
   "federated/gossip CF) are <b>inadmissible by the problem definition</b>, not omitted: they require "
   "messages or a coordinator, which our setting forbids, so they can appear only as the centralized "
   "ceilings. The admissible communication-free competitors are exactly the structure-free learners "
-  "(independent UCB / tabular), which are the per-arm reductions of no-communication multiplayer-bandit "
+  "(Independent-UCB / tabular), which are the per-arm reductions of no-communication multiplayer-bandit "
   "methods. In our harness <b>every</b> method runs decentralized and communication-free (one estimator "
   "per robot); the low-rank methods differ only in the update rule. Table 2 fixes each method's operating "
   "profile.</p>")
@@ -422,27 +419,27 @@ A("<h3>6.1 The categorical separation and masking robustness</h3>")
 A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. SwarmCF acts well on "
   "tasks it never engaged at every broadcast rate, while the structure-free learners sit at the "
   "floor ($\\approx 0$) by construction, the categorical separation of Proposition 1 and Theorem 1. Among low-rank "
-  "methods, SwarmCF's online updates stay robust as the broadcast is masked, whereas batch spectral "
-  "completion (which imputes unobserved entries) decays; the two cross over near $\\rho\\approx 0.6$ and "
-  "batch leads only at full broadcast, where its one-shot factorization on a near-complete matrix is the "
+  "methods, SwarmCF's online updates stay robust as the broadcast is masked, whereas the batch variant "
+  "SwarmCF-batch (which imputes unobserved entries) decays; the two cross over near $\\rho\\approx 0.6$ and "
+  "it leads only at full broadcast, where its one-shot factorization on a near-complete matrix is the "
   "best case for completion. The operationally relevant regime, partial observation, is exactly where "
   "the online estimator leads.</p>")
 A("<figure>%s<figcaption><b>Figure 2.</b> Unseen-pair skill versus broadcast rate $\\rho$. Structure-"
   "free learners are pinned at the floor at every broadcast rate; SwarmCF acts on the "
-  "unseen throughout and is robust under masking, while batch spectral completion decays as observation "
+  "unseen throughout and is robust under masking, while the batch variant SwarmCF-batch decays as observation "
   "becomes partial.</figcaption></figure>" % img("F5_crossover.png", "categorical + masking"))
 
 A("<h3>6.2 The operational (anytime) separation</h3>")
 A("<p>Final-policy quality can overstate a method that explores cheaply. The operationally relevant measure "
   "is reward <i>earned while learning</i>. Figure 3 shows cumulative-reward skill over the mission: "
-  "SwarmCF earns from the first rounds. Per-arm UCB stays near the random floor: with $n\\gg T$ arms its "
+  "SwarmCF earns from the first rounds. Independent-UCB stays near the random floor: with $n\\gg T$ arms its "
   "optimism keeps it exploring untried tasks. Phase-structured low-rank methods pay an explore-then-commit "
   "penalty early. An $\\varepsilon$-greedy tabular learner does earn some reward by re-exploiting tasks it "
   "has already engaged (each task recurs in offers about $cT/n\\approx 4$ times here), but it stays well "
   "below SwarmCF and at the floor on unseen pairs (Table 3). The clean anytime collapse of Theorem 2 holds "
   "in the strict regime $cT=o(n)$; SwarmCF's early-earning advantage is broader, as seen here.</p>")
 A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill ($\\rho=0.25$). SwarmCF earns "
-  "from round one; explore-then-commit pays a probe phase; per-arm UCB stays near the random floor, while "
+  "from round one; explore-then-commit pays a probe phase; Independent-UCB stays near the random floor, while "
   "$\\varepsilon$-greedy tabular earns only by re-exploiting tasks it has already "
   "engaged.</figcaption></figure>" % img("F6_anytime.png", "anytime"))
 
@@ -471,11 +468,10 @@ A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen ski
 A("<h3>6.4 An operational mission and a centralized ceiling</h3>")
 A("<p>Framed as a target-servicing / dispatch mission (still the analytical harness of Section 3, reframed), latent factors are robot capability traits and "
   "task requirement traits, each robot repeatedly services an offered target under range-limited, "
-  "distance-noisy sensing, SwarmCF on the same servicing-skill metric exceeds every external low-rank "
-  "method and our batch variant SwarmCF-batch under limited observability ($\\rho=0.25$): "
-  "$\\approx 0.35$ versus the best external alternative "
-  "$\\approx 0.29$ with non-overlapping intervals, while structure-free learners sit at the random-"
-  "dispatch floor (the same categorical separation as Figures 2-3, in operational form). To bound the "
+  "distance-noisy sensing, SwarmCF on the servicing-skill metric leads every external low-rank "
+  "method and our batch variant SwarmCF-batch under limited observability ($\\rho=0.25$; the "
+  "consolidated comparison is Table 3), while structure-free learners sit at the random-dispatch floor "
+  "(the same categorical separation as Figures 2-3, in operational form). To bound the "
   "cost of our constraints we add two reference ceilings (not "
   "competitors): a centralized full-communication matcher with Hungarian assignment [47] (optimal "
   "one-to-one robot-task matching), and the same "
@@ -490,13 +486,13 @@ A("<p>Table 3 consolidates the comparison on the canonical masked harness.</p>")
 A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical masked harness.</p>")
 A(mp.html_scorecard(ROOT))
 
-A("<h3>6.5 Robustness and an independent implementation with contention</h3>")
+A("<h3>6.5 Robustness and a separate implementation with contention</h3>")
 A("<p><b>Beyond one configuration.</b> The separation is structural rather than tuned: it follows from "
   "the three scope conditions stated below (an exploitable low-rank-but-personalized reward, task "
   "scarcity, and a shared channel), not from any particular team size or task count, and we observe the "
   "same pattern across $m$, $n$, $d$, and heterogeneity in additional sweeps. We then re-run the "
   "comparison in an <i>independent</i> implementation, the <i>LatentSwarm</i> simulator, reported next.</p>")
-A("<p><b>An independent implementation with contention (LatentSwarm).</b> The results so far use the "
+A("<p><b>A separate implementation with contention (LatentSwarm).</b> The results so far use the "
   "analytical harness that instantiates the model of Section 3 directly. To check they are not an "
   "artifact of that one implementation, we re-run the comparison in our <b>LatentSwarm</b> package, a "
   "separate, modular multi-robot environment whose dynamics "
@@ -518,9 +514,9 @@ A("<p><b>An independent implementation with contention (LatentSwarm).</b> The re
   "straddling zero), the Proposition 1 separation reproduced in independent code. The remaining gap to "
   "the centralized ceiling is the price of un-de-conflicted contention (the de-confliction refinement "
   "deferred to Section 7), not of estimation: both the categorical advantage and the lead over MF-SGD "
-  "survive an independent implementation and a contention stressor the analytical model does not "
+  "survive a separate implementation and a contention stressor the analytical model does not "
   "contain (Figure 5).</p>")
-A("<figure>%s<figcaption><b>Figure 5.</b> <b>LatentSwarm</b>, an independent implementation of the "
+A("<figure>%s<figcaption><b>Figure 5.</b> <b>LatentSwarm</b>, a separate implementation of the "
   "Section 3 setting (signed low-rank reward, persistent partial and private "
   "broadcast, task scarcity) that adds capacity-1 contention. Left: earned (anytime) skill, SwarmCF best "
   "among learners and far above the structure-free floor (independent-UCB goes negative under "
@@ -777,13 +773,13 @@ A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robot
 
 A("<h2>Appendix E. The LatentSwarm environment</h2>")
 A("<p class='small'>The LatentSwarm <b>package</b> (a modular, pip-installable Python package) is the "
-  "independent implementation used in Section 6.5. Its components are registered by name and selected by "
+  "separate implementation used in Section 6.5. Its components are registered by name and selected by "
   "configuration: scenario builders (latent-trait generation), the environment, the policy library, the "
   "metrics, and the visualizations are separate pluggable modules, so a study is fully specified by one "
   "configuration object. Its dynamics were written independently of the collaborative-filtering code; it "
   "uses the Section 3 reward and observation model and adds capacity-1 contention, and SwarmCF enters "
   "only as one drop-in policy among the package's own (random, Hungarian oracle, MF-SGD, "
-  "independent UCB).</p>")
+  "Independent-UCB).</p>")
 A("<p class='small'><b>Traits and reward.</b> Each robot $i$ and task $j$ is assigned a hidden "
   "$d$-dimensional trait vector ($p_i$, $u_j$) drawn from a shared signed Gaussian mixture over $K$ "
   "latent types (a block model), so the robot$\\times$task reward is low-rank of rank $d$, exactly as in "

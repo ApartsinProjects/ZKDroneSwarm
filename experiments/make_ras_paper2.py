@@ -71,9 +71,10 @@ A("<a class='docxlink' href='ras_paper2.docx'>Download .docx</a>")
 A("<h1>Refinements of Communication-Free Collaborative Filtering for Decentralized "
   "Multi-Robot Task Allocation: confidence, contention, rank, and beyond</h1>")
 A("<p class='sub'>Follow-up to &ldquo;Acting on the Unseen&rdquo;.<br>"
-  "Alexander Apartsin<sup>a,&lowast;</sup>, Yigal Meshulam<sup>a</sup>, "
-  "Yehudit Aperstein<sup>a</sup><br>"
-  "<span class='small'><sup>a</sup>Afeka Tel Aviv Academic College of Engineering, Tel Aviv, Israel.&ensp;"
+  "Alexander Apartsin<sup>a</sup>, Yigal Meshulam<sup>b</sup>, "
+  "Yehudit Aperstein<sup>b,&lowast;</sup><br>"
+  "<span class='small'><sup>a</sup>Holon Institute of Technology, Holon, Israel.&ensp;"
+  "<sup>b</sup>Afeka Tel Aviv Academic College of Engineering, Tel Aviv, Israel.&ensp;"
   "<sup>&lowast;</sup>Corresponding author.</span></p>")
 
 A("<div class='hl'><b>This is a draft follow-up paper.</b> It builds on the companion paper, which "

@@ -767,7 +767,26 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   line" -> "in brief", and grounded "the swarm gets smarter as it grows" -> "per-robot competence
   rises with team size" (highlights, abstract, Section 6.3). Regenerated HTML (870 KB); docx still not
   rebuilt (HTML phase). The latentswarm rebuild + paper integration the user requested is now complete
-  end to end (package + tests + Section 3/6.5/Appendix E + Figures 1, 5, 6 + README + deprecation). Per user instruction,
+  end to end (package + tests + Section 3/6.5/Appendix E + Figures 1, 5, 6 + README + deprecation).
+- Cycle 83 (author/affiliation update, Figure 1 revert, "independent" wording, review fixes): per the
+  user: (1) Alexander Apartsin's affiliation -> Holon Institute of Technology (now two affiliations: HIT
+  for Apartsin, Afeka for Meshulam + Aperstein), and Yehudit Aperstein is the corresponding author
+  (moved the asterisk); applied to ras_paper, ras_paper2, README. (2) Reverted Figure 1 to the previous
+  (cleaner) schematic per the user (git checkout of make_figures.py F20 block from 2173f8f, keeping the
+  newer F13; reverted the caption). (3) "independent implementation" -> "separate implementation"
+  throughout (the user asked what it meant: a second, separately-coded implementation of the same
+  setting whose env is written independently of the SwarmCF method, NOT third-party external validation;
+  both are ours). A background review agent (correctness/consistency/clarity + structure) flagged real
+  issues; fixed: Section 6.4 "best external alternative ~0.29" was actually our SwarmCF-batch, not an
+  external method, so removed the unsupported/mislabeled 0.29 + "non-overlapping intervals" and deferred
+  to Table 3; standardized the UCB baseline name to "Independent-UCB" (was named 5 ways); named the
+  Figure 2 crossover method SwarmCF-batch (was ambiguous "batch spectral completion"). The agent's
+  "Figure 6 should be 16 seeds" flag was a false alarm (the rank sweep legitimately uses 8 seeds, the
+  main LatentSwarm run uses 16). Regenerated figures + both papers; docx still not rebuilt (HTML phase).
+  RECOMMENDED but NOT yet done (needs the user's nod, involves figure renumbering): split the overloaded
+  Section 6.5 into 6.5 Robustness (scope + rank, Fig) and 6.6 the LatentSwarm separate implementation
+  (Fig). Low-priority remaining: add SoftImpute row to Table 3 or note its omission; gloss ESTR/BPMF at
+  first use. Per user instruction,
   regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
   intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
   setting) was delivered to the user separately.
