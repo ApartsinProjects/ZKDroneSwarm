@@ -107,12 +107,12 @@ def test_swarmcf_beats_random_smoke():
 
 def test_baselines_registered_and_run():
     """The ported baselines register and obey the predict_rows contract (None for structure-free)."""
-    assert {"tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club", "bias_model"} <= set(ALGORITHMS)
+    assert {"tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club", "knn_cf", "soft_impute", "bias_model"} <= set(ALGORITHMS)
     cfg = _cfg(m=8, n=20, d=5, T=10, scenario="block_cosine", n_types=5, jitter=0.15,
                offer_size=20, rank_guess=6, rho=0.5, sigma_own=0.10, sigma_obs=0.30)
     P, U = build_scenario(cfg, np.random.RandomState(0)).generate()
     structure_free = {"tabular", "ucb_homo"}
-    for name in ["tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club", "bias_model"]:
+    for name in ["tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club", "knn_cf", "soft_impute", "bias_model"]:
         env = ZKMRTAEnv(cfg, P, U, 6, seed=0)
         pol = get(ALGORITHMS, name)(cfg, cfg.m, cfg.n, 6, seed=7)
         per_round, engaged = run_mission(env, pol, cfg.T)

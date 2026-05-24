@@ -80,6 +80,8 @@ class RunConfig:
     bpmf_prior_var: float = 1.0     # BPMF factor prior variance (precision = 1/prior_var)
     club_sim_thresh: float = 0.4    # CLUB hard-clustering threshold (mean-centered cosine over co-observed targets)
     club_min_co: int = 3            # CLUB min co-observed targets before a teammate can join the cluster
+    softimpute_sweeps: int = 15     # SoftImpute inner SVD-softthreshold sweeps per refit (analytical harness used 20)
+    softimpute_refit_every: int = 5  # rounds between SoftImpute refits (SVD is the per-refit cost)
 
     # --- refinements.py: the SwarmCF-* family (follow-up paper) ----------------------------------
     # All knobs default to the prototype settings (experiments/pilot_noise.py); ported faithfully.

@@ -24,13 +24,20 @@ Ported policies:
   bpmf           Bayesian PMF (per-robot conjugate posterior, Thompson-sampled selection).
   club           Clustering of Bandits (Gentile et al. 2014), decentralized: per-robot hard
                  clustering of similar teammates, pool cluster-mates' observations to predict.
+  knn_cf         memory-based user-user collaborative filtering: predict via a mean-centered-cosine
+                 similarity-weighted average of teammates' observed rewards (model-free, no rank).
+  soft_impute    convex nuclear-norm completion (Mazumder et al.): fill-observed -> SVD -> soft-threshold
+                 the singular values, completing each robot's broadcast view to about rank d_hat.
   bias_model     additive popularity r_ij ~ mu + b_i + c_j (rank <= 2; no personalized interaction).
 
-The generalizing ones (estr, swarmcf_batch, bpmf, club, bias_model) return a completed [m, n] from
-predict_rows; the structure-free ones (tabular, ucb_homo) return None (the unseen-pair floor by
-construction). club is the DISCRETE-clustering control (transfers across teammates via hard clusters
-rather than continuous low-rank factors), and bias_model is the ADDITIVE control (popularity only, no
-personalized interaction); together they are the "is continuous low-rank special?" comparisons.
+The generalizing ones (estr, swarmcf_batch, bpmf, club, knn_cf, soft_impute, bias_model) return a
+completed [m, n] from predict_rows; the structure-free ones (tabular, ucb_homo) return None (the
+unseen-pair floor by construction). club is the DISCRETE-clustering control (transfers across teammates
+via hard clusters rather than continuous low-rank factors), knn_cf is the MODEL-FREE CF control
+(neighborhood transfer without explicit factorization), soft_impute is the CONVEX-completion control
+(nuclear-norm relaxation rather than the non-convex ALS / hard-SVD low-rank methods), and bias_model is
+the ADDITIVE control (popularity only, no personalized interaction); together they are the "is continuous
+low-rank special?" comparisons.
 """
 import warnings
 
@@ -427,6 +434,152 @@ class CLUB(Policy):
 
     def predict_rows(self):
         return np.stack([self._cluster_pred(i) for i in range(self.m)])
+
+
+@algorithm("knn_cf")
+class KNNCF(Policy):
+    """Memory-based collaborative filtering (user-user kNN-CF). Predict robot i's reward on task j as
+    a similarity-weighted average of OTHER robots' observed rewards on j, with similarity = mean-centered
+    cosine over the tasks they co-observed. It is MODEL-FREE (no factorization, no rank guess, no latent
+    model): the recognized neighborhood-CF paradigm rather than an ours-only baseline. DECENTRALIZED and
+    ZK-faithful: each robot uses only its OWN private broadcast view (the [teammate k, task j] empirical
+    means from what it personally saw), with no central coordinator. MATCHED information budget: it
+    consumes exactly the same passive broadcast as the low-rank methods (swarm_cf, mf_sgd, estr), not a
+    privileged channel. It generalizes to a task robot i never engaged iff a SIMILAR teammate observed it,
+    so it lifts ABOVE the structure-free floor (tabular / ucb_indep, which are ~0 on unseen pairs); it is
+    the model-free counterpart to the low-rank methods (it tests whether explicit factorization is needed
+    to share structure, or whether a non-parametric neighborhood already captures it). Faithful port of
+    experiments/pilot_baselines.KNNCF; here one Policy object holds all m robots' accumulators (sum/cnt are
+    [observer i, teammate k, task j])."""
+    name = "knn_cf"
+
+    def __init__(self, cfg, m, n, d_guess, seed=0):
+        super().__init__(cfg, m, n, d_guess, seed)
+        self.eps = cfg.epsilon
+        self.sum = np.zeros((m, m, n))   # sum[i, k, j]: observer i's reading sum of teammate k on task j
+        self.cnt = np.zeros((m, m, n))
+
+    def observe(self, obs):
+        for i in range(self.m):
+            sel, rew = obs[i]["sel"], obs[i]["rew"]
+            for k in range(self.m):
+                j = sel[k]
+                if j != NO_OP:
+                    self.sum[i, k, j] += float(rew[k]); self.cnt[i, k, j] += 1
+
+    def _knn_pred(self, i):
+        """Observer i's predicted reward over all n tasks via the user-user kNN-CF rule (mirrors
+        pilot_baselines.KNNCF.predict_scores, with self.idx -> i and self.sum/cnt -> self.sum[i]/cnt[i])."""
+        Si, Ci = self.sum[i], self.cnt[i]                 # (m, n) from observer i's private view
+        obs = (Ci > 0).astype(float)
+        vals = np.where(Ci > 0, Si / np.maximum(Ci, 1), 0.0)
+        rc = obs.sum(1)
+        rowmean = np.where(rc > 0, (vals * obs).sum(1) / np.maximum(rc, 1), 0.0)
+        V = (vals - rowmean[:, None]) * obs               # mean-centered, 0 where unobserved
+        vi = V[i]
+        num = V @ vi
+        den = np.sqrt((V ** 2).sum(1) * (vi ** 2).sum()) + 1e-9
+        sim = num / den; sim[i] = 0.0
+        w = np.clip(sim, 0, None)[:, None] * obs          # nonneg-similarity weights where observed
+        pred = (w * (vals - rowmean[:, None])).sum(0) / np.maximum(w.sum(0), 1e-9) + rowmean[i]
+        return pred
+
+    def act(self, obs):
+        a = np.full(self.m, NO_OP, dtype=int)
+        for i in range(self.m):
+            off = self._offered(obs[i])
+            if not off.size:
+                continue
+            if self.rng.random() < self.eps:
+                a[i] = int(self.rng.choice(off))
+            else:
+                pred = self._knn_pred(i)
+                a[i] = int(off[int(np.argmax(pred[off]))])
+        self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
+        return a
+
+    def predict_rows(self):
+        return np.stack([self._knn_pred(i) for i in range(self.m)])
+
+
+@algorithm("soft_impute")
+class SoftImpute(Policy):
+    """Convex nuclear-norm matrix completion (Mazumder-Hastie-Tibshirani): iterate fill-observed ->
+    SVD -> SOFT-threshold the singular values, completing each robot's broadcast view to about rank
+    d_hat. It is a CONVEX-relaxation completer (soft-thresholded SVD), distinct from the non-convex
+    ALS / hard-SVD low-rank methods (swarm_cf, mf_sgd, estr): the recognized convex-completion paradigm
+    rather than an ours-only baseline. DECENTRALIZED and ZK-faithful: each robot completes its OWN
+    private (m, n) broadcast view (the [teammate k, task j] empirical means from what it personally saw),
+    with no central coordinator. MATCHED information budget: it consumes exactly the same passive
+    broadcast as the low-rank methods, not a privileged channel. It generalizes to a task robot i never
+    engaged via the completed low-rank structure, so it lifts ABOVE the structure-free floor (tabular /
+    ucb_indep, which are ~0 on unseen pairs). The SVD is the per-refit cost, so the completion is refit
+    only every cfg.softimpute_refit_every observe-steps. Faithful port of
+    experiments/pilot_baselines.SoftImpute; here one Policy object holds all m robots' accumulators
+    (sum/cnt are [observer i, teammate k, task j]) and each observer i keeps its own completed matrix
+    self.M[i] of shape (m, n)."""
+    name = "soft_impute"
+
+    def __init__(self, cfg, m, n, d_guess, seed=0):
+        super().__init__(cfg, m, n, d_guess, seed)
+        self.eps = cfg.epsilon
+        self.sum = np.zeros((m, m, n))   # sum[i, k, j]: observer i's reading sum of teammate k on task j
+        self.cnt = np.zeros((m, m, n))
+        self.M = np.zeros((m, m, n))     # observer i's completed (m, n) matrix is self.M[i]
+        self.step = 0
+
+    def observe(self, obs):
+        for i in range(self.m):
+            sel, rew = obs[i]["sel"], obs[i]["rew"]
+            for k in range(self.m):
+                j = sel[k]
+                if j != NO_OP:
+                    self.sum[i, k, j] += float(rew[k]); self.cnt[i, k, j] += 1
+        self.step += 1
+        if self.step % self.cfg.softimpute_refit_every == 0:
+            self._impute_all()
+
+    def _impute_one(self, i):
+        """SoftImpute iteration on observer i's private view (mirrors pilot_baselines.SoftImpute._impute,
+        with self.idx -> i and self.sum/cnt/M -> self.sum[i]/cnt[i]/M[i])."""
+        obs = self.cnt[i] > 0
+        if not obs.any():
+            return
+        R = np.where(obs, self.sum[i] / np.maximum(self.cnt[i], 1), 0.0)   # (m, n) observed empirical means
+        X = self.M[i].copy()                                              # warm-start from the previous completion
+        lam = None
+        for _ in range(self.cfg.softimpute_sweeps):
+            Z = np.where(obs, R, X)
+            try:
+                U, S, Vt = np.linalg.svd(Z, full_matrices=False)
+            except np.linalg.LinAlgError:
+                return
+            if lam is None:                                  # threshold ~ keep about d_hat comps
+                lam = S[self.d] if len(S) > self.d else 0.0
+            S2 = np.maximum(S - lam, 0.0)
+            X = (U * S2) @ Vt
+        self.M[i] = X
+
+    def _impute_all(self):
+        for i in range(self.m):
+            self._impute_one(i)
+
+    def act(self, obs):
+        a = np.full(self.m, NO_OP, dtype=int)
+        for i in range(self.m):
+            off = self._offered(obs[i])
+            if not off.size:
+                continue
+            if self.rng.random() < self.eps:
+                a[i] = int(self.rng.choice(off))
+            else:
+                pred = self.M[i][i]                          # observer i's own completed row over the n tasks
+                a[i] = int(off[int(np.argmax(pred[off]))])
+        self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
+        return a
+
+    def predict_rows(self):
+        return np.stack([self.M[i][i] for i in range(self.m)])
 
 
 @algorithm("bias_model")

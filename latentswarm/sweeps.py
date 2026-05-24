@@ -58,6 +58,8 @@ PKG2KEY = {
     "ucb_homo": "UCBHomo",
     "tabular": "Tabular",
     "club": "CLUB",                 # clustering-of-bandits (discrete-clustering control)
+    "knn_cf": "KNNCF",              # memory-based user-user CF (model-free control)
+    "soft_impute": "SoftImpute",    # convex nuclear-norm completion (convex-completion control)
     "bias_model": "BiasModel",      # additive popularity (rank<=2 control)
     "random": "Random",
     # SwarmCF-* refinement family (follow-up paper); keys match method_profiles.FAMILY code names
@@ -202,12 +204,12 @@ def base_config(smoke=False, **over) -> RunConfig:
 # canonical comparison sets -- CLUB and BiasModel are in every figure/table (the discrete-clustering
 # and additive-popularity controls); RewardCF (=SwarmCF) is ours.
 _BAKEOFF_METHODS = ["random", "ucb_indep", "ucb_homo", "tabular", "mf_sgd", "estr",
-                    "swarmcf_batch", "bpmf", "club", "bias_model", "swarm_cf"]
-_CROSSOVER_METHODS = ["ucb_indep", "tabular", "mf_sgd", "estr", "bpmf", "club", "bias_model",
-                      "swarmcf_batch", "swarm_cf"]
+                    "swarmcf_batch", "bpmf", "club", "knn_cf", "soft_impute", "bias_model", "swarm_cf"]
+_CROSSOVER_METHODS = ["ucb_indep", "tabular", "mf_sgd", "estr", "bpmf", "club", "knn_cf", "soft_impute",
+                      "bias_model", "swarmcf_batch", "swarm_cf"]
 _ANYTIME_METHODS = ["random", "ucb_indep", "tabular", "mf_sgd", "estr", "bpmf", "club",
-                    "bias_model", "swarmcf_batch", "swarm_cf"]
-_COLLAB_METHODS = ["swarm_cf", "swarmcf_batch", "club", "bias_model", "ucb_indep", "tabular"]
+                    "knn_cf", "soft_impute", "bias_model", "swarmcf_batch", "swarm_cf"]
+_COLLAB_METHODS = ["swarm_cf", "swarmcf_batch", "club", "knn_cf", "soft_impute", "bias_model", "ucb_indep", "tabular"]
 _RHOS = [1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.15, 0.1]
 
 

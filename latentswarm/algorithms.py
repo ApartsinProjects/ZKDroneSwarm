@@ -209,3 +209,45 @@ class SwarmCFRand(SwarmCF):
                 a[i] = int(self.rng.choice(near))                     # randomized greedy (de-conflict)
         self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
         return a
+
+
+@algorithm("comm_cf")
+class CommCF(SwarmCF):
+    """Communication-COORDINATED SwarmCF: a PARTIAL-COMMUNICATION reference point, NOT a
+    communication-free policy and NOT part of the paper's contribution. It uses the identical online
+    ALS estimator, learning, and eps-greedy exploration as SwarmCF, but within each round the robots
+    exchange a single coordination message (their intended claim) and resolve capacity-1 contention by
+    sequential greedy assignment: in a random priority order each robot takes its highest-scored
+    OFFERED task not already claimed this round (explore picks a random UNCLAIMED offered task). This
+    costs O(m) messages per round (one task id per robot) and removes within-round collisions by
+    construction. Its only purpose is to decompose the gap to the centralized full-communication
+    ceiling (Section 6.4): communication-free SwarmCF loses to BOTH imperfect estimation and
+    collisions, this coordinated variant loses only to estimation (collisions removed by a minimal
+    message budget), and the Hungarian ceiling has neither. It is therefore a point BETWEEN the
+    communication-free regime and the full-communication ceiling, deliberately kept out of the
+    communication-free bake-off comparisons."""
+    name = "comm_cf"
+
+    def act(self, obs):
+        a = np.full(self.m, NO_OP, dtype=int)
+        claimed = set()
+        for i in self.rng.permutation(self.m):       # random priority order = one coordination round
+            off = self._offered(obs[i])
+            if not off.size:
+                continue
+            if self.rng.random() < self.eps:
+                avail = [int(j) for j in off.tolist() if int(j) not in claimed]
+                if not avail:
+                    continue
+                a[i] = int(self.rng.choice(avail))                   # explore an UNCLAIMED task
+            else:
+                scores = self.P[i][i] @ self.U[i][off].T
+                for idx in np.argsort(-scores):                      # highest-scored UNCLAIMED task
+                    j = int(off[idx])
+                    if j not in claimed:
+                        a[i] = j
+                        break
+            if a[i] != NO_OP:
+                claimed.add(int(a[i]))
+        self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
+        return a

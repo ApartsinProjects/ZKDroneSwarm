@@ -26,7 +26,7 @@ from latentswarm.env import ZKMRTAEnv
 from latentswarm.metrics import hungarian_oracle_per_step, EarnedSkill, bootstrap_ci
 from _results_io import save_results
 
-ALGOS = ["random", "ucb_indep", "mf_sgd", "club", "bias_model", "swarm_cf"]
+ALGOS = ["random", "ucb_indep", "mf_sgd", "club", "knn_cf", "bias_model", "swarm_cf"]
 OFFERS = [0, 20]                       # 0 = all tasks (default); 20 = size-c menu
 SEEDS = list(range(16))
 

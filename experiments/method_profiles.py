@@ -223,7 +223,7 @@ def _ci(xs, B=5000, seed=0):
 
 
 # scorecard method order (grouped by provenance), restricted to the masked-harness family
-SCORE_ORDER = ["RewardCF", "PTF", "MFSGD", "BPMF", "ESTR", "CLUB", "BiasModel",
+SCORE_ORDER = ["RewardCF", "PTF", "MFSGD", "BPMF", "ESTR", "CLUB", "KNNCF", "SoftImpute", "BiasModel",
                "UCBIndep", "Tabular", "Random"]
 
 

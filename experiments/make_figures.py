@@ -412,11 +412,12 @@ if f:
 f = "results/pilots/latentswarm_main.json"
 if os.path.exists(f):
     d = json.load(open(f)); esk = d["earned"]; usk = d["unseen"]
-    order = ["random", "ucb_indep", "mf_sgd", "bias_model", "club", "swarm_cf", "oracle"]
+    order = ["random", "ucb_indep", "mf_sgd", "bias_model", "club", "knn_cf", "soft_impute", "swarm_cf", "oracle"]
     lab = {"random": "Random", "ucb_indep": "Independent-UCB", "mf_sgd": "MF-SGD",
-           "bias_model": "BiasModel", "club": "CLUB", "swarm_cf": "SwarmCF (ours)", "oracle": "Oracle"}
+           "bias_model": "BiasModel", "club": "CLUB", "knn_cf": "kNN-CF", "soft_impute": "SoftImpute",
+           "swarm_cf": "SwarmCF (ours)", "oracle": "Oracle"}
     col = {"random": "gray", "ucb_indep": "C4", "mf_sgd": "C3", "bias_model": "C5",
-           "club": "C1", "swarm_cf": "C2", "oracle": "k"}
+           "club": "C1", "knn_cf": "C6", "soft_impute": "C8", "swarm_cf": "C2", "oracle": "k"}
 
     def _boot(xs, B=5000):
         a = np.asarray([x for x in xs if x is not None], float)
@@ -453,11 +454,12 @@ if os.path.exists(f):
 f = latest("results/pilots/latentswarm_contention_*.json")
 if f:
     d = json.load(open(f)); raw = d["raw"]; offers = d["meta"]["offers"]
-    PRETTY = {"swarm_cf": "SwarmCF", "mf_sgd": "MF-SGD", "club": "CLUB",
-              "ucb_indep": "Independent-UCB", "random": "Random"}
-    COL = {"swarm_cf": "C0", "mf_sgd": "C1", "club": "C4", "ucb_indep": "C7", "random": "C3"}
+    PRETTY = {"swarm_cf": "SwarmCF", "mf_sgd": "MF-SGD", "club": "CLUB", "knn_cf": "kNN-CF",
+              "soft_impute": "SoftImpute", "ucb_indep": "Independent-UCB", "random": "Random"}
+    COL = {"swarm_cf": "C0", "mf_sgd": "C1", "club": "C4", "knn_cf": "C6", "soft_impute": "C8",
+           "ucb_indep": "C7", "random": "C3"}
     o0 = "0" if 0 in offers else str(offers[0])
-    algos = [a for a in ["swarm_cf", "mf_sgd", "club", "ucb_indep", "random"] if a in raw[o0]]
+    algos = [a for a in ["swarm_cf", "mf_sgd", "club", "knn_cf", "soft_impute", "ucb_indep", "random"] if a in raw[o0]]
     fig, ax = plt.subplots(1, 2, figsize=(11, 4))
     # (a) earned-vs-collision frontier at the all-tasks menu (offer=0)
     for a in algos:
@@ -532,10 +534,10 @@ if _small_c is not None and _cn_x4 is not None and _cn_x4 >= 200:
 f = latest("results/pilots/latentswarm_grounded_*.json")
 if f:
     d = json.load(open(f)); summ = d["summary"]
-    order = ["swarm_cf", "club", "mf_sgd", "bias_model", "ucb_indep", "random", "oracle"]
-    PRETTY = {"swarm_cf": "SwarmCF", "club": "CLUB", "mf_sgd": "MF-SGD", "bias_model": "BiasModel",
-              "ucb_indep": "Indep-UCB", "random": "Random", "oracle": "Oracle"}
-    COL = {"swarm_cf": "C0", "club": "C4", "mf_sgd": "C1", "bias_model": "C5",
+    order = ["swarm_cf", "club", "knn_cf", "soft_impute", "mf_sgd", "bias_model", "ucb_indep", "random", "oracle"]
+    PRETTY = {"swarm_cf": "SwarmCF", "club": "CLUB", "knn_cf": "kNN-CF", "soft_impute": "SoftImpute",
+              "mf_sgd": "MF-SGD", "bias_model": "BiasModel", "ucb_indep": "Indep-UCB", "random": "Random", "oracle": "Oracle"}
+    COL = {"swarm_cf": "C0", "club": "C4", "knn_cf": "C6", "soft_impute": "C8", "mf_sgd": "C1", "bias_model": "C5",
            "ucb_indep": "C7", "random": "C3", "oracle": "C2"}
     algos = [a for a in order if a in summ]
     fig, ax = plt.subplots(1, 3, figsize=(13.5, 4))

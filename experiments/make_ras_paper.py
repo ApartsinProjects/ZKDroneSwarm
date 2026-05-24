@@ -510,11 +510,19 @@ A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a
   "competitors. We emphasize that communication-based methods (auctions/CBBA, CTDE training, "
   "federated/gossip CF) are <b>inadmissible by the problem definition</b>, not omitted: they require "
   "messages or a coordinator, which our setting forbids, so they can appear only as the centralized "
-  "ceilings. The admissible communication-free baselines are exactly the structure-free learners "
-  "(Independent-UCB / tabular), which are the per-arm reductions of no-communication multiplayer-bandit "
-  "methods. In our harness <b>every</b> method runs decentralized and communication-free (one estimator "
-  "per robot); the low-rank methods differ only in the update rule. Table 2 fixes each method's operating "
-  "profile.</p>")
+  "ceilings. The obvious decentralized candidates moreover reduce, once throttled to the "
+  "communication-free passive-observation budget, to baselines already in the suite: a gossip or "
+  "decentralized matrix-completion method without its message-passing is per-robot local low-rank "
+  "completion, exactly our MF-SGD and PTF (and SwarmCF is its online-ALS member); and a clustered-bandit "
+  "method that needs a prior similarity graph (Gang-of-Bandits style) is inadmissible, so its "
+  "data-driven successor CLUB, which learns its clusters from the broadcast alone, is the admissible "
+  "representative of that family. The remaining admissible communication-free baselines are the "
+  "structure-free learners (Independent-UCB / tabular), the per-arm reductions of no-communication "
+  "multiplayer-bandit methods. Two further recognized structure-sharing baselines, memory-based kNN "
+  "collaborative filtering and convex nuclear-norm completion (SoftImpute), are added and evaluated "
+  "across trait distributions in Appendix G. In our harness <b>every</b> method runs decentralized and "
+  "communication-free (one estimator per robot); the low-rank methods differ only in the update rule. "
+  "Table 2 fixes each method's operating profile.</p>")
 A("<p class='small'><b>Table 2.</b> Operating profiles of the methods compared; SwarmCF-family "
   "refinements are deferred to future work (column abbreviations are defined in the key).</p>")
 A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "CLUB", "BiasModel",
@@ -641,7 +649,7 @@ A("<figure>%s<figcaption><b>Figure 5.</b> The categorical separation under capac
   "leads, CLUB second, the structure-free learners at the floor. Bars are means with bootstrap 95%% CIs "
   "over 16 seeds; the oracle is the centralized capacity-1 (Hungarian) matching.</figcaption></figure>"
   % img("F13_realsim.png", "categorical separation under capacity-1 contention"))
-A("<p><b>(b) Why coordination is the binding constraint, and how SwarmCF already mitigates it.</b> Because "
+A("<p><b>(b) The coordination gap, and how SwarmCF already mitigates it.</b> Because "
   "the all-tasks menu offers every robot the same full set, greedy policies tend to converge on the same "
   "few high-value tasks and collide. The effect is stark (Figure 6): the structure-free independent-UCB "
   "learner collides on almost every engagement (collision rate $\\approx 0.97$) and earns essentially "
@@ -649,11 +657,20 @@ A("<p><b>(b) Why coordination is the binding constraint, and how SwarmCF already
   "models send different robots to different tasks, an implicit de-confliction that emerges from the "
   "personalized low-rank estimate with no message passing. Restricting the offer to a size-$c$ menu "
   "reduces collisions for every method (independent-UCB from $0.97$ to $0.25$), one reason the body uses a "
-  "size-$c$ menu. Closing the remaining coordination gap calls for explicit communication-free "
-  "de-confliction. We leave a systematic study to a follow-up, where candidate communication-free "
-  "mechanisms (for example fixed private per-robot offsets, or randomized near-best action selection that "
-  "breaks ties stochastically rather than greedily) can be evaluated against the collision baseline "
-  "measured here.</p>")
+  "size-$c$ menu.</p>")
+A("<p><b>Coordination versus estimation.</b> To quantify how much of the gap to the centralized ceiling "
+  "is coordination rather than estimation, we add a minimal communication budget as a reference point "
+  "(not part of the communication-free method): each robot announces its intended task each round and "
+  "contention is resolved by sequential greedy assignment over still-unclaimed tasks, at a cost of $O(m)$ "
+  "one-task-id messages per round. This removes SwarmCF's residual collisions (rate $0.135\\to 0$) and "
+  "lifts its earned skill from $0.300$ to $0.385$ of the capacity-1 ceiling, a gain of $+0.085$; the "
+  "dominant remaining gap (to $1.0$) is <b>estimation</b> under the masked, private broadcast, not "
+  "coordination. So for SwarmCF, whose heterogeneous models already de-conflict implicitly, coordination "
+  "is the smaller limiter and estimation the larger, and this $+0.085$ bounds the earned-skill gain that "
+  "any communication-free de-confliction can recover here. Closing this residual collision gap without "
+  "communication is what a follow-up will study, where candidate mechanisms (for example fixed private "
+  "per-robot offsets, or randomized near-best action selection that breaks ties stochastically rather "
+  "than greedily) can be evaluated against the collision baseline measured here.</p>")
 A("<figure>%s<figcaption><b>Figure 6.</b> The cost of no de-confliction under capacity-1 contention "
   "(LatentSwarm). (a) Earned skill versus collision rate on the all-tasks menu: structure-free "
   "independent-UCB collides on almost every engagement and earns essentially nothing, while SwarmCF and "
@@ -1125,6 +1142,48 @@ A("<figure>%s<figcaption><b>Figure 12.</b> Approximate-low-rank robustness: unse
   "structure remains; the structure-free learner is at the floor for every $\\varepsilon$. Means with "
   "bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
   % img("F27_approxrank.png", "approximate low-rank robustness"))
+
+A("<h2>Appendix G. Sensitivity to the trait distribution</h2>")
+A("<p class='small'>The body draws latent traits i.i.d. on the unit sphere with no discrete types "
+  "(uniform_cosine). To check the categorical separation is a property of shared low-rank structure "
+  "rather than of that particular distribution, we re-run the masked bake-off (the Table 3 harness, "
+  "$\\rho=0.25$, 16 seeds) on three trait-generating distributions, varying only the scenario: "
+  "<b>block</b> (discrete latent types, the regime most favorable to clustering), <b>uniform</b> (the "
+  "body's no-types headline), and <b>approximate low-rank</b> (continuous traits perturbed off the "
+  "rank-$d$ subspace, $\\varepsilon=0.5$, so about 80% of the reward energy is low-rank; the full "
+  "$\\varepsilon$-sweep is Appendix F). This is also where we evaluate the two further structure-sharing "
+  "baselines noted in Section 6, memory-based <b>kNN-CF</b> and convex nuclear-norm completion "
+  "<b>SoftImpute</b>. Table 5 reports held-out unseen-pair skill.</p>")
+A("<p class='small'><b>Table 5.</b> Unseen-pair skill by trait distribution (masked harness, "
+  "$\\rho=0.25$, 16 seeds; means, with bootstrap 95% CIs in the released data). SwarmCF leads in every "
+  "distribution and its 16-seed intervals exceed every baseline; the structure-free learners "
+  "(Independent-UCB, MF-SGD) sit at the floor throughout (intervals straddling zero).</p>")
+A("<table><tr><th class='l'>Method (paradigm)</th>"
+  "<th>block<br>(discrete types)</th><th>uniform<br>(no types)</th>"
+  "<th>approx. low-rank<br>(&epsilon;=0.5)</th></tr>"
+  "<tr><td class='l'>Independent-UCB (structure-free)</td><td>&minus;0.002</td><td>&minus;0.003</td><td>&minus;0.001</td></tr>"
+  "<tr><td class='l'>MF-SGD (low-rank, online SGD)</td><td>&minus;0.008</td><td>&minus;0.007</td><td>&minus;0.011</td></tr>"
+  "<tr><td class='l'>BiasModel (additive popularity)</td><td>0.084</td><td>0.014</td><td>0.005</td></tr>"
+  "<tr><td class='l'>BPMF (Bayesian low-rank)</td><td>0.169</td><td>0.073</td><td>0.044</td></tr>"
+  "<tr><td class='l'>CLUB (discrete clustering)</td><td>0.155</td><td>0.079</td><td>0.052</td></tr>"
+  "<tr><td class='l'>kNN-CF (memory-based CF)</td><td>0.220</td><td>0.130</td><td>0.090</td></tr>"
+  "<tr><td class='l'>SoftImpute (convex completion)</td><td>0.220</td><td>0.163</td><td>0.115</td></tr>"
+  "<tr style='background:#eef6ff'><td class='l'><b>SwarmCF</b> (ours, continuous low-rank)</td>"
+  "<td><b>0.296</b></td><td><b>0.227</b></td><td><b>0.155</b></td></tr>"
+  "</table>")
+A("<p class='small'>Three things hold across all three distributions. <i>(i)</i> The categorical "
+  "separation is invariant: every structure-sharing method lifts above the structure-free floor, and "
+  "the structure-free learners stay at it. <i>(ii)</i> SwarmCF leads on the unseen everywhere (0.296 "
+  "block, 0.227 uniform, 0.155 approximate), with the convex completer SoftImpute the strongest baseline "
+  "in the continuous worlds (0.163 uniform) and memory-based kNN-CF next (0.130), both well below "
+  "SwarmCF. <i>(iii)</i> The discrete-clustering CLUB is competitive only where there are types to "
+  "cluster: its unseen skill is 0.155 in the block world (about half of SwarmCF) but roughly halves to "
+  "0.079 in the no-types uniform world, while SwarmCF falls only from 0.296 to 0.227. This is the "
+  "quantitative form of the Section 6.4 observation that continuous low-rank's advantage over hard "
+  "clustering widens as discrete types disappear. Under approximate low-rank every method degrades "
+  "gracefully and SwarmCF stays about three times CLUB, consistent with the $\\varepsilon$-sweep of "
+  "Appendix F. The separation is therefore a property of exploiting shared low-rank structure, not an "
+  "artifact of the uniform trait distribution.</p>")
 A("</div></body></html>")
 html_str = renumber_refs("\n".join(H))
 open(OUT, "w", encoding="utf-8").write(html_str)
