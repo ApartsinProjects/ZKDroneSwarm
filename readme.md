@@ -10,6 +10,7 @@ fully distributed decisions.
 > **Paper (live):** https://apartsinprojects.github.io/ZKDroneSwarm/
 > **Follow-up (refinements):** https://apartsinprojects.github.io/ZKDroneSwarm/ras_paper2.html
 > **Extended tutorial (with proofs):** https://apartsinprojects.github.io/ZKDroneSwarm/tutorial.html
+> **LatentSwarm (software):** [`latentswarm/`](latentswarm/README.md) &middot; [user guide](latentswarm/docs/USER_GUIDE.md) &middot; [developer guide](latentswarm/docs/DEVELOPER_GUIDE.md)
 
 ---
 
@@ -22,9 +23,11 @@ fully distributed decisions.
 - **SwarmCF** (the method): a decentralized, online, low-rank collaborative filter
   that each robot runs over the passive broadcast, with a constant-time fold-in that
   lets it act on tasks it never attempted.
-- **LatentSwarm** (the software): an open, modular Python package for ZK-MRTA,
-  comprising an analytical masked-broadcast harness (the headline results) and an
-  independent environment that adds capacity-1 contention.
+- **LatentSwarm** (the software): an open, modular Python package for ZK-MRTA, with
+  pluggable scenarios, policies, metrics, and environment. One codebase reproduces the
+  paper's experiments (a `block_cosine` parity world matches the analytical harness) and
+  adds capacity-1 contention. See [`latentswarm/README.md`](latentswarm/README.md), with a
+  [user guide](latentswarm/docs/USER_GUIDE.md) and [developer guide](latentswarm/docs/DEVELOPER_GUIDE.md).
 
 ## The setting in one breath
 
@@ -108,6 +111,8 @@ collaboration emerges only through the public observation stream.
   ([live](https://apartsinprojects.github.io/ZKDroneSwarm/tutorial.html))
 - **Experiment log / data catalogue / backlog / plan:** `docs/PROJECT_LOG.md`,
   `docs/DATA_CATALOGUE.md`, `docs/BACKLOG.md`, `docs/EXPERIMENT_PLAN.md`
+- **Software (LatentSwarm):** [`latentswarm/README.md`](latentswarm/README.md), with a
+  [user guide](latentswarm/docs/USER_GUIDE.md) and [developer guide](latentswarm/docs/DEVELOPER_GUIDE.md)
 
 ## Reproducibility
 
@@ -119,17 +124,20 @@ python experiments/make_figures.py        # figures -> docs/figures/
 python experiments/make_ras_paper.py      # docs/ras_paper.html + docs/index.html
 python experiments/make_ras_paper2.py     # docs/ras_paper2.html
 python -m latentswarm.run                 # LatentSwarm package validation -> results/pilots/latentswarm_main.json
+python -m latentswarm.sweeps --which crossover   # unified sweep drivers (also: anytime/collab/scale_m/ranksweep/offersize/iid_vs_persistent)
 python experiments/ranksweep.py           # rank-guess robustness (Figure F21)
 ```
 
 The analytical masked-broadcast harness and our methods and baselines live in
 `experiments/` (the core world / reward / oracle, the SwarmCF family, and the
-structure-free and low-rank baselines). The **`latentswarm/`** package is the modular,
-pluggable ZK-MRTA suite used in Section 6.5 (separate `config` / `scenarios` / `env` /
-`algorithms` / `metrics` / `viz` modules, registered by name; `pip install -e .`, tests in
-`latentswarm/tests/`). The older `tabula_drone/` package is **deprecated** and superseded by
-`latentswarm/`. Every method uses a guessed rank and broadcast-only inputs; the Oracle is used
-only to normalize scores.
+structure-free and low-rank baselines). The **[`latentswarm/`](latentswarm/README.md)**
+package is the modular, pluggable ZK-MRTA suite (separate `config` / `scenarios` / `env` /
+`algorithms` / `baselines` / `metrics` / `sweeps` modules, registered by name; tests in
+`latentswarm/tests/`); it reproduces the paper's sweeps from a single codebase via
+`python -m latentswarm.sweeps`, with a `block_cosine` world verified bit-identical to the
+analytical harness (parity check in `results/smoke/parity_check.py`). The older
+`tabula_drone/` package is **deprecated** and superseded by `latentswarm/`. Every method uses
+a guessed rank and broadcast-only inputs; the Oracle is used only to normalize scores.
 
 ## Authors
 
