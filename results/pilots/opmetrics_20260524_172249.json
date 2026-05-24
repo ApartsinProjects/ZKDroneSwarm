@@ -1,0 +1,449 @@
+{
+  "meta": {
+    "experiment": "operational metrics (re-analysis of existing runs)",
+    "centralized_reference": [
+      "ESTR"
+    ],
+    "metrics": [
+      "time-to-competence",
+      "readiness-latency",
+      "resilience",
+      "cumulative-regret",
+      "redundancy",
+      "info-efficiency"
+    ],
+    "saved_utc": "2026-05-24T14:22:49",
+    "git_commit": "91850f9",
+    "name": "opmetrics"
+  },
+  "raw": {
+    "anytime": {
+      "file": "c16_anytime_20260524_170839.json",
+      "rhos": [
+        1.0,
+        0.25
+      ],
+      "methods": [
+        "Random",
+        "UCBIndep",
+        "Tabular",
+        "MFSGD",
+        "ESTR",
+        "BPMF",
+        "CLUB",
+        "BiasModel",
+        "PTF",
+        "RewardCF"
+      ],
+      "T": 50,
+      "ttc": {
+        "1.0": {
+          "Random": {
+            "0.25": {
+              "rounds_mean": 1.0,
+              "frac_reached": 0.0625
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "UCBIndep": {
+            "0.25": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "Tabular": {
+            "0.25": {
+              "rounds_mean": 23.5,
+              "frac_reached": 0.125
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "MFSGD": {
+            "0.25": {
+              "rounds_mean": 1.0,
+              "frac_reached": 0.0625
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "ESTR": {
+            "0.25": {
+              "rounds_mean": 1.0,
+              "frac_reached": 0.0625
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "BPMF": {
+            "0.25": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "CLUB": {
+            "0.25": {
+              "rounds_mean": 42.9,
+              "frac_reached": 0.625
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "BiasModel": {
+            "0.25": {
+              "rounds_mean": 1.0,
+              "frac_reached": 0.0625
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "PTF": {
+            "0.25": {
+              "rounds_mean": 1.0,
+              "frac_reached": 0.0625
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "RewardCF": {
+            "0.25": {
+              "rounds_mean": 32.5625,
+              "frac_reached": 1.0
+            },
+            "0.33": {
+              "rounds_mean": 45.46153846153846,
+              "frac_reached": 0.8125
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          }
+        },
+        "0.25": {
+          "Random": {
+            "0.25": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "UCBIndep": {
+            "0.25": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "Tabular": {
+            "0.25": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "MFSGD": {
+            "0.25": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "ESTR": {
+            "0.25": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "BPMF": {
+            "0.25": {
+              "rounds_mean": 1.0,
+              "frac_reached": 0.125
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "CLUB": {
+            "0.25": {
+              "rounds_mean": 49.5,
+              "frac_reached": 0.125
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "BiasModel": {
+            "0.25": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "PTF": {
+            "0.25": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          },
+          "RewardCF": {
+            "0.25": {
+              "rounds_mean": 41.125,
+              "frac_reached": 1.0
+            },
+            "0.33": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            },
+            "0.50": {
+              "rounds_mean": null,
+              "frac_reached": 0.0
+            }
+          }
+        }
+      },
+      "regret": {
+        "1.0": {
+          "Random": {
+            "mean": 49.89313884039256,
+            "sd": 0.8245265100220002
+          },
+          "UCBIndep": {
+            "mean": 49.40161318112748,
+            "sd": 0.7961805369569009
+          },
+          "Tabular": {
+            "mean": 43.56262666813988,
+            "sd": 1.2681648232704819
+          },
+          "MFSGD": {
+            "mean": 49.46886462840244,
+            "sd": 1.3273027068185863
+          },
+          "ESTR": {
+            "mean": 46.745364923005496,
+            "sd": 1.226618223975631
+          },
+          "BPMF": {
+            "mean": 49.75569571331008,
+            "sd": 0.6460934705464452
+          },
+          "CLUB": {
+            "mean": 43.11259787568161,
+            "sd": 1.3325489739806224
+          },
+          "BiasModel": {
+            "mean": 47.85742064055273,
+            "sd": 1.4166443295970563
+          },
+          "PTF": {
+            "mean": 46.890676273191595,
+            "sd": 1.0725554330535556
+          },
+          "RewardCF": {
+            "mean": 41.7187789774803,
+            "sd": 0.7672339137966024
+          }
+        },
+        "0.25": {
+          "Random": {
+            "mean": 50.047634227064194,
+            "sd": 0.9827865611884807
+          },
+          "UCBIndep": {
+            "mean": 49.832020158438624,
+            "sd": 0.6084278460458914
+          },
+          "Tabular": {
+            "mean": 44.09682266742042,
+            "sd": 1.0234996317573384
+          },
+          "MFSGD": {
+            "mean": 48.71941107147549,
+            "sd": 1.6158298110252123
+          },
+          "ESTR": {
+            "mean": 46.44915812876828,
+            "sd": 1.0139467580189574
+          },
+          "BPMF": {
+            "mean": 48.72428482458588,
+            "sd": 0.9518947145938478
+          },
+          "CLUB": {
+            "mean": 43.797407872976784,
+            "sd": 1.0896669741200011
+          },
+          "BiasModel": {
+            "mean": 46.95534424998708,
+            "sd": 1.3308932161249827
+          },
+          "PTF": {
+            "mean": 46.671297182973404,
+            "sd": 0.8665283102686558
+          },
+          "RewardCF": {
+            "mean": 42.541072533972994,
+            "sd": 1.1704303693314233
+          }
+        }
+      }
+    },
+    "infoeff": {
+      "file": "collab_20260524_165841.json",
+      "low_rho": 0.1,
+      "eff": {
+        "RewardCF": {
+          "unseen_at_low_rho": 0.12524462932822758,
+          "sd": 0.0319611960345796,
+          "per_unit_budget": 1.2524462932822757
+        },
+        "PTF": {
+          "unseen_at_low_rho": 0.11252639731454522,
+          "sd": 0.03688787895269057,
+          "per_unit_budget": 1.1252639731454521
+        },
+        "CLUB": {
+          "unseen_at_low_rho": 0.03376570157786134,
+          "sd": 0.01516968997589912,
+          "per_unit_budget": 0.33765701577861335
+        },
+        "BiasModel": {
+          "unseen_at_low_rho": 0.009039087800461667,
+          "sd": 0.022620871243567795,
+          "per_unit_budget": 0.09039087800461666
+        },
+        "UCBIndep": {
+          "unseen_at_low_rho": -0.0021127005777777496,
+          "sd": 0.008312237996399699,
+          "per_unit_budget": -0.021127005777777496
+        },
+        "Tabular": {
+          "unseen_at_low_rho": -0.001602733596786391,
+          "sd": 0.007164081857066709,
+          "per_unit_budget": -0.016027335967863907
+        }
+      }
+    }
+  }
+}

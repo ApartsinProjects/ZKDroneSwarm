@@ -51,6 +51,9 @@ class RunConfig:
     # block_cosine (parity) scenario: number of latent types K (= core's K1=K2). Each type is forced
     # present (as experiments/core.make_world does); within-type spread is `jitter` there.
     n_types: int = 10
+    # approx_lowrank scenario: full-rank Gaussian perturbation strength eps. R_eps = (R0 + eps*s*G)/
+    # sqrt(1+eps^2); 0 -> exactly rank-d. Returned in factored form so env reward = held-out truth = R_eps.
+    approx_eps: float = 0.0
     # sensing_coalition scenario knobs (lifted from former literals): a robot/site profile is a small
     # baseline competence in every modality plus a specialty bump on its archetype's modality.
     sensing_base_competence: float = 0.15    # baseline competence in every modality (was 0.15)

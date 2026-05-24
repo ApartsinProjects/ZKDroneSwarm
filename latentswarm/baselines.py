@@ -24,13 +24,16 @@ Ported policies:
   bpmf           Bayesian PMF (per-robot conjugate posterior, Thompson-sampled selection).
   club           Clustering of Bandits (Gentile et al. 2014), decentralized: per-robot hard
                  clustering of similar teammates, pool cluster-mates' observations to predict.
+  bias_model     additive popularity r_ij ~ mu + b_i + c_j (rank <= 2; no personalized interaction).
 
-The generalizing ones (estr, swarmcf_batch, bpmf, club) return a completed [m, n] from
+The generalizing ones (estr, swarmcf_batch, bpmf, club, bias_model) return a completed [m, n] from
 predict_rows; the structure-free ones (tabular, ucb_homo) return None (the unseen-pair floor by
-construction). club is the DISCRETE-clustering control: it transfers across teammates (so it lifts
-above the floor) but groups them into hard clusters rather than the continuous low-rank factors of
-swarm_cf, which is the "is low-rank special?" comparison.
+construction). club is the DISCRETE-clustering control (transfers across teammates via hard clusters
+rather than continuous low-rank factors), and bias_model is the ADDITIVE control (popularity only, no
+personalized interaction); together they are the "is continuous low-rank special?" comparisons.
 """
+import warnings
+
 import numpy as np
 
 from .registry import algorithm
@@ -149,7 +152,8 @@ class ESTR(_LowRankPolicy):
         super().__init__(cfg, m, n, d_guess, seed)
         self.explore_steps = int(cfg.estr_explore_frac * cfg.T)
         self.eps_floor = cfg.epsilon_min
-        self.sum = np.zeros((m, n)); self.cnt = np.zeros((m, n))
+        # per-observer empirical reward matrix: sum/cnt[i] is robot i's [teammate k, task j] R_hat
+        self.sum = np.zeros((m, m, n)); self.cnt = np.zeros((m, m, n))
         self.trans = False
 
     def act(self, obs):
@@ -171,7 +175,7 @@ class ESTR(_LowRankPolicy):
             for k in range(self.m):
                 j = sel[k]
                 if j != NO_OP:
-                    self.sum[i, j] += float(rew[k]); self.cnt[i, j] += 1
+                    self.sum[i, k, j] += float(rew[k]); self.cnt[i, k, j] += 1   # teammate k's row
         self.t += 1
         if (not self.trans) and self.t >= self.explore_steps:
             for i in range(self.m):
@@ -179,7 +183,7 @@ class ESTR(_LowRankPolicy):
             self.trans = True
 
     def _svd(self, i):
-        R_hat = np.where(self.cnt[i] > 0, self.sum[i] / np.maximum(self.cnt[i], 1), 0.0)
+        R_hat = np.where(self.cnt[i] > 0, self.sum[i] / np.maximum(self.cnt[i], 1), 0.0)   # (m, n)
         d = self.d
         try:
             Us, S, Vt = np.linalg.svd(R_hat, full_matrices=False)
@@ -206,7 +210,8 @@ class SwarmCFBatch(_LowRankPolicy):
     def __init__(self, cfg, m, n, d_guess, seed=0):
         super().__init__(cfg, m, n, d_guess, seed)
         self.probe_steps = int(cfg.ptf_probe_frac * cfg.T)
-        self.counts = np.zeros((m, n)); self.sums = np.zeros((m, n)); self.tot = np.zeros(m)
+        # per-observer empirical reward matrix: counts/sums[i] is robot i's [teammate k, task j] R_hat
+        self.counts = np.zeros((m, m, n)); self.sums = np.zeros((m, m, n)); self.tot = np.zeros((m, m))
         self.trans = False
 
     def act(self, obs):
@@ -215,9 +220,9 @@ class SwarmCFBatch(_LowRankPolicy):
             off = self._offered(obs[i])
             if not off.size:
                 continue
-            if not self.trans:                       # PROBE: own-row UCB1
-                cnt = self.counts[i, off]; tot = max(self.tot[i], 1)
-                mean = np.where(cnt > 0, self.sums[i, off] / np.maximum(cnt, 1), 0.0)
+            if not self.trans:                       # PROBE: own-row UCB1 (robot i's own engagements)
+                cnt = self.counts[i, i, off]; tot = max(self.tot[i, i], 1)
+                mean = np.where(cnt > 0, self.sums[i, i, off] / np.maximum(cnt, 1), 0.0)
                 bonus = np.where(cnt > 0, self.cfg.ucb_c * np.sqrt(np.log(tot) / np.maximum(cnt, 1)), np.inf)
                 sc = mean + bonus
                 if np.isinf(sc.max()):
@@ -240,7 +245,7 @@ class SwarmCFBatch(_LowRankPolicy):
             for k in range(self.m):
                 j = sel[k]
                 if j != NO_OP:
-                    self.counts[i, j] += 1; self.sums[i, j] += float(rew[k]); self.tot[i] += 1
+                    self.counts[i, k, j] += 1; self.sums[i, k, j] += float(rew[k]); self.tot[i, k] += 1
         self.t += 1
         if (not self.trans) and self.t >= self.probe_steps:
             for i in range(self.m):
@@ -277,11 +282,11 @@ class SwarmCFBatch(_LowRankPolicy):
             pass
 
     def predict_rows(self):
-        # Before the warm-start the factors are noise; fall back to the own-row empirical means
-        # (the floor on unseen), matching PTF.predict_scores's pre-transition branch.
+        # Before the warm-start the factors are noise; fall back to each robot's own-row empirical
+        # means (the floor on unseen), matching PTF.predict_scores's pre-transition branch.
         if not self.trans:
-            out = np.where(self.counts > 0, self.sums / np.maximum(self.counts, 1), 0.0)
-            return out
+            return np.stack([np.where(self.counts[i, i] > 0, self.sums[i, i] / np.maximum(self.counts[i, i], 1), 0.0)
+                             for i in range(self.m)])
         return np.stack([self.P[i][i] @ self.U[i].T for i in range(self.m)])
 
 
@@ -422,3 +427,61 @@ class CLUB(Policy):
 
     def predict_rows(self):
         return np.stack([self._cluster_pred(i) for i in range(self.m)])
+
+
+@algorithm("bias_model")
+class BiasModel(Policy):
+    """Additive popularity baseline r_ij ~ mu + b_i + c_j (robot bias + task bias), with NO low-rank
+    interaction (the prediction matrix has rank <= 2). It captures additive/popularity effects but
+    cannot personalize beyond them, so it isolates the value of the personalized low-rank interaction
+    term: on a personalized world it sits far below the low-rank methods. Faithful port of
+    experiments/pilot_baselines.BiasModel; one Policy object holds all m robots' accumulators
+    (sum/cnt are [observer i, teammate k, task j])."""
+    name = "bias_model"
+
+    def __init__(self, cfg, m, n, d_guess, seed=0):
+        super().__init__(cfg, m, n, d_guess, seed)
+        self.eps = cfg.epsilon
+        self.sum = np.zeros((m, m, n))
+        self.cnt = np.zeros((m, m, n))
+
+    def observe(self, obs):
+        for i in range(self.m):
+            sel, rew = obs[i]["sel"], obs[i]["rew"]
+            for k in range(self.m):
+                j = sel[k]
+                if j != NO_OP:
+                    self.sum[i, k, j] += float(rew[k]); self.cnt[i, k, j] += 1
+
+    def _fit_row(self, i):
+        """Observer i's predicted reward row mu + b_i + c_j over all n tasks (mirrors
+        pilot_baselines.BiasModel._fit + predict_scores, with self.idx -> i)."""
+        Si, Ci = self.sum[i], self.cnt[i]
+        obs = Ci > 0
+        if not obs.any():
+            return np.zeros(self.n)
+        vals = np.where(obs, Si / np.maximum(Ci, 1), np.nan)
+        with np.errstate(invalid="ignore", divide="ignore"), warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)         # nanmean over all-unobserved cols
+            mu = float(np.nanmean(vals))
+            b = np.nanmean(np.where(obs, vals - mu, np.nan), axis=1)        # per-teammate (row) bias
+            resid = vals - mu - np.nan_to_num(b)[:, None]
+            c = np.nanmean(np.where(obs, resid, np.nan), axis=0)            # per-task (col) bias
+        return mu + float(np.nan_to_num(b)[i]) + np.nan_to_num(c)
+
+    def act(self, obs):
+        a = np.full(self.m, NO_OP, dtype=int)
+        for i in range(self.m):
+            off = self._offered(obs[i])
+            if not off.size:
+                continue
+            if self.rng.random() < self.eps:
+                a[i] = int(self.rng.choice(off))
+            else:
+                pred = self._fit_row(i)
+                a[i] = int(off[int(np.argmax(pred[off]))])
+        self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
+        return a
+
+    def predict_rows(self):
+        return np.stack([self._fit_row(i) for i in range(self.m)])

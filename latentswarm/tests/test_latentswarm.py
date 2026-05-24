@@ -107,12 +107,12 @@ def test_swarmcf_beats_random_smoke():
 
 def test_baselines_registered_and_run():
     """The ported baselines register and obey the predict_rows contract (None for structure-free)."""
-    assert {"tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club"} <= set(ALGORITHMS)
+    assert {"tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club", "bias_model"} <= set(ALGORITHMS)
     cfg = _cfg(m=8, n=20, d=5, T=10, scenario="block_cosine", n_types=5, jitter=0.15,
                offer_size=20, rank_guess=6, rho=0.5, sigma_own=0.10, sigma_obs=0.30)
     P, U = build_scenario(cfg, np.random.RandomState(0)).generate()
     structure_free = {"tabular", "ucb_homo"}
-    for name in ["tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club"]:
+    for name in ["tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club", "bias_model"]:
         env = ZKMRTAEnv(cfg, P, U, 6, seed=0)
         pol = get(ALGORITHMS, name)(cfg, cfg.m, cfg.n, 6, seed=7)
         per_round, engaged = run_mission(env, pol, cfg.T)
@@ -152,12 +152,36 @@ def test_block_cosine_matches_core_make_world():
     sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "experiments"))
     from core import make_world
     m, n, d, K = 12, 30, 4, 5
-    Pc, Uc, Rc, _ = make_world(m, n, d, K, K, within=0.15, seed=3, signed=True)
+    Pc, Uc, Rc, _ = make_world(m, n, d, K, K, within=0.15, seed=3, signed=True, model="block")
     cfg = _cfg(m=m, n=n, d=d, n_types=K, jitter=0.15, scenario="block_cosine")
     Pl, Ul = build_scenario(cfg, np.random.RandomState(3)).generate()
     assert np.array_equal(Pc, Pl) and np.array_equal(Uc, Ul)
     R = Pl @ Ul.T
     assert R.min() >= -1.0001 and R.max() <= 1.0001
+
+
+def test_uniform_cosine_scenario():
+    """uniform_cosine: i.i.d. unit-sphere traits (no types) -> signed cosine reward in [-1,1]."""
+    assert "uniform_cosine" in SCENARIOS
+    cfg = _cfg(m=10, n=30, d=4, scenario="uniform_cosine")
+    P, U = build_scenario(cfg, np.random.RandomState(0)).generate()
+    assert P.shape == (10, 4) and U.shape == (30, 4)
+    assert np.allclose(np.linalg.norm(P, axis=1), 1.0) and np.allclose(np.linalg.norm(U, axis=1), 1.0)
+    R = P @ U.T
+    assert R.min() >= -1.0001 and R.max() <= 1.0001
+
+
+def test_approx_lowrank_scenario():
+    """approx_lowrank: eps=0 is exactly rank d; eps>0 raises the effective rank (factored R_eps)."""
+    from latentswarm.sweeps import _eff_rank
+    c0 = _cfg(m=20, n=60, d=4, scenario="approx_lowrank", approx_eps=0.0)
+    P0, U0 = build_scenario(c0, np.random.RandomState(0)).generate()
+    assert P0.shape == (20, 4)
+    er0 = _eff_rank(P0 @ U0.T)
+    c1 = _cfg(m=20, n=60, d=4, scenario="approx_lowrank", approx_eps=1.0)
+    P1, U1 = build_scenario(c1, np.random.RandomState(0)).generate()
+    er1 = _eff_rank(P1 @ U1.T)
+    assert er0 <= 4 and er1 > er0      # the full-rank perturbation raises the effective rank
 
 
 def test_new_metrics_registered_and_compute():

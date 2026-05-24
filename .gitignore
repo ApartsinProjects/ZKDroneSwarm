@@ -242,3 +242,7 @@ docs/build_tmp/
 # stray pilot outputs written under experiments/ when a sweep runs from the wrong CWD
 # (canonical location is repo-root results/pilots/)
 experiments/results/
+
+# archived block-world figure/table inputs (moved aside during the uniform-world port; out of the
+# non-recursive results/pilots/*.json globs so figures read ONLY uniform data)
+results/pilots/_block_archive/

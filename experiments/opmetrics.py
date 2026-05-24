@@ -43,6 +43,8 @@ def m_sd(xs):
 # ---------- (3) time-to-competence + (6) cumulative regret  (anytime trajectories)
 def metric_anytime():
     f = latest("results/pilots/c16_anytime_*.json")
+    if f is None:
+        return None
     d = json.load(open(f)); raw = d["raw"]; rhos = d["meta"]["rhos"]; methods = d["meta"]["methods"]
     T = d["meta"]["T"]
     out = {"file": os.path.basename(f), "rhos": rhos, "methods": methods, "T": T,
@@ -72,6 +74,8 @@ def metric_anytime():
 # ---------- (4) new-asset readiness latency  (E7 newcomer) ----------
 def metric_readiness():
     f = latest("results/pilots/e7_newcomer_*.json")
+    if f is None:
+        return None
     d = json.load(open(f)); raw = d["raw"]; rhos = d["meta"]["rhos"]; probes = d["meta"]["probes"]
     out = {"file": os.path.basename(f), "rhos": rhos, "probes": probes, "lat": {}}
     for r in rhos:
@@ -92,6 +96,8 @@ def metric_readiness():
 # ---------- (5) resilience to attrition  (churn) ----------
 def metric_resilience():
     f = latest("results/pilots/churn8_*.json")
+    if f is None:
+        return None
     d = json.load(open(f)); raw = d["raw"]; methods = d["meta"]["methods"]
     out = {"file": os.path.basename(f), "methods": methods,
            "churn_every": d["meta"].get("churn_every"), "churn_k": d["meta"].get("churn_k"), "res": {}}
@@ -104,6 +110,8 @@ def metric_resilience():
 # ---------- (7) emergent coordination / redundancy  (contention collisions) ----------
 def metric_redundancy():
     f = latest("results/pilots/contention8_*.json")
+    if f is None:
+        return None
     d = json.load(open(f)); raw = d["raw"]; pools = d["meta"]["pools"]
     m0 = list(raw[str(pools[0])].keys())
     out = {"file": os.path.basename(f), "pools": pools, "methods": m0, "coll": {}, "earned": {}}
@@ -131,6 +139,8 @@ def metric_redundancy():
 # ---------- (8) information efficiency  (skill per low observation budget) ----------
 def metric_infoeff():
     f = latest("results/pilots/collab_*.json")
+    if f is None:
+        return None
     d = json.load(open(f)); raw = d["raw"]; rhos = d["meta"]["rhos"]; methods = d["meta"]["methods"]
     lo = min([r for r in rhos if r > 0])                 # smallest nonzero budget
     out = {"file": os.path.basename(f), "low_rho": lo, "eff": {}}
@@ -240,14 +250,20 @@ def main():
     M = {"anytime": metric_anytime(), "readiness": metric_readiness(),
          "resilience": metric_resilience(), "redundancy": metric_redundancy(),
          "infoeff": metric_infoeff()}
+    M = {k: v for k, v in M.items() if v is not None}     # skip metrics whose input JSON is absent
     save_results("opmetrics", {"meta": {"experiment": "operational metrics (re-analysis of existing runs)",
                   "centralized_reference": sorted(CENTRALIZED),
                   "metrics": ["time-to-competence", "readiness-latency", "resilience",
                               "cumulative-regret", "redundancy", "info-efficiency"]},
                   "raw": M}, results_dir=os.path.join(ROOT, "results", "pilots"))
-    write_md(M)
+    if {"anytime", "readiness", "resilience", "redundancy", "infoeff"} <= set(M):
+        write_md(M)
+    else:
+        print("opmetrics: saved JSON; skipped OPMETRICS.md (present: %s)" % sorted(M))
 
     # ---- console summary (pick framing) ----
+    if "anytime" not in M:
+        print("opmetrics: no anytime trajectories found; nothing to summarize."); return
     print("\n========== (3) TIME-TO-COMPETENCE: rounds to reach frac*oracle (rho=0.25) ==========")
     a = M["anytime"]
     for nm in a["methods"]:
@@ -259,9 +275,11 @@ def main():
                                               100 * c["frac_reached"]))
         print("  %-10s %s%s" % (nm, "  ".join(cells), tag))
     print("\n========== (6) CUMULATIVE REGRET sum_t(1-skill), lower=better ==========")
-    for r in ("1.0", "0.25"):
+    for r in a["regret"]:
         print(" rho=%s:" % r, "  ".join("%s=%.1f%s" % (nm, a["regret"][r][nm]["mean"],
               "*" if nm in CENTRALIZED else "") for nm in a["methods"]))
+    if not {"readiness", "resilience", "redundancy", "infoeff"} <= set(M):
+        print("\n(operational metrics 4/5/7/8 skipped: their input runs are not present)"); return
     print("\n========== (4) READINESS LATENCY: probes to 50%/90% of asymptote (newcomer) ==========")
     rd = M["readiness"]
     for r in rd["rhos"]:

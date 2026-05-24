@@ -107,5 +107,55 @@ class BlockCosine(Scenario):
         return P, U
 
 
+@scenario("uniform_cosine")
+class UniformCosine(Scenario):
+    """Uniform-on-the-sphere traits: i.i.d. Gaussian, L2-normalized so R = P U^T is a signed
+    COSINE in [-1, 1] (rank <= d), with NO discrete types (every robot/task individually distinct).
+    The no-clusters analog of block_cosine, matching experiments/core.make_world(model="uniform",
+    signed=True). Harder for unseen-pair recovery than the block world (no type to generalize from),
+    so it is the honest stress on whether continuous low-rank structure alone carries the method."""
+    name = "uniform_cosine"
+
+    @staticmethod
+    def _unit(X):
+        return X / np.maximum(np.linalg.norm(X, axis=1, keepdims=True), 1e-12)
+
+    def generate(self):
+        c, rng = self.cfg, self.rng
+        P = self._unit(rng.randn(c.m, c.d))         # i.i.d. on the unit sphere (no types)
+        U = self._unit(rng.randn(c.n, c.d))
+        return P, U
+
+
+@scenario("approx_lowrank")
+class ApproxLowRank(Scenario):
+    """Approximately low-rank reward (Appendix F robustness): a clean rank-d unit-sphere reward
+    R0 = P0 U0^T perturbed by a FULL-RANK Gaussian term, R_eps = (R0 + eps*s*G)/sqrt(1+eps^2) with
+    s = std(R0)/std(G), so the entry-wise scale is fixed while energy leaves the rank-d subspace (the
+    low-rank energy fraction is 1/(1+eps^2); effective rank rises from d as eps=cfg.approx_eps grows).
+    Returned in FACTORED form (wide factors) so the env reward P U^T and the held-out ground truth are
+    both EXACTLY R_eps. eps=0 reduces to the clean uniform-sphere rank-d world."""
+    name = "approx_lowrank"
+
+    @staticmethod
+    def _unit(X):
+        return X / np.maximum(np.linalg.norm(X, axis=1, keepdims=True), 1e-12)
+
+    def generate(self):
+        c, rng = self.cfg, self.rng
+        m, n, d = c.m, c.n, c.d
+        eps = float(getattr(c, "approx_eps", 0.0))
+        P0 = self._unit(rng.randn(m, d)); U0 = self._unit(rng.randn(n, d))
+        if eps <= 0:
+            return P0, U0
+        r = min(m, n)                                   # full-rank perturbation (rank min(m,n))
+        Gp = rng.randn(m, r); Gu = rng.randn(n, r)
+        s = float((P0 @ U0.T).std() / ((Gp @ Gu.T).std() + 1e-12))
+        a = 1.0 / np.sqrt(1.0 + eps * eps); b = eps * s * a
+        P = np.hstack([a * P0, b * Gp])                 # (m, d+r): P U^T = (R0 + eps s G)/sqrt(1+eps^2)
+        U = np.hstack([U0, Gu])                         # (n, d+r)
+        return P, U
+
+
 def build_scenario(cfg, rng) -> Scenario:
     return get(SCENARIOS, cfg.scenario)(cfg, rng)

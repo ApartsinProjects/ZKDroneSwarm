@@ -22,6 +22,20 @@ def latest(pattern):
     return fs[-1] if fs else None
 
 
+def latest_cand(pattern, cand):
+    """Latest file matching `pattern` whose meta['cand'] == cand. Used so the body figures (F5/F6)
+    deterministically read the size-c=20 menu data even when c=240 / c=3 variants also exist
+    (robust against the timestamp-order of the multi-cand sweeps)."""
+    best = None
+    for fp in sorted(glob.glob(pattern)):
+        try:
+            if int(json.load(open(fp))["meta"].get("cand")) == cand:
+                best = fp
+        except Exception:
+            pass
+    return best
+
+
 def save_fig(stem):
     """Save the current figure as PNG + PDF, then close it. In-figure titles are dropped
     (the descriptive caption lives in the paper text); multi-panel '(a)'/'(b)'/'(c)' labels
@@ -33,8 +47,9 @@ def save_fig(stem):
     except Exception:
         pass
     for ax in fig.axes:
-        m = re.match(r"\s*\(([a-z])\)", ax.get_title())
-        ax.set_title(("(%s)" % m.group(1)) if m else "", loc="left", fontsize=9)
+        m = re.match(r"\s*\(([a-z])\)", ax.get_title())   # ax.get_title() is the CENTER title
+        ax.set_title("")                                   # clear the descriptive center title
+        ax.set_title(("(%s)" % m.group(1)) if m else "", loc="left", fontsize=9)   # keep only the panel letter
     try:
         fig.tight_layout()
     except Exception:
@@ -108,15 +123,16 @@ if f:
     print("F4_rank  <-", os.path.basename(f))
 
 # ---- F5: C15 masking-robustness crossover (unseen skill vs rho) ----
-f = latest("results/pilots/c15_crossover_*.json")
+f = latest_cand("results/pilots/c15_crossover_*.json", 20) or latest("results/pilots/c15_crossover_*.json")
 if f:
     d = json.load(open(f)); rhos = d["meta"]["rhos"]; raw = d["raw"]
-    # group: ours (online weighted-ALS) vs batch-SVD hybrids vs structure-free floor
+    # group: ours (online weighted-ALS) vs batch-SVD hybrids vs clustering vs structure-free floor
     styles = {
         "RewardCF": dict(marker="o", color="C0", lw=2.4, label="SwarmCF (online ALS, ours)"),
         "PTF":      dict(marker="s", color="C3", ls="--", label="SwarmCF-batch"),
         "ESTR":     dict(marker="^", color="C4", ls="--", label="ESTR (explore-then-commit)"),
         "BPMF":     dict(marker="v", color="C5", ls="--", label="BPMF (Bayesian PMF)"),
+        "CLUB":     dict(marker="D", color="C1", ls="--", label="CLUB (clustering of bandits)"),
         "UCBIndep": dict(marker="x", color="gray", ls=":", label="Independent-UCB (structure-free)"),
     }
     plt.figure(figsize=(6, 4))
@@ -136,7 +152,7 @@ if f:
     print("F5_crossover  <-", os.path.basename(f))
 
 # ---- F6: C16 anytime cumulative-reward trajectory (rho=0.25) ----
-f = latest("results/pilots/c16_anytime_*.json")
+f = latest_cand("results/pilots/c16_anytime_*.json", 20) or latest("results/pilots/c16_anytime_*.json")
 if f:
     d = json.load(open(f)); raw = d["raw"]; T = d["meta"]["T"]
     rho_key = "0.25" if "0.25" in raw else list(raw.keys())[-1]
@@ -145,6 +161,7 @@ if f:
         "RewardCF": dict(color="C0", lw=2.6, label="SwarmCF (online ALS, ours)"),
         "PTF":      dict(color="C3", ls="--", label="SwarmCF-batch"),
         "ESTR":     dict(color="C4", ls="--", label="ESTR (explore-then-commit)"),
+        "CLUB":     dict(color="C1", ls="--", label="CLUB (clustering of bandits)"),
         "Tabular":  dict(color="C2", ls="-.", label="Tabular (eps-greedy own-row)"),
         "UCBIndep": dict(color="gray", ls=":", label="Independent-UCB (n>>T: stuck exploring)"),
     }
@@ -201,7 +218,7 @@ if f:
     fig, ax = plt.subplots(1, 3, figsize=(13, 3.7))
     # (a) unseen vs rho, (b) anytime vs rho: persistent (solid) vs iid (dashed)
     for col, metric in enumerate(["unseen", "anytime"]):
-        for nm, color in [("RewardCF", "C0"), ("HybridCF", "C6"), ("PTF", "C3")]:
+        for nm, color in [("RewardCF", "C0"), ("CLUB", "C1"), ("PTF", "C3")]:
             for mode, ls, mk in [("persistent", "-", "o"), ("iid", "--", "x")]:
                 if nm in A[mode][str(rhos[0])]:
                     mu = [np.mean(A[mode][str(r)][nm][metric]) for r in rhos]
@@ -250,6 +267,8 @@ if _cn is not None and 20 in _cx and _cn != 20:
     ax[0].plot(rhos, _ser(dn, "RewardCF"), marker="s", color="C0", lw=2.0, ls="--", label="SwarmCF, $c=n$")
     ax[0].plot(rhos, _ser(d20, "PTF"), marker="^", color="C3", lw=2.0, label="batch completion, $c=20$")
     ax[0].plot(rhos, _ser(dn, "PTF"), marker="v", color="C3", lw=1.8, ls="--", label="batch completion, $c=n$")
+    if "CLUB" in d20["raw"][str(rhos[0])]:
+        ax[0].plot(rhos, _ser(d20, "CLUB"), marker="D", color="C1", lw=1.6, label="CLUB, $c=20$")
     ax[0].plot(rhos, _ser(d20, "UCBIndep"), marker="x", color="gray", lw=1.2, ls=":", label="structure-free floor")
     ax[0].axhline(0, color="black", lw=0.8, ls=":"); ax[0].invert_xaxis()
     ax[0].set_xlabel("broadcast rate  $\\rho$"); ax[0].set_ylabel("UNSEEN-pair skill")
@@ -393,10 +412,11 @@ if f:
 f = "results/pilots/latentswarm_main.json"
 if os.path.exists(f):
     d = json.load(open(f)); esk = d["earned"]; usk = d["unseen"]
-    order = ["random", "ucb_indep", "mf_sgd", "swarm_cf", "oracle"]
+    order = ["random", "ucb_indep", "mf_sgd", "bias_model", "club", "swarm_cf", "oracle"]
     lab = {"random": "Random", "ucb_indep": "Independent-UCB", "mf_sgd": "MF-SGD",
-           "swarm_cf": "SwarmCF (ours)", "oracle": "Oracle"}
-    col = {"random": "gray", "ucb_indep": "C4", "mf_sgd": "C3", "swarm_cf": "C2", "oracle": "k"}
+           "bias_model": "BiasModel", "club": "CLUB", "swarm_cf": "SwarmCF (ours)", "oracle": "Oracle"}
+    col = {"random": "gray", "ucb_indep": "C4", "mf_sgd": "C3", "bias_model": "C5",
+           "club": "C1", "swarm_cf": "C2", "oracle": "k"}
 
     def _boot(xs, B=5000):
         a = np.asarray([x for x in xs if x is not None], float)
@@ -433,10 +453,11 @@ if os.path.exists(f):
 f = latest("results/pilots/latentswarm_contention_*.json")
 if f:
     d = json.load(open(f)); raw = d["raw"]; offers = d["meta"]["offers"]
-    PRETTY = {"swarm_cf": "SwarmCF", "mf_sgd": "MF-SGD", "ucb_indep": "Independent-UCB", "random": "Random"}
-    COL = {"swarm_cf": "C0", "mf_sgd": "C1", "ucb_indep": "C7", "random": "C3"}
+    PRETTY = {"swarm_cf": "SwarmCF", "mf_sgd": "MF-SGD", "club": "CLUB",
+              "ucb_indep": "Independent-UCB", "random": "Random"}
+    COL = {"swarm_cf": "C0", "mf_sgd": "C1", "club": "C4", "ucb_indep": "C7", "random": "C3"}
     o0 = "0" if 0 in offers else str(offers[0])
-    algos = [a for a in ["swarm_cf", "mf_sgd", "ucb_indep", "random"] if a in raw[o0]]
+    algos = [a for a in ["swarm_cf", "mf_sgd", "club", "ucb_indep", "random"] if a in raw[o0]]
     fig, ax = plt.subplots(1, 2, figsize=(11, 4))
     # (a) earned-vs-collision frontier at the all-tasks menu (offer=0)
     for a in algos:
@@ -476,6 +497,7 @@ if _small_c is not None and _cn_x4 is not None and _cn_x4 >= 200:
     rho_key = "0.25" if "0.25" in raw else list(raw.keys())[-1]
     rounds = np.arange(1, T + 1)
     sa = {"RewardCF": dict(color="C0", lw=2.6, label="SwarmCF (online ALS, ours)"),
+          "CLUB": dict(color="C1", ls="--", lw=1.8, label="CLUB (clustering of bandits)"),
           "Tabular": dict(color="C2", ls="-.", lw=1.8, label="Tabular (structure-free)"),
           "UCBIndep": dict(color="gray", ls=":", lw=1.6, label="Independent-UCB (structure-free)"),
           "Random": dict(color="C3", ls="--", lw=1.2, label="Random")}
@@ -510,10 +532,11 @@ if _small_c is not None and _cn_x4 is not None and _cn_x4 >= 200:
 f = latest("results/pilots/latentswarm_grounded_*.json")
 if f:
     d = json.load(open(f)); summ = d["summary"]
-    order = ["swarm_cf", "mf_sgd", "ucb_indep", "random", "oracle"]
-    PRETTY = {"swarm_cf": "SwarmCF", "mf_sgd": "MF-SGD", "ucb_indep": "Indep-UCB",
-              "random": "Random", "oracle": "Oracle"}
-    COL = {"swarm_cf": "C0", "mf_sgd": "C1", "ucb_indep": "C7", "random": "C3", "oracle": "C2"}
+    order = ["swarm_cf", "club", "mf_sgd", "bias_model", "ucb_indep", "random", "oracle"]
+    PRETTY = {"swarm_cf": "SwarmCF", "club": "CLUB", "mf_sgd": "MF-SGD", "bias_model": "BiasModel",
+              "ucb_indep": "Indep-UCB", "random": "Random", "oracle": "Oracle"}
+    COL = {"swarm_cf": "C0", "club": "C4", "mf_sgd": "C1", "bias_model": "C5",
+           "ucb_indep": "C7", "random": "C3", "oracle": "C2"}
     algos = [a for a in order if a in summ]
     fig, ax = plt.subplots(1, 3, figsize=(13.5, 4))
     # (a) illustrative patrol layout: spatial clusters + range-limited line-of-sight disk graph
@@ -665,11 +688,12 @@ if fc and fm:
     dm = json.load(open(fm)); rawm = dm["raw"]; mssz = dm["meta"]["ms"]
     sty = {"RewardCF": dict(color="C0", marker="o", lw=2, label="SwarmCF (low-rank CF, ours)"),
            "PTF":      dict(color="C1", marker="s", lw=2, label="SwarmCF-batch (batch-refit)"),
+           "CLUB":     dict(color="C4", marker="D", lw=2, ls="--", label="CLUB (clustering of bandits)"),
            "UCBIndep": dict(color="C7", marker="d", ls="--", label="Independent-UCB (structure-free)"),
            "Tabular":  dict(color="C3", marker="x", ls=":", label="Tabular (structure-free)")}
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     ax = axes[0]                                                 # (a) unseen skill vs broadcast rate rho
-    for nm in ["RewardCF", "PTF", "UCBIndep", "Tabular"]:
+    for nm in ["RewardCF", "PTF", "CLUB", "UCBIndep", "Tabular"]:
         if nm not in rawc[str(rhos[0])]:
             continue
         ci = [bootci(rawc[str(r)][nm]["unseen"]) for r in rhos]
@@ -682,7 +706,7 @@ if fc and fm:
                  "generalization for low-rank CF, is worthless to structure-free", fontsize=8)
     ax.grid(alpha=0.25); ax.legend(fontsize=7)
     ax = axes[1]                                                 # (b) unseen skill vs swarm size m
-    for nm in ["RewardCF", "PTF", "UCBIndep", "Tabular"]:
+    for nm in ["RewardCF", "PTF", "CLUB", "UCBIndep", "Tabular"]:
         if nm not in rawm[str(mssz[0])]:
             continue
         ci = [bootci(rawm[str(mm)][nm]["unseen"]) for mm in mssz]
@@ -700,8 +724,9 @@ if fc and fm:
 
 # ---- F19: operational metrics (re-analysis): time-to-competence, cumulative regret,
 #          new-asset readiness latency, resilience to attrition ----
+# (not an embedded paper figure; built only when the full opmetrics inputs are present)
 f = latest("results/pilots/opmetrics_*.json")
-if f:
+if f and {"readiness", "resilience"} <= set(json.load(open(f))["raw"]):
     from matplotlib.patches import Patch
     M = json.load(open(f))["raw"]
     a = M["anytime"]; rd = M["readiness"]; rs = M["resilience"]; T = a["T"]
@@ -830,7 +855,8 @@ if f:
     keys = ["%.2f" % e for e in eps]
     sty = {
         "RewardCF": dict(marker="o", color="C0", lw=2.4, label="SwarmCF (online ALS, ours)"),
-        "PTF":      dict(marker="s", color="C1", ls="--", lw=2, label="SwarmCF-batch"),
+        "PTF":      dict(marker="s", color="C3", ls="--", lw=2, label="SwarmCF-batch"),
+        "CLUB":     dict(marker="D", color="C1", ls="--", lw=2, label="CLUB (clustering of bandits)"),
         "UCBIndep": dict(marker="x", color="gray", ls=":", label="Independent-UCB (structure-free)"),
     }
     fig, ax = plt.subplots(figsize=(6, 4))

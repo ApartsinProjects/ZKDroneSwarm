@@ -24,13 +24,14 @@ SEEDS = list(range(int(os.environ.get("ZK_SEEDS", "16"))))   # 8->16 for Fig 7 s
 
 data = []
 for dh in DHATS:
-    cfg = RunConfig(rank_guess=dh, seeds=SEEDS, algorithms=["random", "swarm_cf", "mf_sgd"])
+    cfg = RunConfig(rank_guess=dh, seeds=SEEDS, scenario="uniform_cosine",
+                    algorithms=["random", "swarm_cf", "mf_sgd", "club"])
     with contextlib.redirect_stdout(io.StringIO()):
         out = run(cfg)
-    sw, mf = out["summary"]["swarm_cf"], out["summary"]["mf_sgd"]
-    data.append({"dhat": dh, "swarm": sw, "mf": mf})
-    print("dhat=%2d  SwarmCF earned=%.3f unseen=%.3f  |  MF-SGD earned=%.3f unseen=%.3f"
-          % (dh, sw["earned"][0], sw["unseen"][0], mf["earned"][0], mf["unseen"][0]))
+    sw, mf, cl = out["summary"]["swarm_cf"], out["summary"]["mf_sgd"], out["summary"]["club"]
+    data.append({"dhat": dh, "swarm": sw, "mf": mf, "club": cl})
+    print("dhat=%2d  SwarmCF earned=%.3f unseen=%.3f  |  MF-SGD unseen=%.3f  |  CLUB unseen=%.3f"
+          % (dh, sw["earned"][0], sw["unseen"][0], mf["unseen"][0], cl["unseen"][0]))
 
 os.makedirs("results/pilots", exist_ok=True)
 json.dump({"d": D, "dhats": DHATS, "seeds": SEEDS, "data": data},
@@ -47,17 +48,16 @@ fig, ax = plt.subplots(1, 2, figsize=(11, 4))
 for k, (key, ttl) in enumerate([("earned", "Earned (anytime) skill"),
                                 ("unseen", "Unseen-pair skill")]):
     _band(ax[k], DHATS, [d["swarm"][key] for d in data], "C2", "SwarmCF")
+    _band(ax[k], DHATS, [d["club"][key] for d in data], "C1", "CLUB")
     _band(ax[k], DHATS, [d["mf"][key] for d in data], "C3", "MF-SGD")
     ax[k].axvline(D, color="k", ls="--", lw=1, alpha=0.7)
     ax[k].text(D + 0.15, ax[k].get_ylim()[0], "true rank d=%d" % D, fontsize=7, rotation=90,
                va="bottom", ha="left", color="k", alpha=0.7)
     ax[k].axhline(0, color="k", lw=0.5)
-    ax[k].set_xlabel("guessed rank  $\\hat d$"); ax[k].set_ylabel("skill")
-    ax[k].set_title(ttl, fontsize=10); ax[k].grid(alpha=0.25); ax[k].legend(fontsize=8)
-fig.suptitle("Graceful degradation: skill vs guessed rank (true d=5). Under-ranking ($\\hat d<d$) is "
-             "mis-specified and\ndegrades smoothly; over-ranking ($\\hat d>d$, up to 3d) is regularized "
-             "away and stays robust.", fontsize=8.5)
-fig.tight_layout(rect=[0, 0, 1, 0.91])
+    ax[k].set_xlabel("guessed rank  $\\hat d$"); ax[k].set_ylabel(ttl)
+    ax[k].set_title("(%s)" % "ab"[k], loc="left", fontsize=9)
+    ax[k].grid(alpha=0.25); ax[k].legend(fontsize=8)
+fig.tight_layout()
 plt.savefig("docs/figures/F21_ranksweep.png", dpi=150, bbox_inches="tight")
 os.makedirs("docs/figures/pdf", exist_ok=True)
 plt.savefig("docs/figures/pdf/F21_ranksweep.pdf", bbox_inches="tight")

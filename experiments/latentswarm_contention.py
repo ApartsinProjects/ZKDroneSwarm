@@ -26,7 +26,7 @@ from latentswarm.env import ZKMRTAEnv
 from latentswarm.metrics import hungarian_oracle_per_step, EarnedSkill, bootstrap_ci
 from _results_io import save_results
 
-ALGOS = ["random", "ucb_indep", "mf_sgd", "swarm_cf"]
+ALGOS = ["random", "ucb_indep", "mf_sgd", "club", "bias_model", "swarm_cf"]
 OFFERS = [0, 20]                       # 0 = all tasks (default); 20 = size-c menu
 SEEDS = list(range(16))
 
@@ -52,7 +52,7 @@ def main():
     for c in OFFERS:
         for s in SEEDS:
             wr = np.random.RandomState(s)                  # SAME world construction as latentswarm.run
-            cfg = RunConfig(offer_size=c, seeds=[s])
+            cfg = RunConfig(offer_size=c, seeds=[s], scenario="uniform_cosine")
             P, U = build_scenario(cfg, wr).generate()
             d_guess = cfg.rank_for_run(wr)
             oracle = hungarian_oracle_per_step(P, U)

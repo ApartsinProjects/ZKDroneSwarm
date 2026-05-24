@@ -81,7 +81,9 @@ def main():
     ap.add_argument("--out", default="results/pilots/latentswarm_main.json")
     ap.add_argument("--config", default=None)
     args = ap.parse_args()
-    cfg = RunConfig.load(args.config) if args.config else RunConfig()
+    cfg = RunConfig.load(args.config) if args.config else RunConfig(
+        scenario="uniform_cosine",
+        algorithms=["random", "ucb_indep", "mf_sgd", "club", "bias_model", "swarm_cf"])
     out = run(cfg)
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
     json.dump(out, open(args.out, "w"), indent=0)

@@ -35,7 +35,7 @@ def main():
         noise_alpha=2.0,                    # per-observer noise variance ~ sigma_obs^2 (1 + (r/R_s)^2)
         capacity_one=True,                  # capacity-1 contention, as in the body
         seeds=list(range(16)),
-        algorithms=["random", "ucb_indep", "mf_sgd", "swarm_cf"],
+        algorithms=["random", "ucb_indep", "mf_sgd", "club", "bias_model", "swarm_cf"],
     )
     out = run(cfg)
     out["meta"]["experiment"] = ("X2 robotics-grounded instance: STRATA sensing-modality traits + "

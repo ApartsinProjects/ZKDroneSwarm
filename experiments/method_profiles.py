@@ -284,13 +284,16 @@ def html_scorecard(root):
             "report the mean with a bootstrap 95% confidence interval in brackets, regret and "
             "time-to-competence are means from the anytime trajectories; the best entry in each column is "
             "shown in <b>bold</b>, and <i>never</i> in the last column marks a method that reaches 25% of "
-            "the centralized oracle in fewer than half the seeds. SwarmCF leads the operational "
-            "columns (lowest regret, fastest and only reliable time-to-competence) and is the most masking-robust; on masked "
-            "unseen skill its margin over the batch variant SwarmCF-batch is within the 16-seed interval, "
-            "and the batch and clustering baselines win only the full-broadcast column. Structure-free learners are at the "
-            "floor on the unseen columns (intervals straddling zero); on the operational columns an "
-            "&epsilon;-greedy tabular learner is competitive by re-exploiting already-engaged tasks, so "
-            "the categorical separation is specifically an unseen-pair (generalization) phenomenon.</p>")
+            "the centralized oracle in fewer than half the seeds. With continuous (no-type) latent traits, "
+            "SwarmCF leads every column: lowest regret, the fastest and only reliable time-to-competence, "
+            "and the highest unseen-pair skill at both the masked (&rho;=0.25) and full (&rho;=1) broadcast, "
+            "beating the batch variant SwarmCF-batch by a margin whose 16-seed intervals do not overlap. The "
+            "discrete-clustering (CLUB) and additive (BiasModel) controls generalize above the structure-free "
+            "floor but stay well below SwarmCF, so the advantage is continuous personalized low-rank transfer, "
+            "not discrete clustering or popularity. Structure-free learners are at the floor on the unseen "
+            "columns (intervals straddling zero); on the operational columns an &epsilon;-greedy tabular "
+            "learner is competitive by re-exploiting already-engaged tasks, so the categorical separation is "
+            "specifically an unseen-pair (generalization) phenomenon.</p>")
     return note + "\n" + "\n".join(rows)   # caption/methodology note ABOVE the table
 
 
