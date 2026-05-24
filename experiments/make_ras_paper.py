@@ -644,8 +644,9 @@ A("<p><b>(b) Why coordination is the binding constraint, and how SwarmCF already
   "personalized low-rank estimate with no message passing. Restricting the offer to a size-$c$ menu "
   "reduces collisions for every method (independent-UCB from $0.97$ to $0.25$), one reason the body uses a "
   "size-$c$ menu. Closing the remaining coordination gap calls for explicit communication-free "
-  "de-confliction, which we plan to study systematically in a follow-up (a family of private-offset and "
-  "coordination mechanisms). As a preview, a fixed, private per-robot offset (drawn once and never "
+  "de-confliction, which we plan to study systematically in a follow-up (a family of communication-free "
+  "de-confliction mechanisms, for example fixed private per-robot offsets and randomized near-best "
+  "action selection). As a preview, a fixed, private per-robot offset (drawn once and never "
   "shared) already roughly doubles earned reward at the most severe contention with no communication, "
   "exceeding communication-free auction-with-backoff and musical-chairs re-seating.</p>")
 A("<figure>%s<figcaption><b>Figure 6.</b> The cost of no de-confliction under capacity-1 contention "
