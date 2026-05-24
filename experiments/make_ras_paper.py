@@ -561,7 +561,8 @@ A("<p>The separation is structural rather than tuned: it follows from the three 
   "Section 6.8 (an exploitable low-rank-but-personalized reward, task scarcity, and a shared channel), not from "
   "any particular team size or task count: Section 6.3 shows the separation widening with team size "
   "(Figure 4b), and additional sweeps over $n$, $d$, and reward heterogeneity in the released data show "
-  "the same qualitative pattern. Two evaluation choices, the offer size and the masking model, are "
+  "the same qualitative pattern, and the categorical separation degrades only gracefully when the reward "
+  "is approximately rather than exactly low-rank (Appendix F, Figure 13). Two evaluation choices, the offer size and the masking model, are "
   "likewise robustness knobs rather than load-bearing assumptions: restricting the menu to a size-$c$ "
   "subset versus offering all $n$ tasks, and a persistent versus an i.i.d. mask, both leave the "
   "categorical separation intact (Appendix F).</p>")
@@ -626,7 +627,7 @@ A("<p><b>What the results say.</b> Under the least information, no prior, no com
 A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
   "trait-based premise; the categorical advantage degrades gracefully as the structure becomes only "
   "approximately low-rank or the rank grows toward full, vanishing only "
-  "when there is no exploitable structure. All our evidence is in simulation, on a reward that is low-rank "
+  "when there is no exploitable structure (Appendix F, Figure 13). All our evidence is in simulation, on a reward that is low-rank "
   "by construction: we do not validate on physical robots or an external benchmark, and the low-rank "
   "premise, though standard for trait-based MRTA, is an assumption rather than a measured property of any "
   "specific deployment (external and higher-fidelity validation is future work). "
@@ -913,7 +914,7 @@ A("<div class='algo'><div class='cap'>Algorithm 3: LatentSwarm mission (a ZK-MRT
   "        $(k,\\,a_k,\\,\\langle p_k,u_{a_k}\\rangle+\\eta_{ik})$, private $\\eta_{ik}\\sim\\mathcal N(0,\\sigma^2)$\n"
   "score: earned skill vs random / Hungarian oracle; unseen-pair skill on never-engaged tasks</div>")
 
-A("<h2>Appendix F. Robustness to the offer size and the masking model</h2>")
+A("<h2>Appendix F. Robustness to the offer size, the masking model, and approximate low-rank</h2>")
 A("<p class='small'>Two evaluation choices in the body are robustness knobs rather than load-bearing "
   "assumptions: the offer size and the masking model. We vary each here and find the categorical "
   "separation and the masking-robustness of SwarmCF unchanged.</p>")
@@ -975,6 +976,27 @@ A("<figure>%s<figcaption><b>Figure 12.</b> Under the all-tasks menu ($c=n$), a U
   "online estimator's unseen-pair lead over batch completion that pure greedy selection gives up (the "
   "structure-free floor shown for reference). Means over 16 seeds.</figcaption></figure>"
   % img("F25_probe_restores.png", "probe restores the online lead"))
+A("<p class='small'><b>Approximate low-rank.</b> The categorical separation assumes the reward is "
+  "low-rank; we test how it degrades when the reward is only <i>approximately</i> so. We perturb the "
+  "rank-$d$ block reward with a full-rank Gaussian term, "
+  "$R_\\varepsilon=(R+\\varepsilon\\,s\\,G)/\\sqrt{1+\\varepsilon^2}$ ($G_{ij}\\sim\\mathcal N(0,1)$, "
+  "$s=\\mathrm{std}(R)/\\mathrm{std}(G)$), which holds the entry-wise scale fixed (so the observation "
+  "SNR is unchanged) while moving energy out of the rank-$d$ subspace: the low-rank energy fraction is "
+  "$1/(1+\\varepsilon^2)$ and the effective rank rises from $d$ toward $\\min(m,n)$ as $\\varepsilon$ "
+  "grows. Figure 13 sweeps $\\varepsilon$ at the masked headline $\\rho=0.25$. SwarmCF degrades "
+  "<b>gracefully</b>: unseen-pair skill falls from 0.32 at $\\varepsilon=0$ (effective rank 5) to 0.20 at "
+  "$\\varepsilon=0.5$ (effective rank about 28; roughly 80% of the reward energy still low-rank) and 0.08 "
+  "at $\\varepsilon=1$ (about 50%), staying above the structure-free floor (about 0 at every "
+  "$\\varepsilon$, intervals straddling zero). The advantage is therefore a property of <i>exploitable</i> "
+  "low-rank structure, not of exact low-rankness: it weakens smoothly as structure is destroyed and "
+  "reaches the floor only when essentially none remains.</p>")
+A("<figure>%s<figcaption><b>Figure 13.</b> Approximate-low-rank robustness: unseen-pair skill versus a "
+  "full-rank perturbation of strength $\\varepsilon$ (top axis: the resulting effective rank at 99%% "
+  "energy), at the masked headline $\\rho=0.25$. SwarmCF and its batch variant degrade gracefully as the "
+  "reward leaves the rank-$d$ subspace and approach the structure-free floor only when little low-rank "
+  "structure remains; the structure-free learner is at the floor for every $\\varepsilon$. Means with "
+  "bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
+  % img("F27_approxrank.png", "approximate low-rank robustness"))
 A("</div></body></html>")
 html_str = "\n".join(H)
 open(OUT, "w", encoding="utf-8").write(html_str)

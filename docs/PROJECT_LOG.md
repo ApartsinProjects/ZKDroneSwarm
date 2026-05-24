@@ -1068,3 +1068,38 @@ flagged as future work. Verified in the rebuild (Table 4 CIs present, Section 6/
 7 reframing present). Still open from the fresh review: the substantive Major-1 approximate-low-rank
 robustness experiment, and (optional) re-running the ceiling at 16 seeds and the bake-off at more seeds for
 Moderate 4. Word .docx not rebuilt; ras_paper2 untouched.
+
+## Cycle 97 (Major-1 substantive: approximate-low-rank robustness experiment + Figure 13)
+New experiment answering the fresh review's Major-1 ("the categorical result may depend on EXACTLY low-rank").
+New driver experiments/pilot_approxrank.py perturbs the rank-d block reward with a full-rank Gaussian term,
+R_eps=(R+eps*s*G)/sqrt(1+eps^2), s=std(R)/std(G) (entry-wise scale held fixed so the observation SNR is
+constant; low-rank energy fraction 1/(1+eps^2); effective rank rises from d toward min(m,n) as eps grows),
+and sweeps eps at the masked headline rho=0.25, reusing pilot_compare.REGISTRY/guessed_rank and
+pilot_c11_masking.run_masked (run_masked derives reward/oracle/unseen-skill entirely from R, so perturbing R
+is sufficient and faithful). 16 seeds. Result (bootstrap 95% CI): SwarmCF unseen-pair skill degrades
+GRACEFULLY 0.316 [0.287,0.346] at eps=0 (eff rank 5; reproduces the Table 3 headline exactly) -> 0.285
+(eps=0.2, eff rank ~19) -> 0.203 (eps=0.5, eff rank ~28, ~80% low-rank energy) -> 0.079 [0.067,0.092]
+(eps=1.0, eff rank ~29, ~50% low-rank energy), staying ABOVE the structure-free floor (Independent-UCB ~0.00,
+intervals straddling zero) at every eps; SwarmCF-batch tracks it. So the advantage is a property of
+EXPLOITABLE low-rank structure, not of exact low-rankness. Added F27 builder to make_figures.py (bootstrap
+CIs + a top axis showing effective rank) -> docs/figures/F27_approxrank.png/pdf; integrated into the base
+paper as Figure 13 + an "Approximate low-rank" paragraph in Appendix F (heading renamed), with pointers from
+Section 6.6 and Section 7. PDF timestamp-only churn from the figure rebuild was reverted (PNGs are
+byte-stable). HTML 87 KB; .docx not rebuilt.
+
+## Cycle 98 (follow-up polish round 2 + external-benchmark scouting; HTML only, base untouched)
+Two background agents. (a) Follow-up polish: added 23 explicit base-paper pointers ([1, Prop. 1], [1, Thm 3],
+[1, Sec. 6.5], [1, Table 4], etc.), and notably caught and fixed a FABRICATED number (the follow-up Sec 4
+claimed SwarmCF-D+ "recovers about 81%"; the base has no such figure and SwarmCF-D+ is a follow-up method ->
+rewrote to cite the base's actual plain-SwarmCF ~84% of the ceiling, [1, Sec. 6.4, Table 4]) and an overclaim
+(the fold-in bound and collective-speedup law were billed as the follow-up's Theorems F3-F4; both are proven
+in the base, relabeled as imported [1, App. B] / [1, Thm 4], leaving only the genuinely-new Proposition F3).
+Verified div balance 14/14, zero dashes/base64, figures 1-4 in order; NOT committed by the agent (committed
+here after review). (b) External-benchmark scouting (Major-1 gold-standard option): RecoGym (Criteo) is the
+most tractable single external benchmark because its reward is a latent-factor inner product (low-rank by
+construction), estimated ~4-6 person-days (its blockers: single-agent, so the multi-robot masked broadcast is
+a wrapper to build, plus legacy gym==0.14.0/Py3.6 install friction); Level-Based Foraging is worst (reward is
+combinatorial, not low-rank, so hosting ZK-MRTA guts its semantics); no public code exists for the
+bilinear-bandit papers. Recommendation recorded: attempt RecoGym if we want the gold-standard external
+benchmark, else the approximate-low-rank experiment (Cycle 97) + the honest §7 framing already substantially
+answer Major-1. Word .docx not rebuilt; base paper untouched.

@@ -795,4 +795,45 @@ cb = figS.colorbar(imS, ax=axS, fraction=0.025, pad=0.01); cb.set_label("reward 
 figS.tight_layout(); save_fig("F20_setting")
 print("F20_setting  <- (conceptual)")
 
+# ---- F27: X5 approximate-low-rank robustness (unseen skill vs full-rank perturbation eps) ----
+f = latest("results/pilots/x5_approxrank_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; eps = d["meta"]["eps"]
+
+    def _ci_ar(xs, B=5000, seed=0):
+        a = np.asarray([x for x in xs if x is not None], float)
+        if len(a) < 2:
+            return (float(a.mean()) if len(a) else 0.0, 0.0, 0.0)
+        rng = np.random.RandomState(seed)
+        boot = a[rng.randint(0, len(a), size=(B, len(a)))].mean(1)
+        return float(a.mean()), float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))
+
+    keys = ["%.2f" % e for e in eps]
+    sty = {
+        "RewardCF": dict(marker="o", color="C0", lw=2.4, label="SwarmCF (online ALS, ours)"),
+        "PTF":      dict(marker="s", color="C1", ls="--", lw=2, label="SwarmCF-batch"),
+        "UCBIndep": dict(marker="x", color="gray", ls=":", label="Independent-UCB (structure-free)"),
+    }
+    fig, ax = plt.subplots(figsize=(6, 4))
+    for nm, st in sty.items():
+        if nm not in raw[keys[0]]:
+            continue
+        stats = [_ci_ar(raw[k][nm]["unseen"]) for k in keys]
+        mu = [s[0] for s in stats]
+        lo = [s[0] - s[1] for s in stats]; hi = [s[2] - s[0] for s in stats]
+        ax.errorbar(eps, mu, yerr=[lo, hi], capsize=3, markersize=5, **st)
+    ax.axhline(0, color="black", lw=0.8, ls=":")
+    ax.set_xlabel("full-rank perturbation strength  $\\epsilon$   (low-rank energy fraction $1/(1+\\epsilon^2)$)")
+    ax.set_ylabel("UNSEEN-pair skill")
+    ax.set_title("Approximate low-rank: SwarmCF degrades GRACEFULLY as the reward leaves the\n"
+                 "rank-$d$ subspace; structure-free stays at the floor (separation = exploitable structure)",
+                 fontsize=9)
+    ax.grid(alpha=0.25); ax.legend(fontsize=8, loc="upper right")
+    er = [np.mean(raw[k]["RewardCF"]["eff_rank"]) for k in keys]   # effective rank at each eps
+    ax2 = ax.twiny(); ax2.set_xlim(ax.get_xlim()); ax2.set_xticks(list(eps))
+    ax2.set_xticklabels(["%.0f" % e for e in er], fontsize=7)
+    ax2.set_xlabel("effective rank of the reward (99% energy)", fontsize=8)
+    fig.tight_layout(); save_fig("F27_approxrank")
+    print("F27_approxrank  <-", os.path.basename(f))
+
 print("figures written to", OUT)
