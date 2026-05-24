@@ -507,7 +507,7 @@ A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a
   "profile.</p>")
 A("<p class='small'><b>Table 2.</b> Operating profiles of the methods compared; SwarmCF-family "
   "refinements are deferred to future work (column abbreviations are defined in the key).</p>")
-A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF",
+A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "CLUB", "BiasModel",
                            "UCBIndep", "Tabular", "Random", "CentralClean-ceiling", "CTDE-ceiling", "Oracle"]))
 
 A("<h3>6.1 The categorical separation and masking robustness</h3>")
@@ -564,7 +564,15 @@ A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen ski
   % img("F18_collab_scaling.png", "why a swarm"))
 
 A("<h3>6.4 The cost of communication-free operation: a centralized ceiling</h3>")
-A("<p>Table 3 consolidates the masked-harness comparison across all methods. Here we ask how far "
+A("<p>Table 3 consolidates the masked-harness comparison across all methods, including two structured "
+  "controls that bound the explanation of the advantage. A published <b>clustering-of-bandits</b> baseline "
+  "(CLUB [16], which shares structure through discrete robot clusters rather than continuous factors) also "
+  "generalizes well above the structure-free floor (unseen-pair skill $0.26$ at $\\rho=0.25$), so the "
+  "categorical gap is <i>structure-sharing versus none</i> rather than an artifact of our particular "
+  "estimator, though SwarmCF's continuous low-rank still leads it under masking ($0.32$ versus $0.26$); an "
+  "additive <b>popularity</b> model (BiasModel, rank $\\le 2$) captures only globally-good tasks and reaches "
+  "just $0.09$, so the advantage is <i>personalized</i> low-rank transfer, not a shared popularity ranking. "
+  "Here we ask how far "
   "communication-free SwarmCF is from a centralized optimum that our constraints forbid. We add two "
   "reference <b>ceilings</b> (upper bounds, not competitors): a centralized full-communication matcher "
   "that sees every reward and computes the optimal one-to-one robot-task assignment by Hungarian "

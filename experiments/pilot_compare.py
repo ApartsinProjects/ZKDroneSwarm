@@ -37,7 +37,7 @@ from pilot_c11_masking import run_masked
 from pilot_noise import (Tabular, RewardCF, BothCF, ChoiceCF, HybridCF, BothCFPrec,
                          StackCF, ActiveCF)
 from pilot_baselines import (Random, UCBIndep, UCBHomo, MFSGD, ESTR, PTF, BPMF,
-                             BiasModel, KNNCF, SoftImpute)
+                             BiasModel, KNNCF, SoftImpute, CLUB)
 from core import make_world
 from _results_io import save_results
 
@@ -69,6 +69,7 @@ REGISTRY = {
     "BiasModel":  (BiasModel,  dict(eps=0.2)),
     "KNNCF":      (KNNCF,      dict(eps=0.2)),
     "SoftImpute": (SoftImpute, dict(eps=0.15, sweeps=20, refit_every=5)),
+    "CLUB":       (CLUB,       dict(eps=0.2, sim_thresh=0.4, min_co=3)),
     "PTF":      (PTF,      dict(T_total=T, probe_frac=0.4, c=2.0, lr=0.2, reg=1e-3,
                                eps=0.15, init_scale=0.3)),
     "BPMF":     (BPMF,     dict(prior_var=1.0, init_scale=0.1)),
@@ -97,11 +98,11 @@ REGISTRY = {
                                     als_sweeps=20, refit_every=1)),
 }
 ORDER = ["Random", "UCBIndep", "UCBHomo", "Tabular",
-         "MFSGD", "ESTR", "PTF", "BPMF", "RewardCF", "BothCF", "HybridCF"]
+         "MFSGD", "ESTR", "PTF", "BPMF", "CLUB", "BiasModel", "RewardCF", "BothCF", "HybridCF"]
 GROUP = {"Random": "no-struct", "UCBIndep": "no-struct", "UCBHomo": "no-struct",
          "Tabular": "no-struct", "MFSGD": "low-rank", "ESTR": "low-rank",
          "PTF": "low-rank", "BPMF": "low-rank",
-         "BiasModel": "additive", "KNNCF": "memory-CF", "SoftImpute": "low-rank",
+         "BiasModel": "additive", "KNNCF": "memory-CF", "SoftImpute": "low-rank", "CLUB": "clustering",
          "RewardCF": "low-rank(ours)", "BothCF": "low-rank(ours)",
          "ChoiceCF": "low-rank(ours)", "HybridCF": "low-rank(ours)"}
 

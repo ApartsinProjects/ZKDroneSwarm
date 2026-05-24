@@ -223,7 +223,7 @@ def _ci(xs, B=5000, seed=0):
 
 
 # scorecard method order (grouped by provenance), restricted to the masked-harness family
-SCORE_ORDER = ["RewardCF", "PTF", "MFSGD", "BPMF", "ESTR",
+SCORE_ORDER = ["RewardCF", "PTF", "MFSGD", "BPMF", "ESTR", "CLUB", "BiasModel",
                "UCBIndep", "Tabular", "Random"]
 
 
@@ -244,9 +244,9 @@ def scorecard_rows(root):
         ttc = op.get("ttc", {}).get("0.25", {}).get(nm, {}).get("0.25") if op else None
         if u025 is None and reg is None:
             continue
-        ttc_s = "never"
-        if ttc and ttc.get("rounds_mean") and ttc.get("frac_reached", 0) >= 0.5:
-            ttc_s = "%.0f" % ttc["rounds_mean"]
+        ttc_s = "&ndash;"   # no anytime trajectory recorded for this method
+        if ttc:
+            ttc_s = ("%.0f" % ttc["rounds_mean"]) if (ttc.get("rounds_mean") and ttc.get("frac_reached", 0) >= 0.5) else "never"
         out.append({"name": nm, "prov": provenance(nm), "badge": badge(nm),
                     "unseen025": u025, "unseen100": u100,
                     "unseen025_ci": _ci(u025_list), "unseen100_ci": _ci(u100_list),
