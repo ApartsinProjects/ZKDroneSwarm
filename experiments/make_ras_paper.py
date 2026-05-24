@@ -96,8 +96,8 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "the task count $n$), an anytime "
   "(cumulative-reward) separation under task scarcity, and a deterministic condition under which "
   "decentralized recovery from the masked broadcast is exact (validated empirically). Experiments quantify "
-  "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and dominance "
-  "over the other low-rank methods under limited observability, recovering most of a centralized "
+  "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and the "
+  "strongest masking-robustness and anytime profile among low-rank methods, recovering most of a centralized "
   "full-communication ceiling, and holding under capacity-1 "
   "contention.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
@@ -164,9 +164,9 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "<li>We give a <b>deterministic condition</b> under which decentralized recovery of the shared "
   "structure from the privately-masked broadcast is exact, with a coverage-time bound that improves as "
   "the team grows, and validate the condition empirically (Section 5, Appendix C).</li>"
-  "<li>We quantify, on a robotics-grounded task-servicing mission, the <b>value of the broadcast</b>, a "
-  "<b>positive scaling law</b> (per-robot competence rises with team size), and <b>dominance over the "
-  "other low-rank methods</b> under limited observability, recovering most of a centralized full-communication "
+  "<li>We quantify the <b>value of the broadcast</b>, a "
+  "<b>positive scaling law</b> (per-robot competence rises with team size), and the <b>strongest "
+  "masking-robustness and anytime profile</b> among low-rank methods under limited observability, recovering most of a centralized full-communication "
   "ceiling; and we show the advantage <b>persists under capacity-1 contention</b> (Section 6.5).</li>"
   "<li>We release <b>LatentSwarm</b>, an open, modular Python package for ZK-MRTA, "
   "covering the masked-broadcast setting used for our headline results and its capacity-1 contention "
@@ -348,7 +348,8 @@ A("<div class='thm'><b>Theorem 2 (anytime separation under task scarcity).</b> W
   "is a concave, increasing order-statistic function with $g(0)=0$ (made precise in Appendix A), so the "
   "bound vanishes when $cT=o(n)$, even with a full broadcast; once the shared basis is available "
   "(Theorem 1, recovered per Theorem 3) SwarmCF reaches near-oracle in $O(d)$ further rounds and earns "
-  "$\\Theta(1)$ anytime skill, a categorical gap.</div>")
+  "$\\Theta(1)$ anytime skill, a categorical gap. (The structure-free bound is an order argument, exact "
+  "in mechanism but with a loose constant; see Appendix A.)</div>")
 A("<p>Proposition 1 and Theorems 1-2 make the separation categorical (zero versus nonzero) and "
   "operational (it shows up in reward earned while learning), but Theorem 1 assumes $U$ is known. The "
   "remaining question, the central problem "
@@ -372,7 +373,9 @@ A("<div class='thm'><b>Theorem 3 (decentralized masked recovery).</b> Let $E_i(j
 A("<p>Theorem 3 turns the previously-cited completion step into a self-contained, checkable condition: a "
   "pair $(i,j)$ is predicted exactly when robot $i$'s own factor lies in the span of the visible "
   "teammates that engaged $j$, and not otherwise, with the threshold reached faster the larger the team. "
-  "Appendix C validates it directly: on the actual observation patterns the swarm produces, "
+  "The coverage condition needs $\\rho m\\gt d$ on average, so at very low broadcast ($\\rho m\\lt d$, e.g. "
+  "$\\rho=0.1$ with $m=30,d=5$) recovery is only partial and the low-$\\rho$ skill in Figure 2 is "
+  "correspondingly reduced. Appendix C validates it directly: on the actual observation patterns the swarm produces, "
   "reconstruction error collapses from the prior floor to (numerically) zero exactly at the spanning "
   "threshold.</p>")
 A("<div class='thm'><b>Theorem 4 (collective speedup, why a swarm).</b> An isolated robot ($\\rho=0$) "
@@ -492,7 +495,9 @@ A("<p>The experiments so far impose no contention: two robots may service the sa
   "persistent private mask, the same task scarcity and randomly guessed rank, with SwarmCF run as one "
   "policy under no contention handling.</p>")
 A("<p><b>(a) The categorical separation survives contention.</b> SwarmCF earns the most of any learner "
-  "($0.42$ of the centralized capacity-1 ceiling, bootstrap 95% CI $[0.40,0.44]$ over 16 seeds), well "
+  "($0.42$ of the centralized capacity-1 ceiling, bootstrap 95% CI $[0.40,0.44]$ over 16 seeds; this "
+  "capacity-1 ceiling is stricter than the full-communication ceiling of Section 6.4, so the drop from "
+  "about 80% there to 42% here is the coordination gap that contention introduces), well "
   "above the MF-SGD baseline ($0.20$) and the structure-free independent-UCB learner, which sits below the "
   "random floor ($-0.17$) because under contention its persistent exploration collides without "
   "coordinating. On the categorical generalization metric, SwarmCF is the <b>only</b> method whose "
@@ -528,8 +533,9 @@ A("<figure>%s<figcaption><b>Figure 6.</b> The cost of no de-confliction under ca
 A("<h3>6.6 Robustness across configurations</h3>")
 A("<p>The separation is structural rather than tuned: it follows from the three scope conditions stated "
   "below (an exploitable low-rank-but-personalized reward, task scarcity, and a shared channel), not from "
-  "any particular team size or task count, and we observe the same pattern across $m$, $n$, $d$, and "
-  "heterogeneity in additional sweeps. Two evaluation choices, the offer size and the masking model, are "
+  "any particular team size or task count: Section 6.3 shows the separation widening with team size "
+  "(Figure 4b), and additional sweeps over $n$, $d$, and reward heterogeneity in the released data show "
+  "the same qualitative pattern. Two evaluation choices, the offer size and the masking model, are "
   "likewise robustness knobs rather than load-bearing assumptions: restricting the menu to a size-$c$ "
   "subset versus offering all $n$ tasks, and a persistent versus an i.i.d. mask, both leave the "
   "categorical separation intact (Appendix F).</p>")
@@ -565,7 +571,7 @@ A("<p><b>What the results say.</b> Under the least information, no prior, no com
   "learning provably cannot have: acting well on the unseen, getting more competent as the team grows, "
   "and recovering most of what a centralized, communicating system could achieve. The separation is structural "
   "(it is a property of exploiting the shared low-rank trait structure) and operational (it shows up in "
-  "reward earned while learning, and in a robotics-grounded mission).</p>")
+  "reward earned while learning, and in the operational anytime and contention metrics).</p>")
 A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
   "trait-based premise; the categorical advantage degrades gracefully as the structure becomes only "
   "approximately low-rank or the rank grows toward full, vanishing only "
@@ -605,8 +611,8 @@ A("<p class='small'>The authors declare that they have no known competing financ
   "relationships that could have appeared to influence the work reported in this paper.</p>")
 A("<h2>Data availability</h2>")
 A("<p class='small'>The source code, the per-seed data required to reproduce every figure and table, and "
-  "the <b>LatentSwarm</b> evaluation suite (the analytical masked-broadcast harness and the "
-  "modular Python package) are openly available at "
+  "the <b>LatentSwarm</b> simulator (the masked-broadcast setting and its capacity-1 contention "
+  "extension) are openly available at "
   "<a href='https://github.com/ApartsinProjects/ZKDroneSwarm'>github.com/ApartsinProjects/ZKDroneSwarm</a>.</p>")
 
 # ---------------- references + appendices ----------------
@@ -769,8 +775,11 @@ A("<p class='small'>On the swarm's actual coverage patterns ($m=30,n=240,d=5,\\r
   "partial recovery as the spanning rank rises to $d$. The identifiability threshold is therefore "
   "exactly the spanning condition of Theorem 3.</p>")
 A("<h2>Appendix D. Reproducibility</h2>")
-A("<p class='small'>All experiments use a block-model world with signed-cosine reward and bootstrap 95% "
-  "confidence intervals; the sweeps use 8 random seeds and the consolidated bake-off (Table 3) uses 5; "
+A("<p class='small'>All experiments use a block-model world with the signed inner-product reward of "
+  "Section 3 and bootstrap 95% "
+  "confidence intervals; the per-$\\rho$ sweeps use 8 random seeds, the consolidated bake-off (Table 3) "
+  "uses 5, and the LatentSwarm contention study (Section 6.5) uses 16 (seed budgets differ by per-cell "
+  "cost: the bake-off sweeps the most methods); "
   "each reported number is averaged over the per-seed "
   "runs. The code and per-seed data needed to regenerate every figure and table are openly available "
   "(see Data availability).</p>")

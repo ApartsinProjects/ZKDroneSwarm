@@ -270,11 +270,13 @@ def html_scorecard(root):
     rows.append("</table>")
     note = ("<p class='small'>One canonical masked harness (m=30, n=240, 5 seeds); unseen-skill columns "
             "report the mean with a bootstrap 95% confidence interval in brackets, regret and "
-            "time-to-competence are means from the anytime trajectories. Among the methods "
-            "shown, SwarmCF leads the masked column and the operational columns; the batch variant "
-            "SwarmCF-batch wins only the full-broadcast column; structure-free learners sit at the floor "
-            "(intervals straddling zero). Confidence-directed SwarmCF refinements (deferred to future work) "
-            "can edge out the core variant under masking.</p>")
+            "time-to-competence are means from the anytime trajectories. SwarmCF leads the operational "
+            "columns (lowest regret, fastest to competence) and is the most masking-robust; on masked "
+            "unseen skill its margin over the batch variant SwarmCF-batch is within the 5-seed interval, "
+            "and SwarmCF-batch wins only the full-broadcast column. Structure-free learners are at the "
+            "floor on the unseen columns (intervals straddling zero); on the operational columns an "
+            "&epsilon;-greedy tabular learner is competitive by re-exploiting already-engaged tasks, so "
+            "the categorical separation is specifically an unseen-pair (generalization) phenomenon.</p>")
     return "\n".join(rows) + "\n" + note
 
 
