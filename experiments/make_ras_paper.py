@@ -103,7 +103,7 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "full-communication ceiling, and holding under capacity-1 "
   "contention and in a robotics-grounded sensing instance.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
-  "filtering; low-rank matrix completion; communication-free coordination; multi-agent bandits; swarm "
+  "filtering; low-rank matrix completion; communication-free coordination; swarm "
   "robotics.</p>")
 
 # ---------------- 1. introduction ----------------
@@ -293,7 +293,7 @@ A("<div class='algo'><div class='cap'>Algorithm 1: SwarmCF (run independently by
   "    offered $S_{it}$; act $a_{it}\\leftarrow \\arg\\max_{j\\in S_{it}}\\langle\\hat p_i,\\hat u_j\\rangle$"
   " (w.p. $1-\\varepsilon$, else random); engage, earn $R_{i,a_{it}}$\n"
   "    sense broadcast: for each visible teammate $k$ (i.e. $M_{ik}=1$) record\n"
-  "        $(k,\\,a_{kt},\\,\\tilde r=R_{k,a_{kt}}+\\eta_{ikt})$ with weight $w=1/\\sigma^2$ into $\\Omega_i$\n"
+  "        $(k,\\,a_{kt},\\,\\tilde r=R_{k,a_{kt}}+\\eta_{ikt})$ with weight $w=1/\\sigma^2$ (uniform $w=1$ in our runs) into $\\Omega_i$\n"
   "        (own outcome recorded with its own, lower, noise)\n"
   "    every $\\tau$ rounds: refit by weighted ridge ALS sweeps over $\\Omega_i$:\n"
   "        $\\hat u_j \\leftarrow (\\sum_{(k,j)\\in\\Omega_i} w\\,\\hat p_k\\hat p_k^\\top+\\lambda I)^{-1}"
@@ -384,7 +384,8 @@ A("<p>Theorem 3 turns the previously-cited completion step into a self-contained
 A("<div class='thm'><b>Theorem 4 (collective speedup, why a swarm).</b> An isolated robot ($\\rho=0$) "
   "sees only its own row and cannot identify a rank-$d>1$ column space, so its unseen skill stays at the "
   "floor: sharing is <b>necessary</b>. With the broadcast, the swarm's pooled observations cross the "
-  "recovery threshold after $\\tilde O(d(1+n/m))$ rounds ($\\tilde O$ suppresses logarithmic factors), a "
+  "recovery threshold after $\\tilde O(d(1+n/m))$ rounds at constant broadcast ($\\rho=\\Theta(1)$; the "
+  "general rate carries the $1/\\rho$ of Theorem 3, and $\\tilde O$ suppresses logarithmic factors), a "
   "time that shrinks as $1/m$ as the team grows "
   "while a lone learner never crosses it: the broadcast makes recovery possible and a larger team makes "
   "it fast, with no communication.</div>")
@@ -411,7 +412,7 @@ A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a
   "the low-rank design space against the genuinely external structure-free paradigm and "
   "full-information reference ceilings, not a contest of rival systems. SwarmCF is our method; structure-"
   "free learners (Independent-UCB, a per-arm UCB1 [45]; tabular) are the external paradigm; standard low-rank estimators "
-  "(online MF-SGD, batch spectral/Bayesian/convex completion) are adapted to the setting for the "
+  "(online MF-SGD, batch spectral and Bayesian completion) are adapted to the setting for the "
   "low-rank comparison; the Oracle and a centralized full-communication matcher are upper bounds, not "
   "competitors. We emphasize that communication-based methods (auctions/CBBA, CTDE training, "
   "federated/gossip CF) are <b>inadmissible by the problem definition</b>, not omitted: they require "
@@ -542,8 +543,8 @@ A("<figure>%s<figcaption><b>Figure 6.</b> The cost of no de-confliction under ca
   "over 16 seeds.</figcaption></figure>" % img("F23_ls_contention.png", "LatentSwarm contention and de-confliction"))
 
 A("<h3>6.6 Robustness across configurations</h3>")
-A("<p>The separation is structural rather than tuned: it follows from the three scope conditions stated "
-  "below (an exploitable low-rank-but-personalized reward, task scarcity, and a shared channel), not from "
+A("<p>The separation is structural rather than tuned: it follows from the three scope conditions of "
+  "Section 6.8 (an exploitable low-rank-but-personalized reward, task scarcity, and a shared channel), not from "
   "any particular team size or task count: Section 6.3 shows the separation widening with team size "
   "(Figure 4b), and additional sweeps over $n$, $d$, and reward heterogeneity in the released data show "
   "the same qualitative pattern. Two evaluation choices, the offer size and the masking model, are "
@@ -590,15 +591,15 @@ A("<figure>%s<figcaption><b>Figure 8.</b> A robotics-grounded instance (LatentSw
   "floor, so the categorical separation survives a physically-motivated instantiation. Bars are means with "
   "bootstrap 95%% CIs over 16 seeds.</figcaption></figure>" % img("F26_grounded.png", "robotics-grounded instance"))
 
-A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b> The advantage is not "
-  "universal, and we state its boundary precisely. It holds when three conditions co-occur: "
-  "<b>(i) low-rank but personalized</b> structure ($1\\lt d\\ll\\min(m,n)$): at $d=1$ the reward reduces to a "
-  "shared popularity order that a bias/pooling baseline already captures, so there is nothing personal to "
-  "transfer; <b>(ii) task scarcity</b> ($n\\gg T$): if instead sample-rich, a tabular learner eventually "
-  "measures every entry and the unseen advantage vanishes; <b>(iii) a shared channel</b> ($\\rho>0$): "
-  "with no broadcast each robot has only its own row and collaborative filtering degenerates to tabular. "
-  "These are exactly the conditions of the regime we target, and they delimit where "
-  "structure-free methods remain competitive.</div>")
+A("<h3>6.8 Scope of the advantage</h3>")
+A("<p>The advantage is not universal, and we state its boundary precisely. It holds when three "
+  "conditions co-occur: <b>(i) low-rank but personalized</b> structure ($1\\lt d\\ll\\min(m,n)$): at "
+  "$d=1$ the reward reduces to a shared popularity order that a bias/pooling baseline already captures, so "
+  "there is nothing personal to transfer; <b>(ii) task scarcity</b> ($n\\gg T$): if instead sample-rich, a "
+  "tabular learner eventually measures every entry and the unseen advantage vanishes; <b>(iii) a shared "
+  "channel</b> ($\\rho>0$): with no broadcast each robot has only its own row and collaborative filtering "
+  "degenerates to tabular. These are exactly the conditions of the regime we target, and they delimit "
+  "where structure-free methods remain competitive.</p>")
 
 # ---------------- 7. discussion ----------------
 A("<h2>7. Discussion, limitations, and future work</h2>")
@@ -615,7 +616,7 @@ A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and sta
   "recovery rate of Theorem 3 is established for non-adaptive "
   "exploration, the finite-time rate under a strongly exploiting policy (which can starve low-reward "
   "tasks of coverage) remains open. The scope conditions for the advantage (low-rank but personalized "
-  "structure, task scarcity, and a shared channel) are stated precisely in the scope box of Section 6.7; "
+  "structure, task scarcity, and a shared channel) are stated precisely in Section 6.8; "
   "outside them, structure-free methods are competitive.</p>")
 A("<p><b>Future work (a planned follow-up).</b> The present paper deliberately keeps to a single core "
   "estimator. In a follow-up we plan to study the refinements that this foundation enables, each of "
@@ -642,6 +643,11 @@ A("<p>We formalized multi-robot task allocation in its most restrictive but prac
   "regime for autonomous multi-robot systems.</p>")
 
 # ---------------- declarations ----------------
+A("<h2>CRediT authorship contribution statement</h2>")
+A("<p class='small'><b>Alexander Apartsin:</b> Conceptualization, Methodology, Software, Formal analysis, "
+  "Investigation, Visualization, Writing - original draft. <b>Yigal Meshulam:</b> Methodology, Validation, "
+  "Writing - review &amp; editing. <b>Yehudit Aperstein:</b> Conceptualization, Supervision, Writing - "
+  "review &amp; editing.</p>")
 A("<h2>Declaration of competing interest</h2>")
 A("<p class='small'>The authors declare that they have no known competing financial interests or personal "
   "relationships that could have appeared to influence the work reported in this paper.</p>")

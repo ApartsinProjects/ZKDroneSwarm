@@ -978,3 +978,27 @@ constrained)". Not done: demoting Theorem 1 to a Lemma (a "consider" item; it wo
 already weighed in the Cycle-80 theorem audit, and the theorem already carries a "standard given U" remark),
 and trimming the abstract (it is ~230 words, within the RAS 250-word limit). Word .docx not rebuilt
 (HTML phase); follow-up paper ras_paper2 untouched.
+
+## Cycle 92 (third RAS-reviewer pass: scope subsection, CRediT, submission-readiness; HTML only)
+Round-3 reviewer read of the rendered HTML. Tackled the substantive items and folded in the cheap
+correctness/compliance fixes. (1) Scope callout: the "Scope: when does SwarmCF beat structure-free
+learning?" box was the only colored box left in the body and was topically orphaned at the end of 6.7;
+de-boxed it and promoted it to a proper subsection 6.8 "Scope of the advantage", and repointed both
+cross-references (6.6 "stated below" -> "of Section 6.8"; Section 7 "the scope box of Section 6.7" ->
+"Section 6.8"). There are now zero colored callout boxes in the body (Highlights/abstract/theorem/algorithm
+environments are standard and remain). (2) CRediT: added the Elsevier-required "CRediT authorship
+contribution statement" section before the competing-interest declaration, with a per-author role draft
+(Apartsin: conceptualization/methodology/software/formal analysis/investigation/visualization/writing-
+original; Meshulam: methodology/validation/writing-review; Aperstein: conceptualization/supervision/writing-
+review). NOTE: the role assignments are a reasonable draft and must be verified/adjusted by the authors. (3)
+Theory clarity: Theorem 4's rate Otilde(d(1+n/m)) now states it is at constant broadcast (rho=Theta(1)) and
+that the general rate carries the 1/rho of Theorem 3, removing the apparent rho-dependence mismatch with
+Theorem 3. (4) Cheap fixes: dropped the dangling "convex completion" from the Section 6 method prose (the
+convex/nuclear-norm baseline SoftImpute was removed in Cycle 90, so the body now reads "spectral and
+Bayesian completion"); trimmed the keyword list from 7 to 6 (removed "multi-agent bandits") for the Elsevier
+6-keyword cap; and noted in Algorithm 1 that the displayed noise weight w=1/sigma^2 is run with uniform w=1
+in our headline runs (matching Section 4 / Appendix D). Verified in the rebuild: zero box divs, Section 6
+headings 6.1-6.8 in order, CRediT present with all three authors, cross-references resolve to 6.8, keyword
+count 6, no stale "convex completion". HTML ~84 KB (external PNGs). Deferred (cosmetic/optional): one-term
+standardization of the "privately-*" adjective, and adding an earned-skill/percent-of-ceiling column to
+Table 3. Word .docx not rebuilt; ras_paper2 untouched.
