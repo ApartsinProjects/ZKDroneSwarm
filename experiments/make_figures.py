@@ -590,8 +590,9 @@ for r in masked_rows:                      # persistently-masked teammate rows: 
     axS.add_patch(mpatches.Rectangle((-0.5, r - 0.5), ns_, 1, facecolor="#9aa3ad", alpha=0.6,
                                      edgecolor="none", hatch="//"))
 axS.add_patch(mpatches.Rectangle((-0.5, foc - 0.5), ns_, 1, fill=False, edgecolor="#1f5fa8", lw=3))
-for j in own:                              # focal robot's own clean engagements: green cells
-    axS.add_patch(mpatches.Rectangle((j - 0.5, foc - 0.5), 1, 1, fill=False, edgecolor="#0a7d4d", lw=3))
+for j in own:                              # focal robot's own clean engagements: FILLED green cells
+    axS.add_patch(mpatches.Rectangle((j - 0.5, foc - 0.5), 1, 1, facecolor="#0a7d4d", alpha=0.5,
+                                     edgecolor="#0a7d4d", lw=2.0))
 for j in range(ns_):                       # rest of the focal row is UNSEEN: '?'
     if j not in own:
         axS.text(j, foc, "?", ha="center", va="center", fontsize=11, color="#16191d", fontweight="bold")
@@ -608,7 +609,7 @@ axS.set_title(r"The setting: a hidden low-rank reward $R = P\,U^\top$ that each 
               "from partial, private observation", fontsize=10.5)
 
 leg = [mpatches.Patch(facecolor="none", edgecolor="#1f5fa8", lw=3, label="focal robot's full row (must act on all of it)"),
-       mpatches.Patch(facecolor="none", edgecolor="#0a7d4d", lw=3, label="own clean engagement"),
+       mpatches.Patch(facecolor="#0a7d4d", alpha=0.5, edgecolor="#0a7d4d", label="own clean engagement"),
        Line2D([0], [0], marker="o", linestyle="None", markerfacecolor="black", markeredgecolor="white",
               markersize=8, label="partial, per-observer-noisy view of a teammate"),
        mpatches.Patch(facecolor="#9aa3ad", alpha=0.6, hatch="//", edgecolor="none", label="teammate persistently masked"),

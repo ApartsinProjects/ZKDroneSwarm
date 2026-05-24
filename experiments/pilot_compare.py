@@ -48,6 +48,14 @@ SO, SB = 0.10, 0.30               # own-obs noise, broadcast-obs noise
 SEEDS = list(range(5))
 RHOS = [1.0, 0.5, 0.25]            # per-drone fraction of broadcast observed
 
+
+def guessed_rank(seed):
+    """Guessed rank d-hat drawn at RANDOM per run (per seed) in [D, 2D]; always >= true rank D
+    (over-ranking is safe, Figure 6; under-ranking is a separate mis-specification regime).
+    Shared by every main analytical sweep so all methods at a given seed use the same d-hat (fair)."""
+    return int(np.random.RandomState(9000 + seed).randint(D, 2 * D + 1))
+
+
 # ---- method registry: name -> (Class, hyperparams) ----
 _ALS = dict(eps0=0.5, eps_min=0.05, eps_decay=0.93, als_sweeps=8, refit_every=3)
 _EPS = dict(eps0=0.5, eps_min=0.05, eps_decay=0.93)
@@ -102,15 +110,15 @@ def _run_cell(args):
     name, rho, seed = args
     Cls, hp = REGISTRY[name]
     w = make_world(M, N, D, K, K, within=0.15, seed=seed, signed=True)
-    o, u, q = run_masked(Cls, hp, w, T, seed, SO, SB, CAND, D_HAT, rho)
+    o, u, q = run_masked(Cls, hp, w, T, seed, SO, SB, CAND, guessed_rank(seed), rho)
     return name, rho, seed, float(o), float(u), float(q)
 
 
 def main():
     print("=" * 104)
     print("C14 METHOD BAKE-OFF on heterogeneous MASKING (block model, signed). "
-          "m=%d n=%d d=%d(K=%d) d_hat=%d T=%d cand=%d %d seeds" %
-          (M, N, D, K, D_HAT, T, CAND, len(SEEDS)))
+          "m=%d n=%d d=%d(K=%d) d_hat~U[%d,%d] T=%d cand=%d %d seeds" %
+          (M, N, D, K, D, 2 * D, T, CAND, len(SEEDS)))
     print("rho = per-drone fraction of broadcast observed (persistent). "
           "sigma_own=%.2f sigma_obs=%.2f" % (SO, SB))
     print("=" * 104)
@@ -152,7 +160,7 @@ def main():
     path = save_results("c14_compare", {
         "meta": {"experiment": "C14 method bake-off under heterogeneous masking",
                  "methods": ORDER, "group": GROUP,
-                 "m": M, "n": N, "d": D, "K": K, "d_hat": D_HAT, "T": T, "cand": CAND,
+                 "m": M, "n": N, "d": D, "K": K, "d_hat": "random in [%d,%d] per seed" % (D, 2 * D), "T": T, "cand": CAND,
                  "sigma_own": SO, "sigma_obs": SB, "seeds": SEEDS, "rhos": RHOS,
                  "metric": "per-seed overall/unseen skill + state-uniqueness",
                  "fairness": "all structured learners use guessed d_hat (not true d)"},

@@ -34,7 +34,7 @@ def _job(args):
     nm, m, seed = args
     Cls, hp = REG[nm]
     w = make_world(m, pc.N, pc.D, min(pc.K, m), pc.K, within=0.15, seed=seed, signed=True)
-    o, u, q = run_masked(Cls, hp, w, pc.T, seed, pc.SO, pc.SB, pc.CAND, pc.D_HAT, RHO)
+    o, u, q = run_masked(Cls, hp, w, pc.T, seed, pc.SO, pc.SB, pc.CAND, pc.guessed_rank(seed), RHO)
     return nm, m, seed, float(o), float(u)
 
 

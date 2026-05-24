@@ -786,7 +786,21 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   RECOMMENDED but NOT yet done (needs the user's nod, involves figure renumbering): split the overloaded
   Section 6.5 into 6.5 Robustness (scope + rank, Fig) and 6.6 the LatentSwarm separate implementation
   (Fig). Low-priority remaining: add SoftImpute row to Table 3 or note its omission; gloss ESTR/BPMF at
-  first use. Per user instruction,
+  first use.
+- Cycle 84 (random-d-hat re-run of the main analytical sweeps; Figure 1 fix; abstract; GitHub Pages):
+  re-ran the five main sweeps (pilot_compare/c14 -> Table 3, pilot_crossover/c15 -> Fig 2,
+  pilot_anytime/c16 -> Fig 3, pilot_collab + pilot_scale_m -> Fig 4) with the guessed rank d-hat drawn
+  at RANDOM per run in [d,2d] (shared guessed_rank(seed) in pilot_compare, reused by the others; kept
+  c=20 per the chosen scope). Numbers stable vs fixed d-hat=8 (RewardCF unseen 0.357 at rho=0.25),
+  confirming rank robustness. Updated Setup + Appendix D to say d-hat drawn at random per run in [d,2d].
+  Dropped the explicit "LatentSwarm" name from the abstract (kept the "reproduces in a separate
+  implementation with contention" claim; the name stays in contributions / 6.5 / Appendix E / Data
+  availability). Fixed Figure 1: the focal robot's own-engagement cells were green OUTLINES merged with
+  the blue row border (invisible); now FILLED green + matching legend. Confirmed the RAS paper is the
+  GitHub Pages landing (make_ras_paper writes docs/index.html == docs/ras_paper.html). OPEN (next, per
+  user): switch the BODY to the unrestricted-c (c=n, all-tasks) variant and move the c=20 offered-subset
+  variant to an APPENDIX figure referenced from the body; add a RANDOM (i.i.d. per-round) masking
+  variant to the appendix with its figure; do NOT touch the follow-up paper. Per user instruction,
   regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
   intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
   setting) was delivered to the user separately.

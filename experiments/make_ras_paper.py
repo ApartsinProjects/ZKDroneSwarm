@@ -98,8 +98,8 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "decentralized recovery from the masked broadcast is exact (validated empirically). Experiments quantify "
   "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and dominance "
   "over the other low-rank methods under limited observability, recovering most of a centralized "
-  "full-communication ceiling; the advantage also reproduces in a separate implementation (the released "
-  "LatentSwarm package) that adds capacity-1 contention.</div>")
+  "full-communication ceiling, and reproduces in a separate implementation with capacity-1 "
+  "contention.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
   "filtering; low-rank matrix completion; communication-free coordination; multi-agent bandits; swarm "
   "robotics.</p>")
@@ -388,7 +388,7 @@ A("<p>Theorems 3-4 are, to our knowledge, the first results that pin decentraliz
 # ---------------- 6. experiments ----------------
 A("<h2>6. Experiments</h2>")
 A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$, guessed rank "
-  "$\\hat d=8$ (no method is given the true rank; the method is robust to this guess, Figure 6), horizon "
+  "$\\hat d$ drawn at random in $[d,2d]$ per run (no method is given the true rank; robust to the guess, Figure 6), horizon "
   "$T=50$, partial broadcast $\\rho$ swept, private noise on own ($\\sigma_{\\mathrm{own}}=0.1$) and "
   "observed ($\\sigma_{\\mathrm{obs}}=0.3$) outcomes (Appendix D), 8 random seeds (the consolidated "
   "bake-off of Table 3 uses 5), bootstrap 95% confidence intervals. By default a robot may select any of "
@@ -763,7 +763,7 @@ A("<p class='small'>All experiments use a block-model world with signed-cosine r
   "runs. The code and per-seed data needed to regenerate every figure and table are openly available "
   "(see Data availability).</p>")
 A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robots, $n=240$ tasks, true "
-  "rank $d=5$, guessed rank $\\hat d=8$, horizon $T=50$, offer size $c=20$, own-observation noise "
+  "rank $d=5$, guessed rank $\\hat d$ drawn at random per run in $[d,2d]$, horizon $T=50$, offer size $c=20$, own-observation noise "
   "$\\sigma_{\\mathrm{own}}=0.1$, broadcast-observation noise $\\sigma_{\\mathrm{obs}}=0.3$, persistent "
   "mask rate $\\rho$ swept. SwarmCF: $\\varepsilon$-greedy with $\\varepsilon_0=0.5$ decaying by $0.93$ "
   "per round to $\\varepsilon_{\\min}=0.05$; ridge $\\lambda=10^{-2}$; 8 alternating-least-squares sweeps "

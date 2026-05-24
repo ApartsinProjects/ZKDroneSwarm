@@ -41,7 +41,7 @@ def run_anytime_clshp(Cls, hp, rho, seed, d_hat=None, sb=None):
     in pc.REGISTRY can be evaluated through the SAME loop. Returns the cumulative-
     normalized skill trajectory traj[T] (traj[-1] = whole-episode anytime skill).
     Optional sb overrides the broadcast-observation noise (for noise sweeps)."""
-    d_hat = pc.D_HAT if d_hat is None else d_hat
+    d_hat = pc.guessed_rank(seed) if d_hat is None else d_hat
     w = make_world(pc.M, pc.N, pc.D, pc.K, pc.K, within=0.15, seed=seed, signed=True)
     P, U, R = w[:3]; m, n = R.shape
     T, cand, so = pc.T, pc.CAND, pc.SO
