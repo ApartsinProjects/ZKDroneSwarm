@@ -677,3 +677,27 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   loader scripts are stripped from the Word source, and the docx was verified to contain no link
   text and to render every less-than as native OMML math. Pushed. OPEN: ras_paper2 follow-up still
   wants a theorem-numbering and ZK-MRTA/LatentSwarm naming review pass.
+- Cycle 75 (authors + README realign + Table 3 CIs + MF-SGD naming + ras_paper2 reconciliation;
+  HTML only, docx deferred by user): added the author list (Alexander Apartsin, corresponding; Yigal
+  Meshulam; Yehudit Aperstein; Afeka Tel Aviv Academic College of Engineering) to the main paper and
+  the follow-up, and rewrote README.md to the current focus: title = the paper title, the three names
+  (ZK-MRTA problem, SwarmCF method, LatentSwarm suite), live links to paper / follow-up / tutorial,
+  SwarmCF-batch + MF-SGD + LatentSwarm naming, and the three authors. Added bootstrap 95% confidence
+  intervals to the two unseen-skill columns of Table 3 (method_profiles.html_scorecard via a new _ci
+  bootstrap helper); the note now explains the brackets and that structure-free rows straddle zero.
+  Renamed the LatentSwarm env's SGD matrix-factorization policy to MF-SGD in Section 6.5, the Figure 5
+  caption, and Appendix E: it is the same SGD-MF baseline family used in our analytical bake-off (env
+  class MatrixFactorizationPolicy = our MF-SGD; env WeightedALSPolicy = SwarmCF). ras_paper2 pass:
+  added Zero-Knowledge MRTA (ZK-MRTA) to its abstract, foundation box, and setting recap; reconciled
+  the theorem references by giving the follow-up's OWN results an F prefix (Proposition F1, Theorem F1,
+  Theorem F2, Proposition F2, Theorems F3-F4, Proposition F3) labeled "this paper", removing the bogus
+  "Proposition 6 / Theorem 7-8 / Proposition 9 / Theorems 10-11 / Proposition 12, companion theory"
+  numbers that do not exist in the main paper (which has only Proposition 1 and Theorems 1-4); aligned
+  the fold-in cost to O(d-hat^3). Background scout (RecoGym): reward is genuinely low-rank (click ~
+  Bernoulli(ff(beta.omega + bias)), bilinear logit, inner dim 5) but it is single-agent with no
+  inter-agent observation mask and an abandoned 2019 codebase (unpinned gym/tf/numba), so casting
+  ZK-MRTA onto it means building the whole multi-agent masking layer ourselves; keep it cited as the
+  named external benchmark for the follow-up, do not block the base paper. Per user instruction,
+  regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
+  intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
+  setting) was delivered to the user separately.

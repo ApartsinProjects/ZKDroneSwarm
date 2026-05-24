@@ -71,8 +71,9 @@ A("<a class='docxlink' href='ras_paper2.docx'>Download .docx</a>")
 A("<h1>Refinements of Communication-Free Collaborative Filtering for Decentralized "
   "Multi-Robot Task Allocation: confidence, contention, rank, and beyond</h1>")
 A("<p class='sub'>Follow-up to &ldquo;Acting on the Unseen&rdquo;.<br>"
-  "Author One<sup>a,&lowast;</sup>, Author Two<sup>a</sup><br>"
-  "<span class='small'><sup>a</sup>Affiliation, City, Country.&ensp;"
+  "Alexander Apartsin<sup>a,&lowast;</sup>, Yigal Meshulam<sup>a</sup>, "
+  "Yehudit Aperstein<sup>a</sup><br>"
+  "<span class='small'><sup>a</sup>Afeka Tel Aviv Academic College of Engineering, Tel Aviv, Israel.&ensp;"
   "<sup>&lowast;</sup>Corresponding author.</span></p>")
 
 A("<div class='hl'><b>This is a draft follow-up paper.</b> It builds on the companion paper, which "
@@ -82,7 +83,8 @@ A("<div class='hl'><b>This is a draft follow-up paper.</b> It builds on the comp
   "claims.</div>")
 
 # ---------------- abstract ----------------
-A("<div class='abs'><b>Abstract.</b> A companion paper establishes that a robot team with no prior "
+A("<div class='abs'><b>Abstract.</b> A companion paper establishes that, in the <b>Zero-Knowledge MRTA</b> "
+  "(ZK-MRTA) setting, a robot team with no prior "
   "knowledge, no communication, and only a partial, noisy, privately-perceived view of teammates' "
   "outcomes can still act well on tasks it never attempted, by running decentralized online low-rank "
   "collaborative filtering over the passive broadcast (<b>SwarmCF</b>); the advantage over any "
@@ -109,13 +111,14 @@ A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized 
 # ---------------- 1. the foundation ----------------
 A("<h2>1. Introduction and the foundation</h2>")
 A("<div class='box'><b>The companion paper, in one paragraph.</b> The foundation paper formalizes "
-  "multi-robot task allocation (MRTA) in its most restrictive but practically common form: a team of "
+  "multi-robot task allocation (MRTA) in its most restrictive but practically common form, which it names "
+  "<b>Zero-Knowledge MRTA</b> (ZK-MRTA): a team of "
   "$m$ robots faces $n$ tasks whose hidden robot$\\times$task reward $R=PU^\\top$ is low-rank (a few "
   "latent capability and requirement traits govern fit), with <b>no prior knowledge</b> (not even the "
   "rank), <b>no communication</b>, and a <b>partial, per-observer-noisy</b> view of a public outcome "
   "stream, in the task-scarce regime $n\\gg T$ where most pairs are never attempted. Its method, "
   "<b>SwarmCF</b>, is a decentralized online low-rank collaborative filter that each robot runs over "
-  "the passive broadcast, with an $O(\\hat d)$ fold-in that lets it act on never-attempted tasks. Its "
+  "the passive broadcast, with an $O(\\hat d^3)$ fold-in that lets it act on never-attempted tasks. Its "
   "central result is a <b>categorical separation</b>: a structure-free learner is provably pinned at "
   "the prior-mean error floor on unseen pairs (Proposition 1), while SwarmCF attains per-robot sample "
   "complexity $\\Theta(d)$ versus $\\Theta(n)$ with a matching anytime separation (Theorems 1-2), a "
@@ -152,9 +155,10 @@ A("<p><b>Contributions of this follow-up.</b></p><ol class='contrib'>"
 A("<p>All refinements are members of one family. Table 1 lays out how each member differs from the "
   "core estimator along the axes that matter (signal channel, exploration rule, confidence handling, "
   "contention handling, rank, and coordination); the body of the paper then takes the axes one at a "
-  "time. Throughout, we cite each member by its display name and reserve numbered formal results "
-  "(Propositions and Theorems, proved in the companion paper's theory appendix) for the claims they "
-  "support.</p>")
+  "time. Throughout, we cite each member by its display name. We use two numbering conventions for "
+  "formal results: <b>foundation</b> results (Proposition 1 and Theorems 1-4) are proved in the companion "
+  "paper, and this follow-up's own results carry an <b>F</b> prefix (Proposition F1, Theorem F1, and so "
+  "on) and are stated here to support the refinements.</p>")
 A("<p class='small'><b>Table 1.</b> The SwarmCF family by mechanism: each refinement changes one or two "
   "axes of the same decentralized, communication-free online estimator. The core method (%s) is the "
   "top row of the foundation; the remaining rows are the refinements studied here.</p>"
@@ -163,7 +167,8 @@ A(mp.html_mechanisms())
 
 # ---------------- 2. setting recap ----------------
 A("<h2>2. Setting and conventions (recap)</h2>")
-A("<p>We keep the foundation's setting verbatim, so this paper is self-contained. A team of $m$ robots "
+A("<p>We keep the foundation's <b>Zero-Knowledge MRTA</b> (ZK-MRTA) setting verbatim, so this paper is "
+  "self-contained. A team of $m$ robots "
   "faces $n$ tasks; robot $i$ has a hidden capability vector $p_i\\in\\mathbb{R}^d$ and task $j$ a "
   "hidden requirement vector $u_j\\in\\mathbb{R}^d$, and the expected reward of engaging is the inner "
   "product $R_{ij}=\\langle p_i,u_j\\rangle$, so $R=PU^\\top$ has rank $d\\ll\\min(m,n)$. The team knows "
@@ -204,7 +209,7 @@ A("<p><b>The mechanism.</b> Each observation enters the variational posterior wi
   "predictive variance "
   "$\\operatorname{Var}(\\hat R_{ij})=p_i^\\top\\Sigma_{u_j}p_i+u_j^\\top\\Sigma_{p_i}u_j+"
   "\\operatorname{tr}(\\Sigma_{p_i}\\Sigma_{u_j})$ on which an upper-confidence rule is optimism under "
-  "uncertainty. A subtlety the foundation's theory pins down (Proposition 6) is that naive "
+  "uncertainty. A subtlety this paper's theory pins down (Proposition F1) is that naive "
   "inverse-variance weighting of the <i>fit</i> is the wrong object: for a task the robot never engaged "
   "the requirement vector $u_j$ is identified only from teammates' broadcast, so over-weighting the "
   "robot's own (zero-information) rewards inflates the unseen error, and uniform, coverage-preserving "
@@ -221,7 +226,7 @@ A("<p><b>The evidence (confidence preserves generalization and adds skill).</b> 
   "$0.594$ at low noise. Crucially the broadcast stays at full weight, so the categorical "
   "generalization is preserved rather than traded away. Naive inverse-variance ('full precision') "
   "weighting instead falls below uniform on unseen skill ($0.449$ versus $0.594$ at full broadcast, low "
-  "noise), exactly as Proposition 6 predicts; ratio-bounded precision only helps when the teammate "
+  "noise), exactly as Proposition F1 predicts; ratio-bounded precision only helps when the teammate "
   "sources genuinely differ in reliability." % mp.disp("EMCF"))
 A("<p><b>The posterior is informative, not decorative.</b> Binning unseen pairs by %s's predicted "
   "standard deviation, the actual root-mean-square error rises monotonically from the most-confident to "
@@ -248,7 +253,7 @@ A("<figure>%s<figcaption><b>Figure 1.</b> The anytime-versus-unseen frontier (up
   "capability.</figcaption></figure>"
   % (img("F11_pareto.png", "anytime vs unseen Pareto frontier"),
      mp.disp("ActiveCF"), mp.disp("PTF")))
-A("<div class='thm'><b>Supporting result (Proposition 6, companion theory).</b> When a never-engaged "
+A("<div class='thm'><b>Supporting result (Proposition F1, this paper).</b> When a never-engaged "
   "task's requirement vector is identified only from the broadcast and the broadcast sources are "
   "homogeneously noisy, uniform (coverage-preserving) weighting weakly dominates inverse-variance "
   "fit-weighting for unseen prediction; the variational-Bayes posterior is the consistent "
@@ -269,7 +274,7 @@ A("<p><b>The mechanism.</b> Each robot draws a fixed offset $h_i\\in\\mathbb{R}^
   "group of similar robots the perturbed argmaxes are almost surely distinct, so same-type collisions "
   "vanish once the group's top targets are offered, while any task with a reward margin above "
   "$2\\varepsilon\\lVert h\\rVert_\\infty$ is unchanged, preserving value up to $O(\\varepsilon)$. Two "
-  "design choices are essential and are theorems, not heuristics (Theorem 7): the offset must be "
+  "design choices are essential and are theorems, not heuristics (Theorem F1): the offset must be "
   "<b>fixed</b> (a re-randomized per-round offset gives the same expected collision probability and no "
   "stable assignment) and <b>private</b> (a shared-signal offset such as a popularity or collective "
   "count shifts every robot identically and re-synchronizes them). A constant offset, however, hurts "
@@ -306,12 +311,12 @@ A("<p>For operational context, the foundation's mission section reports that %s 
   "$81\\%%$ of a centralized full-communication ceiling when targets are plentiful and that the residual "
   "gap is precisely this within-round coordination cost; the two centralized ceilings differ little, so "
   "coordination, not estimation, is the binding constraint that this refinement targets." % mp.disp("ContentionAdaCF"))
-A("<div class='thm'><b>Supporting result (Theorem 7, companion theory).</b> Under a shared offer pool "
+A("<div class='thm'><b>Supporting result (Theorem F1, this paper).</b> Under a shared offer pool "
   "with capacity-1 matching and no communication, a deterministic argmax over similar robots collides "
   "on $\\Theta(m-K)$ engagements; a fixed, private continuous offset makes same-type argmaxes almost "
   "surely distinct while preserving value up to $O(\\varepsilon)$. The offset must be both fixed and "
   "private: re-randomized or shared offsets do not yield a stable de-confliction.</div>")
-A("<div class='prelim'><b>Preliminary / scope.</b> Theorem 7 proves the fixed-offset case; the "
+A("<div class='prelim'><b>Preliminary / scope.</b> Theorem F1 proves the fixed-offset case; the "
   "self-tuning, scarcity-gated %s that we deploy is supported empirically (best-or-tied earned reward "
   "at every pool, with the categorical unseen metric recovered) but is not yet covered by a matching "
   "theorem. An adaptive-offset envelope that interpolates from greedy at no contention to the fixed "
@@ -338,7 +343,7 @@ A("<p><b>The evidence (a stable effective rank, invariant to the guess).</b> Set
   "$8.0$ and $20.0$), with no accuracy penalty from the surplus dimensions and an improved anytime "
   "skill ($0.466$ at $\\hat d=20$ versus $0.374$ for the core method). The guess no longer matters: the "
   "method self-determines its working dimension." % mp.disp("ARD-EMCF"))
-A("<div class='thm'><b>Supporting result (Theorem 8, companion theory).</b> Under variational PMF with "
+A("<div class='thm'><b>Supporting result (Theorem F2, this paper).</b> Under variational PMF with "
   "ARD, a latent direction is retained iff the observed masked design excites it above the prior/noise "
   "floor, so the recovered effective rank equals the identifiable rank ($\\le d$) and, crucially, does "
   "not depend on the guessed $\\hat d$.</div>")
@@ -378,7 +383,7 @@ A("<figure>%s<figcaption><b>Figure 3.</b> The two channels across the observatio
   "and overtakes the reward channel as $\\sigma$ grows. This locates the regime in which a robot should "
   "trust what teammates <i>chose</i> rather than how well it <i>turned out</i>.</figcaption></figure>"
   % img("F7_channels.png", "two-channel grid"))
-A("<div class='thm'><b>Supporting result (Proposition 9, companion theory).</b> Per-teammate choice "
+A("<div class='thm'><b>Supporting result (Proposition F2, this paper).</b> Per-teammate choice "
   "informativeness is identifiable only <b>held-out</b>: scoring a choice against a model fit to that "
   "same choice spuriously inflates a random teammate's informativeness, whereas scoring it before the "
   "refit incorporates it lets genuinely informative and uninformative teammates separate.</div>")
@@ -422,7 +427,7 @@ A("<figure>%s<figcaption><b>Figure 4.</b> Newcomer cold-start readiness (strict 
   "flattens as the broadcast is masked more heavily. This is the readiness that confidence-directed "
   "probing restores under churn.</figcaption></figure>"
   % img("F10_newcomer.png", "newcomer cold-start readiness"))
-A("<div class='thm'><b>Supporting results (Theorems 10-11 and Proposition 12, companion theory).</b> "
+A("<div class='thm'><b>Supporting results (Theorems F3-F4 and Proposition F3, this paper).</b> "
   "The fold-in perturbation bound splits a newcomer's cold-start error into basis-recovery, own-probe "
   "noise, and ridge bias, exact once it has $\\ge\\hat d$ probes; the collective-speedup law makes "
   "recovery faster as the team grows; and the churn fold-in latency balances probe cost against "
@@ -459,8 +464,8 @@ A("<p><b>The evidence (one policy, best-or-tied across regimes).</b> Against the
 A("<div class='prelim'><b>Preliminary.</b> The unified method is validated against specialists on the "
   "standard, churn, and contention regimes at full broadcast; it has not been swept jointly over "
   "masking, noise, team size, and rank, and the gating thresholds (loss gate, abundance gate) are "
-  "fixed rather than learned. A theoretical envelope for the gated policy is sketched in the companion "
-  "theory (the loss-and-abundance-gated envelope) but not fully proved.</div>")
+  "fixed rather than learned. A theoretical envelope for the gated policy (the loss-and-abundance-gated "
+  "envelope) is sketched but not fully proved, and is left to future work.</div>")
 
 # ---------------- 9. discussion ----------------
 A("<h2>9. Discussion: what carries over from the foundation</h2>")

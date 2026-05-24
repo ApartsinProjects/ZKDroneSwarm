@@ -67,8 +67,9 @@ A("<a class='docxlink' href='ras_paper.docx'>Download .docx</a>")
 A("<a class='followlink' href='ras_paper2.html'>Follow-up paper &#8599;</a>")
 A("<h1>Acting on the Unseen: Communication-Free Collaborative Filtering for Decentralized "
   "Multi-Robot Task Allocation</h1>")
-A("<p class='sub'>Author One<sup>a,&lowast;</sup>, Author Two<sup>a</sup><br>"
-  "<span class='small'><sup>a</sup>Affiliation, City, Country.&ensp;"
+A("<p class='sub'>Alexander Apartsin<sup>a,&lowast;</sup>, Yigal Meshulam<sup>a</sup>, "
+  "Yehudit Aperstein<sup>a</sup><br>"
+  "<span class='small'><sup>a</sup>Afeka Tel Aviv Academic College of Engineering, Tel Aviv, Israel.&ensp;"
   "<sup>&lowast;</sup>Corresponding author.</span></p>")
 
 A("<div class='hl'><b>Highlights</b><ul>"
@@ -391,7 +392,7 @@ A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a
   "the low-rank design space against the genuinely external structure-free paradigm and "
   "full-information reference ceilings, not a contest of rival systems. SwarmCF is our method; structure-"
   "free learners (independent UCB1 [45], tabular) are the external paradigm; standard low-rank estimators "
-  "(online SGD-MF, batch spectral/Bayesian/convex completion) are adapted to the setting for the "
+  "(online MF-SGD, batch spectral/Bayesian/convex completion) are adapted to the setting for the "
   "low-rank comparison; the Oracle and a centralized full-communication matcher are upper bounds, not "
   "competitors. We emphasize that communication-based methods (auctions/CBBA, CTDE training, "
   "federated/gossip CF) are <b>inadmissible by the problem definition</b>, not omitted: they require "
@@ -497,15 +498,16 @@ A("<p><b>Transfer to LatentSwarm, a higher-fidelity simulator.</b> The results s
   "independently of the collaborative-filtering method (Appendix E gives the exact construction and "
   "pseudocode). Dropped in as one policy alongside the simulator's own built-in "
   "policies, SwarmCF attains the best converged skill ($0.806$, std $0.016$ over 3 seeds), approaching the oracle and "
-  "beating both an independent-UCB learner ($0.721$) and the simulator's own SGD matrix-factorization "
-  "policy ($0.251$) (Figure 5). In this smaller, less task-scarce environment a structure-free learner is "
+  "beating both an independent-UCB learner ($0.721$) and an SGD matrix-factorization policy ($0.251$), the "
+  "simulator's instance of the same <b>MF-SGD</b> baseline used in our analytical bake-off (Figure 5). In "
+  "this smaller, less task-scarce environment a structure-free learner is "
   "no longer pinned at the floor, exactly as our scope predicts, yet SwarmCF still wins; that the "
   "advantage persists under these different dynamics is evidence it reflects exploiting the shared "
   "low-rank structure, not an artifact of the analytical harness.</p>")
 A("<figure>%s<figcaption><b>Figure 5.</b> Transfer to <b>LatentSwarm</b>, our higher-fidelity spatial "
   "simulator and a variant of the setting (fixed 2-D layout, depleting-target health, episodic dynamics). Left: "
-  "converged skill, SwarmCF best and near-oracle, above independent-UCB and the simulator's own SGD-MF "
-  "policy. Right: learning curves.</figcaption></figure>" % img("F13_realsim.png", "LatentSwarm simulator transfer"))
+  "converged skill, SwarmCF best and near-oracle, above independent-UCB and the MF-SGD baseline. "
+  "Right: learning curves.</figcaption></figure>" % img("F13_realsim.png", "LatentSwarm simulator transfer"))
 
 A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b> The advantage is not "
   "universal, and we state its boundary precisely. It holds when three conditions co-occur: "
@@ -747,7 +749,7 @@ A("<p class='small'>The spatial environment of the LatentSwarm suite is the Pett
   "environment used for the transfer test of Section 6.5. It realizes a variant of the "
   "Section 3 setting with episodic, health-depletion dynamics; the dynamics were specified independently "
   "of the collaborative-filtering method, and SwarmCF enters only as one drop-in policy among the "
-  "simulator's own (random, oracle, SGD matrix factorization, independent UCB).</p>")
+  "simulator's own (random, oracle, MF-SGD, independent UCB).</p>")
 A("<p class='small'><b>Traits and reward.</b> Each robot $i$ and target $j$ is assigned a hidden "
   "$d$-dimensional trait vector ($p_i$, $u_j$) drawn from a shared Gaussian mixture over mode centers, so "
   "the robot$\\times$target structure is (approximately) low-rank of rank $d$, as in Section 3. When "

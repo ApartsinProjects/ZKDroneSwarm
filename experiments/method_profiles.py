@@ -208,6 +208,20 @@ def _mean(xs):
     return sum(xs) / len(xs) if xs else None
 
 
+def _ci(xs, B=5000, seed=0):
+    """Bootstrap 95% CI of the mean over per-seed values. Returns (mean, lo, hi) or None."""
+    import numpy as _np
+    xs = [x for x in xs if x is not None]
+    if not xs:
+        return None
+    a = _np.asarray(xs, dtype=float)
+    if len(a) == 1:
+        return (float(a[0]), float(a[0]), float(a[0]))
+    rng = _np.random.RandomState(seed)
+    boot = a[rng.randint(0, len(a), size=(B, len(a)))].mean(axis=1)
+    return (float(a.mean()), float(_np.percentile(boot, 2.5)), float(_np.percentile(boot, 97.5)))
+
+
 # scorecard method order (grouped by provenance), restricted to the masked-harness family
 SCORE_ORDER = ["RewardCF", "PTF", "MFSGD", "BPMF", "ESTR",
                "UCBIndep", "Tabular", "Random"]
@@ -222,8 +236,10 @@ def scorecard_rows(root):
     c14 = json.load(open(fc))["raw"] if fc else {}
     op = json.load(open(fo))["raw"]["anytime"] if fo else {}
     for nm in SCORE_ORDER:
-        u025 = _mean(c14.get("0.25", {}).get(nm, {}).get("unseen", [])) if c14 else None
-        u100 = _mean(c14.get("1.0", {}).get(nm, {}).get("unseen", [])) if c14 else None
+        u025_list = c14.get("0.25", {}).get(nm, {}).get("unseen", []) if c14 else []
+        u100_list = c14.get("1.0", {}).get(nm, {}).get("unseen", []) if c14 else []
+        u025 = _mean(u025_list)
+        u100 = _mean(u100_list)
         reg = op.get("regret", {}).get("0.25", {}).get(nm, {}).get("mean") if op else None
         ttc = op.get("ttc", {}).get("0.25", {}).get(nm, {}).get("0.25") if op else None
         if u025 is None and reg is None:
@@ -232,7 +248,9 @@ def scorecard_rows(root):
         if ttc and ttc.get("rounds_mean") and ttc.get("frac_reached", 0) >= 0.5:
             ttc_s = "%.0f" % ttc["rounds_mean"]
         out.append({"name": nm, "prov": provenance(nm), "badge": badge(nm),
-                    "unseen025": u025, "unseen100": u100, "regret": reg, "ttc": ttc_s})
+                    "unseen025": u025, "unseen100": u100,
+                    "unseen025_ci": _ci(u025_list), "unseen100_ci": _ci(u100_list),
+                    "regret": reg, "ttc": ttc_s})
     return out
 
 
@@ -244,17 +262,19 @@ def html_scorecard(root):
     for r in scorecard_rows(root):
         nm = "<b>%s</b>" % disp(r["name"]) if r["prov"].startswith("ours") else disp(r["name"])
         f = lambda v, p="%.3f": (p % v) if v is not None else "&ndash;"
+        fci = lambda ci: ("%.3f [%.3f, %.3f]" % ci) if ci else "&ndash;"
         rows.append("<tr><td class='l'>%s</td><td class='l'>%s</td><td>%s</td><td>%s</td><td>%s</td>"
                     "<td>%s</td></tr>"
-                    % (nm, PROV[r["prov"]], f(r["unseen025"]), f(r["unseen100"]),
+                    % (nm, PROV[r["prov"]], fci(r["unseen025_ci"]), fci(r["unseen100_ci"]),
                        f(r["regret"], "%.1f"), r["ttc"]))
     rows.append("</table>")
-    note = ("<p class='small'>One canonical masked harness (m=30, n=240, 5 seeds): unseen skill from the "
-            "bake-off, regret and time-to-competence from the anytime trajectories. Among the methods "
+    note = ("<p class='small'>One canonical masked harness (m=30, n=240, 5 seeds); unseen-skill columns "
+            "report the mean with a bootstrap 95% confidence interval in brackets, regret and "
+            "time-to-competence are means from the anytime trajectories. Among the methods "
             "shown, SwarmCF leads the masked column and the operational columns; the batch variant "
-            "SwarmCF-batch wins only the full-broadcast column; structure-free learners sit at the floor. "
-            "Confidence-directed SwarmCF refinements (deferred to future work) can edge out the core "
-            "variant under masking.</p>")
+            "SwarmCF-batch wins only the full-broadcast column; structure-free learners sit at the floor "
+            "(intervals straddling zero). Confidence-directed SwarmCF refinements (deferred to future work) "
+            "can edge out the core variant under masking.</p>")
     return "\n".join(rows) + "\n" + note
 
 
