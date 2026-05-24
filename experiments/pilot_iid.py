@@ -50,9 +50,10 @@ def run_iid(args):
     w = make_world(pc.M, pc.N, pc.D, pc.K, pc.K, within=0.15, seed=seed, signed=True)
     P, U, R = w[:3]; m, n = R.shape
     cand, so, sb = pc.CAND, pc.SO, pc.SB
+    ev = min(cand, 20)                     # eval offer size, decoupled from training cand so c=n works
     rng = np.random.RandomState(seed + 999)
     Mfix = (rng.rand(m, m) < rho); np.fill_diagonal(Mfix, True)   # persistent mask
-    learners = [Cls(m, n, pc.D_HAT, i, seed + 7 * i + 1, **hp) for i in range(m)]
+    learners = [Cls(m, n, pc.guessed_rank(seed), i, seed + 7 * i + 1, **hp) for i in range(m)]
     real = np.zeros(T); orac = np.zeros(T); rnd = np.zeros(T)
     for t in range(T):
         cand_sets = [rng.choice(n, size=cand, replace=False) for _ in range(m)]
@@ -82,8 +83,8 @@ def run_iid(args):
     for _ in range(80):
         for k in range(m):
             uns = np.where(~pulled[k])[0]
-            if len(uns) >= cand:
-                offu = g.choice(uns, size=cand, replace=False)
+            if len(uns) >= ev:
+                offu = g.choice(uns, size=ev, replace=False)
                 ung.append(R[k, offu[int(np.argmax(preds[k][offu]))]]); uno.append(R[k, offu].max()); unr.append(R[k, offu].mean())
     gm, om, rm = np.mean(ung), np.mean(uno), np.mean(unr)
     unseen = float((gm - rm) / max(om - rm, 1e-6))

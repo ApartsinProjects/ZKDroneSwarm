@@ -44,14 +44,15 @@ def run_masked(Cls, hp, world, T, seed, so, sb, cand, d_hat, rho):
     preds = [learners[i].predict_scores() for i in range(m)]
     pulled = [learners[i].pulled_mask() for i in range(m)]
     g = np.random.RandomState(seed + 555)
+    ev = min(cand, 20)                  # eval offer size, decoupled from training cand so c=n works
     ovg, ovo, ovr, ung, uno, unr = [], [], [], [], [], []
     for _ in range(120):
         for k in range(m):
-            off = g.choice(n, size=cand, replace=False)
+            off = g.choice(n, size=ev, replace=False)
             ovg.append(R[k, off[int(np.argmax(preds[k][off]))]]); ovo.append(R[k, off].max()); ovr.append(R[k, off].mean())
             unseen = np.where(~pulled[k])[0]
-            if len(unseen) >= cand:
-                offu = g.choice(unseen, size=cand, replace=False)
+            if len(unseen) >= ev:
+                offu = g.choice(unseen, size=ev, replace=False)
                 ung.append(R[k, offu[int(np.argmax(preds[k][offu]))]]); uno.append(R[k, offu].max()); unr.append(R[k, offu].mean())
 
     def sk(gg, oo, rr):

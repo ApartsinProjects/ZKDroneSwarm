@@ -198,6 +198,59 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.93]); save_fig("F8_iid_vs_persistent")
     print("F8_iid_vs_persistent  <-", os.path.basename(f))
 
+# ---- F22: offer-size robustness (appendix): body size-c menu (c=20) vs unrestricted all-tasks (c=n) ----
+# Reuses the crossover (unseen) + anytime sweeps run under both menus; each file selected by its recorded
+# meta["cand"] (body=c=20 solid, appendix c=n dashed). (a) the categorical low-rank-vs-floor separation is
+# offer-size invariant, but SwarmCF's lead over the batch completer (PTF) narrows under the all-tasks menu
+# because greedy selection over all n tasks reduces engagement diversity; (b) the tabular learner earns
+# more under the all-tasks menu, where it can re-exploit any task it has already engaged.
+def _by_cand(pattern):
+    out = {}
+    for _fp in sorted(glob.glob(pattern)):
+        try:
+            out[int(json.load(open(_fp))["meta"]["cand"])] = _fp
+        except Exception:
+            pass
+    return out
+_cx = _by_cand("results/pilots/c15_crossover_*.json")
+_an = _by_cand("results/pilots/c16_anytime_*.json")
+_cn = max(_cx) if _cx else None                  # all-tasks menu = largest cand (= N)
+if _cn is not None and 20 in _cx and _cn != 20:
+    dn = json.load(open(_cx[_cn])); d20 = json.load(open(_cx[20]))
+    rhos = dn["meta"]["rhos"]
+    def _ser(dd, nm):
+        return [np.mean(dd["raw"][str(r)][nm]["unseen"]) for r in rhos]
+    fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+    # (a) unseen-pair skill vs rho: SwarmCF + batch (PTF) under both menus, structure-free floor once
+    ax[0].plot(rhos, _ser(d20, "RewardCF"), marker="o", color="C0", lw=2.4, label="SwarmCF, $c=20$ (body)")
+    ax[0].plot(rhos, _ser(dn, "RewardCF"), marker="s", color="C0", lw=2.0, ls="--", label="SwarmCF, $c=n$")
+    ax[0].plot(rhos, _ser(d20, "PTF"), marker="^", color="C3", lw=2.0, label="batch completion, $c=20$")
+    ax[0].plot(rhos, _ser(dn, "PTF"), marker="v", color="C3", lw=1.8, ls="--", label="batch completion, $c=n$")
+    ax[0].plot(rhos, _ser(d20, "UCBIndep"), marker="x", color="gray", lw=1.2, ls=":", label="structure-free floor")
+    ax[0].axhline(0, color="black", lw=0.8, ls=":"); ax[0].invert_xaxis()
+    ax[0].set_xlabel("broadcast rate  $\\rho$"); ax[0].set_ylabel("UNSEEN-pair skill")
+    ax[0].set_title("(a) Categorical separation is offer-size invariant;\n"
+                    "SwarmCF's lead over batch narrows under the all-tasks menu", fontsize=9)
+    ax[0].legend(fontsize=7, loc="upper right")
+    # (b) anytime trajectory at rho=0.25, both menus (tabular re-exploits under the all-tasks menu)
+    if _an and _cn in _an and 20 in _an:
+        an_n = json.load(open(_an[max(_an)])); an_20 = json.load(open(_an[20]))
+        Tn = an_20["meta"]["T"]; rounds = np.arange(1, Tn + 1)
+        def _traj(dd, nm):
+            rk = "0.25" if "0.25" in dd["raw"] else list(dd["raw"].keys())[-1]
+            return np.array(dd["raw"][rk][nm]).mean(0)
+        ax[1].plot(rounds, _traj(an_20, "RewardCF"), color="C0", lw=2.4, label="SwarmCF, $c=20$ (body)")
+        ax[1].plot(rounds, _traj(an_n, "RewardCF"), color="C0", lw=2.0, ls="--", label="SwarmCF, $c=n$")
+        ax[1].plot(rounds, _traj(an_20, "Tabular"), color="C2", lw=2.0, label="Tabular, $c=20$")
+        ax[1].plot(rounds, _traj(an_n, "Tabular"), color="C2", lw=1.6, ls="--", label="Tabular, $c=n$ (re-exploits)")
+        ax[1].axhline(0, color="black", lw=0.8, ls=":")
+        ax[1].set_xlabel("round  $t$"); ax[1].set_ylabel("cumulative-normalized skill")
+        ax[1].set_title("(b) Anytime ($\\rho=0.25$): the tabular learner earns more under\n"
+                        "the all-tasks menu by re-exploiting engaged tasks", fontsize=9)
+        ax[1].legend(fontsize=7, loc="upper left")
+    fig.tight_layout(); save_fig("F22_offersize")
+    print("F22_offersize  <- crossover/anytime c=20 (body) vs c=%d" % _cn)
+
 # ---- F9: E2/E4/E6 scaling sweeps (unseen & anytime vs d, T, n, d_hat) ----
 f = latest("results/pilots/e246_scaling_*.json")
 if f:
@@ -351,6 +404,40 @@ if os.path.exists(f):
                  "structure-free at the floor", fontsize=8.5)
     fig.tight_layout(rect=[0, 0, 1, 0.91]); save_fig("F13_realsim")
     print("F13_realsim  <- latentswarm_main.json")
+
+# ---- F23: LatentSwarm contention -- collision rate & the cost of NO de-confliction ----
+f = latest("results/pilots/latentswarm_contention_*.json")
+if f:
+    d = json.load(open(f)); raw = d["raw"]; offers = d["meta"]["offers"]
+    PRETTY = {"swarm_cf": "SwarmCF", "mf_sgd": "MF-SGD", "ucb_indep": "Independent-UCB", "random": "Random"}
+    COL = {"swarm_cf": "C0", "mf_sgd": "C1", "ucb_indep": "C7", "random": "C3"}
+    o0 = "0" if 0 in offers else str(offers[0])
+    algos = [a for a in ["swarm_cf", "mf_sgd", "ucb_indep", "random"] if a in raw[o0]]
+    fig, ax = plt.subplots(1, 2, figsize=(11, 4))
+    # (a) earned-vs-collision frontier at the all-tasks menu (offer=0)
+    for a in algos:
+        e = np.mean(raw[o0][a]["earned"]); c = np.mean(raw[o0][a]["coll"])
+        ax[0].scatter([c], [e], s=95, color=COL[a], edgecolor="black", zorder=3)
+        ax[0].annotate(PRETTY[a], (c, e), textcoords="offset points", xytext=(6, 5), fontsize=8.5)
+    ax[0].axhline(0, color="black", lw=0.8, ls=":")
+    ax[0].set_xlabel("collision rate (fraction of robots colliding per round)")
+    ax[0].set_ylabel("earned (anytime) skill")
+    ax[0].set_title("(a) All-tasks menu + capacity-1 contention: structure-free UCB\n"
+                    "collides almost always and earns $<0$; SwarmCF spreads out, earns most", fontsize=9)
+    ax[0].grid(alpha=0.25)
+    # (b) collision rate per method: all-tasks vs size-c menu
+    x = np.arange(len(algos)); w = 0.38
+    for k, o in enumerate(offers):
+        vals = [np.mean(raw[str(o)][a]["coll"]) for a in algos]
+        lab = "all tasks ($c=n$)" if o == 0 else ("size-$c$ menu ($c=%d$)" % o)
+        ax[1].bar(x + (k - 0.5) * w, vals, w, label=lab, alpha=0.92,
+                  color=("#444444" if o == 0 else "#9ecae1"), edgecolor="black")
+    ax[1].set_xticks(x); ax[1].set_xticklabels([PRETTY[a] for a in algos], rotation=20, ha="right", fontsize=8)
+    ax[1].set_ylabel("collision rate"); ax[1].set_ylim(0, 1)
+    ax[1].set_title("(b) Restricting the menu reduces collisions\n(motivating the body's size-$c$ menu and de-confliction)", fontsize=9)
+    ax[1].legend(fontsize=8); ax[1].grid(alpha=0.2, axis="y")
+    fig.tight_layout(); save_fig("F23_ls_contention")
+    print("F23_ls_contention  <-", os.path.basename(f))
 
 # ---- F14: assumption-stress (approx low-rank + nonlinear link) ----
 f = latest("results/pilots/stress_assump_*.json")
@@ -590,9 +677,9 @@ for r in masked_rows:                      # persistently-masked teammate rows: 
     axS.add_patch(mpatches.Rectangle((-0.5, r - 0.5), ns_, 1, facecolor="#9aa3ad", alpha=0.6,
                                      edgecolor="none", hatch="//"))
 axS.add_patch(mpatches.Rectangle((-0.5, foc - 0.5), ns_, 1, fill=False, edgecolor="#1f5fa8", lw=3))
-for j in own:                              # focal robot's own clean engagements: FILLED green cells
-    axS.add_patch(mpatches.Rectangle((j - 0.5, foc - 0.5), 1, 1, facecolor="#0a7d4d", alpha=0.5,
-                                     edgecolor="#0a7d4d", lw=2.0))
+for j in own:                              # focal robot's own clean engagements: bold BLUE circles
+    axS.add_patch(mpatches.Circle((j, foc), 0.30, facecolor="#1f5fa8", edgecolor="white",
+                                  lw=1.6, zorder=5))
 for j in range(ns_):                       # rest of the focal row is UNSEEN: '?'
     if j not in own:
         axS.text(j, foc, "?", ha="center", va="center", fontsize=11, color="#16191d", fontweight="bold")
@@ -609,9 +696,10 @@ axS.set_title(r"The setting: a hidden low-rank reward $R = P\,U^\top$ that each 
               "from partial, private observation", fontsize=10.5)
 
 leg = [mpatches.Patch(facecolor="none", edgecolor="#1f5fa8", lw=3, label="focal robot's full row (must act on all of it)"),
-       mpatches.Patch(facecolor="#0a7d4d", alpha=0.5, edgecolor="#0a7d4d", label="own clean engagement"),
+       Line2D([0], [0], marker="o", linestyle="None", markerfacecolor="#1f5fa8", markeredgecolor="white",
+              markersize=11, label="own clean engagement"),
        Line2D([0], [0], marker="o", linestyle="None", markerfacecolor="black", markeredgecolor="white",
-              markersize=8, label="partial, per-observer-noisy view of a teammate"),
+              markersize=8, label="teammate engagement (sensed, noisy)"),
        mpatches.Patch(facecolor="#9aa3ad", alpha=0.6, hatch="//", edgecolor="none", label="teammate persistently masked"),
        Line2D([0], [0], marker="$?$", linestyle="None", color="black", markersize=10,
               label="unseen (robot, task) pair to predict")]

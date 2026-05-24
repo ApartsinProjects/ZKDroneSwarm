@@ -43,7 +43,7 @@ from _results_io import save_results
 # ---- world / regime config (block model, signed cosine reward) ----
 M, N, D, K = 30, 240, 5, 10        # K1=K2=K target/drone types -> eff. rank min(d,K)
 D_HAT = 8                          # GUESSED rank for ALL structured learners (fair)
-T, CAND = 50, 20                   # rounds, candidate-offer size
+T, CAND = 50, 20                   # rounds, candidate-offer size (body default; c=n is the Appendix F variant)
 SO, SB = 0.10, 0.30               # own-obs noise, broadcast-obs noise
 SEEDS = list(range(5))
 RHOS = [1.0, 0.5, 0.25]            # per-drone fraction of broadcast observed

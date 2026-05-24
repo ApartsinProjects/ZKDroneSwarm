@@ -834,3 +834,47 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   and the HTML + index; per user instruction the Word docx was NOT rebuilt (HTML phase). Background
   scout (RecoGym): genuinely low-rank reward but single-agent, no inter-agent mask, abandoned 2019
   codebase, so keep it as a follow-up external benchmark, not for the base paper.
+
+## Cycle 85 (c=20 body / c=n appendix; LatentSwarm = the only codebase; Section 6.5 = contention; de-confliction; Figure 1 blue circles)
+Re-ran the five main sweeps under the new defaults (random d-hat per run in [d,2d]; offer size restored to
+c=20 as the body default) plus pilot_iid (persistent vs i.i.d. masking, now random d-hat) and a NEW
+LatentSwarm contention experiment (experiments/latentswarm_contention.py: earned skill + collision rate
+per policy at offer sizes {all-tasks, c=20}, capacity-1, 16 seeds). Fixed run_masked's eval coupling
+(ev=min(cand,20)) so the unseen eval is comparable across menu sizes and the all-tasks (c=n) run works.
+Headline decision (user): keep c=20 in the BODY (where online SwarmCF leads the batch methods on
+unseen-pair skill) and move the unrestricted all-tasks menu (c=n) to a new Appendix F. Appendix F
+honestly documents that under an unrestricted menu the greedy online estimator under-explores (collective
+engagement coverage narrows) so its lead over batch completion narrows, while the categorical
+low-rank-vs-structure-free separation is unchanged; it also adds the persistent-vs-i.i.d. masking-model
+robustness figure. The c=n bake-off at rho=0.25: RewardCF unseen 0.064 vs PTF 0.137 / BPMF 0.168 (lead
+gone), vs c=20 RewardCF 0.357 (lead intact), confirming the offer-size contingency.
+
+Restructured Section 6 to a SINGLE-codebase narrative (user: "no reason to mention any codebase other
+than LatentSwarm"): dropped every "separate/independent implementation", "reproduced in independent
+code", "not an artifact of one implementation", and "analytical harness" two-codebase phrase from the
+abstract, contributions, Setup, Section 6, and Appendix E. New 6.5 "Capacity-1 contention and
+communication-free de-confliction" carries the contention story (its main story IS contention): (a) the
+separation survives contention (SwarmCF earned 0.42 of the capacity-1 Hungarian ceiling, unseen 0.58;
+Independent-UCB earns -0.17, below random, because it collides); (b) the new collision finding (Figure 6):
+under the all-tasks menu Independent-UCB collides on ~0.97 of engagements while SwarmCF collides only
+~0.12, because its HETEROGENEOUS learned models implicitly de-conflict with no message passing;
+restricting to a size-c menu cuts UCB collisions 0.97 to 0.25 (one reason the body uses c=20). Section 6.4
+now establishes that coordination (not estimation) is the binding constraint and points to 6.5, removing
+the contention/ceiling double-coverage that previously sat in both 6.4 and the LatentSwarm section. Section
+6.6 "Robustness across configurations" absorbs the rank-robustness sweep + offer-size/masking pointers to
+Appendix F. Added three one-line forward-pointers to the follow-up (de-confliction private offset ~2x
+earned reward at severe contention; confidence-directed exploration restores coverage under the
+unrestricted menu; ARD removes the guessed rank). Figures renumbered 1-9 (bake-off 5, collision 6, rank 7,
+offer-size 8, masking 9), all captions and cross-references checked.
+
+Figure 1: own clean engagements are now bold BLUE CIRCLES (were green cell fills, camouflaged on the
+red-yellow-green heatmap); teammate engagements relabeled "sensed, noisy". Figure-caption math fix: a raw
+"<" in "$\hat d<d$" was parsed as an HTML tag and swallowed part of the rank caption; replaced with the
+KaTeX-safe \lt / \gt macros (scanned the whole paper, no other raw "<" in math). Re-ran opmetrics so Table
+3 regret/ttc are on the c=20 anytime data. Regenerated all figures (F5/F6/F18 byte-identical to the
+committed c=20, confirming the deterministic re-run; F8/F19/F20 changed; new F22/F23) and rebuilt
+docs/ras_paper.html + docs/index.html (1325 KB). Per standing instruction the Word .docx was NOT rebuilt
+(HTML phase) and the follow-up paper (ras_paper2) was untouched. NOTE for a later code cleanup: the
+masked-broadcast experiments (core/pilot_*) and the contention package (latentswarm/) are still distinct
+modules presented under the single name LatentSwarm; porting the body drivers into the package for literal
+single-command reproducibility is deferred.
