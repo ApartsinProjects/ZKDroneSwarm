@@ -403,6 +403,8 @@ A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$,
   "sweeps of Figure 4), bootstrap 95% confidence intervals. A robot may in principle select any of "
   "the $n$ tasks; the body sweeps restrict each offer to a uniform random size-$c$ subset ($c=20$) to "
   "control scarcity and to supply the per-round engagement diversity the online estimator relies on. "
+  "This is a moderate scarcity (each task is offered about $cT/n\\approx 4$ times); Theorem 2's strict "
+  "scarce-offer regime ($cT=o(n)$) is shown separately in Appendix F (Figure 11). "
   "Appendix F reports the unrestricted all-tasks menu ($c=n$) as a robustness check: the categorical "
   "low-rank separation is unchanged, while the online method's lead over batch completion narrows. We "
   "run on one "
@@ -450,7 +452,7 @@ A("<p>Final-policy quality can overstate a method that explores cheaply. The ope
   "penalty early. An $\\varepsilon$-greedy tabular learner does earn some reward by re-exploiting tasks it "
   "has already engaged (each task recurs in offers about $cT/n\\approx 4$ times here), but it stays well "
   "below SwarmCF and at the floor on unseen pairs (Table 3). The clean anytime collapse of Theorem 2 holds "
-  "in the strict regime $cT=o(n)$; SwarmCF's early-earning advantage is broader, as seen here.</p>")
+  "in the strict regime $cT=o(n)$ (demonstrated in Appendix F, Figure 11); SwarmCF's early-earning advantage is broader, as seen here.</p>")
 A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill ($\\rho=0.25$). SwarmCF earns "
   "from round one; explore-then-commit pays a probe phase; Independent-UCB stays near the random floor, while "
   "$\\varepsilon$-greedy tabular earns only by re-exploiting tasks it has already "
@@ -497,15 +499,15 @@ A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical maske
 A(mp.html_scorecard(ROOT))
 A("<p class='small'><b>Table 4.</b> The cost of communication-free operation: earned (anytime) skill "
   "against the centralized full-communication ceiling (matching-normalized, $\\rho=0.25$, $n=240$, means "
-  "over 8 seeds). SwarmCF recovers about 84% of the ceiling with no communication, while the structure-"
+  "with bootstrap 95% CIs over 8 seeds). SwarmCF recovers about 84% of the ceiling with no communication, while the structure-"
   "free learner is near the floor; a noiseless unmasked matcher reaches a similar 0.55, so the two "
   "ceilings differ little.</p>")
 A("<table><tr><th class='l'>Method</th><th>earned skill<br>(&rho;=0.25, anytime)</th>"
   "<th>fraction of the ceiling</th></tr>"
-  "<tr><td class='l'>Centralized full-communication, Hungarian (ceiling)</td><td>0.52</td><td>1.00</td></tr>"
-  "<tr style='background:#eef6ff'><td class='l'><b>SwarmCF</b> (ours, communication-free)</td><td>0.44</td>"
+  "<tr><td class='l'>Centralized full-communication, Hungarian (ceiling)</td><td>0.520 [0.483, 0.559]</td><td>1.00</td></tr>"
+  "<tr style='background:#eef6ff'><td class='l'><b>SwarmCF</b> (ours, communication-free)</td><td>0.439 [0.418, 0.462]</td>"
   "<td>0.84</td></tr>"
-  "<tr><td class='l'>Independent-UCB (structure-free)</td><td>0.01</td><td>0.01</td></tr>"
+  "<tr><td class='l'>Independent-UCB (structure-free)</td><td>0.005 [-0.004, 0.014]</td><td>0.01</td></tr>"
   "</table>")
 
 A("<h3>6.5 Capacity-1 contention and communication-free de-confliction</h3>")
@@ -624,7 +626,11 @@ A("<p><b>What the results say.</b> Under the least information, no prior, no com
 A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
   "trait-based premise; the categorical advantage degrades gracefully as the structure becomes only "
   "approximately low-rank or the rank grows toward full, vanishing only "
-  "when there is no exploitable structure. Rewards are real-valued and bilinear in latent traits; and the "
+  "when there is no exploitable structure. All our evidence is in simulation, on a reward that is low-rank "
+  "by construction: we do not validate on physical robots or an external benchmark, and the low-rank "
+  "premise, though standard for trait-based MRTA, is an assumption rather than a measured property of any "
+  "specific deployment (external and higher-fidelity validation is future work). "
+  "Rewards are real-valued and bilinear in latent traits; and the "
   "recovery rate of Theorem 3 is established for non-adaptive "
   "exploration, the finite-time rate under a strongly exploiting policy (which can starve low-reward "
   "tasks of coverage) remains open. The scope conditions for the advantage (low-rank but personalized "

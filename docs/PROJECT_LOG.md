@@ -1052,3 +1052,19 @@ numbers against the latest logs; optionally promote a few prose-only claims (ARD
 ras_paper2.docx exists before the .docx link is used. Word .docx not rebuilt; base paper untouched.
 Hotfix: the "Preliminary / scope" .prelim box before Section 5 was missing its </div>, so its background
 spilled into Section 5; added the closing tag (rendered ras_paper2.html div balance now 14/14).
+
+## Cycle 96 (fresh-review quick wins: Table 4 CIs, scarcity-regime framing, synthetic-evaluation reframing; HTML only)
+Knocked out the three quick wins from the fresh review. (Moderate 2) Table 4 now carries bootstrap 95% CIs
+(from the per-seed ctde data, 3-decimal to match Table 3): ceiling 0.520 [0.483, 0.559], SwarmCF 0.439
+[0.418, 0.462], Independent-UCB 0.005 [-0.004, 0.014]; caption updated to "means with bootstrap 95% CIs over
+8 seeds", so no table reports bare point estimates anymore. (Moderate 3) Theory-vs-headline scarcity gap
+framed: the Section 6 Setup now states the headline is a moderate scarcity (each task offered about
+cT/n approx 4 times) and that Theorem 2's strict scarce-offer regime cT=o(n) is shown separately in Appendix
+F (Figure 11), and Section 6.2 adds the same forward-pointer. (Major 1, cheap honest-framing tier) Section 7
+Limitations now states plainly that all evidence is in simulation on a reward that is low-rank by
+construction, that we do not validate on physical robots or an external benchmark, and that the low-rank
+premise is an assumption rather than a measured deployment property, with external/higher-fidelity validation
+flagged as future work. Verified in the rebuild (Table 4 CIs present, Section 6/6.2 pointers present, Section
+7 reframing present). Still open from the fresh review: the substantive Major-1 approximate-low-rank
+robustness experiment, and (optional) re-running the ceiling at 16 seeds and the bake-off at more seeds for
+Moderate 4. Word .docx not rebuilt; ras_paper2 untouched.
