@@ -287,11 +287,11 @@ A("<p><b>Reward.</b> A team of $m$ robots faces $n$ tasks. Robot $i$ has a hidde
   "\\operatorname{rank}(R)=d \\ll \\min(m,n). \\tag{1} $$"
   "The low rank $d$ encodes that only a few traits govern fit. The team does <b>not</b> know $P$, $U$, or "
   "even $d$ (it uses a guessed rank $\\hat d$, drawn at random per run, to which the method is robust; "
-  "Figure 6). We take the reward in normalized form, scaling the latent "
+  "Figure 8). We take the reward in normalized form, scaling the latent "
   "traits so that $R_{ij}$ is bounded and zero-mean across tasks; this is the bounded, normalized reward "
   "referenced by Proposition 1. Zero-mean makes the no-information prior-mean predictor the correct control "
   "against which the categorical floor is measured; the degenerate $d=1$ case, where a shared "
-  "popularity/bias baseline already suffices, is treated in Section 6.8.</p>")
+  "popularity/bias baseline already suffices, is treated in Section 7 (Scope of the advantage).</p>")
 A("<p><b>Interaction.</b> Each round $t=1,\\dots,T$ every robot $i$ is offered a menu "
   "$S_{it}\\subseteq[n]$ of tasks (the model permits the full menu of all $n$ tasks; to control scarcity "
   "the body experiments offer a uniform random size-$c$ subset, $c=20$, with the all-tasks menu $c=n$ "
@@ -366,16 +366,11 @@ A("<p><b>New-task onboarding (fold-in [48]).</b> Because the swarm already holds
   "a new task $j^\\star$ is absorbed without retraining: its hidden vector is the ridge least-squares "
   "solution of its few observed engagements against the corresponding known robot factors, an "
   "$O(\\hat d^3)$ computation, after which every robot can score $j^\\star$. The same fold-in lets a robot "
-  "predict any unseen pair once it has recovered the basis (Algorithm 2). <b>A new robot is different:</b> "
+  "predict any unseen pair once it has recovered the basis (Algorithm 2, Appendix B). <b>A new robot is different:</b> "
   "it arrives with no memory, and with no communication it cannot be handed the basis, so it must first "
   "recover the task factors from the passive broadcast (the coverage time of Theorem 2) and only then fold "
   "in its own $\\ge\\hat d$ engagements; its onboarding is bounded by recovery, not by the $O(\\hat d)$ "
   "fold-in.</p>")
-A("<div class='algo'><div class='cap'>Algorithm 2: Fold-in (solve a new entity's $\\hat d$-vector from a few observations against a known basis $B$)</div>"
-  "given basis $B$ (the $\\hat d$-dim factors of the entities the newcomer has been observed against)\n"
-  "and observations $y$ (the few rewards seen for the newcomer), with weights $W$:\n"
-  "    $\\hat x \\leftarrow (B^\\top W B+\\lambda I)^{-1} B^\\top W y$    // $O(\\hat d^3)$ ridge solve\n"
-  "predict reward on any other entity with factor $b$ as $\\langle b,\\hat x\\rangle$</div>")
 A("<p><b>What SwarmCF does and does not assume.</b> It is fully decentralized (one estimator per robot, "
   "no shared state), communication-free (it only reads the passive stream), and prior-free beyond a "
   "guessed rank $\\hat d$ (which it does not need to be exact, and which can itself be removed by a "
@@ -481,7 +476,7 @@ A("<p><b>Relation to the experiments.</b> Theorems 1-3 are worst-case <i>suffici
 A("<h2>6. Experiments</h2>")
 A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$, guessed rank "
   "$\\hat d$ drawn at random in $[d,2d]$ per run (no method is given the true rank; this range over-specifies "
-  "and so never under-ranks, with Figure 6 separately showing graceful degradation when $\\hat d<d$), horizon "
+  "and so never under-ranks, with Figure 8 separately showing graceful degradation when $\\hat d<d$), horizon "
   "$T=50$, partial broadcast $\\rho$ swept, private noise on own ($\\sigma_{\\mathrm{own}}=0.1$) and "
   "observed ($\\sigma_{\\mathrm{obs}}=0.3$) outcomes (Appendix D), 16 random seeds, bootstrap 95% "
   "confidence intervals. <b>World generation.</b> Each robot's capability vector $p_i$ and each task's "
@@ -501,28 +496,20 @@ A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$,
   "only through a persistent, per-observer-private, masked and noisy broadcast under communication-free, "
   "task-scarce decentralized choice), we built and openly released the <b>LatentSwarm</b> simulator and "
   "run every experiment on it (Section 6.5 adds capacity-1 contention; Appendix E details the simulator).</p>")
-A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a controlled sweep across "
-  "the low-rank design space against the genuinely external structure-free paradigm and "
-  "full-information reference ceilings, not a contest of rival systems. SwarmCF is our method; structure-"
-  "free learners (Independent-UCB, a per-arm UCB1 [45]; tabular) are the external paradigm; standard low-rank estimators "
-  "(online MF-SGD, batch spectral and Bayesian completion) are adapted to the setting for the "
-  "low-rank comparison; the Oracle and a centralized full-communication matcher are upper bounds, not "
-  "competitors. We emphasize that communication-based methods (auctions/CBBA, CTDE training, "
-  "federated/gossip CF) are <b>inadmissible by the problem definition</b>, not omitted: they require "
-  "messages or a coordinator, which our setting forbids, so they can appear only as the centralized "
-  "ceilings. The obvious decentralized candidates moreover reduce, once throttled to the "
-  "communication-free passive-observation budget, to baselines already in the suite: a gossip or "
-  "decentralized matrix-completion method without its message-passing is per-robot local low-rank "
-  "completion, exactly our MF-SGD and PTF (and SwarmCF is its online-ALS member); and a clustered-bandit "
-  "method that needs a prior similarity graph (Gang-of-Bandits style) is inadmissible, so its "
-  "data-driven successor CLUB, which learns its clusters from the broadcast alone, is the admissible "
-  "representative of that family. The remaining admissible communication-free baselines are the "
-  "structure-free learners (Independent-UCB / tabular), the per-arm reductions of no-communication "
-  "multiplayer-bandit methods. Two further recognized structure-sharing baselines, memory-based kNN "
-  "collaborative filtering and convex nuclear-norm completion (SoftImpute), are added and evaluated "
-  "across trait distributions in Appendix G. In our harness <b>every</b> method runs decentralized and "
-  "communication-free (one estimator per robot); the low-rank methods differ only in the update rule. "
-  "Table 3 (Appendix D) fixes each method's operating profile.</p>")
+A("<p><b>How to read the comparison.</b> The setting is new, so this is a controlled sweep across the "
+  "low-rank design space against the external structure-free paradigm and full-information ceilings, not a "
+  "contest of rival systems: SwarmCF is ours; the structure-free learners (Independent-UCB, a per-arm "
+  "UCB1 [45]; tabular) are the external paradigm; standard low-rank estimators (MF-SGD, spectral, Bayesian "
+  "completion) are adapted to the setting; the Oracle and a centralized full-communication matcher are "
+  "upper bounds, not competitors. Communication-based methods (auctions/CBBA, CTDE, federated/gossip CF) "
+  "are <b>inadmissible by the problem definition</b>: a gossip or decentralized matrix-completion method, "
+  "throttled to the communication-free passive budget, reduces to per-robot local low-rank completion, "
+  "exactly our MF-SGD and PTF (SwarmCF is its online-ALS member); and a Gang-of-Bandits method needs a "
+  "prior similarity graph, so its data-driven successor CLUB is the admissible clustered-bandit. Two "
+  "further structure-sharing baselines, memory-based kNN-CF and convex nuclear-norm SoftImpute, are "
+  "evaluated in Appendix G. In our harness <b>every</b> method runs decentralized and communication-free "
+  "(one estimator per robot), differing only in the update rule; Table 3 (Appendix D) gives each method's "
+  "operating profile.</p>")
 
 A("<h3>6.1 The categorical separation and masking robustness</h3>")
 A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. SwarmCF acts well on "
@@ -619,8 +606,8 @@ A("<p><b>(a) The categorical separation survives contention.</b> The generalizat
   "above MF-SGD ($0.19$) and the structure-free independent-UCB, which under the shared all-tasks menu "
   "collides on 97% of its engagements and earns essentially nothing ($0.00$, at the random floor). So "
   "contention lets a clustering baseline earn competitively, but SwarmCF keeps the decisive lead on the "
-  "harder unseen-pair generalization that defines the regime, and the Proposition 1 above-floor-versus-"
-  "at-floor separation holds throughout (Figure 5). This contention study uses $\\rho=0.5$, the all-tasks "
+  "harder unseen-pair generalization that defines the regime, and the separation holds throughout "
+  "(Figure 5). This contention study uses $\\rho=0.5$, the all-tasks "
   "menu, and the capacity-1 (Hungarian) normalization, so its skill values are not directly comparable to "
   "the masked-harness numbers of Table 2 (which use $\\rho=0.25$ and a size-$c$ menu); the categorical "
   "pattern and SwarmCF's unseen-pair lead are what carry across settings.</p>")
@@ -659,64 +646,32 @@ A("<p><b>Coordination versus estimation.</b> To quantify how much of the gap to 
 
 A("<h3>6.6 Robustness across configurations</h3>")
 A("<p>The separation is structural rather than tuned: it follows from the three scope conditions of "
-  "Section 6.8 (an exploitable low-rank-but-personalized reward, task scarcity, and a shared channel), not from "
-  "any particular team size or task count: Section 6.3 shows the separation widening with team size "
-  "(Figure 4b), and additional sweeps over $n$, $d$, and reward heterogeneity in the released data show "
-  "the same qualitative pattern. The categorical separation also degrades only gracefully when the reward "
-  "is approximately rather than exactly low-rank (Appendix F, Figure 10). Two evaluation choices, the offer size and the masking model, are "
-  "likewise robustness knobs rather than load-bearing assumptions: restricting the menu to a size-$c$ "
-  "subset versus offering all $n$ tasks, and a persistent versus an i.i.d. mask, both leave the "
-  "categorical separation intact (Appendix F).</p>")
-A("<p><b>Robustness to the guessed rank.</b> Because the true rank is unknown, the guessed rank "
-  "$\\hat d$ is drawn at random per run; we sweep it from $d/2$ (under-ranking) to $3d$ (over-ranking) "
-  "at true rank $d=5$. SwarmCF degrades only <b>gracefully</b> when the model is under-specified "
-  "($\\hat d\\lt d$: unseen-pair skill around $0.15$ to $0.17$) and <b>improves then stays robust</b> "
-  "once the rank is sufficient ($\\hat d\\ge d$: $0.21$ rising to about $0.30$ up to $\\hat d=3d$), because "
-  "surplus directions are shrunk by the ridge; MF-SGD stays near the floor throughout. Over-guessing is "
-  "therefore safe and the exact rank is not needed (Figure 6). Removing the guess entirely, for example by "
-  "letting automatic relevance determination prune the latent directions the masked design does not excite, "
-  "is a natural next step we leave to a follow-up.</p>")
-A("<figure>%s<figcaption><b>Figure 6.</b> Robustness to the guessed rank $\\hat d$ (true rank $d=5$). "
-  "Under-ranking ($\\hat d\\lt d$) is mis-specified and degrades smoothly; over-ranking "
-  "($\\hat d\\gt d$, up to $3d$) is regularized away and stays flat. Lines are means with bootstrap 95%% CIs "
-  "over 16 seeds.</figcaption></figure>" % img("F21_ranksweep.png", "rank-guess robustness"))
+  "Section 7 (an exploitable low-rank-but-personalized reward, task scarcity, and a shared channel), not "
+  "from any particular team size or task count. Section 6.3 shows it widening with team size (Figure 4b); "
+  "additional sweeps over $n$, $d$, and reward heterogeneity in the released data show the same pattern; "
+  "and it stays intact when the reward is only approximately low-rank, under the offer size (size-$c$ "
+  "versus all $n$ tasks), under the masking model (persistent versus i.i.d.), and under a randomly guessed "
+  "rank swept from $d/2$ to $3d$, all detailed in Appendix F.</p>")
 
 A("<h3>6.7 A robotics-grounded instance</h3>")
-A("<p>The experiments above use abstract latent traits and a Bernoulli visibility mask. To check the "
-  "separation is not an artifact of that abstraction, we instantiate the Section 3 model in a "
-  "physically-grounded form. Robot capability and task requirement vectors are non-negative profiles over "
-  "$d$ <b>sensing modalities</b> (electro-optical, infrared, acoustic, LiDAR, range-endurance), so the "
-  "reward $R_{ij}=\\langle p_i,u_j\\rangle$ is a modality match and is rank-$d$ by construction (a "
-  "capability-aggregation model in the style of trait-based heterogeneous MRTA [5,24,25]); and the "
-  "observation mask is a <b>range-limited line-of-sight</b> graph induced by 2-D patrol positions (robot "
-  "$i$ senses teammate $k$ only within a sensing radius), with per-observer noise that grows with distance "
-  "($\\sigma^2\\propto 1+(r/R_s)^2$, a distance-degraded sensing-quality model in the spirit of coverage "
-  "control [40]). Positions are "
-  "thus load-bearing rather than inert, and visibility is persistent because the patrol geometry is "
-  "quasi-static. Under capacity-1 contention and a randomly guessed rank, the categorical separation "
-  "holds: SwarmCF reaches unseen-pair skill $0.19$ (95% CI $[0.15,0.24]$) and earns 32% of the "
-  "centralized ceiling, with the discrete-clustering CLUB baseline second (unseen-pair $0.11$), while "
-  "structure-free Independent-UCB and MF-SGD sit at the floor (intervals "
-  "straddling zero) and Independent-UCB earns below random by colliding (Figure 7). The absolute skill is "
-  "lower than in the body because geometry-limited line-of-sight visibility is a harsher channel, so these "
-  "values are a separate grounded instance rather than a restatement of Table 2; the separation itself is a "
-  "property of the shared low-rank structure, not of the abstract trait or mask model.</p>")
-A("<figure>%s<figcaption><b>Figure 7.</b> A robotics-grounded instance (LatentSwarm): non-negative "
-  "sensing-modality traits and a geometry-induced range-limited line-of-sight mask with distance-dependent "
-  "noise, under capacity-1 contention. (a) An example patrol layout and its line-of-sight visibility "
-  "graph; (b) earned (anytime) skill; (c) unseen-pair skill. SwarmCF stays well above the structure-free "
-  "floor, so the categorical separation survives a physically-motivated instantiation. Bars are means with "
-  "bootstrap 95%% CIs over 16 seeds.</figcaption></figure>" % img("F26_grounded.png", "robotics-grounded instance"))
+A("<p>To check the separation is not an artifact of the abstract traits and Bernoulli mask, we "
+  "instantiate the Section 3 model physically: robot and task vectors are non-negative profiles over $d$ "
+  "<b>sensing modalities</b> (electro-optical, infrared, acoustic, LiDAR, range-endurance), so "
+  "$R_{ij}=\\langle p_i,u_j\\rangle$ is a modality match (rank-$d$ by construction, in the style of "
+  "trait-based MRTA [5,24,25]), and the mask is a <b>range-limited line-of-sight</b> graph from 2-D patrol "
+  "positions with distance-growing per-observer noise (coverage-control style [40]). Under capacity-1 "
+  "contention and a randomly guessed rank the separation holds: SwarmCF reaches unseen-pair skill $0.19$ "
+  "(95% CI $[0.15,0.24]$) and earns 32% of the centralized ceiling, the discrete-clustering CLUB second "
+  "($0.11$), while structure-free Independent-UCB and MF-SGD sit at the floor (Figure 6). The absolute "
+  "skill is lower than in the body because line-of-sight visibility is a harsher channel, so these are a "
+  "separate grounded instance, not a restatement of Table 2; the separation is a property of the shared "
+  "low-rank structure, not of the trait or mask model.</p>")
+A("<figure>%s<figcaption><b>Figure 6.</b> A robotics-grounded instance (LatentSwarm): non-negative "
+  "sensing-modality traits and a range-limited line-of-sight mask with distance-dependent noise, under "
+  "capacity-1 contention. (a) Example patrol layout and visibility graph; (b) earned and (c) unseen-pair "
+  "skill. SwarmCF stays well above the structure-free floor. Means with bootstrap 95%% CIs over 16 "
+  "seeds.</figcaption></figure>" % img("F26_grounded.png", "robotics-grounded instance"))
 
-A("<h3>6.8 Scope of the advantage</h3>")
-A("<p>The advantage is not universal, and we state its boundary precisely. It holds when three "
-  "conditions co-occur: <b>(i) low-rank but personalized</b> structure ($1\\lt d\\ll\\min(m,n)$): at "
-  "$d=1$ the reward reduces to a shared popularity order that a bias/pooling baseline already captures, so "
-  "there is nothing personal to transfer; <b>(ii) task scarcity</b> ($n\\gg T$): if instead sample-rich, a "
-  "tabular learner eventually measures every entry and the unseen advantage vanishes; <b>(iii) a shared "
-  "channel</b> ($\\rho>0$): with no broadcast each robot has only its own row and collaborative filtering "
-  "degenerates to tabular. These are exactly the conditions of the regime we target, and they delimit "
-  "where structure-free methods remain competitive.</p>")
 
 # ---------------- 7. discussion ----------------
 A("<h2>7. Discussion, limitations, and future work</h2>")
@@ -738,9 +693,14 @@ A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and sta
   "recovery rate of Theorem 2 is established for non-adaptive "
   "exploration, so the finite-time rate under the strongly exploiting $\\varepsilon$-decay policy our "
   "experiments actually use (which can starve low-reward tasks of spanning coverage) remains an open "
-  "guarantee, with Appendix C the empirical coverage evidence. The scope conditions for the advantage (low-rank but personalized "
-  "structure, task scarcity, and a shared channel) are stated precisely in Section 6.8; "
-  "outside them, structure-free methods are competitive.</p>")
+  "guarantee, with Appendix C the empirical coverage evidence.</p>")
+A("<p><b>Scope of the advantage.</b> It is not universal, and holds when three conditions co-occur: "
+  "<b>(i) low-rank but personalized</b> structure ($1\\lt d\\ll\\min(m,n)$): at $d=1$ the reward reduces "
+  "to a shared popularity order a bias/pooling baseline already captures; <b>(ii) task scarcity</b> "
+  "($n\\gg T$): if instead sample-rich, a tabular learner eventually measures every entry and the unseen "
+  "advantage vanishes; <b>(iii) a shared channel</b> ($\\rho>0$): with no broadcast each robot has only "
+  "its own row and collaborative filtering degenerates to tabular. Outside these conditions, structure-free "
+  "methods are competitive.</p>")
 A("<p><b>Future work (a planned follow-up).</b> The present paper deliberately keeps to a single core "
   "estimator. In a follow-up we plan to study the refinements that this foundation enables, each of "
   "which we have prototyped: <i>(i)</i> confidence-directed exploration via a Bayesian posterior over the "
@@ -960,6 +920,14 @@ A("<p class='small'>For a newcomer factor $x_\\star$ probed against an estimated
   "$s=\\sigma_{\\min}(B)$, and is exact ($\\hat r=r$) when $\\varepsilon=\\sigma=0,\\lambda\\to0,k\\ge d$. "
   "It quantitatively explains the graceful degradation of cold-start skill as sensing becomes "
   "sparser.</p>")
+A("<p class='small'>The fold-in itself (referenced from Section 4) is a single ridge solve: it recovers a "
+  "newcomer's $\\hat d$-vector from a few observations against the known factor basis, after which the "
+  "newcomer can be scored against any other entity.</p>")
+A("<div class='algo'><div class='cap'>Algorithm 2: Fold-in (solve a new entity's $\\hat d$-vector from a few observations against a known basis $B$)</div>"
+  "given basis $B$ (the $\\hat d$-dim factors of the entities the newcomer has been observed against)\n"
+  "and observations $y$ (the few rewards seen for the newcomer), with weights $W$:\n"
+  "    $\\hat x \\leftarrow (B^\\top W B+\\lambda I)^{-1} B^\\top W y$    // $O(\\hat d^3)$ ridge solve\n"
+  "predict reward on any other entity with factor $b$ as $\\langle b,\\hat x\\rangle$</div>")
 A("<h2>Appendix C. Empirical validation of the recovery condition (Theorem 2)</h2>")
 A("<p class='small'>On the swarm's actual coverage patterns ($m=30,n=240,d=5,\\rho=0.5$, noiseless to "
   "isolate identifiability), reconstructing each unseen pair $(i,j)$ from the observed entries by least "
@@ -1000,28 +968,16 @@ A("<p class='small'>The LatentSwarm <b>package</b> (a modular, pip-installable P
   "uses the Section 3 reward and observation model and adds capacity-1 contention, and SwarmCF enters "
   "only as one drop-in policy among the package's own (random, Hungarian oracle, MF-SGD, "
   "Independent-UCB).</p>")
-A("<p class='small'><b>Traits and reward.</b> Each robot $i$ and task $j$ is assigned a hidden "
-  "$d$-dimensional trait vector ($p_i$, $u_j$) drawn i.i.d. as a signed Gaussian vector and "
-  "L2-normalized to the unit sphere (every robot and task is individually distinct; no latent types), so "
-  "the robot$\\times$task reward is low-rank of rank $d$, exactly as in "
-  "Section 3. When robot $i$ engages task $j$ it earns the signed inner product "
-  "$r_{ij}=\\langle p_i,u_j\\rangle$ (the Section 3 reward). The traits, not any spatial position, drive "
-  "the reward; a t-SNE projection of the traits is used only for visualization.</p>")
-A("<p class='small'><b>Decentralized, partial, private observation.</b> There is no communication. Each "
-  "robot reads a public stream of engagement outcomes through a <b>persistent</b> per-pair mask "
-  "$M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ fixed for the mission ($M_{ii}=1$): robot $i$ sees teammate "
-  "$k$'s engagement only if $M_{ik}=1$, and reads its outcome $\\langle p_k,u_{a_k}\\rangle+\\eta_{ik}$ "
-  "with <b>independent per-observer noise</b> $\\eta_{ik}\\sim\\mathcal N(0,\\sigma^2)$, so no two robots "
-  "see the same stream. An optional action-identity channel may additionally corrupt which task a "
-  "teammate is seen to select; it is disabled for the reported runs.</p>")
-A("<p class='small'><b>Protocol and contention.</b> Each round every robot is offered a menu of tasks "
-  "(all tasks by default; a random size-$c$ subset is an option) and selects one; engagements resolve in "
-  "a random order under <b>capacity-1 contention</b> (only the first robot to pick a task that round "
-  "succeeds; a colliding robot earns nothing). The regime is task-scarce ($n\\gg T$) and a mission runs "
-  "for $T$ rounds with no resets and no depletion. The guessed rank $\\hat d$ is drawn at random per run "
-  "and shared by every structured method, which also share the exploration schedule; SwarmCF is the "
-  "weighted-ALS policy, maintaining its online low-rank factors from the per-observer broadcast and "
-  "selecting the offered task it predicts best.</p>")
+A("<p class='small'><b>Model.</b> The environment uses the Section 3 reward and observation model "
+  "verbatim: each robot $i$ and task $j$ gets a hidden $d$-vector drawn i.i.d. and L2-normalized to the "
+  "unit sphere (no latent types), giving the signed low-rank reward $r_{ij}=\\langle p_i,u_j\\rangle$; "
+  "robots do not communicate and read the public outcome stream through a <b>persistent</b> per-pair mask "
+  "$M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ ($M_{ii}=1$) with independent per-observer noise "
+  "$\\eta_{ik}\\sim\\mathcal N(0,\\sigma^2)$, so no two robots see the same stream. To this it adds "
+  "<b>capacity-1 contention</b> (only the first robot to pick a task each round succeeds; a colliding "
+  "robot earns nothing) over a task-scarce ($n\\gg T$) horizon, with a randomly guessed rank $\\hat d$ "
+  "and exploration schedule shared by every structured method. Algorithm 3 gives the full mission "
+  "loop.</p>")
 A("<p class='small'><b>Metrics.</b> <b>Earned (anytime) skill</b> normalizes the mean per-round reward to "
   "$(\\text{policy}-\\text{random})/(\\text{oracle}-\\text{random})$, where the oracle is the per-round "
   "optimal one-to-one (Hungarian) matching of robots to distinct tasks, the centralized capacity-1 "
@@ -1050,8 +1006,8 @@ A("<p class='small'>Two evaluation choices in the body are robustness knobs rath
   "separation and the masking-robustness of SwarmCF unchanged.</p>")
 A("<p class='small'><b>Offer size.</b> The body restricts each offer to a uniform random size-$c$ subset "
   "($c=20$); here we instead offer every robot all $n$ tasks each round (the unrestricted menu, $c=n$). "
-  "Figure 8 (top row) repeats the masking sweep under both menus. The categorical result is unchanged: every "
-  "low-rank method stays well above the structure-free floor at both menu sizes (Figure 8a), so the "
+  "Figure 7 (top row) repeats the masking sweep under both menus. The categorical result is unchanged: every "
+  "low-rank method stays well above the structure-free floor at both menu sizes (Figure 7a), so the "
   "structure-versus-no-structure separation, the paper's main claim, does not depend on the offer size. "
   "What changes is the ordering <i>among</i> low-rank methods. Under the size-$c$ menu the per-round random "
   "offers force each robot to engage a varied set of tasks, giving the online estimator the coverage it "
@@ -1067,14 +1023,14 @@ A("<p class='small'><b>Offer size.</b> The body restricts each offer to a unifor
   "coverage without a fixed probe budget; we develop this in a follow-up.</p>")
 A("<p class='small'><b>Masking model.</b> The body uses a <i>persistent</i> observation mask (each pair "
   "$(i,k)$ is visible or not for the whole mission). An <i>i.i.d.</i> per-round mask redraws visibility "
-  "every round, which reduces to standard uniform sub-sampling of the broadcast. Figure 8 (bottom row) "
+  "every round, which reduces to standard uniform sub-sampling of the broadcast. Figure 7 (bottom row) "
   "compares the two. Final-policy unseen skill and anytime skill are essentially invariant to the masking model, as "
   "Theorem 3 predicts; what differs is decentralization durability: under the persistent mask each robot "
   "keeps a permanently different view, so the robots' learned models stay distinct (state-uniqueness is "
   "durable), whereas under the i.i.d. mask the blind spots average out over rounds and the models converge "
   "(state-uniqueness is transient, decreasing with the horizon). The persistent mask is therefore the "
   "harder, more realistic regime, and is the one used throughout the body.</p>")
-A("<figure>%s<figcaption><b>Figure 8.</b> Robustness to two evaluation choices. <b>Top row, offer size:</b> "
+A("<figure>%s<figcaption><b>Figure 7.</b> Robustness to two evaluation choices. <b>Top row, offer size:</b> "
   "(a) unseen-pair skill versus broadcast rate $\\rho$ under the body's size-$c$ menu ($c=20$) and the "
   "unrestricted all-tasks menu ($c=n$): every low-rank method stays above the structure-free floor at both "
   "menu sizes (the categorical separation is offer-size invariant), but SwarmCF's lead over batch "
@@ -1085,6 +1041,19 @@ A("<figure>%s<figcaption><b>Figure 8.</b> Robustness to two evaluation choices. 
   "(state-uniqueness of the robots' learned models) is durable under the persistent mask but transient "
   "under the i.i.d. mask. Means with bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
   % img("F22F8_robustness.png", "offer-size and masking-model robustness"))
+A("<p class='small'><b>Guessed rank.</b> Because the true rank is unknown, the guessed rank $\\hat d$ is "
+  "drawn at random per run; we sweep it from $d/2$ (under-ranking) to $3d$ (over-ranking) at true rank "
+  "$d=5$. SwarmCF degrades only gracefully when under-specified ($\\hat d\\lt d$: unseen-pair skill around "
+  "$0.15$ to $0.17$) and improves then stays robust once the rank is sufficient ($\\hat d\\ge d$: $0.21$ "
+  "rising to about $0.30$ up to $\\hat d=3d$), because surplus directions are shrunk by the ridge; MF-SGD "
+  "stays near the floor throughout. Over-guessing is therefore safe and the exact rank is not needed "
+  "(Figure 8). Removing the guess entirely, for example by letting automatic relevance determination prune "
+  "the latent directions the masked design does not excite, is a natural next step we leave to a "
+  "follow-up.</p>")
+A("<figure>%s<figcaption><b>Figure 8.</b> Robustness to the guessed rank $\\hat d$ (true rank $d=5$). "
+  "Under-ranking ($\\hat d\\lt d$) is mis-specified and degrades smoothly; over-ranking ($\\hat d\\gt d$, "
+  "up to $3d$) is regularized away and stays flat. Lines are means with bootstrap 95%% CIs over 16 "
+  "seeds.</figcaption></figure>" % img("F21_ranksweep.png", "rank-guess robustness"))
 A("<p class='small'><b>Theorem 1's strict regime.</b> The body's anytime comparison (Figure 3) uses a "
   "size-$c$ menu with $cT/n\\approx 4$, outside the strict scarce-offer regime $cT=o(n)$ in which "
   "Theorem 1 predicts the structure-free anytime collapse. Figure 9a re-runs the anytime comparison in "
@@ -1092,7 +1061,7 @@ A("<p class='small'><b>Theorem 1's strict regime.</b> The body's anytime compari
   "the floor exactly as Theorem 1 states, while SwarmCF still earns, so the theorem operates as predicted "
   "when its hypothesis holds.</p>")
 A("<p class='small'><b>Restoring the online lead under the all-tasks menu.</b> The narrowing of SwarmCF's "
-  "lead over batch completion under the all-tasks menu (Figure 8) is a property of uninformed greedy "
+  "lead over batch completion under the all-tasks menu (Figure 7) is a property of uninformed greedy "
   "exploration, not of the online estimator: adding a short UCB probe phase (a hybrid that probes, then "
   "runs online ALS) restores the lead at $c=n$ across broadcast rates (Figure 9b). The contingency is the "
   "exploration schedule, which a probe, or the confidence-directed exploration of the follow-up, repairs.</p>")
