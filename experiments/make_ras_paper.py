@@ -218,8 +218,9 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "<b>positive scaling law</b> (per-robot competence rises with team size), and a strong "
   "<b>masking-robustness and anytime profile</b> among low-rank methods under limited observability (the "
   "online anytime lead holds at the body's size-$c$ menu and narrows under the unrestricted all-tasks "
-  "menu, Appendix E), recovering a substantial fraction (about a third) of a centralized "
-  "full-communication ceiling on earned (anytime) skill; and we show the advantage <b>persists under capacity-1 contention</b> (Section 6.5) and in a "
+  "menu, Appendix E), and we measure the cost of communication-free operation against a centralized "
+  "full-communication ceiling, where the residual gap is dominated by estimation under the masked "
+  "broadcast rather than coordination (Section 6.4); and we show the advantage <b>persists under capacity-1 contention</b> (Section 6.5) and in a "
   "<b>robotics-grounded instance</b> with heterogeneous sensing traits and a range-limited line-of-sight "
   "mask (Section 6.7).</li>"
   "<li>We release <b>LatentSwarm</b>, an open, modular Python package for ZK-MRTA, "
@@ -586,8 +587,9 @@ A("<p>Table 2 consolidates the masked-harness comparison across all methods, inc
   "the matcher: imperfect estimation under the masked, private broadcast, and within-round "
   "<b>coordination</b>, since a shared all-tasks menu drives uncoordinated greedy selections onto the "
   "same high-value tasks where only one robot wins each (capacity-1). Section 6.5 isolates the "
-  "coordination component by varying contention; a communication-free de-confliction scheme is a "
-  "follow-up.</p>")
+  "coordination component by varying contention, and Appendix E decomposes the gap with a "
+  "minimal-communication reference point, finding estimation the larger force (coordination accounts for "
+  "only about $0.085$ of the shortfall); a communication-free de-confliction scheme is a follow-up.</p>")
 A("<p class='small'><b>Table 2.</b> Performance scorecard on one canonical masked harness.</p>")
 A(mp.html_scorecard(ROOT))
 
@@ -669,7 +671,9 @@ A("<h2>7. Discussion, limitations, and future work</h2>")
 A("<p><b>What the results say.</b> Under the least information (no prior, no communication, partial and "
   "privately-noisy observation), a single simple estimator gives a swarm a capability that structure-free "
   "learning provably cannot have: acting well on the unseen, getting more competent as the team grows, "
-  "and, on earned (anytime) skill, recovering a substantial fraction (about a third) of what a centralized, communicating system could achieve. The separation is structural "
+  "and, on earned (anytime) skill, closing part of the gap to a centralized, communicating system that "
+  "sees everything and coordinates perfectly, with the residual dominated by estimation, not coordination "
+  "(Section 6.4, Appendix E). The separation is structural "
   "(it is a property of exploiting the shared low-rank trait structure) and operational (it shows up in "
   "reward earned while learning, and in the operational anytime and contention metrics).</p>")
 A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
@@ -709,8 +713,8 @@ A("<p>We formalized multi-robot task allocation in its most restrictive but prac
   "decentralized online collaborative filtering over the passive broadcast lets each robot act well on "
   "tasks it has never attempted. The advantage over structure-free learning is categorical (such a learner "
   "is provably pinned at the prior-mean floor on the unseen); "
-  "the broadcast is what makes it possible and the team is what makes it fast; and the method recovers "
-  "a substantial fraction (about a third) of a centralized full-communication ceiling on earned (anytime) skill while assuming far less. We hope the setting, a swarm "
+  "the broadcast is what makes it possible and the team is what makes it fast, all without communication "
+  "and while assuming far less than the centralized systems it is measured against. We hope the setting, a swarm "
   "that must learn to coordinate from only what it passively senses, becomes a useful baseline "
   "regime for autonomous multi-robot systems.</p>")
 
