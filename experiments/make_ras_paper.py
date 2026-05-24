@@ -433,7 +433,7 @@ A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen ski
   "learners stay flat.</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
 
 A("<h3>6.4 An operational mission and a centralized ceiling</h3>")
-A("<p>Framed as a target-servicing / dispatch mission, latent factors are robot capability traits and "
+A("<p>Framed as a target-servicing / dispatch mission (still the analytical harness of Section 3, reframed), latent factors are robot capability traits and "
   "task requirement traits, each robot repeatedly services an offered target under range-limited, "
   "distance-noisy sensing, SwarmCF on the same servicing-skill metric beats every other low-rank method "
   "(including our own batch variant SwarmCF-batch) under limited observability ($\\rho=0.25$): "
@@ -456,28 +456,30 @@ A("<p>Table 3 consolidates the comparison on the canonical masked harness.</p>")
 A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical masked harness.</p>")
 A(mp.html_scorecard(ROOT))
 
-A("<h3>6.5 Robustness and external validity</h3>")
+A("<h3>6.5 Robustness and transfer to a higher-fidelity simulator</h3>")
 A("<p><b>Beyond one configuration.</b> The separation is structural rather than tuned: it follows from "
   "the three scope conditions stated below (an exploitable low-rank-but-personalized reward, task "
   "scarcity, and a shared channel), not from any particular team size or task count, and we observe the "
   "same pattern across $m$, $n$, $d$, and heterogeneity in additional sweeps. The most demanding "
-  "robustness test, transfer to a separate, higher-fidelity simulator with different dynamics, is "
-  "reported next.</p>")
-A("<p><b>In a separate, higher-fidelity simulator.</b> To test transfer beyond our analytical harness we "
-  "re-run the comparison in a separate spatial multi-robot simulator, <i>tabula_drone</i> (robots move in "
-  "2-D and engage targets with depleting health, episodic dynamics), which differs from our model in "
-  "dynamics, spatial structure, and protocol and was not built around the collaborative-filtering method. "
-  "Dropped in as one policy alongside the simulator's own built-in policies, SwarmCF attains the best "
-  "converged skill, $0.806\\pm0.016$, approaching the oracle and beating both an independent-UCB learner "
-  "($0.721$) and the simulator's own SGD matrix-factorization policy ($0.251$) (Figure 6). In this "
-  "smaller, less task-scarce environment a structure-free learner is no longer pinned at the floor, "
-  "exactly as our scope predicts, yet SwarmCF still wins; that the advantage persists under markedly "
-  "different dynamics is evidence it reflects exploiting the shared low-rank structure rather than our "
-  "analytical harness.</p>")
-A("<figure>%s<figcaption><b>Figure 6.</b> External validity in a separate, higher-fidelity spatial "
-  "simulator (<i>tabula_drone</i>: 2-D motion, depleting-health targets, episodic). Left: converged "
-  "skill, SwarmCF best and near-oracle, above independent-UCB and the simulator's own SGD-MF policy. "
-  "Right: learning curves.</figcaption></figure>" % img("F13_realsim.png", "higher-fidelity simulator validation"))
+  "test, transfer to our higher-fidelity <i>TabulaDrone</i> simulator, is reported next.</p>")
+A("<p><b>Transfer to TabulaDrone, our higher-fidelity simulator.</b> The results so far use the clean "
+  "analytical harness that matches the model of Section 3. To test that the method generalizes beyond "
+  "that model, we re-run the comparison in <b>TabulaDrone</b>, a multi-robot reinforcement-learning "
+  "environment from our own project (a PettingZoo/Gymnasium simulator in which robots move in 2-D and "
+  "engage targets with depleting health under episodic dynamics). It shares our codebase but was built "
+  "as a general drone-engagement testbed, independently of the collaborative-filtering method, and "
+  "differs from the analytical model in dynamics, spatial structure, and interaction protocol. Dropped in "
+  "as one policy alongside the simulator's own built-in policies, SwarmCF attains the best converged "
+  "skill, $0.806\\pm0.016$, approaching the oracle and beating both an independent-UCB learner ($0.721$) "
+  "and the simulator's own SGD matrix-factorization policy ($0.251$) (Figure 6). In this smaller, less "
+  "task-scarce environment a structure-free learner is no longer pinned at the floor, exactly as our "
+  "scope predicts, yet SwarmCF still wins; that the advantage persists under markedly different dynamics "
+  "is evidence it reflects exploiting the shared low-rank structure, not an artifact of the analytical "
+  "harness.</p>")
+A("<figure>%s<figcaption><b>Figure 6.</b> Transfer to <b>TabulaDrone</b>, our higher-fidelity spatial "
+  "simulator (2-D motion, depleting-target health, episodic dynamics). Left: converged skill, SwarmCF "
+  "best and near-oracle, above independent-UCB and the simulator's own SGD-MF policy. Right: learning "
+  "curves.</figcaption></figure>" % img("F13_realsim.png", "TabulaDrone simulator transfer"))
 
 A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b> The advantage is not "
   "universal, and we state its boundary precisely. It holds when three conditions co-occur: "

@@ -336,7 +336,7 @@ if os.path.exists(f):
                        ls="-" if p in ("weighted_als", "random", "oracle") else "--")
     ax[1].set_xlabel("episode"); ax[1].set_ylabel("reward per step")
     ax[1].set_title("Learning curves", fontsize=10); ax[1].grid(alpha=0.25); ax[1].legend(fontsize=7)
-    fig.suptitle("Validation in a separate higher-fidelity simulator (tabula_drone: spatial, HP-depletion,\n"
+    fig.suptitle("Validation in TabulaDrone, our higher-fidelity simulator (spatial, HP-depletion,\n"
                  "episodic): SwarmCF beats the simulator's SGD-MF and Independent-UCB, approaching the oracle", fontsize=9)
     fig.tight_layout(rect=[0, 0, 1, 0.93]); save_fig("F13_realsim")
     print("F13_realsim  <- tabula_bench_real.json")

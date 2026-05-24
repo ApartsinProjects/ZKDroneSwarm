@@ -597,3 +597,16 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   loop, updated the Figure 4 caption and a Section 6.3 sentence. Regenerated figures + paper +
   Word docx. Honest reading: the flagship remains the online variant for its robustness under
   masking (the operational regime); batch wins with dense data (high rho / large m). Pushed.
+- Cycle 71 (TabulaDrone naming + Section 6.5 redraft): the simulator is OUR OWN (the in-repo
+  tabula_drone package; __init__ declares "TabulaDrone: Reinforcement Learning Environments for
+  Drone Target Engagement"), so the paper must not present it as external. Renamed the bare code
+  path tabula_drone -> TabulaDrone (proper name) throughout the paper and the F13 figure title;
+  retitled Section 6.5 "Robustness and transfer to a higher-fidelity simulator" (was "external
+  validity"); redrafted the section to state plainly that TabulaDrone is a PettingZoo/Gymnasium
+  RL environment from our own project, built as a general drone-engagement testbed independently
+  of the CF method, and to frame the result as transfer/generalization beyond the analytical
+  model (not third-party external validation). Also clarified Section 6.4 that the mission
+  (Figure 5) is the analytical harness of Section 3 reframed, not a separate simulator (Figure 5
+  is one experiment at two broadcast rates; the centralized-ceiling result in the same section is
+  a second experiment in the same harness; the only different simulator is TabulaDrone, Figure 6).
+  Regenerated figures + paper + Word docx. Pushed.
