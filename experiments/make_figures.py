@@ -439,53 +439,48 @@ if f:
     fig.tight_layout(); save_fig("F23_ls_contention")
     print("F23_ls_contention  <-", os.path.basename(f))
 
-# ---- F24 (X3): in-regime anytime collapse (strict scarce-offer cT=o(n)) -- demonstrates Theorem 2 ----
-# The body anytime run (Fig 3) uses c=20 (cT/n~4), outside cT=o(n); here a small-c run (cT/n<1) shows
-# the predicted structure-free anytime COLLAPSE that Theorem 2 governs.
+# ---- F28 (consolidated Appendix-F ablations): (a) in-regime anytime collapse (X3, strict cT=o(n));
+#      (b) probe restores the online lead under the all-tasks menu (X4). Merged to trim the figure budget. ----
 _an_bc = _by_cand("results/pilots/c16_anytime_*.json")
 _small_c = min([c for c in _an_bc if c <= 5], default=None)
-if _small_c is not None:
+_cx_bc = _by_cand("results/pilots/c15_crossover_*.json")
+_cn_x4 = max(_cx_bc) if _cx_bc else None
+if _small_c is not None and _cn_x4 is not None and _cn_x4 >= 200:
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+    # (a) strict scarce-offer regime: structure-free anytime COLLAPSE (Theorem 1)
     d = json.load(open(_an_bc[_small_c])); raw = d["raw"]; T = d["meta"]["T"]; cc = d["meta"]["cand"]
     rho_key = "0.25" if "0.25" in raw else list(raw.keys())[-1]
     rounds = np.arange(1, T + 1)
-    styles = {"RewardCF": dict(color="C0", lw=2.6, label="SwarmCF (online ALS, ours)"),
-              "Tabular": dict(color="C2", ls="-.", lw=1.8, label="Tabular (structure-free)"),
-              "UCBIndep": dict(color="gray", ls=":", lw=1.6, label="Independent-UCB (structure-free)"),
-              "Random": dict(color="C3", ls="--", lw=1.2, label="Random")}
-    plt.figure(figsize=(6, 4))
-    for nm, st in styles.items():
-        if nm not in raw[rho_key]:
-            continue
-        plt.plot(rounds, np.array(raw[rho_key][nm]).mean(0), **st)
-    plt.axhline(0, color="black", lw=0.8, ls=":")
-    plt.xlabel("round  $t$"); plt.ylabel("cumulative-normalized skill")
-    plt.title("Strict scarce-offer regime ($c=%d$, $cT=o(n)$, $\\rho=0.25$): structure-free\n"
-              "anytime skill collapses to the floor (Theorem 2); SwarmCF still earns" % cc, fontsize=9.5)
-    plt.legend(fontsize=8, loc="upper left"); plt.tight_layout(); save_fig("F24_inregime_anytime")
-    print("F24_inregime_anytime  <- c=%d anytime" % cc)
-
-# ---- F25 (X4): under the all-tasks menu a UCB probe restores the online lead over batch completion ----
-_cx_bc = _by_cand("results/pilots/c15_crossover_*.json")
-_cn_x4 = max(_cx_bc) if _cx_bc else None
-if _cn_x4 is not None and _cn_x4 >= 200:
+    sa = {"RewardCF": dict(color="C0", lw=2.6, label="SwarmCF (online ALS, ours)"),
+          "Tabular": dict(color="C2", ls="-.", lw=1.8, label="Tabular (structure-free)"),
+          "UCBIndep": dict(color="gray", ls=":", lw=1.6, label="Independent-UCB (structure-free)"),
+          "Random": dict(color="C3", ls="--", lw=1.2, label="Random")}
+    ax = axes[0]
+    for nm, st in sa.items():
+        if nm in raw[rho_key]:
+            ax.plot(rounds, np.array(raw[rho_key][nm]).mean(0), **st)
+    ax.axhline(0, color="black", lw=0.8, ls=":")
+    ax.set_xlabel("round  $t$"); ax.set_ylabel("cumulative-normalized skill")
+    ax.set_title("(a) Strict scarce-offer regime ($c=%d$, $cT=o(n)$, $\\rho=0.25$):\n"
+                 "structure-free anytime skill collapses (Theorem 1); SwarmCF still earns" % cc, fontsize=9)
+    ax.legend(fontsize=7.5, loc="upper left"); ax.grid(alpha=0.25)
+    # (b) all-tasks menu: a UCB probe restores the online estimator's lead over batch completion
     d = json.load(open(_cx_bc[_cn_x4])); raw = d["raw"]; rhos = d["meta"]["rhos"]
-    def _ser25(nm):
-        return [np.mean(raw[str(r)][nm]["unseen"]) for r in rhos]
-    styles = {"HybridCF": dict(marker="o", color="C0", lw=2.4, label="SwarmCF + UCB probe (hybrid)"),
-              "RewardCF": dict(marker="s", color="C9", lw=2.0, ls="--", label="SwarmCF (greedy online)"),
-              "PTF": dict(marker="^", color="C3", lw=2.0, label="batch completion (SwarmCF-batch)"),
-              "UCBIndep": dict(marker="x", color="gray", lw=1.2, ls=":", label="structure-free floor")}
-    plt.figure(figsize=(6, 4))
-    for nm, st in styles.items():
-        if nm not in raw[str(rhos[0])]:
-            continue
-        plt.plot(rhos, _ser25(nm), **st)
-    plt.axhline(0, color="black", lw=0.8, ls=":"); plt.gca().invert_xaxis()
-    plt.xlabel("broadcast rate  $\\rho$"); plt.ylabel("UNSEEN-pair skill")
-    plt.title("All-tasks menu ($c=n$): a UCB probe restores the online estimator's lead\n"
-              "over batch completion that pure greedy selection gives up", fontsize=9.5)
-    plt.legend(fontsize=7.5, loc="upper right"); plt.tight_layout(); save_fig("F25_probe_restores")
-    print("F25_probe_restores  <- c=%d crossover" % _cn_x4)
+    sb = {"HybridCF": dict(marker="o", color="C0", lw=2.4, label="SwarmCF + UCB probe (hybrid)"),
+          "RewardCF": dict(marker="s", color="C9", lw=2.0, ls="--", label="SwarmCF (greedy online)"),
+          "PTF": dict(marker="^", color="C3", lw=2.0, label="batch completion (SwarmCF-batch)"),
+          "UCBIndep": dict(marker="x", color="gray", lw=1.2, ls=":", label="structure-free floor")}
+    ax = axes[1]
+    for nm, st in sb.items():
+        if nm in raw[str(rhos[0])]:
+            ax.plot(rhos, [np.mean(raw[str(r)][nm]["unseen"]) for r in rhos], **st)
+    ax.axhline(0, color="black", lw=0.8, ls=":"); ax.invert_xaxis()
+    ax.set_xlabel("broadcast rate  $\\rho$"); ax.set_ylabel("UNSEEN-pair skill")
+    ax.set_title("(b) All-tasks menu ($c=n$): a UCB probe restores the online\n"
+                 "estimator's lead over batch completion", fontsize=9)
+    ax.legend(fontsize=7.5, loc="upper right"); ax.grid(alpha=0.25)
+    fig.tight_layout(); save_fig("F28_appF_ablations")
+    print("F28_appF_ablations  <- in-regime (c=%d) + probe (c=%d)" % (cc, _cn_x4))
 
 # ---- F26 (X2): robotics-grounded instance (STRATA sensing-modality traits + line-of-sight mask) ----
 f = latest("results/pilots/latentswarm_grounded_*.json")

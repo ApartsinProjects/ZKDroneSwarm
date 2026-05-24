@@ -462,7 +462,7 @@ A("<p>Final-policy quality can overstate a method that explores cheaply. The ope
   "penalty early. An $\\varepsilon$-greedy tabular learner does earn some reward by re-exploiting tasks it "
   "has already engaged (each task recurs in offers about $cT/n\\approx 4$ times here), but it stays well "
   "below SwarmCF and at the floor on unseen pairs (Table 3). The clean anytime collapse of Theorem 1 holds "
-  "in the strict regime $cT=o(n)$ (demonstrated in Appendix F, Figure 11); SwarmCF's early-earning advantage is broader, as seen here.</p>")
+  "in the strict regime $cT=o(n)$ (demonstrated in Appendix F, Figure 11a); SwarmCF's early-earning advantage is broader, as seen here.</p>")
 A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill ($\\rho=0.25$). SwarmCF earns "
   "from round one; explore-then-commit pays a probe phase; Independent-UCB stays near the random floor, while "
   "$\\varepsilon$-greedy tabular earns only by re-exploiting tasks it has already "
@@ -573,7 +573,7 @@ A("<p>The separation is structural rather than tuned: it follows from the three 
   "any particular team size or task count: Section 6.3 shows the separation widening with team size "
   "(Figure 4b), and additional sweeps over $n$, $d$, and reward heterogeneity in the released data show "
   "the same qualitative pattern. The categorical separation also degrades only gracefully when the reward "
-  "is approximately rather than exactly low-rank (Appendix F, Figure 13). Two evaluation choices, the offer size and the masking model, are "
+  "is approximately rather than exactly low-rank (Appendix F, Figure 12). Two evaluation choices, the offer size and the masking model, are "
   "likewise robustness knobs rather than load-bearing assumptions: restricting the menu to a size-$c$ "
   "subset versus offering all $n$ tasks, and a persistent versus an i.i.d. mask, both leave the "
   "categorical separation intact (Appendix F).</p>")
@@ -638,7 +638,7 @@ A("<p><b>What the results say.</b> Under the least information, no prior, no com
 A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
   "trait-based premise; the categorical advantage degrades gracefully as the structure becomes only "
   "approximately low-rank or the rank grows toward full, vanishing only "
-  "when there is no exploitable structure (Appendix F, Figure 13). All our evidence is in simulation: as "
+  "when there is no exploitable structure (Appendix F, Figure 12). All our evidence is in simulation: as "
   "no existing benchmark captures this regime (Section 6) we evaluate on our own released LatentSwarm "
   "simulator, and the low-rank premise, though standard for trait-based MRTA, is an assumption rather than "
   "a measured property of any specific deployment; building a higher-fidelity or physical instantiation of "
@@ -969,23 +969,21 @@ A("<figure>%s<figcaption><b>Figure 10.</b> Persistent versus i.i.d. masking. Uns
   % img("F8_iid_vs_persistent.png", "masking model robustness"))
 A("<p class='small'><b>Theorem 1's strict regime.</b> The body's anytime comparison (Figure 3) uses a "
   "size-$c$ menu with $cT/n\\approx 4$, outside the strict scarce-offer regime $cT=o(n)$ in which "
-  "Theorem 1 predicts the structure-free anytime collapse. Figure 11 re-runs the anytime comparison in "
+  "Theorem 1 predicts the structure-free anytime collapse. Figure 11a re-runs the anytime comparison in "
   "that strict regime ($c=3$, $cT/n\\lt 1$): the structure-free learners' cumulative skill collapses to "
   "the floor exactly as Theorem 1 states, while SwarmCF still earns, so the theorem operates as predicted "
   "when its hypothesis holds.</p>")
-A("<figure>%s<figcaption><b>Figure 11.</b> Anytime skill in the strict scarce-offer regime "
-  "($c=3$, $cT=o(n)$, $\\rho=0.25$): structure-free learners collapse to the floor (Theorem 1); SwarmCF "
-  "still earns from the first rounds. Means over 16 seeds.</figcaption></figure>"
-  % img("F24_inregime_anytime.png", "in-regime anytime collapse"))
 A("<p class='small'><b>Restoring the online lead under the all-tasks menu.</b> The narrowing of SwarmCF's "
   "lead over batch completion under the all-tasks menu (Figure 9) is a property of uninformed greedy "
   "exploration, not of the online estimator: adding a short UCB probe phase (a hybrid that probes, then "
-  "runs online ALS) restores the lead at $c=n$ across broadcast rates (Figure 12). The contingency is the "
+  "runs online ALS) restores the lead at $c=n$ across broadcast rates (Figure 11b). The contingency is the "
   "exploration schedule, which a probe, or the confidence-directed exploration of the follow-up, repairs.</p>")
-A("<figure>%s<figcaption><b>Figure 12.</b> Under the all-tasks menu ($c=n$), a UCB probe restores the "
-  "online estimator's unseen-pair lead over batch completion that pure greedy selection gives up (the "
-  "structure-free floor shown for reference). Means over 16 seeds.</figcaption></figure>"
-  % img("F25_probe_restores.png", "probe restores the online lead"))
+A("<figure>%s<figcaption><b>Figure 11.</b> Two Appendix-F ablations. (a) Strict scarce-offer regime "
+  "($c=3$, $cT=o(n)$, $\\rho=0.25$): structure-free learners' cumulative skill collapses to the floor "
+  "(Theorem 1) while SwarmCF still earns. (b) Under the all-tasks menu ($c=n$), a short UCB probe restores "
+  "the online estimator's unseen-pair lead over batch completion that pure greedy selection gives up "
+  "(structure-free floor shown for reference). Means over 16 seeds.</figcaption></figure>"
+  % img("F28_appF_ablations.png", "Appendix-F ablations: strict regime and probe-restores"))
 A("<p class='small'><b>Approximate low-rank.</b> The categorical separation assumes the reward is "
   "low-rank; we test how it degrades when the reward is only <i>approximately</i> so. We perturb the "
   "rank-$d$ block reward with a full-rank Gaussian term, "
@@ -993,14 +991,14 @@ A("<p class='small'><b>Approximate low-rank.</b> The categorical separation assu
   "$s=\\mathrm{std}(R)/\\mathrm{std}(G)$), which holds the entry-wise scale fixed (so the observation "
   "SNR is unchanged) while moving energy out of the rank-$d$ subspace: the low-rank energy fraction is "
   "$1/(1+\\varepsilon^2)$ and the effective rank rises from $d$ toward $\\min(m,n)$ as $\\varepsilon$ "
-  "grows. Figure 13 sweeps $\\varepsilon$ at the masked headline $\\rho=0.25$. SwarmCF degrades "
+  "grows. Figure 12 sweeps $\\varepsilon$ at the masked headline $\\rho=0.25$. SwarmCF degrades "
   "<b>gracefully</b>: unseen-pair skill falls from 0.32 at $\\varepsilon=0$ (effective rank 5) to 0.20 at "
   "$\\varepsilon=0.5$ (effective rank about 28; roughly 80% of the reward energy still low-rank) and 0.08 "
   "at $\\varepsilon=1$ (about 50%), staying above the structure-free floor (about 0 at every "
   "$\\varepsilon$, intervals straddling zero). The advantage is therefore a property of <i>exploitable</i> "
   "low-rank structure, not of exact low-rankness: it weakens smoothly as structure is destroyed and "
   "reaches the floor only when essentially none remains.</p>")
-A("<figure>%s<figcaption><b>Figure 13.</b> Approximate-low-rank robustness: unseen-pair skill versus a "
+A("<figure>%s<figcaption><b>Figure 12.</b> Approximate-low-rank robustness: unseen-pair skill versus a "
   "full-rank perturbation of strength $\\varepsilon$ (top axis: the resulting effective rank at 99%% "
   "energy), at the masked headline $\\rho=0.25$. SwarmCF and its batch variant degrade gracefully as the "
   "reward leaves the rank-$d$ subspace and approach the structure-free floor only when little low-rank "

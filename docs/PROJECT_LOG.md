@@ -1139,3 +1139,15 @@ base has Lemma 1 + Theorems 1-3 (no Theorem 4, no placeholder leftovers), statem
 and Appendix A; follow-up div balance 14/14, no stale [1, Thm 4]/[1, Thm 1-2]. C2 (external benchmark): stand
 on the "no benchmark exists -> LatentSwarm" framing (no change). Still pending this round: B1 (Table 4 at 16
 seeds, ceiling re-run in progress) and B3 (consolidate Appendix-F figures). HTML 89 KB; .docx not rebuilt.
+
+## Cycle 101 (B3: consolidate Appendix-F figures; 13 -> 12)
+Trimmed the figure budget (round-4 review minor). Merged the two single-panel Appendix-F ablations,
+the strict-regime anytime collapse (was Figure 11, F24) and the probe-restores-the-online-lead result
+(was Figure 12, F25), into one 2-panel figure (new Figure 11, F28_appF_ablations: panel a = strict regime,
+panel b = probe), and renumbered the approximate-low-rank robustness figure from Figure 13 to Figure 12
+(F27, kept standalone so the Major-1 result stays prominent). Updated all cross-references (Section 6.2 ->
+Figure 11a; Appendix-F probe paragraph -> Figure 11b; Sections 6.6 and 7 -> Figure 12) and removed the now
+orphaned F24/F25 PNG+PDF outputs. The paper now has 12 figures (was 13). Figure-builder change is in
+make_figures.py (new combined F28 builder replacing the F24/F25 builders); PDF timestamp churn from the
+rebuild was reverted (only F28 added). HTML 88 KB; .docx not rebuilt. (B1, Table 4 at 16 seeds, still
+running; will integrate on completion.)
