@@ -1119,3 +1119,23 @@ limitation accordingly (simulation-only on our own simulator because none exists
 assumption; a higher-fidelity or physical instantiation is itself an open problem) and dropped the named
 external benchmarks. The Related-Work citation of bilinear bandits as prior art (Section 2) is retained
 (correct). HTML 88 KB; .docx not rebuilt; follow-up paper has no such promise (checked).
+
+## Cycle 100 (round-4 review fixes: Bucket A prose + C1 footnote + C3 theorem renumber)
+Acted on the round-4 fresh review. Bucket A (prose): (A1) grounded the reward-observability premise in
+Section 3 with concrete robotics examples (seeing whether an area was covered / a target stopped emitting)
+and scoped it (action/choice channel is the fallback when only the action, not the scalar outcome, is
+observable); (A2) softened "estimation is nearly solved" in Section 6.4 to "on earned (anytime) skill the
+estimator is nearly at the centralized ceiling," explicitly noting the harder unseen-pair number (Table 3)
+is lower, so the 84% is not read as "generalization solved"; (A3) added a zero-mean-reward justification
+sentence in Section 3 (prior-mean predictor is the correct control; d=1 popularity baseline -> Section 6.8),
+split a Section 6.6 run-on, and changed the fold-in bound from "stated and proved in Appendix B" to "stated
+in Appendix B" (a standard ridge-perturbation argument). C1: added a footnote-style note at the Section 3
+heading disclaiming the cryptographic sense of "zero-knowledge." C3: demoted the elementary row-completion
+result from Theorem 1 to Lemma 1 and renumbered the rest (anytime Thm 2->1, recovery Thm 3->2, speedup
+Thm 4->3), via a collision-free placeholder pass plus the four plural-range references; updated the follow-up
+paper's cross-references accordingly ([1, Thm 1-2]->[1, Lem. 1, Thm 1]; recovery [1, Thm 3]->[1, Thm 2];
+speedup [1, Thm 4]->[1, Thm 3]; [1, Thm 1]->[1, Lem. 1]; [1, Thm 1-4]->[1, Lem. 1, Thm 1-3]). Verified:
+base has Lemma 1 + Theorems 1-3 (no Theorem 4, no placeholder leftovers), statement labels correct in Sec 5
+and Appendix A; follow-up div balance 14/14, no stale [1, Thm 4]/[1, Thm 1-2]. C2 (external benchmark): stand
+on the "no benchmark exists -> LatentSwarm" framing (no change). Still pending this round: B1 (Table 4 at 16
+seeds, ceiling re-run in progress) and B3 (consolidate Appendix-F figures). HTML 89 KB; .docx not rebuilt.

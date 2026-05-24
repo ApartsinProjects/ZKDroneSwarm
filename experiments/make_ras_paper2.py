@@ -131,10 +131,10 @@ A("<div class='box'><b>Background: the companion paper, in one paragraph.</b> Th
   "the passive broadcast, with an $O(\\hat d^3)$ fold-in that lets it act on never-attempted tasks. Its "
   "central result is a <b>categorical separation</b>: a structure-free learner is provably pinned at "
   "the prior-mean error floor on unseen pairs ([1, Prop. 1]), while SwarmCF attains per-robot sample "
-  "complexity $\\Theta(d)$ versus $\\Theta(n)$ with a matching anytime separation ([1, Thm 1-2]), a "
+  "complexity $\\Theta(d)$ versus $\\Theta(n)$ with a matching anytime separation ([1, Lem. 1, Thm 1]), a "
   "deterministic condition under which decentralized recovery from the privately-masked broadcast is "
-  "exact ([1, Thm 3]), and a collective-speedup law by which the swarm gets smarter and faster as it "
-  "grows ([1, Thm 4]); the advantage is validated on a robotics-grounded mission and transfers to the "
+  "exact ([1, Thm 2]), and a collective-speedup law by which the swarm gets smarter and faster as it "
+  "grows ([1, Thm 3]); the advantage is validated on a robotics-grounded mission and transfers to the "
   "higher-fidelity <b>LatentSwarm</b> spatial simulator. This paper studies the refinements that "
   "foundation enables.</div>")
 A("<p>The foundation makes a single, simple estimator do one thing well: generalize to the unseen with "
@@ -167,7 +167,7 @@ A("<p>All refinements are members of one family. Table 1 lays out how each membe
   "contention handling, rank, and coordination); the body of the paper then takes the axes one at a "
   "time. Throughout, we cite each member by its display name. We use two numbering conventions for "
   "formal results: <b>foundation</b> results are proved in the companion paper and are cited with an "
-  "explicit bracket pointer into it ([1, Prop. 1], [1, Thm 1-4], [1, Sec. 6.5], and so on), while this "
+  "explicit bracket pointer into it ([1, Prop. 1], [1, Lem. 1, Thm 1-3], [1, Sec. 6.5], and so on), while this "
   "follow-up's own results carry an <b>F</b> prefix (Proposition F1, Theorem F1, and so on) and are "
   "stated here to support the refinements.</p>")
 A("<p class='small'><b>Table 1.</b> The SwarmCF family by mechanism: each refinement changes one or two "
@@ -192,7 +192,7 @@ A("<p>We report the same normalized <b>skill</b> as the foundation, "
   "$\\mathrm{skill}=(\\text{earned}-\\text{random})/(\\text{oracle}-\\text{random})$, where $0$ is the "
   "no-information floor and $1$ is omniscient. <b>Unseen-pair skill</b> is restricted to tasks the robot "
   "never engaged (the categorical generalization test that the companion paper turns into a theorem, "
-  "[1, Prop. 1] and [1, Thm 1]); "
+  "[1, Prop. 1] and [1, Lem. 1]); "
   "<b>anytime skill</b> is the cumulative-reward (operational) measure. Under contention we additionally "
   "report earned reward normalized by the per-round matching optimum (Hungarian), and the collision "
   "rate. Unless stated otherwise the configuration is the foundation's: $m=30$ robots, $n=240$ tasks, "
@@ -448,12 +448,12 @@ A("<div class='thm'><b>Supporting results (Proposition F3, this paper, building 
   "Two ingredients are imported from the companion paper: the fold-in perturbation bound that splits a "
   "newcomer's cold-start error into basis-recovery, own-probe noise, and ridge bias, exact once it has "
   "$\\ge\\hat d$ probes ([1, App. B]), and the collective-speedup law that makes recovery faster as the "
-  "team grows ([1, Thm 4]). Proposition F3 combines them into a churn fold-in latency that balances probe "
+  "team grows ([1, Thm 3]). Proposition F3 combines them into a churn fold-in latency that balances probe "
   "cost against turnover rate, explaining why directed newcomer probing is needed under fast churn.</div>")
 A("<div class='prelim'><b>Preliminary.</b> The churn study uses a single turnover schedule (a fixed "
   "active set with periodic departures and arrivals) at full broadcast; the finite-time coverage rate "
   "under a strongly exploiting, adaptive policy, the same residual the foundation flags for its recovery "
-  "theorem ([1, Thm 3]), is the binding open question here too.</div>")
+  "theorem ([1, Thm 2]), is the binding open question here too.</div>")
 
 # ---------------- 8. unified method ----------------
 A("<h2>8. A unified communication-free method</h2>")
@@ -503,7 +503,7 @@ A("<p><b>The communication-free constraint carries over too.</b> No refinement r
   "the churn and unified methods gate on locally observed quantities. The reference ceilings remain the "
   "only place where full communication appears. The same collective-speedup intuition also recurs: "
   "directed exploration and newcomer probing work because the swarm's pooled observations feed one "
-  "shared structure, the mechanism the foundation's collective-speedup law ([1, Thm 4]) makes "
+  "shared structure, the mechanism the foundation's collective-speedup law ([1, Thm 3]) makes "
   "precise.</p>")
 A("<p><b>A single deployable method.</b> Taken together, the refinements collapse into %s: one "
   "communication-free policy that generalizes to the unseen, explores by confidence, de-conflicts under "
@@ -526,7 +526,7 @@ A("<p><b>Inherited assumptions.</b> All refinements inherit the foundation's pre
   "(approximately) low-rank and the advantage requires structure beyond mere popularity ($d>1$), task "
   "scarcity ($n\\gg T$), and a shared channel ($\\rho>0$); rewards are real-valued and bilinear in "
   "latent traits; and the recovery rate is established for non-adaptive exploration, with the "
-  "finite-time rate under a strongly exploiting policy still open ([1, Thm 3]). The refinements relax "
+  "finite-time rate under a strongly exploiting policy still open ([1, Thm 2]). The refinements relax "
   "none of these; they add capabilities within the same regime.</p>")
 A("<p><b>What remains.</b> The clearest next steps are an adaptive-offset envelope theorem covering the "
   "deployed contention method, a constant-signal-to-noise study of ARD rank recovery, a reward-value "
@@ -552,7 +552,7 @@ A("<h2>References</h2>")
 A("<p class='small'>[1] A. Apartsin, Y. Meshulam, Y. Aperstein, &ldquo;Acting on the Unseen: "
   "Communication-Free Collaborative Filtering for Decentralized Multi-Robot Task Allocation&rdquo; "
   "(<a href='ras_paper.html'>companion paper</a>). All foundation results cited here with a bracket "
-  "pointer (for example [1, Prop. 1], [1, Thm 3], [1, Sec. 6.5]) are stated and proved there; this "
+  "pointer (for example [1, Prop. 1], [1, Thm 2], [1, Sec. 6.5]) are stated and proved there; this "
   "paper's own results carry an <b>F</b> prefix.</p>")
 
 A("</div></body></html>")
