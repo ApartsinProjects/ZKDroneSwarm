@@ -312,14 +312,14 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.92]); save_fig("F12_morebaselines")
     print("F12_morebaselines  <-", os.path.basename(f))
 
-# ---- F13: LatentSwarm faithful ZK-MRTA validation (independent reimplementation + contention) ----
-f = "results/pilots/tabula_bench_real.json"
+# ---- F13: LatentSwarm independent ZK-MRTA validation (latentswarm package, + contention) ----
+f = "results/pilots/latentswarm_main.json"
 if os.path.exists(f):
-    d = json.load(open(f)); esk = d["skill"]; usk = d.get("uskill", {})
-    order = ["random", "ucb_indep", "mf", "weighted_als", "oracle"]
-    lab = {"random": "Random", "ucb_indep": "Independent-UCB", "mf": "MF-SGD",
-           "weighted_als": "SwarmCF (ours)", "oracle": "Oracle"}
-    col = {"random": "gray", "ucb_indep": "C4", "mf": "C3", "weighted_als": "C2", "oracle": "k"}
+    d = json.load(open(f)); esk = d["earned"]; usk = d["unseen"]
+    order = ["random", "ucb_indep", "mf_sgd", "swarm_cf", "oracle"]
+    lab = {"random": "Random", "ucb_indep": "Independent-UCB", "mf_sgd": "MF-SGD",
+           "swarm_cf": "SwarmCF (ours)", "oracle": "Oracle"}
+    col = {"random": "gray", "ucb_indep": "C4", "mf_sgd": "C3", "swarm_cf": "C2", "oracle": "k"}
 
     def _boot(xs, B=5000):
         a = np.asarray([x for x in xs if x is not None], float)
@@ -350,7 +350,7 @@ if os.path.exists(f):
                  "partial + private broadcast, task scarcity, capacity-1 contention). SwarmCF leads; "
                  "structure-free at the floor", fontsize=8.5)
     fig.tight_layout(rect=[0, 0, 1, 0.91]); save_fig("F13_realsim")
-    print("F13_realsim  <- tabula_bench_real.json")
+    print("F13_realsim  <- latentswarm_main.json")
 
 # ---- F14: assumption-stress (approx low-rank + nonlinear link) ----
 f = latest("results/pilots/stress_assump_*.json")

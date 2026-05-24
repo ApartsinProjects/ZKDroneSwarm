@@ -729,7 +729,20 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   d-hat=5..15); earned skill rises 0.24 -> ~0.42 plateau; MF-SGD stays low throughout. Confirms the
   claim that over-guessing is safe (surplus dims are regularized) and under-guessing degrades gracefully
   (mis-specification, not collapse). Saved results/pilots/latentswarm_ranksweep.json and figure
-  F21_ranksweep (png+pdf); to be embedded as a robustness figure during the Section 6.5 integration. Per user instruction,
+  F21_ranksweep (png+pdf); to be embedded as a robustness figure during the Section 6.5 integration.
+- Cycle 79 (paper integration of the latentswarm package): rewired F13 to read
+  results/pilots/latentswarm_main.json (new package numbers) with updated labels (swarm_cf/mf_sgd).
+  Rewrote Section 6.5 to the latentswarm-package framing with the new results (SwarmCF earned 0.42
+  [0.40,0.44], unseen 0.58 [0.52,0.64]; MF-SGD 0.20/0.09; Independent-UCB -0.17/floor), the all-targets
+  menu, and a guessed rank drawn at random per run; added a "Robustness to the guessed rank" paragraph +
+  Figure 6 (the F21 graceful-degradation sweep). Updated Section 3 (menu = all tasks by default, size-c
+  optional; d-hat random per run and robust, Figure 6; persistent mask is the primary case while an
+  i.i.d. per-round mask is the easier standard-sampling regime, and the suite supports both), the Setup,
+  and Appendix E (the modular pip-installable package; all-targets default; d-hat ~ Uniform{d..2d};
+  Algorithm 3 updated). Replaced the "PettingZoo/Gymnasium" claims with "modular Python package" (the new
+  package is plain, not PettingZoo). Regenerated F13 (only F13 churned) + HTML (848 KB); docx not rebuilt
+  (HTML phase). OPEN: Figure 1 redesign (unseen target + unseen pair + identifiability); unit tests for
+  latentswarm; deprecate tabula_drone; finish the win/advantage voice pass. Per user instruction,
   regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
   intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
   setting) was delivered to the user separately.
