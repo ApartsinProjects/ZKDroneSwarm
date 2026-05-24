@@ -1050,3 +1050,5 @@ cross-references (in-text Figure 1->2 and 2->3 to match captions). Verified: 0 b
 [1, Thm/Sec] pointers into the base once its final numbering is fixed; confirm the follow-up's headline
 numbers against the latest logs; optionally promote a few prose-only claims (ARD, churn) to figures; ensure
 ras_paper2.docx exists before the .docx link is used. Word .docx not rebuilt; base paper untouched.
+Hotfix: the "Preliminary / scope" .prelim box before Section 5 was missing its </div>, so its background
+spilled into Section 5; added the closing tag (rendered ras_paper2.html div balance now 14/14).

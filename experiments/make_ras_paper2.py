@@ -330,7 +330,7 @@ A("<div class='prelim'><b>Preliminary / scope.</b> Theorem F1 proves the fixed-o
   "self-tuning, scarcity-gated %s that we deploy is supported empirically (best-or-tied earned reward "
   "at every pool, with the categorical unseen metric recovered) but is not yet covered by a matching "
   "theorem. An adaptive-offset envelope that interpolates from greedy at no contention to the fixed "
-  "offset at saturation is the natural object to prove and is left to future work." % mp.disp("ContentionAdaCF"))
+  "offset at saturation is the natural object to prove and is left to future work.</div>" % mp.disp("ContentionAdaCF"))
 
 # ---------------- 5. rank self-determination ----------------
 A("<h2>5. Rank self-determination: removing the guessed rank</h2>")
