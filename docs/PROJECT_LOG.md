@@ -759,7 +759,15 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   DeprecationWarning in its __init__), superseded by latentswarm. Updated README: reproducibility now
   uses `python -m latentswarm.run` and `experiments/ranksweep.py`, describes the modular latentswarm
   package, notes tabula_drone deprecated, and refreshed the LatentSwarm description + validation numbers
-  (earned 0.42, unseen 0.58). OPEN: finish the win/advantage scientific-voice pass. Per user instruction,
+  (earned 0.42, unseen 0.58). OPEN: finish the win/advantage scientific-voice pass.
+- Cycle 82 (scientific-voice pass, part 2): applied the remaining grounded-voice fixes from the audit:
+  "win"/"wins" -> "separation"/"leads" (Section 5 and 6.1 headings, the batch crossover, the
+  discussion), "beats every external" -> "exceeds", "what the team and broadcast actually buy" ->
+  "contribute", dropped "crucially" and the "We answer yes" rhetorical answer, "the setting in one
+  line" -> "in brief", and grounded "the swarm gets smarter as it grows" -> "per-robot competence
+  rises with team size" (highlights, abstract, Section 6.3). Regenerated HTML (870 KB); docx still not
+  rebuilt (HTML phase). The latentswarm rebuild + paper integration the user requested is now complete
+  end to end (package + tests + Section 3/6.5/Appendix E + Figures 1, 5, 6 + README + deprecation). Per user instruction,
   regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
   intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
   setting) was delivered to the user separately.

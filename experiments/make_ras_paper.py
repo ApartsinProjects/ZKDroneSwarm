@@ -76,7 +76,7 @@ A("<div class='hl'><b>Highlights</b><ul>"
   "<li>Prior-free, communication-free MRTA under partial, privately-noisy observation.</li>"
   "<li>Decentralized online collaborative filtering acts on never-attempted tasks.</li>"
   "<li>Categorical separation over structure-free learning: proven and validated.</li>"
-  "<li>A positive scaling law: the swarm gets smarter as it grows.</li>"
+  "<li>A positive scaling law: per-robot competence on unseen tasks rises with team size.</li>"
   "<li>Robust to masking; recovers most of a centralized full-communication ceiling.</li></ul></div>")
 
 # ---------------- abstract ----------------
@@ -95,7 +95,7 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "the task count $n$), an anytime "
   "(cumulative-reward) separation under task scarcity, and a deterministic condition under which "
   "decentralized recovery from the masked broadcast is exact (validated empirically). Experiments quantify "
-  "the value of the broadcast, a positive scaling law (the swarm gets smarter as it grows), and dominance "
+  "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and dominance "
   "over the other low-rank methods under limited observability, recovering most of a centralized "
   "full-communication ceiling; the advantage also reproduces in a separate, independently-implemented "
   "simulator that adds capacity-1 contention.</div>")
@@ -105,10 +105,10 @@ A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized 
 
 # ---------------- 1. introduction ----------------
 A("<h2>1. Introduction</h2>")
-A("<div class='box'><b>The setting in one line.</b> No prior knowledge, no communication, and only a "
+A("<div class='box'><b>The setting in brief.</b> No prior knowledge, no communication, and only a "
   "partial, noisy, privately-sensed view of teammates' outcomes, with every decision made independently. "
-  "Can a swarm still act intelligently, in particular on tasks it has never attempted? We answer yes, and "
-  "show the advantage is categorical.</div>")
+  "Can a swarm still act on tasks it has never attempted? We show that it can, and that the separation "
+  "from structure-free learning is categorical.</div>")
 A("<p>Consider a team of autonomous robots, for example aerial vehicles, that must repeatedly decide which task "
   "to engage: which area to inspect, which target to service, which sensor reading to pursue. Whether a "
   "given robot does well on a given task depends on a match between the robot's <b>capabilities</b> "
@@ -123,7 +123,7 @@ A("<p>Most multi-robot task allocation (MRTA) methods obtain coordination from a
   "withheld for stealth; the task structure is unknown a priori; and there is no coordinator. What a "
   "robot can often still do is <b>passively sense</b> some of what its teammates are doing and how it "
   "turned out, imperfectly, at a distance, and differently from every other robot. This is the regime we "
-  "formalize and solve: a robot observes a <b>partial</b> (range-limited), <b>noisy</b>, and crucially "
+  "formalize and solve: a robot observes a <b>partial</b> (range-limited), <b>noisy</b>, and "
   "<b>privately-perceived</b> slice of a public outcome stream, never the same slice as a teammate.</p>")
 A("<p>The technical crux is <b>generalization to the unseen</b>. There are far more tasks than rounds "
   "($n \\gg T$), so each robot personally attempts only a vanishing fraction of tasks. A learner that "
@@ -325,7 +325,7 @@ A("<p><b>Computational cost.</b> SwarmCF is light enough to run on each robot. A
   "own factors and reads the passive stream.</p>")
 
 # ---------------- 5. theory ----------------
-A("<h2>5. Theory: why the advantage is categorical</h2>")
+A("<h2>5. Theory: the categorical separation from structure-free learning</h2>")
 A("<p>We formalize the separation between structure-free learning and SwarmCF, give the per-robot sample "
   "complexity, and state the conditions under which decentralized recovery from the masked broadcast "
   "succeeds. Proofs are in Appendix A; here we give the statements and the intuition. A learner is "
@@ -418,13 +418,13 @@ A("<p class='small'><b>Table 2.</b> Operating profiles of the methods compared; 
 A(mp.html_profiles(subset=["RewardCF", "MFSGD", "ESTR", "PTF", "BPMF", "SoftImpute",
                            "UCBIndep", "Tabular", "Random", "CentralClean-ceiling", "CTDE-ceiling", "Oracle"]))
 
-A("<h3>6.1 The categorical win and masking robustness</h3>")
+A("<h3>6.1 The categorical separation and masking robustness</h3>")
 A("<p>Figure 2 sweeps the broadcast rate $\\rho$ and reports unseen-pair skill. SwarmCF acts well on "
   "tasks it never engaged at every broadcast rate, while the structure-free learners sit at the "
   "floor ($\\approx 0$) by construction, the categorical separation of Proposition 1 and Theorem 1. Among low-rank "
   "methods, SwarmCF's online updates stay robust as the broadcast is masked, whereas batch spectral "
   "completion (which imputes unobserved entries) decays; the two cross over near $\\rho\\approx 0.6$ and "
-  "batch wins only at full broadcast, where its one-shot factorization on a near-complete matrix is the "
+  "batch leads only at full broadcast, where its one-shot factorization on a near-complete matrix is the "
   "best case for completion. The operationally relevant regime, partial observation, is exactly where "
   "the online estimator leads.</p>")
 A("<figure>%s<figcaption><b>Figure 2.</b> Unseen-pair skill versus broadcast rate $\\rho$. Structure-"
@@ -447,7 +447,7 @@ A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill ($\\rh
   "engaged.</figcaption></figure>" % img("F6_anytime.png", "anytime"))
 
 A("<h3>6.3 Why a swarm: the value of the broadcast and a positive scaling law</h3>")
-A("<p>Two experiments isolate what the team and the broadcast actually buy (Figure 4). "
+A("<p>Two experiments isolate what the team and the broadcast contribute (Figure 4). "
   "<i>(a) Value of the broadcast.</i> Sweeping from $\\rho=0$ (each robot isolated, sees only its own "
   "outcomes) to $\\rho=1$ (full passive sensing): a lone robot cannot recover the shared structure from "
   "its single matrix row, so isolated unseen skill is $\\approx 0$; the broadcast lifts SwarmCF by "
@@ -460,7 +460,7 @@ A("<p>Two experiments isolate what the team and the broadcast actually buy (Figu
   "sharpen its one-shot refit (mirroring the broadcast-rate crossover of Figure 2), so the positive "
   "scaling is a structural property of the shared low-rank reward, not specific to the online update. "
   "Structure-free learning is flat. A swarm "
-  "that gets smarter as it grows, the opposite of the usual interference penalty, is a direct consequence "
+  "whose per-robot competence rises with team size, the opposite of the usual interference penalty, is a direct consequence "
   "of sharing structure.</p>")
 A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen skill versus $\\rho$ "
   "(left edge $=$ isolated). (b) Positive scaling: unseen skill versus team size $m$ at fixed broadcast "
@@ -471,7 +471,7 @@ A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen ski
 A("<h3>6.4 An operational mission and a centralized ceiling</h3>")
 A("<p>Framed as a target-servicing / dispatch mission (still the analytical harness of Section 3, reframed), latent factors are robot capability traits and "
   "task requirement traits, each robot repeatedly services an offered target under range-limited, "
-  "distance-noisy sensing, SwarmCF on the same servicing-skill metric beats every external low-rank "
+  "distance-noisy sensing, SwarmCF on the same servicing-skill metric exceeds every external low-rank "
   "method and our batch variant SwarmCF-batch under limited observability ($\\rho=0.25$): "
   "$\\approx 0.35$ versus the best external alternative "
   "$\\approx 0.29$ with non-overlapping intervals, while structure-free learners sit at the random-"
@@ -555,7 +555,7 @@ A("<h2>7. Discussion, limitations, and future work</h2>")
 A("<p><b>What the results say.</b> Under the least information, no prior, no communication, partial and "
   "privately-noisy observation, a single simple estimator gives a swarm a capability that structure-free "
   "learning provably cannot have: acting well on the unseen, getting more competent as the team grows, "
-  "and recovering most of what a centralized, communicating system could achieve. The win is structural "
+  "and recovering most of what a centralized, communicating system could achieve. The separation is structural "
   "(it is a property of exploiting the shared low-rank trait structure) and operational (it shows up in "
   "reward earned while learning, and in a robotics-grounded mission).</p>")
 A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
