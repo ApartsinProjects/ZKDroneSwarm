@@ -478,7 +478,7 @@ if fc and fm:
                  "generalization for low-rank CF, is worthless to structure-free", fontsize=8)
     ax.grid(alpha=0.25); ax.legend(fontsize=7)
     ax = axes[1]                                                 # (b) unseen skill vs swarm size m
-    for nm in ["RewardCF", "UCBIndep", "Tabular"]:
+    for nm in ["RewardCF", "PTF", "UCBIndep", "Tabular"]:
         if nm not in rawm[str(mssz[0])]:
             continue
         mu = [np.mean(rawm[str(mm)][nm]["unseen"]) for mm in mssz]

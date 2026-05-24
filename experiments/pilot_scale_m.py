@@ -22,11 +22,12 @@ RHO = 0.5                               # partial broadcast (so collaboration ma
 SEEDS = list(range(8))
 RNG = np.random.RandomState(0)
 REG = {
-    "RewardCF": pc.REGISTRY["RewardCF"],          # ours
+    "RewardCF": pc.REGISTRY["RewardCF"],          # ours (online, SwarmCF)
+    "PTF":      pc.REGISTRY["PTF"],               # ours (batch variant, SwarmCF-batch)
     "UCBIndep": pc.REGISTRY["UCBIndep"],          # structure-free
     "Tabular":  pc.REGISTRY["Tabular"],           # structure-free
 }
-ORDER = ["RewardCF", "UCBIndep", "Tabular"]
+ORDER = ["RewardCF", "PTF", "UCBIndep", "Tabular"]
 
 
 def _job(args):

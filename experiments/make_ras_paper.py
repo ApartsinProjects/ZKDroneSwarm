@@ -420,13 +420,17 @@ A("<p>Two experiments isolate what the team and the broadcast actually buy (Figu
   "and so cannot use it (Theorem 4). <i>(b) Positive scaling.</i> Holding $n$, horizon and $\\rho$ "
   "fixed and growing the team from $m=5$ to $80$, SwarmCF's unseen skill rises monotonically "
   "($0.08\\to 0.43$): more robots feed more observations into the one shared structure, so each robot's "
-  "competence on tasks it never engaged grows with the team. Structure-free learning is flat. A swarm "
+  "competence on tasks it never engaged grows with the team. The batch variant SwarmCF-batch rises even "
+  "more steeply (Figure 4b), overtaking the online variant for large teams as the pooled observations "
+  "sharpen its one-shot refit (mirroring the broadcast-rate crossover of Figure 2), so the positive "
+  "scaling is a structural property of the shared low-rank reward, not specific to the online update. "
+  "Structure-free learning is flat. A swarm "
   "that gets smarter as it grows, the opposite of the usual interference penalty, is a direct consequence "
   "of sharing structure.</p>")
 A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen skill versus $\\rho$ "
-  "(left edge $=$ isolated). (b) Positive scaling: unseen skill versus team size $m$. Both rise for "
-  "low-rank CF and are flat for structure-free. (SwarmCF-batch is a batch-refit variant of our method, "
-  "shown for comparison.)</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
+  "(left edge $=$ isolated). (b) Positive scaling: unseen skill versus team size $m$. In both panels our "
+  "online SwarmCF and its batch variant SwarmCF-batch rise (the gain is structural), while structure-free "
+  "learners stay flat.</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
 
 A("<h3>6.4 An operational mission and a centralized ceiling</h3>")
 A("<p>Framed as a target-servicing / dispatch mission, latent factors are robot capability traits and "

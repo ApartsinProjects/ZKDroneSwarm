@@ -588,3 +588,12 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   "New-task onboarding (fold-in)", added the honest new-robot caveat, and dropped "and robots"
   from the abstract/contribution fold-in claim (team-growth benefit stays under Theorem 4 /
   positive scaling). Rebuilt docs/ras_paper.docx from a link-stripped copy. Committed + pushed.
+- Cycle 70 (Figure 4b consistency: add SwarmCF-batch to the scaling panel): panel (a) included
+  SwarmCF-batch but (b) did not. Re-ran pilot_scale_m.py with PTF added (4 methods x 5 swarm
+  sizes x 8 seeds, rho=0.5; new data scale_m_20260524_053659.json). Result: SwarmCF-batch also
+  scales positively and MORE steeply (unseen 0.098 at m=5 -> 0.576 at m=80), overtaking online
+  SwarmCF for large teams (m>=40) as pooled observations sharpen its one-shot refit -- the same
+  online/batch crossover seen along rho in Figure 2, now along m. Added PTF to the F18 panel-(b)
+  loop, updated the Figure 4 caption and a Section 6.3 sentence. Regenerated figures + paper +
+  Word docx. Honest reading: the flagship remains the online variant for its robustness under
+  masking (the operational regime); batch wins with dense data (high rho / large m). Pushed.
