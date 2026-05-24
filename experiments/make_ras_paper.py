@@ -412,8 +412,8 @@ A("<h2>6. Experiments</h2>")
 A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$, guessed rank "
   "$\\hat d$ drawn at random in $[d,2d]$ per run (no method is given the true rank; robust to the guess, Figure 7), horizon "
   "$T=50$, partial broadcast $\\rho$ swept, private noise on own ($\\sigma_{\\mathrm{own}}=0.1$) and "
-  "observed ($\\sigma_{\\mathrm{obs}}=0.3$) outcomes (Appendix D), 16 random seeds (8 for the scaling "
-  "sweeps of Figure 4), bootstrap 95% confidence intervals. A robot may in principle select any of "
+  "observed ($\\sigma_{\\mathrm{obs}}=0.3$) outcomes (Appendix D), 16 random seeds, bootstrap 95% "
+  "confidence intervals. A robot may in principle select any of "
   "the $n$ tasks; the body sweeps restrict each offer to a uniform random size-$c$ subset ($c=20$) to "
   "control scarcity and to supply the per-round engagement diversity the online estimator relies on. "
   "This is a moderate scarcity (each task is offered about $cT/n\\approx 4$ times); Theorem 1's strict "
@@ -481,7 +481,7 @@ A("<p>Two experiments isolate what the team and the broadcast contribute (Figure
   "$+0.39$ unseen skill but a structure-free learner by $\\approx 0$, which has no model linking tasks "
   "and so cannot use it (Theorem 3). <i>(b) Positive scaling.</i> Holding $n$, horizon and $\\rho$ "
   "fixed and growing the team from $m=5$ to $80$, SwarmCF's unseen skill rises monotonically "
-  "($0.08\\to 0.43$): more robots feed more observations into the one shared structure, so each robot's "
+  "($0.13\\to 0.43$): more robots feed more observations into the one shared structure, so each robot's "
   "competence on tasks it never engaged grows with the team. The batch variant SwarmCF-batch rises even "
   "more steeply (Figure 4b), overtaking the online variant for large teams as the pooled observations "
   "sharpen its one-shot refit (mirroring the broadcast-rate crossover of Figure 2), so the positive "
@@ -493,7 +493,7 @@ A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen ski
   "(left edge $=$ isolated). (b) Positive scaling: unseen skill versus team size $m$ at fixed broadcast "
   "rate $\\rho=0.5$ (and fixed $n$, horizon $T$). In both panels our online SwarmCF and its batch variant "
   "SwarmCF-batch rise (the gain is structural), while structure-free learners stay "
-  "flat. Means with bootstrap 95%% CIs over 8 seeds.</figcaption></figure>"
+  "flat. Means with bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
   % img("F18_collab_scaling.png", "why a swarm"))
 
 A("<h3>6.4 The cost of communication-free operation: a centralized ceiling</h3>")
@@ -589,8 +589,8 @@ A("<p>The separation is structural rather than tuned: it follows from the three 
 A("<p><b>Robustness to the guessed rank.</b> Because the true rank is unknown, the guessed rank "
   "$\\hat d$ is drawn at random per run; we sweep it from $d/2$ (under-ranking) to $3d$ (over-ranking) "
   "at true rank $d=5$. SwarmCF degrades <b>gracefully</b> when the model is under-specified "
-  "($\\hat d\\lt d$: unseen-pair skill $0.43$ at $\\hat d=2$, rising to $0.52$ at $\\hat d=4$) and is "
-  "<b>flat</b> once the rank is sufficient ($\\hat d\\ge d$: $0.55$ to $0.65$ up to $\\hat d=3d$), because "
+  "($\\hat d\\lt d$: unseen-pair skill $0.47$ at $\\hat d=2$, rising to $0.52$ at $\\hat d=4$) and is "
+  "<b>flat</b> once the rank is sufficient ($\\hat d\\ge d$: $0.58$ to $0.64$ up to $\\hat d=3d$), because "
   "surplus directions are shrunk by the ridge; MF-SGD stays near the floor throughout. Over-guessing is "
   "therefore safe and the exact rank is not needed (Figure 7). The guess can even be removed entirely: in "
   "a follow-up, automatic relevance determination prunes the latent directions the masked design does not "
@@ -599,7 +599,7 @@ A("<p><b>Robustness to the guessed rank.</b> Because the true rank is unknown, t
 A("<figure>%s<figcaption><b>Figure 7.</b> Robustness to the guessed rank $\\hat d$ (true rank $d=5$). "
   "Under-ranking ($\\hat d\\lt d$) is mis-specified and degrades smoothly; over-ranking "
   "($\\hat d\\gt d$, up to $3d$) is regularized away and stays flat. Lines are means with bootstrap 95%% CIs "
-  "over 8 seeds.</figcaption></figure>" % img("F21_ranksweep.png", "rank-guess robustness"))
+  "over 16 seeds.</figcaption></figure>" % img("F21_ranksweep.png", "rank-guess robustness"))
 
 A("<h3>6.7 A robotics-grounded instance</h3>")
 A("<p>The experiments above use abstract latent traits and a Bernoulli visibility mask. To check the "
@@ -874,8 +874,8 @@ A("<p class='small'>On the swarm's actual coverage patterns ($m=30,n=240,d=5,\\r
 A("<h2>Appendix D. Reproducibility</h2>")
 A("<p class='small'>All experiments use a block-model world with the signed inner-product reward of "
   "Section 3 and bootstrap 95% "
-  "confidence intervals; the broadcast-rate, anytime, bake-off (Table 3), and contention (Section 6.5) "
-  "sweeps use 16 random seeds and the scaling sweeps use 8; "
+  "confidence intervals; the broadcast-rate, anytime, bake-off (Table 3), contention (Section 6.5), and "
+  "scaling sweeps all use 16 random seeds; "
   "each reported number is averaged over the per-seed "
   "runs. The code and per-seed data needed to regenerate every figure and table are openly available "
   "(see Data availability).</p>")

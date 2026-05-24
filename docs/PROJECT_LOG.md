@@ -1198,3 +1198,33 @@ no exact collision flag, so contention_ada_cf / unified_cf use a communication-f
 there (the dedicated contention sweep supplies the exact won/lost via a set_lost hook); and choice-channel
 negatives use the observer's own offer as a proxy (the chosen positive is always exact, so noise-immunity is
 unaffected). The base paper and follow-up generators were untouched.
+
+## Cycle 105 (referee-response pass: fresh-review fixes, precise theorems, 16-seed Figs 4 and 7)
+A round of fresh top-tier-RAS-reviewer fixes to the base paper, landed in focused commits.
+(1) Prose polish: stated the Section-5 Proposition/Lemma/Theorem convention; rewrote the Sec 6.5/6.7 recovery
+"fraction of the ceiling" as percentages (42%/20%/-17%; 32%) to disambiguate from absolute skills;
+parenthesized the dense regime-constraint lists (intro/Sec 7/Sec 8); Fig 11a cross-reference.
+(2) C2: every headline use of "recovers ~80% of a centralized ceiling" now carries its metric ("earned
+(anytime) skill"), across Highlights/Abstract/Contributions/Sec 7/Sec 8, so it cannot be read as the lower
+unseen-pair recovery; abstract trimmed to stay within 250 words (248).
+(3) Line-level: Sec 6.4 now explains why the noisy centralized ceiling matches the clean one (Hungarian
+assignment depends only on reward ordering, which zero-mean noise rarely flips); Theorem 2 proof notes the
+1/n per-round coverage rate holds for any menu size c (offered c/n, selected ~1/c). Verified Figs 6 and 11
+"Means over 16 seeds" captions are accurate (those figures plot point estimates, not CI bands), so no change.
+(4) C1: made Theorems 1 and 3 precise. Theorem 1 (a) explicit union-bound ceiling, every structure-free
+learner has expected anytime skill <= c(T-1)/(2n) <= cT/(2n) (explicit constant 1/2), (b) recovery-conditional
+SwarmCF Omega(1) floor, with the separation regime rho*m = omega(cd log n); Theorem 3 restated as a precise
+corollary of Theorem 2 (rho=0 single-row non-identifiability; explicit O((nd/rho m) log n) recovery decreasing
+as 1/m). Appendix A: full union-bound proof for Thm 1, Thm 3 as a corollary; the "loose constant / order
+argument" hedges removed, both keep the Theorem label honestly.
+(5) 16-seed Figures 4 and 7 (resolves the referee's Fig-4/7-vs-rest seed inconsistency). Re-ran collab +
+scale_m + ranksweep at 16 seeds. ranksweep.py had crashed at savefig because the chain ran from experiments/
+while it uses relative docs/figures/ paths; re-ran it from the repo root. Rebuilt F18 in isolation
+(replicating the make_figures.py builder, to avoid rebuilding other figures from newer exploration JSONs);
+F21 rebuilt by ranksweep itself. Numbers from the fresh JSONs: positive-scaling start m=5 0.08 -> 0.13 (m=80
+0.43 unchanged), collaboration value +0.39 unchanged (0.389), rank-sweep under-ranking dhat=2 0.43 -> 0.47,
+sufficient-rank band 0.55-0.65 -> 0.58-0.64. Seed text unified to 16 in the Setup, Fig 4 and Fig 7 captions,
+Appendix D, and COLLAB.md/SCALE_M.md; pilot_collab.py/pilot_scale_m.py markdown made seed-count-dynamic.
+Visually verified both regenerated PNGs. HTML 90 KB. Pending: final .docx rebuild (the html2doc agent
+validated the pipeline and wrote DOCX_CONVERSION_NOTES.md) and the scouted M1(c) deployment-citation
+strengthening.

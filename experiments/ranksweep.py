@@ -20,7 +20,7 @@ from latentswarm.run import run
 
 D = 5
 DHATS = [2, 3, 4, 5, 6, 8, 10, 12, 15]      # d/2 (=2.5 -> 2) ... 3d (=15)
-SEEDS = list(range(8))
+SEEDS = list(range(int(os.environ.get("ZK_SEEDS", "16"))))   # 8->16 for Fig 7 seed consistency (referee)
 
 data = []
 for dh in DHATS:

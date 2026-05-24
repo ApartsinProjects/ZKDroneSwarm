@@ -3,7 +3,7 @@
 gain. CF's value of collaboration is LARGE (a single agent cannot recover the shared low-rank structure
 from one matrix row, so isolated unseen skill ~ 0; the broadcast unlocks generalization, T11+Thm1),
 while a structure-free learner gains ~NOTHING from the broadcast (it is useless to a tabular learner,
-Thm 1). This is the most direct 'why a swarm / why share?' metric. Standard reward + skill, 8 seeds.
+Thm 1). This is the most direct 'why a swarm / why share?' metric. Standard reward + skill, 16 seeds.
 Writes docs/COLLAB.md."""
 import os
 import sys
@@ -19,7 +19,7 @@ from _results_io import save_results
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RHOS = [0.0, 0.1, 0.25, 0.5, 1.0]      # 0.0 = isolated (self only); up to full broadcast
-SEEDS = list(range(8))
+SEEDS = list(range(int(os.environ.get("ZK_SEEDS", "16"))))   # 8->16 for Fig 4 seed consistency (referee)
 RNG = np.random.RandomState(0)
 REG = {
     "RewardCF": pc.REGISTRY["RewardCF"],          # ours
@@ -70,7 +70,7 @@ def main():
 
     L = ["# Collaboration value: what is the broadcast worth? (rho=0 isolated -> rho=1 full)\n",
          "Same masked harness, rho=0 = each drone sees ONLY its own outcomes (isolated), rho=1 = full "
-         "passive broadcast. Unseen-pair skill, 8 seeds, bootstrap 95%% CI. m=%d, n=%d.\n" % (pc.M, pc.N),
+         "passive broadcast. Unseen-pair skill, %d seeds, bootstrap 95%% CI. m=%d, n=%d.\n" % (len(SEEDS), pc.M, pc.N),
          "| method | " + " | ".join("rho=%.2f" % r for r in RHOS) + " | COLLAB VALUE (rho1 - rho0) |",
          "|" + "---|" * (len(RHOS) + 2)]
     for nm in ORDER:

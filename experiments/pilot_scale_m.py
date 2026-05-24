@@ -3,7 +3,7 @@ drones m at fixed n, fixed per-drone horizon T and broadcast rate rho. For CF, m
 total broadcast observations (~ m*T*rho) feeding the SHARED low-rank structure, so each drone's unseen
 skill RISES with m (the collective-recovery speedup, T11) -- the swarm gets smarter as it gets bigger.
 A structure-free learner learns only its own row, so m does not help it: FLAT in m (Thm 1). Standard
-masked harness, unseen + overall skill, 8 seeds. Writes docs/SCALE_M.md."""
+masked harness, unseen + overall skill, 16 seeds. Writes docs/SCALE_M.md."""
 import os
 import sys
 import numpy as np
@@ -19,7 +19,7 @@ from _results_io import save_results
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MS = [5, 10, 20, 40, 80]                # swarm sizes (K1=min(K,m) so latent rank stays = d for all)
 RHO = 0.5                               # partial broadcast (so collaboration matters)
-SEEDS = list(range(8))
+SEEDS = list(range(int(os.environ.get("ZK_SEEDS", "16"))))   # 8->16 for Fig 4 seed consistency (referee)
 RNG = np.random.RandomState(0)
 REG = {
     "RewardCF": pc.REGISTRY["RewardCF"],          # ours (online, SwarmCF)
@@ -69,8 +69,8 @@ def main():
         "raw": raw}, results_dir=os.path.join(ROOT, "results", "pilots"))
 
     L = ["# Positive scaling with swarm size: does the swarm get smarter as it grows? (rho=%.2f)\n" % RHO,
-         "Unseen-pair skill vs number of drones m (fixed n=%d, T=%d, partial broadcast). 8 seeds, "
-         "bootstrap 95%% CI.\n" % (pc.N, pc.T),
+         "Unseen-pair skill vs number of drones m (fixed n=%d, T=%d, partial broadcast). %d seeds, "
+         "bootstrap 95%% CI.\n" % (pc.N, pc.T, len(SEEDS)),
          "| method | " + " | ".join("m=%d" % m for m in MS) + " |", "|" + "---|" * (len(MS) + 1)]
     for nm in ORDER:
         cells = [cell(raw[str(m)][nm]["unseen"]) for m in MS]
