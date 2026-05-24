@@ -134,8 +134,8 @@ A("<p>The technical crux is <b>generalization to the unseen</b>. There are far m
   "robot's reward on tasks it has never touched. We show a single, simple estimator turns this "
   "opportunity into a categorical capability.</p>")
 A("<p><b>The gap.</b> To our knowledge no prior method targets this cell. Every established paradigm "
-  "relaxes at least one of its defining constraints, no prior knowledge, no communication, decentralized "
-  "decisions, and partial and privately-noisy observation, by assuming communication, known "
+  "relaxes at least one of its defining constraints (no prior knowledge, no communication, decentralized "
+  "decisions, and partial and privately-noisy observation) by assuming communication, known "
   "utilities/traits, a coordinator or centralized training, or clean/shared observation (Section 2, "
   "Table 1). The regime is not exotic: it is the default when communication is jammed, bandwidth-limited, "
   "or withheld for stealth, and when task structure must be discovered in the field. We close it.</p>")
@@ -339,7 +339,9 @@ A("<p><b>Computational cost.</b> SwarmCF is light enough to run on each robot. A
 A("<h2>5. Theory: the categorical separation from structure-free learning</h2>")
 A("<p>We formalize the separation between structure-free learning and SwarmCF, give the per-robot sample "
   "complexity, and state the conditions under which decentralized recovery from the masked broadcast "
-  "succeeds. Proofs are in Appendix A; here we give the statements and the intuition. A learner is "
+  "succeeds. Proofs are in Appendix A; here we give the statements and the intuition. We use the term "
+  "<i>Proposition</i> for a self-contained structural fact, <i>Lemma</i> for an intermediate result that "
+  "a theorem builds on, and <i>Theorem</i> for a main separation or recovery guarantee. A learner is "
   "<b>structure-free</b> if its estimate of $R_{ij}$ depends only on robot $i$'s own past engagements of "
   "task $j$ and equals a fixed prior on any task it never engaged (the per-arm class: Independent-UCB, "
   "tabular).</p>")
@@ -413,7 +415,7 @@ A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$,
   "the $n$ tasks; the body sweeps restrict each offer to a uniform random size-$c$ subset ($c=20$) to "
   "control scarcity and to supply the per-round engagement diversity the online estimator relies on. "
   "This is a moderate scarcity (each task is offered about $cT/n\\approx 4$ times); Theorem 1's strict "
-  "scarce-offer regime ($cT=o(n)$) is shown separately in Appendix F (Figure 11). "
+  "scarce-offer regime ($cT=o(n)$) is shown separately in Appendix F (Figure 11a). "
   "Appendix F reports the unrestricted all-tasks menu ($c=n$) as a robustness check: the categorical "
   "low-rank separation is unchanged, while the online method's lead over batch completion narrows. "
   "Because no existing benchmark instantiates the ZK-MRTA regime (a hidden low-rank robot-task reward seen "
@@ -532,11 +534,11 @@ A("<p>The experiments so far impose no contention: two robots may service the sa
   "persistent private mask, the same task scarcity and randomly guessed rank, with SwarmCF run as one "
   "policy under no contention handling.</p>")
 A("<p><b>(a) The categorical separation survives contention.</b> SwarmCF earns the most of any learner "
-  "($0.42$ of the centralized capacity-1 ceiling, bootstrap 95% CI $[0.40,0.44]$ over 16 seeds; this "
+  "(42% of the centralized capacity-1 ceiling, bootstrap 95% CI [40%, 44%] over 16 seeds; this "
   "capacity-1 ceiling is stricter than the full-communication ceiling of Section 6.4, so the drop from "
   "about 80% there to 42% here is the coordination gap that contention introduces), well "
-  "above the MF-SGD baseline ($0.20$) and the structure-free independent-UCB learner, which sits below the "
-  "random floor ($-0.17$) because under contention its persistent exploration collides without "
+  "above the MF-SGD baseline (20%) and the structure-free independent-UCB learner, which sits below the "
+  "random floor (-17%) because under contention its persistent exploration collides without "
   "coordinating. On the categorical generalization metric, SwarmCF is the <b>only</b> method whose "
   "<b>unseen-pair</b> skill is significantly above the floor ($0.58$, CI $[0.52,0.64]$; MF-SGD, UCB, and "
   "random all have intervals straddling zero): the Proposition 1 separation holds under contention "
@@ -607,7 +609,7 @@ A("<p>The experiments above use abstract latent traits and a Bernoulli visibilit
   "($\\sigma^2\\propto 1+(r/R_s)^2$, the free-space sensing law of coverage control [40]). Positions are "
   "thus load-bearing rather than inert, and visibility is persistent because the patrol geometry is "
   "quasi-static. Under capacity-1 contention and a randomly guessed rank, the categorical separation "
-  "holds: SwarmCF reaches unseen-pair skill $0.19$ (95% CI $[0.15,0.24]$) and earns $0.32$ of the "
+  "holds: SwarmCF reaches unseen-pair skill $0.19$ (95% CI $[0.15,0.24]$) and earns 32% of the "
   "centralized ceiling, while structure-free Independent-UCB and MF-SGD sit at the floor (intervals "
   "straddling zero) and Independent-UCB earns below random by colliding (Figure 8). The absolute skill is "
   "lower than in the body because geometry-limited line-of-sight visibility is a harsher channel, so these "
@@ -632,8 +634,8 @@ A("<p>The advantage is not universal, and we state its boundary precisely. It ho
 
 # ---------------- 7. discussion ----------------
 A("<h2>7. Discussion, limitations, and future work</h2>")
-A("<p><b>What the results say.</b> Under the least information, no prior, no communication, partial and "
-  "privately-noisy observation, a single simple estimator gives a swarm a capability that structure-free "
+A("<p><b>What the results say.</b> Under the least information (no prior, no communication, partial and "
+  "privately-noisy observation), a single simple estimator gives a swarm a capability that structure-free "
   "learning provably cannot have: acting well on the unseen, getting more competent as the team grows, "
   "and recovering most of what a centralized, communicating system could achieve. The separation is structural "
   "(it is a property of exploiting the shared low-rank trait structure) and operational (it shows up in "
@@ -664,8 +666,8 @@ A("<p><b>Future work (a planned follow-up).</b> The present paper deliberately k
 
 # ---------------- 8. conclusion ----------------
 A("<h2>8. Conclusion</h2>")
-A("<p>We formalized multi-robot task allocation in its most restrictive but practically common form, no "
-  "prior knowledge, no communication, partial and privately-noisy observation, and showed that "
+A("<p>We formalized multi-robot task allocation in its most restrictive but practically common form (no "
+  "prior knowledge, no communication, partial and privately-noisy observation), and showed that "
   "decentralized online collaborative filtering over the passive broadcast lets each robot act well on "
   "tasks it has never attempted. The advantage over structure-free learning is categorical and proven; "
   "the broadcast is what makes it possible and the team is what makes it fast; and the method recovers "
