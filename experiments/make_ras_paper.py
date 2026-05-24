@@ -216,7 +216,7 @@ A("<p><b>Reward.</b> A team of $m$ robots faces $n$ tasks. Robot $i$ has a hidde
   "even $d$ (it uses a guessed rank $\\hat d$).</p>")
 A("<p><b>Interaction.</b> Each round $t=1,\\dots,T$ every robot $i$ is offered a uniform random size-$c$ "
   "subset $S_{it}\\subseteq[n]$ of tasks, selects one $a_{it}\\in S_{it}$, engages it, and earns "
-  "$R_{i,a_{it}}$. The operating regime is <b>task-scarce</b>: $n \\gg cT$, so each robot personally "
+  "$R_{i,a_{it}}$. The operating regime is <b>task-scarce</b>: $n \\gg T$, so each robot personally "
   "engages only $O(T)$ of the $n$ tasks.</p>")
 A("<div class='box'><b>The observation channel (the heart of the setting).</b> There is no communication. "
   "Each robot instead <b>passively senses</b> a public stream of engagement outcomes, but only partially "
@@ -313,8 +313,9 @@ A("<div class='thm'><b>Theorem 1 (CF row completion, $\\Theta(d)$ versus $\\Thet
   "complexity is therefore $\\Theta(d)$, versus $\\Theta(n)$ for any structure-free learner.</div>")
 A("<div class='thm'><b>Theorem 2 (anytime separation under task scarcity).</b> With $n$ tasks, offers of "
   "size $c$ and horizon $T$, any structure-free learner has anytime (cumulative-reward) skill at most "
-  "$g(cT/n)\\to 0$ when $cT=o(n)$, even with a full broadcast; SwarmCF reaches near-oracle in $O(d)$ "
-  "rounds, so its anytime skill is $1-O(d/T)$.</div>")
+  "$g(cT/n)\\to 0$ when $cT=o(n)$, even with a full broadcast; once the shared basis is available "
+  "(Theorem 1, recovered per Theorem 3) SwarmCF reaches near-oracle in $O(d)$ further rounds and earns "
+  "$\\Theta(1)$ anytime skill, a categorical gap.</div>")
 A("<p>Proposition 1 and Theorems 1-2 make the separation categorical (zero versus nonzero) and "
   "operational (it shows up in reward earned while learning), but Theorem 1 assumes $U$ is known. The "
   "remaining question, the crux "
@@ -389,12 +390,16 @@ A("<figure>%s<figcaption><b>Figure 2.</b> Unseen-pair skill versus broadcast rat
 A("<h3>6.2 The operational (anytime) separation</h3>")
 A("<p>Final-policy quality can flatter a method that explores cheaply. The operationally honest measure "
   "is reward <i>earned while learning</i>. Figure 3 shows cumulative-reward skill over the mission: "
-  "SwarmCF earns from the first rounds, while per-arm bandits remain near random because, with "
-  "$n\\gg T$, they never stop exploring untried tasks (Theorem 2). Phase-structured low-rank methods pay "
-  "an explore-then-commit penalty early.</p>")
-A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill. SwarmCF earns from round one; "
-  "explore-then-commit pays a probe phase; structure-free learners are stuck near "
-  "random.</figcaption></figure>" % img("F6_anytime.png", "anytime"))
+  "SwarmCF earns from the first rounds. Per-arm UCB stays near the random floor: with $n\\gg T$ arms its "
+  "optimism keeps it exploring untried tasks. Phase-structured low-rank methods pay an explore-then-commit "
+  "penalty early. An $\\varepsilon$-greedy tabular learner does earn some reward by re-exploiting tasks it "
+  "has already engaged (each task recurs in offers about $cT/n\\approx 4$ times here), but it stays well "
+  "below SwarmCF and at the floor on unseen pairs (Table 3). The clean anytime collapse of Theorem 2 holds "
+  "in the strict regime $cT=o(n)$; SwarmCF's early-earning advantage is broader, as seen here.</p>")
+A("<figure>%s<figcaption><b>Figure 3.</b> Anytime cumulative-reward skill ($\\rho=0.25$). SwarmCF earns "
+  "from round one; explore-then-commit pays a probe phase; per-arm UCB stays near the random floor, while "
+  "$\\varepsilon$-greedy tabular earns only by re-exploiting tasks it has already "
+  "engaged.</figcaption></figure>" % img("F6_anytime.png", "anytime"))
 
 A("<h3>6.3 Why a swarm: the value of the broadcast and a positive scaling law</h3>")
 A("<p>Two experiments isolate what the team and the broadcast actually buy (Figure 4). "
@@ -463,7 +468,7 @@ A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b
   "universal, and we state its boundary precisely. It holds when three conditions co-occur: "
   "<b>(i) low-rank but personalized</b> structure ($1&lt;d\\ll\\min(m,n)$): at $d=1$ the reward reduces to a "
   "shared popularity order that a bias/pooling baseline already captures, so there is nothing personal to "
-  "transfer; <b>(ii) task scarcity</b> ($n\\gg cT$): if instead sample-rich, a tabular learner eventually "
+  "transfer; <b>(ii) task scarcity</b> ($n\\gg T$): if instead sample-rich, a tabular learner eventually "
   "measures every entry and the unseen advantage vanishes; <b>(iii) a shared channel</b> ($\\rho>0$): "
   "with no broadcast each robot has only its own row and collaborative filtering degenerates to tabular. "
   "These are exactly the conditions of the regime we target, and they delimit honestly where "
@@ -484,7 +489,7 @@ A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and sta
   "recovery rate of Theorem 3 is established for non-adaptive "
   "exploration, the finite-time rate under a strongly exploiting policy (which can starve low-reward "
   "tasks of coverage) remains open. We report the regime boundaries honestly: the advantage requires "
-  "structure beyond mere popularity ($d>1$), task scarcity ($n\\gg cT$), and a shared channel "
+  "structure beyond mere popularity ($d>1$), task scarcity ($n\\gg T$), and a shared channel "
   "($\\rho>0$); outside these, structure-free methods are competitive.</p>")
 A("<p><b>Future work (a planned follow-up).</b> The present paper deliberately keeps to a single core "
   "estimator. In a follow-up we plan to study the refinements that this foundation enables, each of "

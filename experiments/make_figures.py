@@ -141,7 +141,7 @@ if f:
     plt.ylabel("cumulative-normalized skill (reward earned)")
     plt.title("Anytime reward (rho=0.25): online CF earns from round 1;\n"
               "explore-then-commit pays a probe phase; Independent-UCB stuck (n>>T)", fontsize=10)
-    plt.legend(fontsize=7, loc="lower right"); plt.tight_layout()
+    plt.legend(fontsize=7, loc="upper left"); plt.tight_layout()
     save_fig("F6_anytime")
     print("F6_anytime  <-", os.path.basename(f))
 
