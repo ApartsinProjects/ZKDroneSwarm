@@ -312,33 +312,44 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.92]); save_fig("F12_morebaselines")
     print("F12_morebaselines  <-", os.path.basename(f))
 
-# ---- F13: LatentSwarm (tabula_drone env package) simulator validation ----
+# ---- F13: LatentSwarm faithful ZK-MRTA validation (independent reimplementation + contention) ----
 f = "results/pilots/tabula_bench_real.json"
 if os.path.exists(f):
-    d = json.load(open(f)); sk = d["skill"]; traj = d["traj"]
-    order = ["random", "mf", "ucb_indep", "weighted_als", "oracle"]
-    lab = {"random": "Random", "mf": "MF (env SGD)", "ucb_indep": "Independent-UCB",
+    d = json.load(open(f)); esk = d["skill"]; usk = d.get("uskill", {})
+    order = ["random", "ucb_indep", "mf", "weighted_als", "oracle"]
+    lab = {"random": "Random", "ucb_indep": "Independent-UCB", "mf": "MF-SGD",
            "weighted_als": "SwarmCF (ours)", "oracle": "Oracle"}
-    col = {"random": "gray", "mf": "C3", "ucb_indep": "C4", "weighted_als": "C2", "oracle": "k"}
+    col = {"random": "gray", "ucb_indep": "C4", "mf": "C3", "weighted_als": "C2", "oracle": "k"}
+
+    def _boot(xs, B=5000):
+        a = np.asarray([x for x in xs if x is not None], float)
+        if a.size == 0:
+            return 0.0, 0.0, 0.0
+        if a.size == 1:
+            return float(a[0]), 0.0, 0.0
+        r = np.random.RandomState(0); bs = a[r.randint(0, a.size, (B, a.size))].mean(1)
+        m = float(a.mean())
+        return m, m - float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5)) - m
+
     fig, ax = plt.subplots(1, 2, figsize=(11, 4))
-    present = [p for p in order if p in sk]
-    mu = [np.mean(sk[p]) for p in present]; sd = [np.std(sk[p]) for p in present]
-    ax[0].bar(range(len(present)), mu, yerr=sd, capsize=4,
-              color=[col[p] for p in present])
-    ax[0].set_xticks(range(len(present))); ax[0].set_xticklabels([lab[p] for p in present], rotation=20, ha="right", fontsize=8)
-    ax[0].set_ylabel("skill = (policy - random)/(oracle - random)")
-    ax[0].set_title("Converged skill", fontsize=10); ax[0].grid(alpha=0.25, axis="y")
-    for p in ["random", "mf", "ucb_indep", "weighted_als", "oracle"]:
-        if p in traj:
-            arr = np.array(traj[p]); muc = arr.mean(0)
-            ax[1].plot(range(1, len(muc) + 1), muc, label=lab[p], color=col[p],
-                       lw=2 if p == "weighted_als" else 1.3,
-                       ls="-" if p in ("weighted_als", "random", "oracle") else "--")
-    ax[1].set_xlabel("episode"); ax[1].set_ylabel("reward per step")
-    ax[1].set_title("Learning curves", fontsize=10); ax[1].grid(alpha=0.25); ax[1].legend(fontsize=7)
-    fig.suptitle("Validation in LatentSwarm, our higher-fidelity simulator (spatial, HP-depletion,\n"
-                 "episodic): SwarmCF beats the simulator's SGD-MF and Independent-UCB, approaching the oracle", fontsize=9)
-    fig.tight_layout(rect=[0, 0, 1, 0.93]); save_fig("F13_realsim")
+    panels = [(esk, "Earned (anytime) skill", "skill = (policy - random)/(oracle - random)"),
+              (usk, "Unseen-pair skill (generalization)", "unseen-pair skill (oracle=1, random=0)")]
+    for axi, (data, ttl, ylab) in enumerate(panels):
+        present = [p for p in order if p in data and data[p]]
+        mu = []; lo = []; hi = []
+        for p in present:
+            m, l, h = _boot(data[p]); mu.append(m); lo.append(l); hi.append(h)
+        ax[axi].bar(range(len(present)), mu, yerr=[lo, hi], capsize=4,
+                    color=[col[p] for p in present])
+        ax[axi].set_xticks(range(len(present)))
+        ax[axi].set_xticklabels([lab[p] for p in present], rotation=20, ha="right", fontsize=8)
+        ax[axi].axhline(0, color="k", lw=0.6)
+        ax[axi].set_ylabel(ylab, fontsize=8.5)
+        ax[axi].set_title(ttl, fontsize=10); ax[axi].grid(alpha=0.25, axis="y")
+    fig.suptitle("LatentSwarm: a faithful, independent ZK-MRTA instantiation (signed low-rank reward, "
+                 "persistent\npartial + private broadcast, task scarcity, capacity-1 contention). SwarmCF "
+                 "leads; structure-free at the floor", fontsize=8.5)
+    fig.tight_layout(rect=[0, 0, 1, 0.91]); save_fig("F13_realsim")
     print("F13_realsim  <- tabula_bench_real.json")
 
 # ---- F14: assumption-stress (approx low-rank + nonlinear link) ----

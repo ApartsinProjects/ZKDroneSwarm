@@ -701,3 +701,33 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
   intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
   setting) was delivered to the user separately.
+- Cycle 76 (LatentSwarm rewritten as a faithful ZK-MRTA instantiation + capacity-1 contention; re-run;
+  F13 + Section 6.5 + Appendix E; HTML only): per the user's review decision, made the LatentSwarm
+  spatial environment a FAITHFUL instantiation of the Section 3 setting instead of a
+  cosine/2-D/HP-depletion/episodic variant. Env (tabula_drone/envs/drone_engage_latent_mrta.py): added
+  (a) a persistent per-pair Bernoulli(rho) observation mask with INDEPENDENT per-observer (private)
+  reward noise, so no two robots see the same stream (the heart of the setting; previously every robot
+  saw the full shared stream); (b) reward_mode="dot" = signed inner product R_ij=<p_i,u_j> (the Section
+  3 reward; previously cosine); (c) capacity_one contention (only the first robot to pick a task each
+  round succeeds; previously collisions were merely counted); (d) per-round per-robot offered size-c
+  subsets (forcing broad coverage so unseen-pair recovery is testable). 2-D positions are now inert
+  (dropped; t-SNE of the latent traits is for visualization only). All four are opt-in params with
+  legacy-preserving defaults. Bench (experiments/tabula_bench.py): signed Gaussian-MIXTURE (block)
+  traits matching the analytical harness, m=30 n=240 d=5 d-hat=8 c=20 T=50 rho=0.5 sigma=0.3, the SAME
+  guessed rank and exploration schedule for MF-SGD and SwarmCF (fair), 16 seeds, an analytic capacity-1
+  Hungarian oracle as the de-conflicted ceiling, and two metrics (earned anytime skill, self-normalized
+  unseen-pair skill). Result (bootstrap 95% CI): SwarmCF earned 0.313 [0.293,0.330] >> MF-SGD 0.130
+  [0.104,0.157] >> Independent-UCB -0.083 (below the random floor: under contention its persistent
+  exploration collides without coordinating); SwarmCF is the ONLY method with unseen-pair skill
+  significantly above the floor (0.104 [0.043,0.167]; MF-SGD/UCB/random all straddle 0), the Proposition
+  1 categorical separation reproduced in independent code. The gap to the Hungarian ceiling is
+  un-de-conflicted contention (the deferred de-confliction refinement), not estimation. The old 0.806
+  was an artifact of the unfaithful easy setting (full visibility, cosine, sample-rich, no contention);
+  the faithful setting is much harder, so the absolute number is lower but the categorical result is
+  cleaner and honest. Rewrote F13 (two bars: earned + unseen skill with bootstrap CIs), Section 6.5
+  (independent-implementation-with-contention framing + new numbers), the Figure 5 caption, Appendix E
+  (faithful env + Algorithm 3 mission loop), and the abstract / contributions / Setup / Data-availability
+  mentions (dropped "higher-fidelity spatial / different dynamics"). Regenerated F13 (only F13 churned)
+  and the HTML + index; per user instruction the Word docx was NOT rebuilt (HTML phase). Background
+  scout (RecoGym): genuinely low-rank reward but single-agent, no inter-agent mask, abandoned 2019
+  codebase, so keep it as a follow-up external benchmark, not for the base paper.

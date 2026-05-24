@@ -97,8 +97,8 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "decentralized recovery from the masked broadcast is exact (validated empirically). Experiments quantify "
   "the value of the broadcast, a positive scaling law (the swarm gets smarter as it grows), and dominance "
   "over the other low-rank methods under limited observability, recovering most of a centralized "
-  "full-communication ceiling; the advantage also transfers to a separate, higher-fidelity spatial "
-  "robot simulator with different dynamics.</div>")
+  "full-communication ceiling; the advantage also reproduces in a separate, independently-implemented "
+  "simulator that adds capacity-1 contention.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
   "filtering; low-rank matrix completion; communication-free coordination; multi-agent bandits; swarm "
   "robotics.</p>")
@@ -166,11 +166,11 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "<li>We quantify, on a robotics-grounded task-servicing mission, the <b>value of the broadcast</b>, a "
   "<b>positive scaling law</b> (per-robot competence rises with team size), and <b>dominance over the "
   "other low-rank methods</b> under limited observability, recovering most of a centralized full-communication "
-  "ceiling; and we show the advantage <b>transfers to a separate, higher-fidelity spatial simulator</b> "
-  "with different dynamics (Section 6).</li>"
+  "ceiling; and we show the advantage <b>reproduces in a separate, independently-implemented "
+  "simulator</b> with capacity-1 contention (Section 6).</li>"
   "<li>We release <b>LatentSwarm</b>, an open PettingZoo/Gymnasium evaluation suite for ZK-MRTA, "
   "comprising the controlled analytical masked-broadcast harness used for our headline results and a "
-  "spatial environment (Section 6.5, Appendix E), so communication-free low-rank MRTA methods can be "
+  "contention-augmented environment (Section 6.5, Appendix E), so communication-free low-rank MRTA methods can be "
   "compared on a common footing.</li></ol>")
 
 # ---------------- 2. related work ----------------
@@ -387,7 +387,7 @@ A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$,
   "($\\sigma_{\\mathrm{obs}}=0.3$) outcomes (Appendix D), 8 random seeds "
   "(the consolidated bake-off of Table 3 uses 5), bootstrap 95% confidence intervals. We compare on one "
   "canonical masked harness, the analytical mode of our released <b>LatentSwarm</b> suite (Section 6.5 "
-  "evaluates its spatial environment).</p>")
+  "evaluates its contention-augmented environment).</p>")
 A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a controlled sweep across "
   "the low-rank design space against the genuinely external structure-free paradigm and "
   "full-information reference ceilings, not a contest of rival systems. SwarmCF is our method; structure-"
@@ -479,35 +479,43 @@ A("<p>Table 3 consolidates the comparison on the canonical masked harness.</p>")
 A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical masked harness.</p>")
 A(mp.html_scorecard(ROOT))
 
-A("<h3>6.5 Robustness and transfer to a higher-fidelity simulator</h3>")
+A("<h3>6.5 Robustness and an independent implementation with contention</h3>")
 A("<p><b>Beyond one configuration.</b> The separation is structural rather than tuned: it follows from "
   "the three scope conditions stated below (an exploitable low-rank-but-personalized reward, task "
   "scarcity, and a shared channel), not from any particular team size or task count, and we observe the "
-  "same pattern across $m$, $n$, $d$, and heterogeneity in additional sweeps. The most demanding "
-  "test, transfer to our higher-fidelity <i>LatentSwarm</i> simulator, is reported next.</p>")
-A("<p><b>Transfer to LatentSwarm, a higher-fidelity simulator.</b> The results so far use the clean "
-  "analytical harness that instantiates the model of Section 3 exactly. To assess whether the method "
-  "generalizes beyond that model, we re-run the comparison in the spatial environment of our "
-  "<b>LatentSwarm</b> suite, a multi-robot reinforcement-learning environment (PettingZoo/Gymnasium). It realizes a "
-  "<i>variant</i> of the setting rather than the model itself: each round every robot selects a target "
-  "and earns the <i>signed-cosine</i> alignment of their latent capability and requirement traits, a "
-  "normalized variant of the Section 3 inner-product reward (with the same low-rank trait structure and "
-  "per-observer noise), while the environment adds a fixed 2-D spatial "
-  "layout, depleting-target health (reduced by the rectified trait match), capacity contention "
-  "(collisions when robots select the same target), and episodic resets; its dynamics were specified "
-  "independently of the collaborative-filtering method (Appendix E gives the exact construction and "
-  "pseudocode). Dropped in as one policy alongside the simulator's own built-in "
-  "policies, SwarmCF attains the best converged skill ($0.806$, std $0.016$ over 3 seeds), approaching the oracle and "
-  "beating both an independent-UCB learner ($0.721$) and an SGD matrix-factorization policy ($0.251$), the "
-  "simulator's instance of the same <b>MF-SGD</b> baseline used in our analytical bake-off (Figure 5). In "
-  "this smaller, less task-scarce environment a structure-free learner is "
-  "no longer pinned at the floor, exactly as our scope predicts, yet SwarmCF still wins; that the "
-  "advantage persists under these different dynamics is evidence it reflects exploiting the shared "
-  "low-rank structure, not an artifact of the analytical harness.</p>")
-A("<figure>%s<figcaption><b>Figure 5.</b> Transfer to <b>LatentSwarm</b>, our higher-fidelity spatial "
-  "simulator and a variant of the setting (fixed 2-D layout, depleting-target health, episodic dynamics). Left: "
-  "converged skill, SwarmCF best and near-oracle, above independent-UCB and the MF-SGD baseline. "
-  "Right: learning curves.</figcaption></figure>" % img("F13_realsim.png", "LatentSwarm simulator transfer"))
+  "same pattern across $m$, $n$, $d$, and heterogeneity in additional sweeps. We then re-run the "
+  "comparison in an <i>independent</i> implementation, the <i>LatentSwarm</i> simulator, reported next.</p>")
+A("<p><b>An independent implementation with contention (LatentSwarm).</b> The results so far use the "
+  "analytical harness that instantiates the model of Section 3 directly. To check they are not an "
+  "artifact of that one implementation, we re-run the comparison in the spatial environment of our "
+  "<b>LatentSwarm</b> suite, a separate multi-robot environment (PettingZoo/Gymnasium) whose dynamics "
+  "were written independently of the collaborative-filtering code. It instantiates the Section 3 setting "
+  "<i>faithfully</i>: the same signed low-rank inner-product reward $R_{ij}=\\langle p_i,u_j\\rangle$ over "
+  "latent capability and requirement traits, the same persistent Bernoulli($\\rho$) partial and "
+  "per-observer-private observation mask, the same task scarcity $n\\gg T$ with size-$c$ offers, and the "
+  "same guessed rank $\\hat d$ for every method, and it adds one element the analytical harness omits: "
+  "<b>capacity-1 contention</b>, where only the first robot to select a task each round succeeds and "
+  "colliding robots waste the engagement. It carries no spatial assumption (the latent traits, not 2-D "
+  "positions, drive everything; a t-SNE embedding of the traits is used only for visualization). Dropped "
+  "in as one policy with no contention handling, SwarmCF earns the most of any learner ($0.31$ of the "
+  "centralized capacity-1 ceiling, bootstrap 95% CI $[0.29,0.33]$ over 16 seeds), well above the MF-SGD "
+  "baseline ($0.13$) and the structure-free independent-UCB learner, which sits below the random floor "
+  "($-0.08$) because under contention its persistent exploration collides without coordinating. On the "
+  "categorical generalization metric, SwarmCF is the <b>only</b> method whose <b>unseen-pair</b> skill is "
+  "significantly above the floor ($0.10$, CI $[0.04,0.17]$; MF-SGD, UCB, and random all have intervals "
+  "straddling zero), the Proposition 1 separation reproduced in independent code. The remaining gap to "
+  "the centralized ceiling is the price of un-de-conflicted contention (the de-confliction refinement "
+  "deferred to Section 7), not of estimation: both the categorical advantage and the lead over MF-SGD "
+  "survive an independent implementation and a contention stressor the analytical model does not "
+  "contain (Figure 5).</p>")
+A("<figure>%s<figcaption><b>Figure 5.</b> <b>LatentSwarm</b>, an independent PettingZoo/Gymnasium "
+  "implementation of the Section 3 setting (signed low-rank reward, persistent partial and private "
+  "broadcast, task scarcity) that adds capacity-1 contention. Left: earned (anytime) skill, SwarmCF best "
+  "among learners and far above the structure-free floor (independent-UCB goes negative under "
+  "contention). Right: unseen-pair skill, SwarmCF the only method significantly above the floor (the "
+  "Proposition 1 separation, reproduced in independent code). Bars are means with bootstrap 95%% CIs over "
+  "16 seeds; the oracle is the centralized capacity-1 (Hungarian) matching.</figcaption></figure>"
+  % img("F13_realsim.png", "LatentSwarm independent ZK-MRTA validation"))
 
 A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b> The advantage is not "
   "universal, and we state its boundary precisely. It holds when three conditions co-occur: "
@@ -566,8 +574,8 @@ A("<p class='small'>The authors declare that they have no known competing financ
   "relationships that could have appeared to influence the work reported in this paper.</p>")
 A("<h2>Data availability</h2>")
 A("<p class='small'>The source code, the per-seed data required to reproduce every figure and table, and "
-  "the <b>LatentSwarm</b> evaluation suite (the analytical masked-broadcast harness and the spatial "
-  "environment) are openly available at "
+  "the <b>LatentSwarm</b> evaluation suite (the analytical masked-broadcast harness and the "
+  "PettingZoo/Gymnasium environment) are openly available at "
   "<a href='https://github.com/ApartsinProjects/ZKDroneSwarm'>github.com/ApartsinProjects/ZKDroneSwarm</a>.</p>")
 
 # ---------------- references + appendices ----------------
@@ -744,47 +752,52 @@ A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robot
   "exploration schedules and the same guessed rank $\\hat d$ are given to every structured baseline for "
   "fairness; the choices are conservative for our claims (generous to baselines).</p>")
 
-A("<h2>Appendix E. The LatentSwarm spatial environment</h2>")
+A("<h2>Appendix E. The LatentSwarm environment</h2>")
 A("<p class='small'>The spatial environment of the LatentSwarm suite is the PettingZoo/Gymnasium "
-  "environment used for the transfer test of Section 6.5. It realizes a variant of the "
-  "Section 3 setting with episodic, health-depletion dynamics; the dynamics were specified independently "
-  "of the collaborative-filtering method, and SwarmCF enters only as one drop-in policy among the "
-  "simulator's own (random, oracle, MF-SGD, independent UCB).</p>")
-A("<p class='small'><b>Traits and reward.</b> Each robot $i$ and target $j$ is assigned a hidden "
-  "$d$-dimensional trait vector ($p_i$, $u_j$) drawn from a shared Gaussian mixture over mode centers, so "
-  "the robot$\\times$target structure is (approximately) low-rank of rank $d$, as in Section 3. When "
-  "robot $i$ engages target $j$ it earns the signed cosine alignment $r_{ij}=\\langle p_i,u_j\\rangle/"
-  "(\\lVert p_i\\rVert\\,\\lVert u_j\\rVert)$ of their traits, perturbed by a shared per-engagement effect "
-  "noise; the target's health then decreases by the rectified match $\\max(0,\\langle p_i,u_j\\rangle)$ "
-  "and the target is neutralized at zero health.</p>")
-A("<p class='small'><b>Decentralized, partial, private observation.</b> Robots and targets occupy fixed "
-  "2-D positions (a spatial layout, not motion); each robot observes target positions and activity, the "
-  "targets its teammates selected (each teammate's selection independently corrupted with probability "
-  "$\\sigma_{\\mathrm{obs}}$, an action-identity channel), and a per-observer-noisy reading of each "
-  "broadcast engagement outcome (private noise $\\sigma$, added independently per observer on top of the "
-  "shared effect noise). There is no communication, and capacity contention is native: if two robots "
-  "select the same target in a round they collide.</p>")
-A("<p class='small'><b>Protocol and metric.</b> An episode runs for a fixed horizon; each round every "
-  "robot selects a target (or no-op), engagements resolve in a random order, and observations are "
-  "emitted. Each policy is run over a sequence of $E=16$ episodes and scored by the converged servicing "
-  "skill $=(\\text{return}-\\text{random})/(\\text{oracle}-\\text{random})$, averaged over the second "
-  "half (the last 8 episodes). SwarmCF is the weighted-ALS "
-  "policy: it maintains its online low-rank factors from the per-observer outcome stream and selects the "
-  "target it predicts best.</p>")
-A("<div class='algo'><div class='cap'>Algorithm 3: LatentSwarm episode (a variant of the setting; each "
-  "robot runs a policy, e.g. SwarmCF)</div>"
-  "draw traits $p_i$ (robots) and $u_j$ (targets) from a shared Gaussian mixture (rank $d$); fix 2-D positions\n"
-  "for episode $=1,\\dots,E$:\n"
-  "    reset every target's health and active flag\n"
-  "    for round $t=1,\\dots,T_{\\mathrm{ep}}$:\n"
-  "        each robot $i$ picks a target $a_i$ (or no-op) from its policy\n"
-  "        for each engaging robot $i$ (with $a_i=j$, $j$ active), in random order:\n"
-  "            reward $r_i \\leftarrow \\cos(p_i,u_j)$ + shared effect noise\n"
-  "            target $j$ health $\\mathrel{-}= \\max(0,\\langle p_i,u_j\\rangle)$; if $\\le 0$, mark $j$ inactive\n"
-  "            if another robot also picked $j$ this round, record a collision (contention)\n"
-  "        emit each robot's observation: target positions and activity; teammates' picks\n"
-  "            (each corrupted w.p. $\\sigma_{\\mathrm{obs}}$); a per-observer-noisy reading of each reward\n"
-  "    score the policy by episodic return; skill $=$ (return $-$ random)$/$(oracle $-$ random)</div>")
+  "environment used for the independent-implementation test of Section 6.5. Its dynamics were written "
+  "independently of the collaborative-filtering code; it instantiates the Section 3 setting faithfully "
+  "and adds capacity-1 contention, and SwarmCF enters only as one drop-in policy among the simulator's "
+  "own (random, oracle, MF-SGD, independent UCB).</p>")
+A("<p class='small'><b>Traits and reward.</b> Each robot $i$ and task $j$ is assigned a hidden "
+  "$d$-dimensional trait vector ($p_i$, $u_j$) drawn from a shared signed Gaussian mixture over $K$ "
+  "latent types (a block model), so the robot$\\times$task reward is low-rank of rank $d$, exactly as in "
+  "Section 3. When robot $i$ engages task $j$ it earns the signed inner product "
+  "$r_{ij}=\\langle p_i,u_j\\rangle$ (the Section 3 reward). The traits, not any spatial position, drive "
+  "the reward; a t-SNE projection of the traits is used only for visualization.</p>")
+A("<p class='small'><b>Decentralized, partial, private observation.</b> There is no communication. Each "
+  "robot reads a public stream of engagement outcomes through a <b>persistent</b> per-pair mask "
+  "$M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ fixed for the mission ($M_{ii}=1$): robot $i$ sees teammate "
+  "$k$'s engagement only if $M_{ik}=1$, and reads its outcome $\\langle p_k,u_{a_k}\\rangle+\\eta_{ik}$ "
+  "with <b>independent per-observer noise</b> $\\eta_{ik}\\sim\\mathcal N(0,\\sigma^2)$, so no two robots "
+  "see the same stream. An optional action-identity channel may additionally corrupt which task a "
+  "teammate is seen to select; it is disabled for the reported runs.</p>")
+A("<p class='small'><b>Protocol and contention.</b> Each round every robot is offered a random size-$c$ "
+  "subset of the tasks and selects one; engagements resolve in a random order under <b>capacity-1 "
+  "contention</b> (only the first robot to pick a task that round succeeds; a colliding robot earns "
+  "nothing). The regime is task-scarce ($n\\gg T$) and a mission runs for $T$ rounds with no resets and "
+  "no depletion. Every structured method uses the same guessed rank $\\hat d$ and the same exploration "
+  "schedule; SwarmCF is the weighted-ALS policy, maintaining its online low-rank factors from the "
+  "per-observer broadcast and selecting the offered task it predicts best.</p>")
+A("<p class='small'><b>Metrics.</b> <b>Earned (anytime) skill</b> normalizes the mean per-round reward to "
+  "$(\\text{policy}-\\text{random})/(\\text{oracle}-\\text{random})$, where the oracle is the per-round "
+  "optimal one-to-one (Hungarian) matching of robots to distinct tasks, the centralized capacity-1 "
+  "ceiling. <b>Unseen-pair skill</b> measures each robot's decision quality on tasks it never engaged, "
+  "from its learned model, self-normalized so the oracle is $1$ and random is $0$. The configuration is "
+  "$m=30$, $n=240$, $d=5$, $\\hat d=8$, $c=20$, $T=50$, $\\rho=0.5$, $\\sigma=0.3$, with 16 seeds and "
+  "bootstrap 95% confidence intervals.</p>")
+A("<div class='algo'><div class='cap'>Algorithm 3: LatentSwarm mission (a faithful ZK-MRTA instantiation "
+  "with capacity-1 contention; each robot runs a policy, e.g. SwarmCF)</div>"
+  "draw signed low-rank traits $p_i$ (robots), $u_j$ (tasks) from a shared $K$-type Gaussian mixture (rank $d$)\n"
+  "draw a persistent broadcast mask $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$, $M_{ii}=1$ (fixed for the mission)\n"
+  "for round $t=1,\\dots,T$:\n"
+  "    offer each robot $i$ a random size-$c$ subset $S_{it}$ of tasks\n"
+  "    each robot $i$ selects $a_i\\in S_{it}$ from its policy\n"
+  "    taken $\\leftarrow\\emptyset$; for each engaging robot $i$, in random order:\n"
+  "        if $a_i\\in$ taken (capacity-1): robot $i$ earns $0$ (collision); continue\n"
+  "        robot $i$ earns $r=\\langle p_i,u_{a_i}\\rangle$; taken $\\leftarrow$ taken $\\cup\\,\\{a_i\\}$\n"
+  "    broadcast: each robot $i$ records, for visible teammates $k$ ($M_{ik}=1$),\n"
+  "        $(k,\\,a_k,\\,\\langle p_k,u_{a_k}\\rangle+\\eta_{ik})$, private $\\eta_{ik}\\sim\\mathcal N(0,\\sigma^2)$\n"
+  "score: earned skill vs random / Hungarian oracle; unseen-pair skill on never-engaged tasks</div>")
 A("</div></body></html>")
 html_str = "\n".join(H)
 open(OUT, "w", encoding="utf-8").write(html_str)

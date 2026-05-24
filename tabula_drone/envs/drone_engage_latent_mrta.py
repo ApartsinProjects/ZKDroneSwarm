@@ -64,6 +64,10 @@ class DroneEngageLatentMRTA(ParallelEnv):
         builder: Optional[Any] = None,
         latent_world: Optional[Dict[str, Any]] = None,
         target_hp: float = 1.0,
+        broadcast_rho: float = 1.0,
+        reward_mode: str = "cosine",
+        capacity_one: bool = False,
+        offer_size: int = 0,
     ):
         super().__init__()
 
@@ -94,6 +98,18 @@ class DroneEngageLatentMRTA(ParallelEnv):
         else:
             self.latent_world = None
         self.target_hp = float(target_hp)
+        # ZK-MRTA faithful-mode controls (defaults preserve legacy behavior):
+        #   broadcast_rho : persistent per-pair partial-visibility mask rate (1.0 = full broadcast)
+        #   reward_mode   : "dot" = signed inner product (matches the paper's R_ij), "cosine", or "damage"
+        #   capacity_one  : if True, only the first robot to pick a target each round succeeds (capacity-1)
+        self.broadcast_rho = float(broadcast_rho)
+        self.reward_mode = reward_mode
+        self.capacity_one = bool(capacity_one)
+        # offer_size: per-round, per-robot random offered subset of tasks (the size-c offer
+        # of Section 3). 0 = offer all tasks (legacy). Forces broad collective coverage so
+        # task factors are recovered and unseen-pair prediction is testable.
+        self.offer_size = int(offer_size)
+        self.obs_mask: Optional[np.ndarray] = None
         self.num_modes = self._infer_num_modes()
         self.class_attribute_mapping = {
             f"mode_{mode_id}": {"latent_reward": self.target_hp}
@@ -233,6 +249,16 @@ class DroneEngageLatentMRTA(ParallelEnv):
         self.last_rewards = {agent_id: 0.0 for agent_id in self.possible_agents}
         self.cumulative_neutralizations = 0
 
+        # Persistent per-pair broadcast mask: M[i, k] = True iff robot i can observe
+        # teammate k for the whole episode (fixed once). Diagonal True (own outcome
+        # always visible). rho >= 1 reproduces the legacy full-broadcast behavior.
+        nd = len(self.drones)
+        if self.broadcast_rho >= 1.0:
+            self.obs_mask = np.ones((nd, nd), dtype=bool)
+        else:
+            self.obs_mask = self.rng.random((nd, nd)) < self.broadcast_rho
+            np.fill_diagonal(self.obs_mask, True)
+
         self._max_damage_per_target = self._precompute_max_damage_per_target()
 
         observations = self._compute_observations()
@@ -254,36 +280,55 @@ class DroneEngageLatentMRTA(ParallelEnv):
         return max_damages
 
     def _compute_observations(self) -> Dict[str, Any]:
-        target_obs: List[float] = []
-        for target in self.targets or []:
-            x, y = target.position
-            target_obs.extend([x, y, 1.0 if target.is_active else 0.0])
-        target_array = np.array(target_obs, dtype=np.float32)
+        positions = [(float(t.position[0]), float(t.position[1])) for t in (self.targets or [])]
+        global_active = np.array(
+            [1.0 if t.is_active else 0.0 for t in (self.targets or [])], dtype=np.float32)
+        active_idx = np.where(global_active > 0.5)[0]
 
-        # Build selected_targets array once (shared across all agents)
-        selected_targets = np.array(
-            [self.last_actions.get(aid, 0) for aid in self.possible_agents],
-            dtype=np.int32,
-        )
+        base_actions = [int(self.last_actions.get(aid, 0)) for aid in self.possible_agents]
+        base_rewards = [float(self.last_rewards.get(aid, 0.0)) for aid in self.possible_agents]
+        nd = len(self.possible_agents)
+        mask = self.obs_mask if self.obs_mask is not None else np.ones((nd, nd), dtype=bool)
 
-        # Apply observation noise (corrupt other agents' observed actions)
-        if self.observation_noise > 0:
-            for i in range(len(selected_targets)):
-                # Only corrupt non-noop actions (preserve 0 = noop)
-                if selected_targets[i] > 0 and self.rng.random() < self.observation_noise:
-                    # Replace with random valid target ID [1, num_targets]
-                    selected_targets[i] = self.rng.randint(1, self.num_targets + 1)
-
+        # Per-robot observation:
+        #  - "targets": a per-robot offered subset (the size-c offer of Section 3): a target
+        #    is shown active iff it is globally active AND in this robot's random offer.
+        #  - "selected_targets"/"observed_rewards": the broadcast, seen only for teammates k
+        #    with mask[i, k] (persistent partial visibility) and read with INDEPENDENT
+        #    per-observer (private) noise. Masked teammates are reported as NoOp (0), which
+        #    the policies skip, so they contribute nothing.
         observations = {}
-        for agent_id in self.agents:
-            observed_rewards = np.array(
-                [self._compute_observed_reward(aid) for aid in self.possible_agents],
-                dtype=np.float32,
-            )
+        for i, agent_id in enumerate(self.agents):
+            if self.offer_size and 0 < self.offer_size < len(active_idx):
+                offered = set(int(j) for j in self.rng.choice(
+                    active_idx, size=self.offer_size, replace=False))
+            else:
+                offered = None
+            tgt: List[float] = []
+            for j in range(len(positions)):
+                a = global_active[j]
+                if offered is not None and j not in offered:
+                    a = 0.0
+                tgt.extend([positions[j][0], positions[j][1], float(a)])
+            target_array = np.array(tgt, dtype=np.float32)
+
+            sel_i = np.zeros(nd, dtype=np.int32)
+            rew_i = np.zeros(nd, dtype=np.float32)
+            for k in range(nd):
+                if not mask[i, k]:
+                    continue
+                a = base_actions[k]
+                if (a > 0 and k != i and self.observation_noise > 0
+                        and self.rng.random() < self.observation_noise):
+                    a = int(self.rng.randint(1, self.num_targets + 1))  # action-identity corruption
+                sel_i[k] = a
+                noise = (float(self.rng.normal(0, self.reward_noise))
+                         if (self.reward_noise > 0 and k != i) else 0.0)
+                rew_i[k] = base_rewards[k] + noise
             observations[agent_id] = {
-                "targets": target_array.copy(),
-                "selected_targets": selected_targets,
-                "observed_rewards": observed_rewards,
+                "targets": target_array,
+                "selected_targets": sel_i,
+                "observed_rewards": rew_i,
             }
         return observations
 
@@ -405,7 +450,8 @@ class DroneEngageLatentMRTA(ParallelEnv):
         step_latent_mismatch = 0.0
         step_optimal_potential = 0.0
 
-        reward_mode = "cosine" # "cosine" or "damage"
+        reward_mode = self.reward_mode  # "dot" (signed inner product), "cosine", or "damage"
+        engaged_this_round = set()
         for agent_id in processing_order:
             action = actions[agent_id]
             self.last_actions[agent_id] = action
@@ -423,6 +469,12 @@ class DroneEngageLatentMRTA(ParallelEnv):
                 collisions += 1
 
             target = self.targets[target_idx]
+            if self.capacity_one and target_idx in engaged_this_round:
+                # capacity-1 contention: target already taken this round; this shot is wasted
+                self.last_rewards[agent_id] = 0.0
+                rewards[agent_id] = 0.0
+                continue
+            engaged_this_round.add(target_idx)
             raw_dot = self._dot_product_reward(drone, target)
             damage = max(0.0, raw_dot)
             target_was_active = target.is_active
@@ -440,15 +492,17 @@ class DroneEngageLatentMRTA(ParallelEnv):
                     if overkill_amount > 0:
                         step_overkill[target_idx] = step_overkill.get(target_idx, 0.0) + overkill_amount
 
-            # Reward = cosine similarity (direction-only alignment, independent of damage)
+            # Reward by mode: "dot" = signed inner product (the paper's R_ij = <p_i,u_j>);
+            # "cosine" = direction-only normalized alignment.
             drone_vec = np.array(drone.latent_vector, dtype=np.float64)
             target_vec = np.array(target.latent_vector, dtype=np.float64)
             drone_norm = np.linalg.norm(drone_vec)
             target_norm = np.linalg.norm(target_vec)
-            
-            if drone_norm > 0 and target_norm > 0:
-                cosine_similarity = raw_dot / (drone_norm * target_norm)
-                reward = float(cosine_similarity)
+
+            if reward_mode == "dot":
+                reward = float(raw_dot)
+            elif drone_norm > 0 and target_norm > 0:
+                reward = float(raw_dot / (drone_norm * target_norm))
             else:
                 reward = 0.0
 
