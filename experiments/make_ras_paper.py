@@ -99,7 +99,7 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and the "
   "strongest masking-robustness and anytime profile among low-rank methods, recovering most of a centralized "
   "full-communication ceiling, and holding under capacity-1 "
-  "contention.</div>")
+  "contention and in a robotics-grounded sensing instance.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
   "filtering; low-rank matrix completion; communication-free coordination; multi-agent bandits; swarm "
   "robotics.</p>")
@@ -167,7 +167,9 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "<li>We quantify the <b>value of the broadcast</b>, a "
   "<b>positive scaling law</b> (per-robot competence rises with team size), and the <b>strongest "
   "masking-robustness and anytime profile</b> among low-rank methods under limited observability, recovering most of a centralized full-communication "
-  "ceiling; and we show the advantage <b>persists under capacity-1 contention</b> (Section 6.5).</li>"
+  "ceiling; and we show the advantage <b>persists under capacity-1 contention</b> (Section 6.5) and in a "
+  "<b>robotics-grounded instance</b> with heterogeneous sensing traits and a range-limited line-of-sight "
+  "mask (Section 6.7).</li>"
   "<li>We release <b>LatentSwarm</b>, an open, modular Python package for ZK-MRTA, "
   "covering the masked-broadcast setting used for our headline results and its capacity-1 contention "
   "extension; with it we show the separation survives contention and "
@@ -395,8 +397,8 @@ A("<h2>6. Experiments</h2>")
 A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$, guessed rank "
   "$\\hat d$ drawn at random in $[d,2d]$ per run (no method is given the true rank; robust to the guess, Figure 7), horizon "
   "$T=50$, partial broadcast $\\rho$ swept, private noise on own ($\\sigma_{\\mathrm{own}}=0.1$) and "
-  "observed ($\\sigma_{\\mathrm{obs}}=0.3$) outcomes (Appendix D), 8 random seeds (the consolidated "
-  "bake-off of Table 3 uses 5), bootstrap 95% confidence intervals. A robot may in principle select any of "
+  "observed ($\\sigma_{\\mathrm{obs}}=0.3$) outcomes (Appendix D), 16 random seeds (8 for the scaling "
+  "sweeps of Figure 4), bootstrap 95% confidence intervals. A robot may in principle select any of "
   "the $n$ tasks; the body sweeps restrict each offer to a uniform random size-$c$ subset ($c=20$) to "
   "control scarcity and to supply the per-round engagement diversity the online estimator relies on. "
   "Appendix F reports the unrestricted all-tasks menu ($c=n$) as a robustness check: the categorical "
@@ -553,6 +555,29 @@ A("<figure>%s<figcaption><b>Figure 7.</b> Robustness to the guessed rank $\\hat 
   "Under-ranking ($\\hat d\\lt d$) is mis-specified and degrades smoothly; over-ranking "
   "($\\hat d\\gt d$, up to $3d$) is regularized away and stays flat. Lines are means with bootstrap 95%% CIs "
   "over 8 seeds.</figcaption></figure>" % img("F21_ranksweep.png", "rank-guess robustness"))
+
+A("<h3>6.7 A robotics-grounded instance</h3>")
+A("<p>The experiments above use abstract latent traits and a Bernoulli visibility mask. To check the "
+  "separation is not an artifact of that abstraction, we instantiate the Section 3 model in a "
+  "physically-grounded form. Robot capability and task requirement vectors are non-negative profiles over "
+  "$d$ <b>sensing modalities</b> (electro-optical, infrared, acoustic, LiDAR, range-endurance), so the "
+  "reward $R_{ij}=\\langle p_i,u_j\\rangle$ is a modality match and is rank-$d$ by construction (a "
+  "capability-aggregation model in the style of trait-based heterogeneous MRTA [5,24,25]); and the "
+  "observation mask is a <b>range-limited line-of-sight</b> graph induced by 2-D patrol positions (robot "
+  "$i$ senses teammate $k$ only within a sensing radius), with per-observer noise that grows with distance "
+  "($\\sigma^2\\propto 1+(r/R_s)^2$, the free-space sensing law of coverage control [40]). Positions are "
+  "thus load-bearing rather than inert, and visibility is persistent because the patrol geometry is "
+  "quasi-static. Under capacity-1 contention and a randomly guessed rank, the categorical separation "
+  "holds: SwarmCF reaches unseen-pair skill $0.19$ (95% CI $[0.15,0.24]$) and earns $0.32$ of the "
+  "centralized ceiling, while structure-free Independent-UCB and MF-SGD sit at the floor (intervals "
+  "straddling zero) and Independent-UCB earns below random by colliding (Figure 8). The separation is a "
+  "property of the shared low-rank structure, not of the abstract trait or mask model.</p>")
+A("<figure>%s<figcaption><b>Figure 8.</b> A robotics-grounded instance (LatentSwarm): non-negative "
+  "sensing-modality traits and a geometry-induced range-limited line-of-sight mask with distance-dependent "
+  "noise, under capacity-1 contention. (a) An example patrol layout and its line-of-sight visibility "
+  "graph; (b) earned (anytime) skill; (c) unseen-pair skill. SwarmCF stays well above the structure-free "
+  "floor, so the categorical separation survives a physically-motivated instantiation. Bars are means with "
+  "bootstrap 95%% CIs over 16 seeds.</figcaption></figure>" % img("F26_grounded.png", "robotics-grounded instance"))
 
 A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b> The advantage is not "
   "universal, and we state its boundary precisely. It holds when three conditions co-occur: "
@@ -777,9 +802,8 @@ A("<p class='small'>On the swarm's actual coverage patterns ($m=30,n=240,d=5,\\r
 A("<h2>Appendix D. Reproducibility</h2>")
 A("<p class='small'>All experiments use a block-model world with the signed inner-product reward of "
   "Section 3 and bootstrap 95% "
-  "confidence intervals; the per-$\\rho$ sweeps use 8 random seeds, the consolidated bake-off (Table 3) "
-  "uses 5, and the LatentSwarm contention study (Section 6.5) uses 16 (seed budgets differ by per-cell "
-  "cost: the bake-off sweeps the most methods); "
+  "confidence intervals; the broadcast-rate, anytime, bake-off (Table 3), and contention (Section 6.5) "
+  "sweeps use 16 random seeds and the scaling sweeps use 8; "
   "each reported number is averaged over the per-seed "
   "runs. The code and per-seed data needed to regenerate every figure and table are openly available "
   "(see Data availability).</p>")
@@ -850,8 +874,8 @@ A("<p class='small'>Two evaluation choices in the body are robustness knobs rath
   "separation and the masking-robustness of SwarmCF unchanged.</p>")
 A("<p class='small'><b>Offer size.</b> The body restricts each offer to a uniform random size-$c$ subset "
   "($c=20$); here we instead offer every robot all $n$ tasks each round (the unrestricted menu, $c=n$). "
-  "Figure 8 repeats the masking sweep under both menus. The categorical result is unchanged: every "
-  "low-rank method stays well above the structure-free floor at both menu sizes (Figure 8a), so the "
+  "Figure 9 repeats the masking sweep under both menus. The categorical result is unchanged: every "
+  "low-rank method stays well above the structure-free floor at both menu sizes (Figure 9a), so the "
   "structure-versus-no-structure separation, the paper's main claim, does not depend on the offer size. "
   "What changes is the ordering <i>among</i> low-rank methods. Under the size-$c$ menu the per-round random "
   "offers force each robot to engage a varied set of tasks, giving the online estimator the coverage it "
@@ -865,7 +889,7 @@ A("<p class='small'><b>Offer size.</b> The body restricts each offer to a unifor
   "replacing the uninformed $\\varepsilon$-greedy probe with confidence-directed exploration, a Bayesian "
   "posterior over the factors that probes where the shared structure is least pinned down, restores "
   "coverage without a fixed probe budget; we develop this in a follow-up.</p>")
-A("<figure>%s<figcaption><b>Figure 8.</b> Offer-size robustness. (a) Unseen-pair skill versus broadcast "
+A("<figure>%s<figcaption><b>Figure 9.</b> Offer-size robustness. (a) Unseen-pair skill versus broadcast "
   "rate $\\rho$ under the body's size-$c$ menu ($c=20$) and the unrestricted all-tasks menu ($c=n$), for "
   "SwarmCF and the batch completer (the structure-free floor is shown once): every low-rank method stays "
   "above the floor at both menu sizes (the categorical separation is offer-size invariant), but SwarmCF's "
@@ -875,18 +899,37 @@ A("<figure>%s<figcaption><b>Figure 8.</b> Offer-size robustness. (a) Unseen-pair
   "re-exploitation rare.</figcaption></figure>" % img("F22_offersize.png", "offer-size robustness"))
 A("<p class='small'><b>Masking model.</b> The body uses a <i>persistent</i> observation mask (each pair "
   "$(i,k)$ is visible or not for the whole mission). An <i>i.i.d.</i> per-round mask redraws visibility "
-  "every round, which reduces to standard uniform sub-sampling of the broadcast. Figure 9 compares the "
+  "every round, which reduces to standard uniform sub-sampling of the broadcast. Figure 10 compares the "
   "two. Final-policy unseen skill and anytime skill are essentially invariant to the masking model, as "
   "Theorem 4 predicts; what differs is decentralization durability: under the persistent mask each robot "
   "keeps a permanently different view, so the robots' learned models stay distinct (state-uniqueness is "
   "durable), whereas under the i.i.d. mask the blind spots average out over rounds and the models converge "
   "(state-uniqueness is transient, decreasing with the horizon). The persistent mask is therefore the "
   "harder, more realistic regime, and is the one used throughout the body.</p>")
-A("<figure>%s<figcaption><b>Figure 9.</b> Persistent versus i.i.d. masking. Unseen-pair and anytime skill "
+A("<figure>%s<figcaption><b>Figure 10.</b> Persistent versus i.i.d. masking. Unseen-pair and anytime skill "
   "are essentially invariant to the masking model (left, center); decentralization (state-uniqueness of "
   "the robots' learned models) is durable under the persistent mask but transient under the i.i.d. mask, "
   "which averages out blind spots over the mission (right).</figcaption></figure>"
   % img("F8_iid_vs_persistent.png", "masking model robustness"))
+A("<p class='small'><b>Theorem 2's strict regime.</b> The body's anytime comparison (Figure 3) uses a "
+  "size-$c$ menu with $cT/n\\approx 4$, outside the strict scarce-offer regime $cT=o(n)$ in which "
+  "Theorem 2 predicts the structure-free anytime collapse. Figure 11 re-runs the anytime comparison in "
+  "that strict regime ($c=3$, $cT/n\\lt 1$): the structure-free learners' cumulative skill collapses to "
+  "the floor exactly as Theorem 2 states, while SwarmCF still earns, so the theorem operates as predicted "
+  "when its hypothesis holds.</p>")
+A("<figure>%s<figcaption><b>Figure 11.</b> Anytime skill in the strict scarce-offer regime "
+  "($c=3$, $cT=o(n)$, $\\rho=0.25$): structure-free learners collapse to the floor (Theorem 2); SwarmCF "
+  "still earns from the first rounds. Means over 16 seeds.</figcaption></figure>"
+  % img("F24_inregime_anytime.png", "in-regime anytime collapse"))
+A("<p class='small'><b>Restoring the online lead under the all-tasks menu.</b> The narrowing of SwarmCF's "
+  "lead over batch completion under the all-tasks menu (Figure 9) is a property of uninformed greedy "
+  "exploration, not of the online estimator: adding a short UCB probe phase (a hybrid that probes, then "
+  "runs online ALS) restores the lead at $c=n$ across broadcast rates (Figure 12). The contingency is the "
+  "exploration schedule, which a probe, or the confidence-directed exploration of the follow-up, repairs.</p>")
+A("<figure>%s<figcaption><b>Figure 12.</b> Under the all-tasks menu ($c=n$), a UCB probe restores the "
+  "online estimator's unseen-pair lead over batch completion that pure greedy selection gives up (the "
+  "structure-free floor shown for reference). Means over 16 seeds.</figcaption></figure>"
+  % img("F25_probe_restores.png", "probe restores the online lead"))
 A("</div></body></html>")
 html_str = "\n".join(H)
 open(OUT, "w", encoding="utf-8").write(html_str)

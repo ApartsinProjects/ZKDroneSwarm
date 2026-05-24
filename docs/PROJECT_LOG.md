@@ -878,3 +878,61 @@ docs/ras_paper.html + docs/index.html (1325 KB). Per standing instruction the Wo
 masked-broadcast experiments (core/pilot_*) and the contention package (latentswarm/) are still distinct
 modules presented under the single name LatentSwarm; porting the body drivers into the package for literal
 single-command reproducibility is deferred.
+
+## Cycle 86 (top-tier RAS reviewer pass; edit-bucket E1-E10)
+Acted as a top-tier RAS reviewer and read the RENDERED docs/ras_paper.html line by line (not the
+generator), producing a feedback list partitioned into (a) edits and (b) more-simulation experiments.
+The edit bucket E1-E10 was applied (E11, an Elsevier/LaTeX reformat, is deferred to the production stage):
+honesty and scoping fixes for the headline claims (scope the "floor" language to the unseen columns,
+note the tabular learner is competitive on the operational metrics, soften the within-CI batch margin),
+cross-reference and define-before-use tightening, and consistency of method names (SwarmCF-batch, not
+PTF, in the rendered tables). Committed as e5b8d79. The experiment bucket (X1 tight 16-seed CIs, X2
+robotics-grounded instance, X3 Theorem-2 strict-regime anytime, X4 probe-restores-the-online-lead at the
+all-tasks menu, X5 approximate-low-rank, the last not yet started) was queued for the following cycles.
+
+## Cycle 87 (X2 robotics-grounded instance; LatentSwarm in a separate folder; referee infra)
+Built the robotics-grounded ZK-MRTA instance in LatentSwarm: a sensing_coalition scenario (non-negative
+capability/requirement profiles over d sensing modalities: electro-optical, infrared, acoustic, LiDAR,
+range-endurance, so the reward is a modality match, rank-d by construction) and a line_of_sight mask
+(visibility from a range-limited disk graph induced by 2-D patrol positions, with per-observer noise that
+grows with distance, sigma^2 proportional to 1+(r/R_s)^2). Added the X2 driver
+(experiments/latentswarm_grounded.py) and the X2-precursor collision study
+(experiments/latentswarm_contention.py). Moved LatentSwarm into its own folder with a detailed README and
+a user guide and a developer guide. Ran X2 (16 seeds, capacity-1, random rank guess). Committed as f195126.
+
+## Cycle 88 (LatentSwarm unification: configurable, pluggable, parity-checked)
+Unified the suite so the package can reproduce the paper from one codebase without re-running here. Made
+every parameter configurable through RunConfig (no hard-coded constants): geometry knobs, world/reward
+knobs, and the per-policy hyperparameters. Added a block_cosine parity world that ports core.make_world
+and is bit-identical to the analytical harness at jitter=0.15 (default jitter is 0.2; exact parity needs
+0.15, documented). Made the world and the reward pluggable (block_cosine / gaussian_mixture /
+iid_gaussian / sensing_coalition worlds; inner_product / cosine rewards; normalized vs unnormalized).
+Ported the baselines (tabular, ucb_homo, estr, swarmcf_batch = PTF, bpmf) and metrics (anytime_trajectory,
+cumulative_regret, time_to_competence, state_uniqueness, unseen_pair_skill_heldout) as registered
+drop-ins, and added config-driven sweep drivers (python -m latentswarm.sweeps --which
+crossover|anytime|collab|scale_m|ranksweep|offersize|iid_vs_persistent). Verified, NOT re-ran the paper:
+13 passing tests, a 3-seed parity check (all metrics within overlapping ranges), and an independent
+bit-identity check of the parity world. Tagged pre-unification as a revert anchor. Refreshed the package
+README/user/developer guides and the root README to link LatentSwarm and describe the single codebase
+(e3b35c8, README 35a1fae).
+
+## Cycle 89 (integrate X1 + X2 + X3 + X4 into the base paper; rebuild HTML)
+Re-ran the headline sweeps at 16 seeds (X1: crossover, anytime, and the operational metrics at the c=20
+body default) and integrated the tighter CIs into Table 3 and the operational-metrics page; the ordering
+is unchanged (SwarmCF leads the operational columns, SwarmCF-batch wins only full broadcast, structure-free
+at the floor on the unseen columns), and SwarmCF's masked-unseen margin over the batch variant stays
+within the 16-seed interval (kept the honest "within the interval" wording rather than claiming a clean
+win). Wrote a new Section 6.7 "A robotics-grounded instance" from the X2 run (sensing-modality traits +
+line-of-sight mask + distance noise; SwarmCF reaches unseen-pair skill 0.19 [0.15,0.24] and earns 0.32 of
+the centralized ceiling while structure-free learners sit at the floor and Independent-UCB earns below
+random by colliding; Figure 8). Added two Appendix-F robustness figures: Figure 11 (X3) re-runs the
+anytime comparison in Theorem 2's strict scarce-offer regime (c=3, cT < n) where the structure-free
+collapse appears as predicted, and Figure 12 (X4) shows a short UCB probe restores SwarmCF's lead over
+batch completion under the all-tasks menu, isolating the contingency as the exploration schedule, not the
+estimator. Renumbered Appendix F (former Figures 8/9 are now 9/10) and updated the abstract and
+contribution 5 with the robotics-grounded clause; updated all seed-count text to "16 random seeds (8 for
+the scaling sweeps of Figure 4)". Fixed a figure-builder crash in make_figures (np.eye(mm, bool) read the
+dtype as the columns argument; now np.eye(mm, dtype=bool)) so F18/F26 generate. Rebuilt
+docs/ras_paper.html + docs/index.html (1682 KB). Per standing instruction the Word .docx was NOT rebuilt
+(HTML phase) and the follow-up paper (ras_paper2) was untouched. The scaling sweeps (Figure 4) were not
+re-run, so they remain at 8 seeds, as stated in the Setup and caption.

@@ -9,14 +9,14 @@ Re-analysis of existing runs (no new simulation): the headline skill numbers, re
 | Random | not reached | 0% |
 | UCBIndep | not reached | 0% |
 | UCBHomo | not reached | 0% |
-| Tabular | 46 | 75% |
+| Tabular | 46 | 50% |
 | MFSGD | not reached | 0% |
 | ESTR (centralized, reference) | not reached | 0% |
-| PTF | not reached | 25% |
+| PTF | not reached | 19% |
 | BPMF | not reached | 0% |
-| **RewardCF** | 33 | 100% |
+| **RewardCF** | 34 | 100% |
 | **BothCF** | 34 | 100% |
-| **HybridCF** | 39 | 100% |
+| **HybridCF** | 40 | 100% |
 
 **Read:** our online CF reaches a quarter of oracle dispatch in ~35 rounds (every seed); the structure-free and batch competitors mostly never reach it within the mission.
 
@@ -24,17 +24,17 @@ Re-analysis of existing runs (no new simulation): the headline skill numbers, re
 
 | method | regret (rho=1.0) | regret (rho=0.25) |
 |---|---|---|
-| Random | 50.3 | 50.0 |
+| Random | 50.3 | 50.1 |
 | UCBIndep | 50.2 | 50.4 |
-| UCBHomo | 49.3 | 50.3 |
-| Tabular | 43.5 | 43.0 |
-| MFSGD | 46.1 | 46.1 |
-| ESTR (centralized, reference) | 45.8 | 46.4 |
-| PTF | 45.0 | 46.0 |
-| BPMF | 49.7 | 49.6 |
-| **RewardCF** | 39.6 | 40.9 |
-| **BothCF** | 39.8 | 40.8 |
-| **HybridCF** | 41.8 | 43.5 |
+| UCBHomo | 49.4 | 50.3 |
+| Tabular | 43.3 | 43.4 |
+| MFSGD | 46.4 | 46.7 |
+| ESTR (centralized, reference) | 46.2 | 46.6 |
+| PTF | 45.2 | 46.2 |
+| BPMF | 49.6 | 49.7 |
+| **RewardCF** | 40.7 | 41.1 |
+| **BothCF** | 40.8 | 41.0 |
+| **HybridCF** | 42.5 | 43.6 |
 
 **Read:** our methods accumulate the least lost mission value over the run at both broadcast rates.
 
@@ -96,5 +96,5 @@ Re-analysis of existing runs (no new simulation): the headline skill numbers, re
 | UCBIndep | 0.007 | 0.07 |
 | Tabular | 0.001 | 0.01 |
 
-**Two different efficiencies.** (i) OFFLINE estimation efficiency = unseen skill per observed entry: all low-rank methods turn a tiny budget into real skill while structure-free turns it into nothing (the structure-vs-no-structure point); among low-rank methods the batch-refit PTF is marginally ahead at the lowest budget, the same batch-on-dense-data advantage seen in the rho=1 crossover. (ii) ONLINE earning efficiency = reward EARNED per round while learning: here we win, because the batch methods pay an explore/probe phase. Under partial broadcast, RewardCF cumulative regret 40.9 is well below PTF 46.0 (lower = more value earned per round). So info-efficiency is a batch win for OFFLINE estimation and an OURS win for ONLINE earning, the regime that matters operationally.
+**Two different efficiencies.** (i) OFFLINE estimation efficiency = unseen skill per observed entry: all low-rank methods turn a tiny budget into real skill while structure-free turns it into nothing (the structure-vs-no-structure point); among low-rank methods the batch-refit PTF is marginally ahead at the lowest budget, the same batch-on-dense-data advantage seen in the rho=1 crossover. (ii) ONLINE earning efficiency = reward EARNED per round while learning: here we win, because the batch methods pay an explore/probe phase. Under partial broadcast, RewardCF cumulative regret 41.1 is well below PTF 46.2 (lower = more value earned per round). So info-efficiency is a batch win for OFFLINE estimation and an OURS win for ONLINE earning, the regime that matters operationally.
 

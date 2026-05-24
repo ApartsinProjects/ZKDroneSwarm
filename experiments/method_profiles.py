@@ -268,11 +268,11 @@ def html_scorecard(root):
                     % (nm, PROV[r["prov"]], fci(r["unseen025_ci"]), fci(r["unseen100_ci"]),
                        f(r["regret"], "%.1f"), r["ttc"]))
     rows.append("</table>")
-    note = ("<p class='small'>One canonical masked harness (m=30, n=240, 5 seeds); unseen-skill columns "
+    note = ("<p class='small'>One canonical masked harness (m=30, n=240, 16 seeds); unseen-skill columns "
             "report the mean with a bootstrap 95% confidence interval in brackets, regret and "
             "time-to-competence are means from the anytime trajectories. SwarmCF leads the operational "
             "columns (lowest regret, fastest to competence) and is the most masking-robust; on masked "
-            "unseen skill its margin over the batch variant SwarmCF-batch is within the 5-seed interval, "
+            "unseen skill its margin over the batch variant SwarmCF-batch is within the 16-seed interval, "
             "and SwarmCF-batch wins only the full-broadcast column. Structure-free learners are at the "
             "floor on the unseen columns (intervals straddling zero); on the operational columns an "
             "&epsilon;-greedy tabular learner is competitive by re-exploiting already-engaged tasks, so "

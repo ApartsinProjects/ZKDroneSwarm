@@ -501,7 +501,7 @@ if f:
     grng = np.random.RandomState(1); mm, nclu, L, cstd = 30, 5, 10.0, 1.2
     centers = grng.uniform(0, L, (nclu, 2)); clu = grng.randint(0, nclu, mm)
     pos = centers[clu] + cstd * grng.normal(0, 1, (mm, 2))
-    Dm = np.sqrt(((pos[:, None] - pos[None]) ** 2).sum(-1)); Rs = np.quantile(Dm[~np.eye(mm, bool)], 0.5)
+    Dm = np.sqrt(((pos[:, None] - pos[None]) ** 2).sum(-1)); Rs = np.quantile(Dm[~np.eye(mm, dtype=bool)], 0.5)
     for i in range(mm):
         for k in range(i + 1, mm):
             if Dm[i, k] <= Rs:
