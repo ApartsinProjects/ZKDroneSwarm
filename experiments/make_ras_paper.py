@@ -457,6 +457,18 @@ A("<p>Theorems 2-3 are, to our knowledge, the first results that pin decentraliz
   "a persistent, private, per-robot mask to an explicit condition and tie its rate to team size; they are "
   "what make the categorical claim self-contained rather than imported from centralized theory. Full "
   "proofs are given in Appendix A.</p>")
+A("<p><b>Relation to the experiments.</b> Theorem 2's recovery time and Theorem 1(b)'s team-size "
+  "condition are <i>sufficient</i> conditions for <i>exact</i> recovery of <i>every</i> pair and a "
+  "guaranteed categorical gap; the experiments deliberately sit well inside them and still earn strong "
+  "skill. At the headline setting ($\\rho=0.25$, $m=30$, $d=5$, $n=240$) the full-recovery horizon "
+  "$T_{\\mathrm{rec}}=O(\\tfrac{nd}{\\rho m}\\log n)$ scales to order $10^{3}$ rounds, more than an order of "
+  "magnitude beyond the $T=50$ we run, so recovery is <b>partial</b> by construction. This suffices "
+  "because the skill metric rewards correct <i>ranking</i> of each offered set rather than exact "
+  "reconstruction of the whole row, and recovery is <i>graded</i> in the local spanning rank (Appendix C): "
+  "a robot acts well on a task as soon as enough similar teammates have been observed engaging it, long "
+  "before its entire row becomes identifiable. For the same reason the categorical separation is observed "
+  "well outside the $\\rho m=\\omega(cd\\log n)$ regime that Theorem 1(b) requires for a <i>guaranteed</i> "
+  "gap, so that condition is conservative rather than tight.</p>")
 
 # ---------------- 6. experiments ----------------
 A("<h2>6. Experiments</h2>")
