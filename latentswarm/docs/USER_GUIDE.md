@@ -84,12 +84,41 @@ All fields have sensible defaults; override only what you need.
 | `ucb_c` | 2.0 | UCB exploration constant |
 | `estr_explore_frac`, `ptf_probe_frac`, `bpmf_prior_var` | 0.4, 0.4, 1.0 | ESTR / SwarmCF-batch / BPMF baseline hyperparameters |
 
+**Refinement hyperparameters (the SwarmCF-\* family)**
+All default to the prototype settings; override only when a study needs to. Grouped by refinement.
+
+| Field | Default | Used by | Meaning |
+|---|---|---|---|
+| `em_lam` | 1.0 | `em_cf`, `ard_em_cf`, `unified_cf` | factor prior precision lambda (and ARD column-prior init) |
+| `em_sweeps` | 6 | same | variational EM sweeps per refit |
+| `em_refit_every` | 4 | same | rounds between variational refits |
+| `em_beta` | 1.0 | same | predictive-sd UCB exploration weight (0 -> eps-greedy) |
+| `em_collective` | True | same | UCB bonus uses the collective (shared-`u_j`) variance only (anneals cleanly; the own-factor term over-explores early) |
+| `em_shrink` | 0.0 | same | >0 shrinks high-variance predictions toward the popularity prior |
+| `ard_eff_rank_thresh` | 0.05 | `ard_em_cf`, `effective_rank` | a latent column counts toward the effective rank if its energy `1/alpha_r` exceeds this fraction of the largest |
+| `c_active` | 0.5 | `active_cf` | own/broadcast-count latent-UCB bonus weight |
+| `c_explore` | 0.5 | `coord_cf` | negative-correlated (swarm-count) exploration bonus weight |
+| `eps_break` | 0.1 | `contention_cf`, `contention_ada_cf` | std of the fixed private per-task offset (symmetry breaking) |
+| `deconflict_eps_lo`, `deconflict_eps_hi` | 0.02, 0.8 | `contention_ada_cf` | min/max offset magnitude (near-greedy when winning; spread hard when losing) |
+| `deconflict_lr` | 0.15 | `contention_ada_cf`, `unified_cf` | EMA rate of the own loss-rate signal |
+| `deconflict_loss0` | 0.3 | `contention_ada_cf` | initial loss-EMA (`unified_cf` starts at 0, off until losses) |
+| `deconflict_coll_pow` | 2.0 | `contention_ada_cf`, `unified_cf` | convexity of the loss -> offset-scale law (1 = linear) |
+| `deconflict_scarcity_k` | 4.0 | `contention_ada_cf` | hard scarcity gate: the offset engages only if `|offer| <= k * m` |
+| `unified_beta_anneal` | 0.4 | `unified_cf` | loss-EMA at which the UCB exploration bonus is fully damped |
+| `unified_abundance_k` | 4.0 | `unified_cf` | damp UCB + fall back to eps-greedy when `|offer| > k * m` (no scarcity) |
+| `unified_horizon` | 0 | `unified_cf` | >0 enables a finite-horizon exploration anneal (value of info -> 0 near `T`); 0 = off |
+| `choice_s2c` | 0.2 | `choice_cf`, `both_cf` | choice-pseudo-observation variance (weight = gamma / s2c) |
+| `choice_n_neg` | 1 | same | negatives sampled per observed choice (not-chosen pseudo-targets) |
+| `choice_within` | True | same | sample negatives from the observer's own offer (True) or globally (False) |
+| `choice_competence` | True | same | competence-weight choices (True = SwarmCF-Ch / SwarmCF-RC; False = naive/unweighted) |
+| `choice_warm_frac` | 0.3 | same | ignore the choice channel before this fraction of the horizon (ramp start) |
+
 **Evaluation**
 | Field | Default | Meaning |
 |---|---|---|
 | `seeds` | `range(16)` | random seeds (each is one independent world + run) |
-| `algorithms` | `[random, ucb_indep, mf_sgd, swarm_cf]` | policies (`random` always included); also available: `tabular`, `ucb_homo`, `estr`, `swarmcf_batch` (PTF), `bpmf` |
-| `metrics` | `[earned_skill, unseen_pair_skill]` | also: `unseen_pair_skill_heldout`, `anytime_trajectory`, `cumulative_regret`, `time_to_competence`, `state_uniqueness` |
+| `algorithms` | `[random, ucb_indep, mf_sgd, swarm_cf]` | policies (`random` always included); baselines: `tabular`, `ucb_homo`, `estr`, `swarmcf_batch` (PTF), `bpmf`; SwarmCF-\* refinements: `em_cf`, `ard_em_cf`, `active_cf`, `coord_cf`, `contention_cf`, `contention_ada_cf`, `choice_cf`, `both_cf`, `unified_cf` |
+| `metrics` | `[earned_skill, unseen_pair_skill]` | also: `unseen_pair_skill_heldout`, `anytime_trajectory`, `cumulative_regret`, `time_to_competence`, `state_uniqueness`, `effective_rank` (ARD rank recovery) |
 
 ## 3. Output format
 
@@ -160,6 +189,26 @@ print(sorted(ALGORITHMS), sorted(METRICS))
 run(RunConfig(algorithms=["random", "ucb_indep", "swarm_cf"]))
 ```
 
+**The SwarmCF-\* refinements (follow-up paper).** Each refinement is a registered algorithm; select
+them like any other policy.
+```python
+# confidence-directed exploration (SwarmCF-B) vs the core estimator
+run(RunConfig(algorithms=["swarm_cf", "em_cf"]))
+
+# rank self-determination (SwarmCF-B-ARD): set an over-guess and read the recovered effective rank
+cfg = RunConfig(algorithms=["ard_em_cf"], rank_guess=12, metrics=["effective_rank"])
+
+# the action/choice channel (SwarmCF-Ch), strongest when the broadcast reward is noisy
+run(RunConfig(algorithms=["swarm_cf", "choice_cf"], sigma_obs=2.0))
+
+# the unified communication-free method (SwarmCF-U): one policy, refinements gate on their condition
+run(RunConfig(algorithms=["unified_cf"]))
+```
+The de-confliction methods (`contention_cf` = SwarmCF-D, `contention_ada_cf` = SwarmCF-D+) target
+capacity-1 contention; evaluate them with the dedicated contention sweep (below), which posts a shared
+shrinking offer pool and reports matching-normalized earned reward. Their offset is tuned by
+`eps_break`, `deconflict_*`; see the refinement hyperparameter table.
+
 ## 5. Reproducing paper figures
 
 **Unified sweep drivers (single codebase).** The package ships config-driven sweeps that emit the same
@@ -173,7 +222,13 @@ python -m latentswarm.sweeps --which scale_m            # scaling with team size
 python -m latentswarm.sweeps --which ranksweep          # rank-guess robustness (Fig 7)
 python -m latentswarm.sweeps --which offersize          # offer size c=20 vs c=n (Fig 8)
 python -m latentswarm.sweeps --which iid_vs_persistent  # masking model (Fig 9)
+python -m latentswarm.sweeps --which contention         # de-confliction under contention (follow-up Fig 2)
 ```
+The `contention` sweep belongs to the **follow-up paper** (Section 4): it posts a SHARED size-`pool`
+offer that shrinks from plentiful (240) to severe (15), resolves capacity-1 collisions randomly, and
+reports matching-normalized earned reward, contention-free unseen skill, and the collision rate for the
+private-offset methods (`contention_ada_cf`, `contention_cf`) against the no-offset and structure-free
+policies. Hold `rho=1.0` (the default in `base_config`) to isolate contention from masking.
 Single-config study drivers also live in `experiments/`:
 
 | Script | Produces |

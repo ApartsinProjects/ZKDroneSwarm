@@ -1179,3 +1179,22 @@ essentially nothing; (b) Table 4's caption says the ceiling is "with clean obser
 (noisy)" (method_profiles.py) so it no longer conflates with the inadmissible CTDE training paradigm, which
 remains correctly named in Related Work and Section 6. Verified: no stale "noiseless unmasked matcher", no
 stale "Centralized (CTDE)", the CTDE paradigm references intact. HTML 89 KB; .docx not rebuilt.
+
+## Cycle 104 (LatentSwarm: implement all follow-up-paper support; package only, no paper runs)
+Per the "do we have all required support in LatentSwarm for the follow-up?" request, audited make_ras_paper2.py
+and implemented every missing refinement as registered drop-ins in the package (ports of the experiments/
+prototypes, chiefly pilot_noise.py; additive, no existing behavior changed). New file refinements.py adds the
+SwarmCF-* family: em_cf (SwarmCF-B confidence-directed, Bayesian PMF + UCB), ard_em_cf (SwarmCF-B-ARD rank
+self-determination), active_cf / coord_cf (active/coordinated exploration), contention_cf / contention_ada_cf
+(SwarmCF-D / D+ de-confliction, fixed and scarcity-gated private offset), choice_cf / both_cf (SwarmCF-Ch
+choice channel + fusion), and unified_cf (SwarmCF-U). Added the effective_rank metric and a contention sweep
+(sweeps.py). config.py gained 24 RunConfig knobs (defaults = prototype values; JSON round-trip verified).
+Docs updated (README, USER_GUIDE, DEVELOPER_GUIDE) with the family table, per-knob reference, recipes,
+contention-sweep docs, and provenance. Verified (no paper sweeps/missions run): import shows 18 algorithms +
+8 metrics; pytest latentswarm/tests -> 17 passed (13 original + 4 new); small validity configs show ard_em_cf
+self-pruning to eff-rank ~2 from a guessed d_hat=12 and the offset methods earning more under severe
+contention. Two items flagged for a future decision (documented in DEVELOPER_GUIDE): the generic env exposes
+no exact collision flag, so contention_ada_cf / unified_cf use a communication-free visible-contention proxy
+there (the dedicated contention sweep supplies the exact won/lost via a set_lost hook); and choice-channel
+negatives use the observer's own offer as a proxy (the chosen positive is always exact, so noise-immunity is
+unaffected). The base paper and follow-up generators were untouched.

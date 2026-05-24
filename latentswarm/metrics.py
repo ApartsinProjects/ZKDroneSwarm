@@ -201,6 +201,27 @@ class StateUniqueness(Metric):
         return 1.0 - float(cos[np.triu_indices(m, 1)].mean())
 
 
+@metric("effective_rank")
+class EffectiveRank(Metric):
+    """Recovered effective latent rank of an ARD-capable policy (the follow-up's rank
+    self-determination metric, Section 5). For SwarmCF-B-ARD (``ard_em_cf``) the variational ARD
+    prunes latent columns the observed masked design does not excite, so the number of surviving
+    columns (energy 1/alpha_r above a fraction of the largest) is the IDENTIFIABLE rank (<= d) and is
+    invariant to the guessed rank d-hat. A policy without ARD (or without an ``eff_rank`` method)
+    reports its full guessed rank d (every column survives the flat prior) or nan.
+
+    kwargs: ``policy`` (a policy exposing ``eff_rank()``), or ``eff`` (a precomputed float).
+    Returns float (mean effective rank across the policy's robots), or nan."""
+    name = "effective_rank"
+
+    def compute(self, policy=None, eff=None, **kw):
+        if eff is not None:
+            return float(eff)
+        if policy is not None and hasattr(policy, "eff_rank"):
+            return float(policy.eff_rank())
+        return float("nan")
+
+
 def bootstrap_ci(xs, B=5000, seed=0):
     """(mean, lo, hi) bootstrap 95% CI over the per-seed values."""
     a = np.asarray([x for x in xs if x is not None], float)

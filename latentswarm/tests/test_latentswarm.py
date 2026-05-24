@@ -185,6 +185,64 @@ def test_config_defaults_lifted_literals():
     assert c.n_types == 10
 
 
+# ---- the SwarmCF-* refinement family (follow-up paper) ----
+
+def _refine_cfg(**kw):
+    base = dict(m=8, n=40, d=4, T=12, scenario="block_cosine", n_types=5, jitter=0.15,
+                offer_size=20, rank_guess=6, rho=0.5, sigma_own=0.10, sigma_obs=0.30)
+    base.update(kw)
+    return RunConfig(**base)
+
+
+def test_refinements_registered():
+    """All nine SwarmCF-* refinements register as algorithms (and effective_rank as a metric)."""
+    assert {"em_cf", "ard_em_cf", "active_cf", "coord_cf", "contention_cf", "contention_ada_cf",
+            "choice_cf", "both_cf", "unified_cf"} <= set(ALGORITHMS)
+    assert "effective_rank" in METRICS
+
+
+def test_refinements_run_and_predict_rows():
+    """Every refinement runs end-to-end and completes unseen entries (predict_rows -> [m, n])."""
+    cfg = _refine_cfg()
+    P, U = build_scenario(cfg, np.random.RandomState(0)).generate()
+    for name in ["em_cf", "ard_em_cf", "active_cf", "coord_cf", "contention_cf",
+                 "contention_ada_cf", "choice_cf", "both_cf", "unified_cf"]:
+        env = ZKMRTAEnv(cfg, P, U, 6, seed=0)
+        pol = get(ALGORITHMS, name)(cfg, cfg.m, cfg.n, 6, seed=7)
+        per_round, engaged = run_mission(env, pol, cfg.T)
+        assert len(per_round) == cfg.T and len(engaged) == cfg.m
+        pr = pol.predict_rows()
+        assert pr is not None and pr.shape == (cfg.m, cfg.n)
+
+
+def test_ard_self_determines_rank_below_guess():
+    """SwarmCF-B-ARD prunes the effective rank below an over-guessed d-hat (rank self-determination),
+    while plain SwarmCF-B keeps the full guessed rank. Modest (non-paper) regime, but unambiguous."""
+    cfg = _refine_cfg(m=20, n=120, d=3, T=40, n_types=8, rank_guess=12, rho=1.0,
+                      em_sweeps=8, em_refit_every=2)
+    P, U = build_scenario(cfg, np.random.RandomState(1)).generate()
+    eff = {}
+    for name in ["em_cf", "ard_em_cf"]:
+        env = ZKMRTAEnv(cfg, P, U, 12, seed=1)
+        pol = get(ALGORITHMS, name)(cfg, cfg.m, cfg.n, 12, seed=8)
+        run_mission(env, pol, cfg.T)
+        eff[name] = get(METRICS, "effective_rank")().compute(policy=pol)
+    assert abs(eff["em_cf"] - 12.0) < 1e-6          # no ARD: every column survives the flat prior
+    assert eff["ard_em_cf"] < 12.0 - 1.0            # ARD self-prunes toward the identifiable rank
+
+
+def test_contention_sweep_cell_deconflicts():
+    """The contention sweep cell (shared pool, capacity-1) runs and the private-offset method earns at
+    least as much as plain SwarmCF under severe contention (de-confliction helps)."""
+    from latentswarm.sweeps import run_contention_cell, base_config, _cfg_for
+    cfg = _cfg_for(base_config(smoke=True), seeds=[0])
+    an_ada, _, _ = run_contention_cell(cfg, "contention_ada_cf", 8, 0)
+    an_cf, _, _ = run_contention_cell(cfg, "contention_cf", 8, 0)
+    an_plain, _, _ = run_contention_cell(cfg, "swarm_cf", 8, 0)
+    assert np.isfinite(an_ada) and np.isfinite(an_cf) and np.isfinite(an_plain)
+    assert max(an_ada, an_cf) >= an_plain - 1e-9    # the offset does not hurt under contention
+
+
 _TESTS = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
 
 if __name__ == "__main__":

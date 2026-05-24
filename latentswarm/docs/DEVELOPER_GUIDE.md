@@ -22,8 +22,8 @@ SCENARIOS, ALGORITHMS, METRICS, VISUALIZATIONS   # name -> class/callable dicts
 get(reg, name)                                   # lookup with a helpful error
 ```
 Registration happens on import: `latentswarm/__init__.py` imports `scenarios`, `algorithms`,
-`baselines`, `metrics` for their decorator side effects, so importing the package populates the
-registries.
+`baselines`, `refinements`, `metrics` for their decorator side effects, so importing the package
+populates the registries. (`refinements` holds the SwarmCF-\* follow-up family; see section 8.)
 
 ## 2. The environment contract (`env.py`)
 
@@ -185,3 +185,81 @@ per-observer noise inside `ZKMRTAEnv._offers`/`_observe` (a different call order
 metrics each own an independent eval stream. The per-seed differences this induces (largest on the noisier
 unseen metric) average out across seeds; the categorical claims (CF lifts unseen well above the floor;
 tabular stays at it; state-uniqueness substantial under masking) reproduce cleanly.
+
+## 8. The follow-up paper: the SwarmCF-\* refinement family (`refinements.py`)
+
+The follow-up paper (`experiments/make_ras_paper2.py` -> `docs/ras_paper2.html`) studies six refinements
+of the core `swarm_cf` estimator. All six are implemented as registered `@algorithm` drop-ins in
+`refinements.py`, plus the `effective_rank` metric (`metrics.py`) and the `contention` sweep
+(`sweeps.py`). Each is a **faithful port** of an `experiments/` prototype: the update rules are mined
+from there, not reinvented. Everything is configurable via `RunConfig` (no hard-coded constants; the
+refinement knobs live in `config.py`, grouped under "refinements.py").
+
+### Registry names, paper names, and prototype provenance
+
+| Name | Paper name | Refinement | Prototype (read-only source) |
+|---|---|---|---|
+| `em_cf` | SwarmCF-B | variational Bayesian PMF + predictive-variance UCB exploration | `pilot_noise.EMCF` (`ard=False`) |
+| `ard_em_cf` | SwarmCF-B-ARD | `em_cf` + automatic relevance determination (rank self-determination) | `pilot_noise.EMCF` (`ard=True`); `pilot_ardrank.py`, `pilot_ard.py` |
+| `active_cf` | SwarmCF-X | own/broadcast-count latent-UCB exploration | `pilot_noise.ActiveCF` |
+| `coord_cf` | SwarmCF-Xc | negative-correlated (swarm-count) coordinated exploration | `pilot_noise.CoordCF` |
+| `contention_cf` | SwarmCF-D | fixed private per-task offset (capacity-1 de-confliction) | `pilot_noise.ContentionCF`; `pilot_contention.py` |
+| `contention_ada_cf` | SwarmCF-D+ | scarcity-gated, loss-self-tuning private offset | `pilot_noise.ContentionAdaptiveCF`; `pilot_contention.py` |
+| `choice_cf` | SwarmCF-Ch | the action/choice channel only (noise-immune) | `pilot_noise.ChoiceCF`; `pilot_choiceem.py` |
+| `both_cf` | SwarmCF-RC | fuse reward + competence-weighted choice | `pilot_noise.BothCF` |
+| `unified_cf` | SwarmCF-U | `em_cf` + loss-gated offset + loss-gated exploration + abundance gate | `pilot_noise.UnifiedCF`; `pilot_unified.py` |
+
+The `effective_rank` metric reads `policy.eff_rank()` (the mean number of ARD-retained columns across
+robots). For `ard_em_cf` this is the identifiable rank (<= d), invariant to the guessed `d̂`; for a
+non-ARD policy every column survives the flat prior, so it returns the full `d̂`.
+
+### Interface adaptation (one item flagged for review)
+
+The prototypes use a per-drone interface, `select(t, cand)` and `observe(t, choices, revealed,
+cand_sets, rvar)`, where the harness reconstructs each learner's view. The package's Policy contract is
+`act(obs)` / `observe(obs)` with the class managing all `m` robots. The reconstruction follows the
+established `baselines.py` pattern exactly: teammate `k` is observed by `i` iff `obs[i]["sel"][k] !=
+NO_OP`, the reading is `obs[i]["rew"][k]`, and the per-observer variance is `_rvar_row(cfg, i, m)`
+(`sigma_own^2` on the diagonal, else `sigma_obs^2`; the `line_of_sight` distance-dependent noise is
+approximated by `sigma_obs^2` for the precision-weighted methods, the same approximation `baselines.py`
+documents).
+
+Two ports needed a decision the prototype interface does not directly translate; both are implemented as
+clearly as the prototype allows and flagged here:
+
+1. **De-confliction loss signal (`contention_cf` is unaffected; `contention_ada_cf` and `unified_cf`
+   gate on it).** The prototypes detect a lost contest with `choices[idx] == -1`, a flag the separate
+   contention harness sets for losers. The package env keeps a colliding robot's own `sel` set and
+   zeroes its reward, so that exact flag is not present in `obs`. Two paths are provided:
+   - the **dedicated contention sweep** (`sweeps.run_contention_cell`) knows won/lost exactly and calls
+     `policy.set_lost(lost_array)` before `observe`, so the gated methods see the SAME signal as the
+     prototype (this is the path the follow-up's Figure 2 numbers should use);
+   - in the **generic env** (other sweeps, `run`), `_update_loss` falls back to a communication-free
+     VISIBLE-CONTENTION proxy: robot `i` counts a loss when it engaged a task and a teammate it can see
+     engaged the same task. This is exact for detecting contention on the robot's own pick and monotone
+     in the true loss rate, but it is a proxy, not the prototype's exact win/loss. **For human review:**
+     if a future study runs `contention_ada_cf` / `unified_cf` through the *generic* env under
+     capacity-1 and needs the exact loss rate, expose a per-robot won/lost flag from `ZKMRTAEnv.step`
+     (e.g. in `info` or a new `obs` field) and wire `set_lost` to it; the hook is already there.
+
+2. **Choice-channel negative sampling (`choice_cf`, `both_cf`).** The prototype samples "not-chosen"
+   negative pseudo-targets from the teammate's own offer (`cand_sets[k]`). In the communication-free
+   env a robot does not see teammates' offers, so with `choice_within=True` (default) negatives are
+   drawn from the OBSERVER's own offer as a proxy; `choice_within=False` draws them globally (the
+   prototype's strict-ZK option). The chosen target itself (the positive) is always exact; only the
+   negatives use the proxy offer. This does not affect the noise-immunity claim (the positive choice is
+   what carries the signal) but is a faithfulness note worth knowing.
+
+Beyond these two items the ports are line-for-line: the variational EM sweep (`_EMCF._refit`), the ARD
+`alpha` M-step, the predictive/collective variance, the precision-weighted ALS (`_ALSReward._als`), the
+choice pseudo-observation + competence ramp (`_ChoiceBase`), the fixed/adaptive offset and its scarcity
+gate, and the unified loss-gated exploration anneal + abundance gate all reproduce the prototype math.
+
+### Adding to or tuning a refinement
+The refinements reuse two internal scaffolds: `_EMCF` (Bayesian PMF; subclass and set `_ard`) and
+`_ALSReward` (precision-weighted online ALS with a pluggable `_select_row`; the exploration variants and
+the contention/choice families build on it). To add a new exploration rule, subclass `_ALSReward` and
+implement `_select_row(i, off)`. To add a confidence/rank variant, subclass `_EMCF`. Keep the
+constructor signature `(cfg, m, n, d_guess, seed=0)` and read every constant from `cfg`. Add a test to
+`tests/test_latentswarm.py` (see `test_refinements_run_and_predict_rows`,
+`test_ard_self_determines_rank_below_guess`, `test_contention_sweep_cell_deconflicts`).

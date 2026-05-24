@@ -74,6 +74,39 @@ class RunConfig:
     ptf_probe_frac: float = 0.4     # SwarmCF-batch (PTF) own-row-UCB probe fraction before warm-start
     bpmf_prior_var: float = 1.0     # BPMF factor prior variance (precision = 1/prior_var)
 
+    # --- refinements.py: the SwarmCF-* family (follow-up paper) ----------------------------------
+    # All knobs default to the prototype settings (experiments/pilot_noise.py); ported faithfully.
+    # SwarmCF-B (em_cf): variational Bayesian PMF + predictive-variance UCB exploration.
+    em_lam: float = 1.0             # factor prior precision lambda (also the ARD column-prior init)
+    em_sweeps: int = 6              # variational EM sweeps per refit
+    em_refit_every: int = 4         # rounds between variational refits
+    em_beta: float = 1.0            # predictive-sd UCB exploration weight (0 -> eps-greedy)
+    em_collective: bool = True      # UCB bonus uses the COLLECTIVE (shared-u_j) variance only (anneals cleanly)
+    em_shrink: float = 0.0          # >0 shrinks high-variance predictions toward the popularity prior
+    # SwarmCF-B-ARD (ard_em_cf): same estimator with automatic relevance determination on factor columns.
+    ard_eff_rank_thresh: float = 0.05   # a column counts toward the effective rank if 1/alpha_r > thresh * max
+    # SwarmCF-X / SwarmCF-Xc (active_cf / coord_cf): count-bonus exploration in latent space.
+    c_active: float = 0.5           # ActiveCF own-count UCB bonus weight: <p_i,u_j> + c_active/sqrt(gcount+1)
+    c_explore: float = 0.5          # CoordCF negative-correlated (swarm-count) exploration bonus weight
+    # SwarmCF-D / SwarmCF-D+ (contention_cf / contention_ada_cf): private de-confliction offset.
+    eps_break: float = 0.1          # std of the FIXED private per-task offset h_i (symmetry breaking)
+    deconflict_eps_lo: float = 0.02     # min offset magnitude (D+ self-tuning floor; near-greedy when winning)
+    deconflict_eps_hi: float = 0.8      # max offset magnitude (D+/U saturation; spread hard when losing)
+    deconflict_lr: float = 0.15         # EMA rate of the own loss-rate signal
+    deconflict_loss0: float = 0.3       # D+ initial loss-EMA (U starts at 0; see refinements.py)
+    deconflict_coll_pow: float = 2.0    # convexity of the loss->offset-scale law (1 = linear)
+    deconflict_scarcity_k: float = 4.0  # D+ hard scarcity gate: offset engages only if |offer| <= k * m
+    # SwarmCF-U (unified_cf): EMCF + loss-gated offset + loss-gated exploration anneal + abundance gate.
+    unified_beta_anneal: float = 0.4    # loss-EMA at which the UCB exploration bonus is fully damped
+    unified_abundance_k: float = 4.0    # damp UCB + fall back to eps-greedy when |offer| > k * m (no scarcity)
+    unified_horizon: int = 0            # >0 enables a finite-horizon exploration anneal (VoI -> 0 near T); 0 = off
+    # SwarmCF-Ch / SwarmCF-RC (choice_cf / both_cf): the action/choice channel.
+    choice_s2c: float = 0.2         # choice-pseudo-observation variance (weight = gamma / s2c)
+    choice_n_neg: int = 1           # negatives sampled per observed choice (the not-chosen pseudo-targets)
+    choice_within: bool = True      # sample negatives from the teammate's OFFER (True) or globally (False)
+    choice_competence: bool = True  # competence-weight choices (True = SwarmCF-Ch; False = naive/unweighted)
+    choice_warm_frac: float = 0.3   # ignore the choice channel before this fraction of the horizon (ramp start)
+
     # --- evaluation ---
     seeds: List[int] = field(default_factory=lambda: list(range(16)))
     algorithms: List[str] = field(default_factory=lambda: ["random", "ucb_indep", "mf_sgd", "swarm_cf"])

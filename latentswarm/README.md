@@ -66,10 +66,35 @@ python -m latentswarm.run --out results/pilots/latentswarm_main.json
 | `env.py` | `ZKMRTAEnv`: masking (`persistent` / `per_round` / `line_of_sight`), per-observer noise, offered menus, capacity-1 contention. |
 | `algorithms.py` | Core decentralized policies: `random`, `ucb_indep` (structure-free), `mf_sgd`, `swarm_cf` (ours). |
 | `baselines.py` | Competitor `@algorithm` drop-ins: `tabular`, `ucb_homo`, `estr`, `swarmcf_batch` (= PTF), `bpmf`. |
-| `metrics.py` | `earned_skill` (Hungarian or best-in-subset oracle), `unseen_pair_skill`, `unseen_pair_skill_heldout`, `anytime_trajectory`, `cumulative_regret`, `time_to_competence`, `state_uniqueness`, the Hungarian oracle, `bootstrap_ci`. |
+| `refinements.py` | The **SwarmCF-\* family** (follow-up paper) as `@algorithm` drop-ins: `em_cf` (SwarmCF-B), `ard_em_cf` (SwarmCF-B-ARD), `active_cf` (SwarmCF-X), `coord_cf` (SwarmCF-Xc), `contention_cf` (SwarmCF-D), `contention_ada_cf` (SwarmCF-D+), `choice_cf` (SwarmCF-Ch), `both_cf` (SwarmCF-RC), `unified_cf` (SwarmCF-U). |
+| `metrics.py` | `earned_skill` (Hungarian or best-in-subset oracle), `unseen_pair_skill`, `unseen_pair_skill_heldout`, `anytime_trajectory`, `cumulative_regret`, `time_to_competence`, `state_uniqueness`, `effective_rank` (ARD rank self-determination), the Hungarian oracle, `bootstrap_ci`. |
 | `run.py` | Config-driven runner and CLI. |
-| `sweeps.py` | Config-driven sweep drivers + CLI (`crossover`, `anytime`, `collab`, `scale_m`, `ranksweep`, `offersize`, `iid_vs_persistent`) emitting the figure-pipeline JSON schema. |
+| `sweeps.py` | Config-driven sweep drivers + CLI (`crossover`, `anytime`, `collab`, `scale_m`, `ranksweep`, `offersize`, `iid_vs_persistent`, `contention`) emitting the figure-pipeline JSON schema. |
 | `tests/` | `pytest` smoke and invariant tests. |
+
+## The SwarmCF refinement family (follow-up paper)
+
+`refinements.py` adds the six refinements of the core `swarm_cf` estimator studied in the follow-up
+paper, each a registered `@algorithm` drop-in and each a faithful port of an `experiments/pilot_*.py`
+prototype (the update rules are taken from there, not reinvented). All are decentralized and
+communication-free, run on the same harness, and complete unseen entries (`predict_rows -> [m, n]`):
+
+| Name | Paper name | Refinement |
+|---|---|---|
+| `em_cf` | SwarmCF-B | confidence-directed exploration: variational Bayesian PMF with a predictive-variance (UCB) rule |
+| `ard_em_cf` | SwarmCF-B-ARD | rank self-determination: SwarmCF-B + automatic relevance determination (learns the rank, removing `d̂`) |
+| `active_cf` | SwarmCF-X | active exploration: own-count latent-UCB (probe where the swarm's coverage is low) |
+| `coord_cf` | SwarmCF-Xc | coordinated exploration: negative-correlated, broadcast-count division of labor (no comms) |
+| `contention_cf` | SwarmCF-D | de-confliction: a fixed, private per-task offset that breaks symmetry under capacity-1 contention |
+| `contention_ada_cf` | SwarmCF-D+ | de-confliction: a scarcity-gated, loss-self-tuning private offset |
+| `choice_cf` | SwarmCF-Ch | the action/choice channel: learn from *which* task a teammate engaged (noise-immune) |
+| `both_cf` | SwarmCF-RC | fuse reward + competence-weighted choice in one weighted ALS |
+| `unified_cf` | SwarmCF-U | a single method: SwarmCF-B + a loss-gated offset and a loss-gated exploration anneal that activate only on contention |
+
+Every knob is configurable via `RunConfig` (no hard-coded constants); see the user guide for the
+field reference. The follow-up's de-confliction sweep (Section 4 / Figure 2) is
+`python -m latentswarm.sweeps --which contention`. Effective-rank recovery (Section 5) is the
+`effective_rank` metric, read off an `ard_em_cf` policy.
 
 ## Documentation
 - **[User guide](docs/USER_GUIDE.md)**: configuration reference, recipes (contention, geometry mask,
@@ -86,11 +111,17 @@ pytest latentswarm/tests -q
 ## Status and roadmap
 The package powers the paper's contention figures, the rank-robustness sweep, and the robotics-grounded
 instance, and now also folds in the analytical sweeps: the competitor baselines (`baselines.py`), the
-anytime / regret / time-to-competence / state-uniqueness / held-out-unseen metrics (`metrics.py`), the
-`block_cosine` unit-cosine parity scenario, and config-driven sweep drivers (`sweeps.py`, e.g.
-`python -m latentswarm.sweeps --which crossover`) that emit the same JSON schema `experiments/make_figures.py`
-reads. A 3-seed parity check confirms the package path reproduces the analytical numbers within overlapping
-ranges; see the roadmap and parity note in the developer guide.
+anytime / regret / time-to-competence / state-uniqueness / held-out-unseen / effective-rank metrics
+(`metrics.py`), the `block_cosine` unit-cosine parity scenario, and config-driven sweep drivers
+(`sweeps.py`, e.g. `python -m latentswarm.sweeps --which crossover`) that emit the same JSON schema
+`experiments/make_figures.py` reads. A 3-seed parity check confirms the package path reproduces the
+analytical numbers within overlapping ranges; see the roadmap and parity note in the developer guide.
+
+It also now supports the **follow-up paper** end to end: the `refinements.py` SwarmCF-\* family (the six
+refinements above), the `effective_rank` metric, and the `contention` de-confliction sweep, all ported
+faithfully from the `experiments/` prototypes and configurable through `RunConfig`. See the developer
+guide for the per-refinement prototype provenance and the one interface adaptation (the de-confliction
+loss signal) flagged for review.
 
 ## Citation
 Apartsin, Meshulam, Aperstein. *Acting on the Unseen: Communication-Free Collaborative Filtering for

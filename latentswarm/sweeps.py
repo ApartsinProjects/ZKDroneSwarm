@@ -50,6 +50,16 @@ PKG2KEY = {
     "ucb_homo": "UCBHomo",
     "tabular": "Tabular",
     "random": "Random",
+    # SwarmCF-* refinement family (follow-up paper); keys match method_profiles.FAMILY code names
+    "em_cf": "EMCF",
+    "ard_em_cf": "ARD-EMCF",
+    "active_cf": "ActiveCF",
+    "coord_cf": "CoordCF",
+    "contention_cf": "ContentionCF",
+    "contention_ada_cf": "ContentionAdaCF",
+    "choice_cf": "ChoiceCF",
+    "both_cf": "BothCF",
+    "unified_cf": "UnifiedCF",
 }
 
 
@@ -290,6 +300,143 @@ def sweep_iid_vs_persistent(cfg: RunConfig, methods=None, rhos=None, tgrid=None)
     return {"meta": meta, "rawA": rawA, "rawB": rawB}, "e12_iid_masking"
 
 
+# ---------------------------------------------------------------------------------------------
+# contention sweep (follow-up paper, Section 4 / Figure 2): communication-free de-confliction
+# ---------------------------------------------------------------------------------------------
+from collections import defaultdict
+from .metrics import hungarian_oracle_per_step  # reuse the Hungarian helper for the pool sub-matrix
+
+_CONTENTION_METHODS = ["contention_ada_cf", "contention_cf", "swarm_cf", "active_cf",
+                       "swarmcf_batch", "ucb_indep", "random"]
+_POOLS = [240, 60, 30, 15]
+
+
+def _match_opt(Rsub):
+    """Max-sum capacity-1 matching of distinct pool tasks to robots (the centralized ceiling)."""
+    from scipy.optimize import linear_sum_assignment
+    ri, ci = linear_sum_assignment(-Rsub)
+    return float(Rsub[ri, ci].sum())
+
+
+def _rand_earned(Rsub, rng, draws=30):
+    """Expected earned reward of random picks with random collision resolution (the floor)."""
+    m, p = Rsub.shape
+    tot = 0.0
+    for _ in range(draws):
+        picks = rng.randint(0, p, m)
+        by = defaultdict(list)
+        for i, a in enumerate(picks):
+            by[a].append(i)
+        s = 0.0
+        for a, cont in by.items():
+            w = cont[rng.randint(len(cont))]
+            s += Rsub[w, a]
+        tot += s
+    return tot / draws
+
+
+def run_contention_cell(cfg: RunConfig, algo: str, pool: int, seed: int):
+    """One contention mission of `algo` on a fresh block_cosine world: a SHARED size-`pool` offer is
+    posted each round, every robot picks one task, each contested task is awarded to one uniformly
+    random contender (losers earn 0 and produce NO public engagement), and the broadcast carries
+    winners' (action, outcome) only with masking rho on top. Faithful port of
+    experiments/pilot_contention.run_contention. Returns (earned_skill, unseen_skill, collision_rate)
+    where earned_skill is matching-normalized (Hungarian ceiling, random floor)."""
+    world_rng = np.random.RandomState(seed)
+    P, U = build_scenario(cfg, world_rng).generate()
+    R = P @ U.T
+    m, n = R.shape
+    d_guess = guessed_rank(cfg, seed)
+    rng = np.random.RandomState(seed + 999)
+    Mask = rng.rand(m, m) < cfg.rho
+    np.fill_diagonal(Mask, True)
+    pol = get(ALGORITHMS, algo)(cfg, m, n, d_guess, seed=seed + 7)
+
+    cum_real = cum_orac = cum_rand = 0.0
+    collisions = 0; engagements = 0
+    last_sel = np.full(m, -1, dtype=int)
+    last_rew = np.zeros(m)
+    engaged = [set() for _ in range(m)]
+
+    def _obs(offer_idx, won):
+        """Build per-robot observation dicts: shared offer = offer_idx; broadcast carries WINNERS only
+        (losers masked as NO_OP), with the persistent mask + per-observer noise applied (matches the
+        env's _observe semantics for the winners-only broadcast)."""
+        offer = np.zeros(n, dtype=bool); offer[offer_idx] = True
+        out = []
+        for i in range(m):
+            sel = np.full(m, -1, dtype=int); rew = np.zeros(m)
+            for k in range(m):
+                if last_sel[k] == -1 or not won[k] or not Mask[i, k]:
+                    continue
+                sel[k] = last_sel[k]
+                sig = cfg.sigma_own if k == i else cfg.sigma_obs
+                rew[k] = last_rew[k] + (rng.normal(0.0, sig) if sig > 0 else 0.0)
+            out.append({"offer": offer, "sel": sel, "rew": rew, "i": i})
+        return out
+
+    # first observation has no prior engagements (won all-False)
+    S = rng.choice(n, size=pool, replace=False)
+    obs = _obs(S, np.zeros(m, bool))
+    for t in range(cfg.T):
+        actions = pol.act(obs)
+        picks = np.array([int(actions[i]) if int(actions[i]) >= 0 else int(rng.choice(S)) for i in range(m)])
+        for i in range(m):
+            engaged[i].add(int(picks[i]))
+        by = defaultdict(list)
+        for i, aidx in enumerate(picks):
+            by[aidx].append(i)
+        won = np.zeros(m, bool)
+        for aidx, cont in by.items():
+            won[cont[rng.randint(len(cont))]] = True
+            if len(cont) > 1:
+                collisions += len(cont) - 1
+            engagements += len(cont)
+        true_r = np.array([R[i, picks[i]] for i in range(m)])
+        cum_real += float(np.where(won, true_r, 0.0).sum())
+        Rsub = R[:, S]
+        cum_orac += _match_opt(Rsub)
+        cum_rand += _rand_earned(Rsub, np.random.RandomState(seed * 131 + t))
+        # update last_sel/last_rew for the NEXT broadcast (winners only)
+        last_sel = picks.copy()
+        last_rew = np.where(won, true_r, 0.0)
+        # exact loss signal for the de-confliction policies (lost iff engaged but did not win)
+        if hasattr(pol, "set_lost"):
+            pol.set_lost([0.0 if won[i] else 1.0 for i in range(m)])
+        S = rng.choice(n, size=pool, replace=False)               # next round's shared pool
+        obs = _obs(S, won)
+        pol.observe(obs)
+
+    anytime = (cum_real - cum_rand) / max(cum_orac - cum_rand, 1e-9)
+    pred = pol.predict_rows()
+    unseen = get(METRICS, "unseen_pair_skill_heldout")().compute(
+        P=P, U=U, pred_rows=pred, engaged=engaged, rng=np.random.RandomState(seed + 555),
+        offer_size=cfg.offer_size)
+    coll_rate = collisions / max(engagements, 1)
+    return float(anytime), (float(unseen) if unseen is not None else None), float(coll_rate)
+
+
+def sweep_contention(cfg: RunConfig, methods=None, pools=None):
+    """De-confliction under capacity-1 contention (follow-up Figure 2 / Section 4): earned reward
+    (matching-normalized), contention-free unseen skill, and collision rate vs the shared pool size
+    (smaller = more contention). rho is held at cfg.rho (use 1.0 to isolate contention from masking).
+    Faithful port of experiments/pilot_contention.main; the private-offset methods (SwarmCF-D+,
+    SwarmCF-D) should be best-or-tied at every pool and roughly double the no-offset methods at the
+    most contended pool."""
+    methods = methods or _CONTENTION_METHODS
+    pools = pools or _POOLS
+    raw = {str(p): {PKG2KEY[a]: {"anytime": [], "unseen": [], "coll": []} for a in methods} for p in pools}
+    for p in pools:
+        for a in methods:
+            for s in cfg.seeds:
+                an, un, co = run_contention_cell(cfg, a, p, s)
+                cell = raw[str(p)][PKG2KEY[a]]
+                cell["anytime"].append(an); cell["unseen"].append(un); cell["coll"].append(co)
+    meta = _meta(cfg, experiment="contention capacity-1 matching (de-confliction)",
+                 methods=[PKG2KEY[a] for a in methods], pools=pools, rho=cfg.rho)
+    return {"meta": meta, "raw": raw}, "contention"
+
+
 def _meta(cfg: RunConfig, **extra):
     meta = dict(m=cfg.m, n=cfg.n, d=cfg.d, K=cfg.n_types, d_hat="random in [d,2d] per seed",
                 T=cfg.T, cand=cfg.offer_size, sigma_own=cfg.sigma_own, sigma_obs=cfg.sigma_obs,
@@ -307,6 +454,7 @@ SWEEPS = {
     "ranksweep": sweep_ranksweep,
     "offersize": sweep_offersize,
     "iid_vs_persistent": sweep_iid_vs_persistent,
+    "contention": sweep_contention,   # follow-up paper Section 4 / Figure 2 (de-confliction)
 }
 
 

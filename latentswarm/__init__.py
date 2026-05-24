@@ -15,13 +15,14 @@ Quick start:
     run(RunConfig())
 """
 from .config import RunConfig
-from . import scenarios, algorithms, baselines, metrics   # import for side effect: populate registries
+# import for side effect: populate the registries (baselines + refinements are the SwarmCF family)
+from . import scenarios, algorithms, baselines, refinements, metrics
 from .env import ZKMRTAEnv, reward_matrix
 from .registry import SCENARIOS, ALGORITHMS, METRICS, VISUALIZATIONS
 
 __all__ = [
     "RunConfig", "ZKMRTAEnv", "reward_matrix",
-    "scenarios", "algorithms", "baselines", "metrics",
+    "scenarios", "algorithms", "baselines", "refinements", "metrics",
     "SCENARIOS", "ALGORITHMS", "METRICS", "VISUALIZATIONS",
 ]
 __version__ = "0.1.0"
