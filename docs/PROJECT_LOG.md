@@ -1103,3 +1103,19 @@ combinatorial, not low-rank, so hosting ZK-MRTA guts its semantics); no public c
 bilinear-bandit papers. Recommendation recorded: attempt RecoGym if we want the gold-standard external
 benchmark, else the approximate-low-rank experiment (Cycle 97) + the honest §7 framing already substantially
 answer Major-1. Word .docx not rebuilt; base paper untouched.
+
+## Cycle 99 (drop external-benchmark promise; reframe as "no environment exists, so we built LatentSwarm")
+Per user decision after the scouting report: dropped the future-work promise to validate on an external
+environment. Level-based foraging is a poor fit (its reward is combinatorial, not low-rank, and its
+observations are spatial, so hosting ZK-MRTA would override reward+observation+dynamics, leaving the
+benchmark cosmetic); RecoGym is not a robot domain; and a bilinear bandit is essentially the single-agent
+core of our own model (hidden latents), so it is not a genuinely external benchmark. Removed the
+"level-based foraging / RecoGym / bilinear-bandit" external-validation clause from Section 7 future work.
+Instead stated the motivation where LatentSwarm is introduced (Section 6 Setup): no existing benchmark
+instantiates the ZK-MRTA regime (hidden low-rank robot-task reward seen only through a persistent,
+per-observer-private, masked-and-noisy broadcast under communication-free, task-scarce decentralized
+choice), so we built and openly released LatentSwarm and run every experiment on it. Reframed the Section 7
+limitation accordingly (simulation-only on our own simulator because none exists; low-rank remains an
+assumption; a higher-fidelity or physical instantiation is itself an open problem) and dropped the named
+external benchmarks. The Related-Work citation of bilinear bandits as prior art (Section 2) is retained
+(correct). HTML 88 KB; .docx not rebuilt; follow-up paper has no such promise (checked).

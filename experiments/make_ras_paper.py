@@ -406,10 +406,11 @@ A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$,
   "This is a moderate scarcity (each task is offered about $cT/n\\approx 4$ times); Theorem 2's strict "
   "scarce-offer regime ($cT=o(n)$) is shown separately in Appendix F (Figure 11). "
   "Appendix F reports the unrestricted all-tasks menu ($c=n$) as a robustness check: the categorical "
-  "low-rank separation is unchanged, while the online method's lead over batch completion narrows. We "
-  "run on one "
-  "canonical masked harness in our released <b>LatentSwarm</b> simulator (Section 6.5 adds capacity-1 "
-  "contention; Appendix E details the simulator).</p>")
+  "low-rank separation is unchanged, while the online method's lead over batch completion narrows. "
+  "Because no existing benchmark instantiates the ZK-MRTA regime (a hidden low-rank robot-task reward seen "
+  "only through a persistent, per-observer-private, masked and noisy broadcast under communication-free, "
+  "task-scarce decentralized choice), we built and openly released the <b>LatentSwarm</b> simulator and "
+  "run every experiment on it (Section 6.5 adds capacity-1 contention; Appendix E details the simulator).</p>")
 A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a controlled sweep across "
   "the low-rank design space against the genuinely external structure-free paradigm and "
   "full-information reference ceilings, not a contest of rival systems. SwarmCF is our method; structure-"
@@ -627,10 +628,11 @@ A("<p><b>What the results say.</b> Under the least information, no prior, no com
 A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and stationary, the standard "
   "trait-based premise; the categorical advantage degrades gracefully as the structure becomes only "
   "approximately low-rank or the rank grows toward full, vanishing only "
-  "when there is no exploitable structure (Appendix F, Figure 13). All our evidence is in simulation, on a reward that is low-rank "
-  "by construction: we do not validate on physical robots or an external benchmark, and the low-rank "
-  "premise, though standard for trait-based MRTA, is an assumption rather than a measured property of any "
-  "specific deployment (external and higher-fidelity validation is future work). "
+  "when there is no exploitable structure (Appendix F, Figure 13). All our evidence is in simulation: as "
+  "no existing benchmark captures this regime (Section 6) we evaluate on our own released LatentSwarm "
+  "simulator, and the low-rank premise, though standard for trait-based MRTA, is an assumption rather than "
+  "a measured property of any specific deployment; building a higher-fidelity or physical instantiation of "
+  "the regime is itself an open problem. "
   "Rewards are real-valued and bilinear in latent traits; and the "
   "recovery rate of Theorem 3 is established for non-adaptive "
   "exploration, the finite-time rate under a strongly exploiting policy (which can starve low-reward "
@@ -644,10 +646,7 @@ A("<p><b>Future work (a planned follow-up).</b> The present paper deliberately k
   "communication-free de-confliction under capacity-1 contention via a fixed private offset, against "
   "no-communication auction and musical-chairs primitives; <i>(iii)</i> rank self-determination "
   "(removing the guessed $\\hat d$); <i>(iv)</i> the action/choice channel as a noise-immune alternative "
-  "to cardinal rewards; and <i>(v)</i> non-stationarity and team churn. We also plan external "
-  "validation on independent benchmarks (an embodied "
-  "multi-agent environment such as level-based foraging, and a low-rank-native recommender or "
-  "bilinear-bandit testbed such as RecoGym, where the low-rank reward holds by construction), and a "
+  "to cardinal rewards; and <i>(v)</i> non-stationarity and team churn. We also plan a "
   "tightening of the adaptive-policy coverage rate.</p>")
 
 # ---------------- 8. conclusion ----------------
