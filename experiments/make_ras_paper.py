@@ -312,7 +312,8 @@ A("<p>We formalize the separation between structure-free learning and SwarmCF, g
   "tabular).</p>")
 A("<div class='thm'><b>Proposition 1 (structure-free floor).</b> For a structure-free learner and any task "
   "$j$ that robot $i$ never engaged, the estimate is the prior constant, so its expected unseen-pair "
-  "skill is exactly $0$ and its squared error is at least the row variance $\\Omega(1)$. Moreover the "
+  "skill is exactly $0$ and its squared error is at least the row variance $\\Omega(1)$ (under the bounded, "
+  "normalized reward of Section 3). Moreover the "
   "broadcast is provably useless to it: its per-task estimate is by definition not a function of any "
   "other task or robot.</div>")
 A("<div class='thm'><b>Theorem 1 (CF row completion, $\\Theta(d)$ versus $\\Theta(n)$).</b> If the task "
@@ -334,25 +335,29 @@ A("<p>Proposition 1 and Theorems 1-2 make the separation categorical (zero versu
   "a structured (non-uniform) sub-sample, exactly where off-the-shelf uniform-sampling completion does "
   "not apply. We give a deterministic condition instead.</p>")
 A("<div class='thm'><b>Theorem 3 (decentralized masked recovery).</b> Let $E_i(j)$ be the set of robot "
-  "$i$'s visible teammates that engaged task $j$. If $i$'s observation graph contains a $\\hat d\\times "
-  "\\hat d$ fully-observed invertible anchor block (fixing the factor frame) and, for task $j$, the "
-  "factors $\\{p_k : k\\in E_i(j)\\}$ span $\\mathbb{R}^d$, then robot $i$ recovers $u_j$ exactly "
-  "(noiseless) and predicts $(i,j)$ exactly after folding in its own $\\ge d$ engagements; under "
-  "per-observation noise the error is bounded by the fold-in bound with the coverage degree $|E_i(j)|$ "
-  "controlling the noise term. Conversely, if $\\{p_k:k\\in E_i(j)\\}$ does not span the direction of "
-  "$p_i$, the pair $(i,j)$ is non-identifiable and the learner is at the prior floor. Under non-adaptive "
-  "exploration the spanning condition is met for all tasks, with high probability, after "
-  "$T=O\\!\\big(\\tfrac{nd}{\\rho m}\\log n\\big)$ rounds, a rate that improves as the team grows.</div>")
-A("<p>Theorem 3 turns the previously-cited completion step into a self-contained, checkable condition: "
-  "recovery is exact when a robot has seen a task engaged by a spanning set of visible teammates, "
-  "impossible without it, and is reached the faster the larger the team. Appendix C validates it "
-  "directly: on the actual observation patterns the swarm produces, reconstruction error collapses from "
-  "the prior floor to (numerically) zero exactly at the spanning threshold.</p>")
+  "$i$'s visible teammates that engaged task $j$, with factor matrix $B=P_{E_i(j)}$, and suppose $i$'s "
+  "observation graph contains a $\\hat d\\times\\hat d$ fully-observed invertible anchor block (fixing the "
+  "factor frame). Then robot $i$ predicts the pair $(i,j)$ exactly (noiseless) <b>iff</b> "
+  "$p_i\\in\\mathrm{span}\\{p_k:k\\in E_i(j)\\}$; the full task vector $u_j$ is recovered when those "
+  "factors span $\\mathbb{R}^d$. Under per-observation noise the prediction error is "
+  "$O(\\sigma\\sqrt{d}/\\sigma_{\\min}(B))$, and since $\\sigma_{\\min}(B)$ grows with the number of "
+  "engagers (generically $\\Theta(\\sqrt{|E_i(j)|})$) it decreases as $O(\\sigma\\sqrt{d/|E_i(j)|})$. "
+  "Conversely, if $p_i\\notin\\mathrm{span}\\{p_k:k\\in E_i(j)\\}$ the pair is non-identifiable and the "
+  "learner is at the prior floor. Under non-adaptive exploration the condition holds for all tasks, with "
+  "high probability, after $T=O\\!\\big(\\tfrac{nd}{\\rho m}\\log n\\big)$ rounds, a rate that improves as "
+  "the team grows.</div>")
+A("<p>Theorem 3 turns the previously-cited completion step into a self-contained, checkable condition: a "
+  "pair $(i,j)$ is predicted exactly when robot $i$'s own factor lies in the span of the visible "
+  "teammates that engaged $j$, and not otherwise, with the threshold reached faster the larger the team. "
+  "Appendix C validates it directly: on the actual observation patterns the swarm produces, "
+  "reconstruction error collapses from the prior floor to (numerically) zero exactly at the spanning "
+  "threshold.</p>")
 A("<div class='thm'><b>Theorem 4 (collective speedup, why a swarm).</b> An isolated robot ($\\rho=0$) "
   "sees only its own row and cannot identify a rank-$d>1$ column space, so its unseen skill stays at the "
   "floor: sharing is <b>necessary</b>. With the broadcast, the swarm's pooled observations cross the "
-  "recovery threshold after $\\tilde O(d(1+n/m))$ rounds, an $\\Theta(m)$-fold speedup over a lone "
-  "learner, achieved with no communication.</div>")
+  "recovery threshold after $\\tilde O(d(1+n/m))$ rounds, a time that shrinks as $1/m$ as the team grows "
+  "while a lone learner never crosses it: the broadcast makes recovery possible and a larger team makes "
+  "it fast, with no communication.</div>")
 A("<p>Theorems 3-4 are, to our knowledge, the first results that pin decentralized low-rank recovery from "
   "a persistent, private, per-robot mask to an explicit condition and tie its rate to team size; they are "
   "what make the categorical claim self-contained rather than imported from centralized theory. Full "
@@ -362,8 +367,9 @@ A("<p>Theorems 3-4 are, to our knowledge, the first results that pin decentraliz
 A("<h2>6. Experiments</h2>")
 A("<p><b>Setup.</b> Unless noted, $m=30$ robots, $n=240$ tasks, true rank $d=5$, guessed rank "
   "$\\hat d=8$ (so no method is given the rank), horizon $T=50$, offers of size $c=20$, partial "
-  "broadcast $\\rho$ swept, private noise on own ($0.1$) and observed ($0.3$) outcomes, 8 seeds, "
-  "bootstrap 95% confidence intervals. We compare on one canonical masked harness.</p>")
+  "broadcast $\\rho$ swept, private noise on own ($0.1$) and observed ($0.3$) outcomes, 8 random seeds "
+  "(the consolidated bake-off of Table 3 uses 5), bootstrap 95% confidence intervals. We compare on one "
+  "canonical masked harness.</p>")
 A("<p><b>How to read the comparison.</b> The setting itself is new, so this is a controlled sweep across "
   "the low-rank design space against the genuinely external structure-free paradigm and "
   "full-information reference ceilings, not a contest of rival systems. SwarmCF is our method; structure-"
@@ -428,16 +434,17 @@ A("<p>Two experiments isolate what the team and the broadcast actually buy (Figu
   "that gets smarter as it grows, the opposite of the usual interference penalty, is a direct consequence "
   "of sharing structure.</p>")
 A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen skill versus $\\rho$ "
-  "(left edge $=$ isolated). (b) Positive scaling: unseen skill versus team size $m$. In both panels our "
-  "online SwarmCF and its batch variant SwarmCF-batch rise (the gain is structural), while structure-free "
-  "learners stay flat.</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
+  "(left edge $=$ isolated). (b) Positive scaling: unseen skill versus team size $m$ at fixed broadcast "
+  "rate $\\rho=0.5$ (and fixed $n$, horizon $T$). In both panels our online SwarmCF and its batch variant "
+  "SwarmCF-batch rise (the gain is structural), while structure-free learners stay "
+  "flat.</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
 
 A("<h3>6.4 An operational mission and a centralized ceiling</h3>")
 A("<p>Framed as a target-servicing / dispatch mission (still the analytical harness of Section 3, reframed), latent factors are robot capability traits and "
   "task requirement traits, each robot repeatedly services an offered target under range-limited, "
-  "distance-noisy sensing, SwarmCF on the same servicing-skill metric beats every other low-rank method "
-  "(including our own batch variant SwarmCF-batch) under limited observability ($\\rho=0.25$): "
-  "$\\approx 0.35$ versus the best alternative "
+  "distance-noisy sensing, SwarmCF on the same servicing-skill metric beats every external low-rank "
+  "method and our batch variant SwarmCF-batch under limited observability ($\\rho=0.25$): "
+  "$\\approx 0.35$ versus the best external alternative "
   "$\\approx 0.29$ with non-overlapping intervals, while structure-free learners sit at the random-"
   "dispatch floor (Figure 5). To bound the cost of our constraints we add two reference ceilings (not "
   "competitors): a centralized full-communication matcher with Hungarian assignment [47], and the same "
@@ -461,25 +468,26 @@ A("<p><b>Beyond one configuration.</b> The separation is structural rather than 
   "the three scope conditions stated below (an exploitable low-rank-but-personalized reward, task "
   "scarcity, and a shared channel), not from any particular team size or task count, and we observe the "
   "same pattern across $m$, $n$, $d$, and heterogeneity in additional sweeps. The most demanding "
-  "test, transfer to our higher-fidelity <i>TabulaDrone</i> simulator, is reported next.</p>")
-A("<p><b>Transfer to TabulaDrone, our higher-fidelity simulator.</b> The results so far use the clean "
+  "test, transfer to our higher-fidelity <i>LatentSwarm</i> simulator, is reported next.</p>")
+A("<p><b>Transfer to LatentSwarm, a higher-fidelity simulator.</b> The results so far use the clean "
   "analytical harness that matches the model of Section 3. To test that the method generalizes beyond "
-  "that model, we re-run the comparison in <b>TabulaDrone</b>, a multi-robot reinforcement-learning "
-  "environment from our own project (a PettingZoo/Gymnasium simulator in which robots move in 2-D and "
-  "engage targets with depleting health under episodic dynamics). It shares our codebase but was built "
-  "as a general drone-engagement testbed, independently of the collaborative-filtering method, and "
-  "differs from the analytical model in dynamics, spatial structure, and interaction protocol. Dropped in "
-  "as one policy alongside the simulator's own built-in policies, SwarmCF attains the best converged "
-  "skill, $0.806\\pm0.016$, approaching the oracle and beating both an independent-UCB learner ($0.721$) "
-  "and the simulator's own SGD matrix-factorization policy ($0.251$) (Figure 6). In this smaller, less "
-  "task-scarce environment a structure-free learner is no longer pinned at the floor, exactly as our "
-  "scope predicts, yet SwarmCF still wins; that the advantage persists under markedly different dynamics "
-  "is evidence it reflects exploiting the shared low-rank structure, not an artifact of the analytical "
-  "harness.</p>")
-A("<figure>%s<figcaption><b>Figure 6.</b> Transfer to <b>TabulaDrone</b>, our higher-fidelity spatial "
-  "simulator (2-D motion, depleting-target health, episodic dynamics). Left: converged skill, SwarmCF "
-  "best and near-oracle, above independent-UCB and the simulator's own SGD-MF policy. Right: learning "
-  "curves.</figcaption></figure>" % img("F13_realsim.png", "TabulaDrone simulator transfer"))
+  "that model, we re-run the comparison in <b>LatentSwarm</b>, a spatial multi-robot reinforcement-"
+  "learning environment from our own project (a PettingZoo/Gymnasium simulator: robots move in 2-D and "
+  "engage targets that deplete in health, episodic). LatentSwarm implements a <i>variant</i> of our "
+  "setting, not the same model: it keeps the hidden low-rank capability$\\times$requirement reward (a "
+  "latent-trait inner product) and the per-observer noise, but adds 2-D motion, depleting-target health, "
+  "rectified damage, and episodic resets, and it was built as a general engagement testbed independently "
+  "of the collaborative-filtering method. Dropped in as one policy alongside the simulator's own built-in "
+  "policies, SwarmCF attains the best converged skill ($0.806$, std $0.016$ over 3 seeds), approaching the oracle and "
+  "beating both an independent-UCB learner ($0.721$) and the simulator's own SGD matrix-factorization "
+  "policy ($0.251$) (Figure 6). In this smaller, less task-scarce environment a structure-free learner is "
+  "no longer pinned at the floor, exactly as our scope predicts, yet SwarmCF still wins; that the "
+  "advantage persists under these different dynamics is evidence it reflects exploiting the shared "
+  "low-rank structure, not an artifact of the analytical harness.</p>")
+A("<figure>%s<figcaption><b>Figure 6.</b> Transfer to <b>LatentSwarm</b>, our higher-fidelity spatial "
+  "simulator and a variant of the setting (2-D motion, depleting-target health, episodic dynamics). Left: "
+  "converged skill, SwarmCF best and near-oracle, above independent-UCB and the simulator's own SGD-MF "
+  "policy. Right: learning curves.</figcaption></figure>" % img("F13_realsim.png", "LatentSwarm simulator transfer"))
 
 A("<div class='box'><b>Scope: when does SwarmCF beat structure-free learning?</b> The advantage is not "
   "universal, and we state its boundary precisely. It holds when three conditions co-occur: "
@@ -516,7 +524,9 @@ A("<p><b>Future work (a planned follow-up).</b> The present paper deliberately k
   "no-communication auction and musical-chairs primitives; <i>(iii)</i> rank self-determination "
   "(removing the guessed $\\hat d$); <i>(iv)</i> the action/choice channel as a noise-immune alternative "
   "to cardinal rewards; and <i>(v)</i> non-stationarity and team churn. We also plan a hardware and "
-  "physics-based simulation study and a tightening of the adaptive-policy coverage rate.</p>")
+  "physics-based simulation study, external validation on an independent third-party benchmark (for "
+  "example level-based foraging, whose native agent-capability-versus-task-requirement match fits our "
+  "setting), and a tightening of the adaptive-policy coverage rate.</p>")
 
 # ---------------- 8. conclusion ----------------
 A("<h2>8. Conclusion</h2>")
@@ -659,10 +669,11 @@ A("<p class='small'><b>Theorem 2 (anytime).</b> A structure-free learner earns a
   "$\\le g(cT/n)\\to 0$. <i>Remark:</i> an order argument (the mechanism is exact, the constant loose); "
   "it justifies reporting the anytime metric alongside final-policy skill.</p>")
 A("<p class='small'><b>Theorem 3 (recovery).</b> A fully-observed invertible $\\hat d\\times\\hat d$ "
-  "block pins the factor frame; per task, $R_{E_i(j),j}=P_{E_i(j)}u_j$ has a unique solution iff "
-  "$P_{E_i(j)}$ has full column rank, giving exact $u_j$ (noiseless) and, with noise, error "
-  "$O(\\sigma\\sqrt{d/|E_i(j)|})$; non-identifiability below the spanning threshold is the per-task "
-  "analogue of Proposition 1. Coverage time (non-adaptive policy): each visible teammate engages each task "
+  "block pins the factor frame; per task, $R_{E_i(j),j}=B\\,u_j$ with $B=P_{E_i(j)}$ determines $u_j$ "
+  "uniquely iff $B$ has full column rank, and determines the pair $\\langle p_i,u_j\\rangle$ iff "
+  "$p_i\\in\\mathrm{span}\\{p_k:k\\in E_i(j)\\}$ (the per-task analogue of Proposition 1). With noise the "
+  "error is $O(\\sigma\\sqrt{d}/\\sigma_{\\min}(B))=O(\\sigma\\sqrt{d/|E_i(j)|})$ since generically "
+  "$\\sigma_{\\min}(B)=\\Theta(\\sqrt{|E_i(j)|})$. Coverage time (non-adaptive policy): each visible teammate engages each task "
   "with probability $1/n$ per round, so it has engaged task $j$ at least once after $T$ rounds with "
   "probability $1-(1-1/n)^T\\approx 1-e^{-T/n}$; the number of distinct visible engagers of $j$ is "
   "$\\mathrm{Binomial}(|N_i|,1-e^{-T/n})$ with $|N_i|\\approx\\rho m$, and requiring $\\ge d$ spanning "
@@ -696,8 +707,9 @@ A("<p class='small'>On the swarm's actual coverage patterns ($m=30,n=240,d=5,\\r
   "partial recovery as the spanning rank rises to $d$. The identifiability threshold is therefore "
   "exactly the spanning condition of Theorem 3.</p>")
 A("<h2>Appendix D. Reproducibility</h2>")
-A("<p class='small'>All experiments use a block-model world with signed-cosine reward, 8 random seeds, "
-  "and bootstrap 95% confidence intervals throughout; each reported number is averaged over the per-seed "
+A("<p class='small'>All experiments use a block-model world with signed-cosine reward and bootstrap 95% "
+  "confidence intervals; the sweeps use 8 random seeds and the consolidated bake-off (Table 3) uses 5; "
+  "each reported number is averaged over the per-seed "
   "runs. The code and per-seed data needed to regenerate every figure and table are openly available "
   "(see Data availability).</p>")
 A("<p class='small'><b>Hyperparameters.</b> Headline configuration: $m=30$ robots, $n=240$ tasks, true "

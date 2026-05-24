@@ -610,3 +610,23 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   is one experiment at two broadcast rates; the centralized-ceiling result in the same section is
   a second experiment in the same harness; the only different simulator is TabulaDrone, Figure 6).
   Regenerated figures + paper + Word docx. Pushed.
+- Cycle 72 (rename to LatentSwarm + background correctness review + fixes): renamed the simulator
+  TabulaDrone -> LatentSwarm (chosen) and rewrote Section 6.5 to state it implements a VARIANT of
+  the setting (keeps the low-rank capability x requirement reward + per-observer noise; adds 2-D
+  motion, depleting-target HP, rectified damage, episodic). Verified the env actually matches:
+  reward = np.dot(drone_latent, target_latent) (low-rank), per-drone reward noise, decentralized.
+  Added Figure 4(b) fixed rho=0.5 to caption and x-axis. A background reviewer agent read the
+  paper line-by-line; fixed the genuine issues it found: (1) Section 6.4 "beats every other
+  low-rank method" was violated by our OWN deferred EMCF (0.360 > RewardCF 0.348) -> scoped to
+  "every external low-rank method and our batch variant ... best external alternative"; (2) Table
+  3 note "SwarmCF leads" violated by deferred BothCF (0.349 > 0.336) -> "among the methods shown",
+  added a note that deferred confidence variants can edge it out; (3) the Table 3 bake-off (c14)
+  is 5 seeds not 8 -> corrected Setup/Table 3 note/Appendix D; (4) Theorem 3 tightened to
+  pair-identifiability iff (p_i in span{p_k}), full u_j recovery as the stronger case; (5)
+  reconciled the noise term with Appendix B via sigma_min(B)=Theta(sqrt|E|); (6) dropped the
+  ill-posed "Theta(m)-fold speedup over a lone learner" (a lone learner never recovers); (7)
+  LatentSwarm 0.806 +/- 0.016 relabeled as std over 3 seeds (not a bootstrap CI); (8) noted
+  Proposition 1's Omega(1) relies on the bounded normalized reward. Background scout: best
+  EXTERNAL benchmark to cast the problem onto is Level-Based Foraging (native capability-vs-
+  requirement match, partial obs, comms-free); added as a future-work external-validation plan.
+  Regenerated figures + paper + Word docx (290 equations). Pushed.

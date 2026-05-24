@@ -249,10 +249,12 @@ def html_scorecard(root):
                     % (nm, PROV[r["prov"]], f(r["unseen025"]), f(r["unseen100"]),
                        f(r["regret"], "%.1f"), r["ttc"]))
     rows.append("</table>")
-    note = ("<p class='small'>One canonical masked harness (m=30, n=240, 8 seeds): unseen skill from the "
-            "bake-off, regret and time-to-competence from the anytime trajectories. SwarmCF leads the "
-            "masked column and the operational columns; the batch variant SwarmCF-batch wins only the "
-            "full-broadcast column; structure-free learners sit at the floor.</p>")
+    note = ("<p class='small'>One canonical masked harness (m=30, n=240, 5 seeds): unseen skill from the "
+            "bake-off, regret and time-to-competence from the anytime trajectories. Among the methods "
+            "shown, SwarmCF leads the masked column and the operational columns; the batch variant "
+            "SwarmCF-batch wins only the full-broadcast column; structure-free learners sit at the floor. "
+            "Confidence-directed SwarmCF refinements (deferred to future work) can edge out the core "
+            "variant under masking.</p>")
     return "\n".join(rows) + "\n" + note
 
 
