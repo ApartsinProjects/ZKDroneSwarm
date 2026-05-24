@@ -312,7 +312,7 @@ if f:
     fig.tight_layout(rect=[0, 0, 1, 0.92]); save_fig("F12_morebaselines")
     print("F12_morebaselines  <-", os.path.basename(f))
 
-# ---- F13: real tabula_drone simulator validation ----
+# ---- F13: LatentSwarm (tabula_drone env package) simulator validation ----
 f = "results/pilots/tabula_bench_real.json"
 if os.path.exists(f):
     d = json.load(open(f)); sk = d["skill"]; traj = d["traj"]

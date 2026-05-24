@@ -630,3 +630,20 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   EXTERNAL benchmark to cast the problem onto is Level-Based Foraging (native capability-vs-
   requirement match, partial obs, comms-free); added as a future-work external-validation plan.
   Regenerated figures + paper + Word docx (290 equations). Pushed.
+- Cycle 73 (LatentSwarm accuracy: no 2-D motion; Appendix E; follow-up paper): reviewing the env
+  (drone_engage_latent_mrta.py) showed there is NO 2-D motion: drones/targets sit at FIXED 2-D
+  positions (used only as observation features) and each round a drone SELECTS a target; reward =
+  signed cosine of latent traits; target HP depletes by the rectified dot; collisions = capacity
+  contention; episodic. So "robots move in 2-D" was an overclaim. Fixed Section 6.5 and the
+  Figure 6 caption (fixed 2-D layout, target selection, cosine-trait reward, HP depletion,
+  contention), and ADDED Appendix E "The LatentSwarm simulator" with a precise construction +
+  Algorithm 3 (episode loop). Section 6.5 sentence rephrased (removed "from our own project",
+  tighter style). Dropped "a hardware and physics-based simulation study" from future work (all
+  future work is software/simulation). Updated the low-rank external-validation pointer to
+  RecoGym / bilinear-bandit (LBF is not low-rank-native). Background: drafted the FOLLOW-UP paper
+  (experiments/make_ras_paper2.py -> docs/ras_paper2.html, 510 KB, 10 sections on the deferred
+  SwarmCF refinements + a recap; figures F11/F15/F7/F10) and linked it top-right of the main
+  paper (under the .docx button). Background scout: best low-rank-native external sims are RecoGym
+  (reward = Beta@omega) and a bilinear bandit; we do NOT have LBF code and should not replace
+  LatentSwarm with it. Regenerated paper + Word docx (324 equations). Pushed. OPEN: ras_paper2 is
+  a first DRAFT (theorem numbering + content want a review pass).
