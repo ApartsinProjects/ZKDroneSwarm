@@ -1021,3 +1021,15 @@ Writing - review & editing). Verified in the rebuild: Table labels 1-4 present, 
 Yigal = Software/Validation/Investigation, zero "privately-perceived". With this, round-3 review points 1-7
 are all addressed (1,2,3,5,6 in Cycle 92; 4,7 here) and the scope subsection 6.8 is in. Word .docx not
 rebuilt; ras_paper2 untouched.
+
+## Cycle 94 (fresh-review minor fixes + clean reference audit; HTML only)
+A fresh first-time-reviewer read of the base paper surfaced four minor items; fixed all four in the
+generator. (M-a) Numbered the two display equations: the reward (Eq. 1) and the skill score (Eq. 2) now
+carry KaTeX \tag{} numbers. (M-b) Appendix A intro relabeled honestly: "proofs ... (full for Proposition 1
+and Theorems 1 and 3; order-argument sketches for the anytime and collective-speedup bounds, Theorems 2 and
+4)" instead of "self-contained proofs". (M-c) Quantified the abstract claim "recovering most of a centralized
+full-communication ceiling" -> "recovering most (about 84%) of ...". (M-d) Added the Elsevier-expected
+Funding section (standard "no specific grant" sentence; AUTHORS MUST replace if grants exist). Background
+reference audit (agent, web): all 48 references verified real with correct authors/title/venue/year (48 OK,
+0 issues; only cosmetic notes such as #11 "MCMC" abbreviation), so the bibliography is submission-ready.
+Word .docx not rebuilt; ras_paper2 handled separately (Cycle 95).

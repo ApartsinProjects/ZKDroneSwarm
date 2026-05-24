@@ -99,7 +99,7 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "(cumulative-reward) separation under task scarcity, and a deterministic condition under which "
   "decentralized recovery from the masked broadcast is exact (validated empirically). Experiments quantify "
   "the value of the broadcast, a positive scaling law (per-robot unseen-pair skill rises with team size), and the "
-  "strongest masking-robustness and anytime profile among low-rank methods, recovering most of a centralized "
+  "strongest masking-robustness and anytime profile among low-rank methods, recovering most (about 84%) of a centralized "
   "full-communication ceiling, and holding under capacity-1 "
   "contention and in a robotics-grounded sensing instance.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
@@ -228,7 +228,7 @@ A("<p><b>Reward.</b> A team of $m$ robots faces $n$ tasks. Robot $i$ has a hidde
   "$p_i\\in\\mathbb{R}^d$ and task $j$ a hidden requirement vector $u_j\\in\\mathbb{R}^d$; the expected "
   "reward of robot $i$ engaging task $j$ is their inner product"
   "$$ R_{ij} \\;=\\; \\langle p_i, u_j\\rangle, \\qquad R = P U^\\top \\in \\mathbb{R}^{m\\times n},\\ "
-  "\\operatorname{rank}(R)=d \\ll \\min(m,n). $$"
+  "\\operatorname{rank}(R)=d \\ll \\min(m,n). \\tag{1} $$"
   "The low rank $d$ encodes that only a few traits govern fit. The team does <b>not</b> know $P$, $U$, or "
   "even $d$ (it uses a guessed rank $\\hat d$, drawn at random per run, to which the method is robust; "
   "Figure 7). We take the reward in normalized form, scaling the latent "
@@ -271,7 +271,7 @@ A("<figure>%s<figcaption><b>Figure 1.</b> The setting. The robot $\\times$ task 
   % img("F20_setting.png", "setting schematic"))
 A("<p><b>Objective and metric.</b> We measure decision quality by the normalized <b>skill</b> "
   "(a Murphy skill score [17] / normalized return),"
-  "$$ \\mathrm{skill} \\;=\\; \\frac{\\text{earned} - \\text{random}}{\\text{oracle} - \\text{random}}, $$"
+  "$$ \\mathrm{skill} \\;=\\; \\frac{\\text{earned} - \\text{random}}{\\text{oracle} - \\text{random}}, \\tag{2} $$"
   "where for an offered set the <i>oracle</i> picks $\\arg\\max_{j\\in S}R_{ij}$ and <i>random</i> picks "
   "uniformly; skill $=0$ is the no-information floor and $1$ is omniscient (a policy worse than random "
   "scores below $0$). We report <b>unseen-pair "
@@ -662,6 +662,9 @@ A("<p class='small'><b>Alexander Apartsin:</b> Conceptualization, Methodology, F
 A("<h2>Declaration of competing interest</h2>")
 A("<p class='small'>The authors declare that they have no known competing financial interests or personal "
   "relationships that could have appeared to influence the work reported in this paper.</p>")
+A("<h2>Funding</h2>")
+A("<p class='small'>This research did not receive any specific grant from funding agencies in the public, "
+  "commercial, or not-for-profit sectors.</p>")
 A("<h2>Data availability</h2>")
 A("<p class='small'>The source code, the per-seed data required to reproduce every figure and table, and "
   "the <b>LatentSwarm</b> simulator (the masked-broadcast setting and its capacity-1 contention "
@@ -769,7 +772,8 @@ A("<ol class='small' style='line-height:1.5'>"
   "</ol>")
 
 A("<h2>Appendix A. Proofs of the main results</h2>")
-A("<p class='small'>We give self-contained proofs of the main results below, each closed by a short "
+A("<p class='small'>We give proofs of the main results below (full for Proposition 1 and Theorems 1 and 3; "
+  "order-argument sketches for the anytime and collective-speedup bounds, Theorems 2 and 4), each closed by a short "
   "remark on the proof technique and its relation to existing results. Throughout, factors are assumed "
   "in general position (generic $P,U$), the persistent mask is $M_{ik}\\sim\\mathrm{Bernoulli}(\\rho)$ "
   "over robot pairs, and $\\hat d\\ge d$.</p>")
