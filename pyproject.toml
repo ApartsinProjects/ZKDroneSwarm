@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "latentswarm"
+version = "0.1.0"
+description = "A pluggable evaluation suite for Zero-Knowledge MRTA (ZK-MRTA): decentralized, communication-free, low-rank multi-robot task allocation."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "Alexander Apartsin" },
+  { name = "Yigal Meshulam" },
+  { name = "Yehudit Aperstein" },
+]
+dependencies = ["numpy", "scipy"]
+
+[project.optional-dependencies]
+viz = ["matplotlib"]
+
+[project.scripts]
+latentswarm-run = "latentswarm.run:main"
+
+[tool.setuptools.packages.find]
+include = ["latentswarm*"]

@@ -697,7 +697,31 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   Bernoulli(ff(beta.omega + bias)), bilinear logit, inner dim 5) but it is single-agent with no
   inter-agent observation mask and an abandoned 2019 codebase (unpinned gym/tf/numba), so casting
   ZK-MRTA onto it means building the whole multi-agent masking layer ourselves; keep it cited as the
-  named external benchmark for the follow-up, do not block the base paper. Per user instruction,
+  named external benchmark for the follow-up, do not block the base paper.
+- Cycle 77 (new pluggable latentswarm package, ground-up; design decisions locked): per the user's
+  directive, created a proper Python package latentswarm/ (pyproject, pip install -e .) with separated,
+  name-registered pluggable components: config.py (RunConfig: every knob), registry.py (scenario/
+  algorithm/metric/viz registries), scenarios.py (GaussianMixture default + IIDGaussian), env.py
+  (ZKMRTAEnv: persistent OR per-round mask, inner-product OR cosine reward, all-targets OR size-c
+  offers, capacity-1 contention, per-observer private noise), algorithms.py (per-robot ZK estimators:
+  SwarmCF weighted-ALS, MF-SGD, Independent-UCB, Random), metrics.py (earned skill, unseen-pair skill,
+  Hungarian capacity-1 oracle, bootstrap CI), run.py (config-driven runner). Locked decisions from the
+  user: (a) ALL targets offered by default (offer_size=0; size-c is an option); (b) PERSISTENT mask is
+  the headline, per-round/dynamic-line-of-sight is a pluggable option (random/i.i.d. masking reduces to
+  standard uniform-sampling completion, so persistent is the novel case); (c) guessed rank d-hat drawn
+  at RANDOM per run in [d, 2d] (d-hat>=d is required for exact recovery; under-ranking is a separate
+  mis-specification regime, an optional ablation). 16-seed run (m=30 n=240 d=5 d-hat~U[5,10] T=50
+  rho=0.5 sigma=0.3, all-targets, capacity-1, mixture traits): SwarmCF earned 0.419 [0.402,0.437],
+  unseen-pair 0.583 [0.524,0.639]; MF-SGD earned 0.198, unseen 0.093; Independent-UCB earned -0.169
+  (below the random floor under contention), unseen -0.002 (floor); random ~0. The categorical
+  separation (structure-free at the unseen floor, SwarmCF far above, SwarmCF >> MF-SGD) is clean and
+  tight in the independent package, and stronger than the earlier tabula_bench numbers. Also folded
+  Table 2 "ours (hybrid)" into "ours", removed "faithful" from the paper + F13, and applied 8
+  scientific-voice fixes from a whole-paper audit. OPEN (next): viz module + regenerate F13 from
+  latentswarm_main.json; Figure 1 redesign (unseen target + unseen pair + identifiability); paper
+  integration (Section 3 all-targets default + random rank + mask-pluggable note; Section 6.5 /
+  Appendix E rewrite to the package + new numbers); unit tests; deprecate tabula_drone; finish the
+  win/advantage voice pass. Per user instruction,
   regenerated HTML + index only and did NOT rebuild the Word docx (HTML-editing phase), so the docx is
   intentionally one round stale. A LatentSwarm implementation review (alignment to the Section 3
   setting) was delivered to the user separately.
