@@ -130,11 +130,11 @@ A("<div class='box'><b>Background: the companion paper, in one paragraph.</b> Th
   "<b>SwarmCF</b>, is a decentralized online low-rank collaborative filter that each robot runs over "
   "the passive broadcast, with an $O(\\hat d^3)$ fold-in that lets it act on never-attempted tasks. Its "
   "central result is a <b>categorical separation</b>: a structure-free learner is provably pinned at "
-  "the prior-mean error floor on unseen pairs (Proposition 1), while SwarmCF attains per-robot sample "
-  "complexity $\\Theta(d)$ versus $\\Theta(n)$ with a matching anytime separation (Theorems 1-2), a "
+  "the prior-mean error floor on unseen pairs ([1, Prop. 1]), while SwarmCF attains per-robot sample "
+  "complexity $\\Theta(d)$ versus $\\Theta(n)$ with a matching anytime separation ([1, Thm 1-2]), a "
   "deterministic condition under which decentralized recovery from the privately-masked broadcast is "
-  "exact (Theorem 3), and a collective-speedup law by which the swarm gets smarter and faster as it "
-  "grows (Theorem 4); the advantage is validated on a robotics-grounded mission and transfers to the "
+  "exact ([1, Thm 3]), and a collective-speedup law by which the swarm gets smarter and faster as it "
+  "grows ([1, Thm 4]); the advantage is validated on a robotics-grounded mission and transfers to the "
   "higher-fidelity <b>LatentSwarm</b> spatial simulator. This paper studies the refinements that "
   "foundation enables.</div>")
 A("<p>The foundation makes a single, simple estimator do one thing well: generalize to the unseen with "
@@ -166,9 +166,10 @@ A("<p>All refinements are members of one family. Table 1 lays out how each membe
   "core estimator along the axes that matter (signal channel, exploration rule, confidence handling, "
   "contention handling, rank, and coordination); the body of the paper then takes the axes one at a "
   "time. Throughout, we cite each member by its display name. We use two numbering conventions for "
-  "formal results: <b>foundation</b> results (Proposition 1 and Theorems 1-4) are proved in the companion "
-  "paper, and this follow-up's own results carry an <b>F</b> prefix (Proposition F1, Theorem F1, and so "
-  "on) and are stated here to support the refinements.</p>")
+  "formal results: <b>foundation</b> results are proved in the companion paper and are cited with an "
+  "explicit bracket pointer into it ([1, Prop. 1], [1, Thm 1-4], [1, Sec. 6.5], and so on), while this "
+  "follow-up's own results carry an <b>F</b> prefix (Proposition F1, Theorem F1, and so on) and are "
+  "stated here to support the refinements.</p>")
 A("<p class='small'><b>Table 1.</b> The SwarmCF family by mechanism: each refinement changes one or two "
   "axes of the same decentralized, communication-free online estimator. The core method (%s) is the "
   "top row of the foundation; the remaining rows are the refinements studied here.</p>"
@@ -190,7 +191,8 @@ A("<p>We keep the foundation's <b>Zero-Knowledge MRTA</b> (ZK-MRTA) setting verb
 A("<p>We report the same normalized <b>skill</b> as the foundation, "
   "$\\mathrm{skill}=(\\text{earned}-\\text{random})/(\\text{oracle}-\\text{random})$, where $0$ is the "
   "no-information floor and $1$ is omniscient. <b>Unseen-pair skill</b> is restricted to tasks the robot "
-  "never engaged (the categorical generalization test that the companion paper turns into a theorem); "
+  "never engaged (the categorical generalization test that the companion paper turns into a theorem, "
+  "[1, Prop. 1] and [1, Thm 1]); "
   "<b>anytime skill</b> is the cumulative-reward (operational) measure. Under contention we additionally "
   "report earned reward normalized by the per-round matching optimum (Hungarian), and the collision "
   "rate. Unless stated otherwise the configuration is the foundation's: $m=30$ robots, $n=240$ tasks, "
@@ -202,7 +204,7 @@ A("<p class='small'>The methods compared here all run on the same harness as the
   "Communication-based methods (auctions, consensus, centralized training, federated or gossip "
   "exchange) remain inadmissible by the problem definition and appear only as reference ceilings; the "
   "admissible communication-free comparison is the structure-free paradigm (independent UCB, tabular). "
-  "Table 2 of the companion paper fixes those operating profiles.</p>")
+  "The companion paper's operating-profile table ([1, Table 2]) fixes those profiles.</p>")
 
 # ---------------- 3. confidence ----------------
 A("<h2>3. Confidence-directed exploration via a Bayesian posterior over the factors</h2>")
@@ -254,7 +256,8 @@ A("<p><b>Information-directed exploration buys early sample efficiency.</b> Swee
   "explicit division of labor with no communication) and is the fastest early (highest round-10 "
   "cumulative skill), though the exploitation-biased collective rule still wins the final value. The "
   "honest summary is that confidence-directed and coordinated exploration improve early coverage and "
-  "final anytime quality, not that any single rule dominates at every horizon." % mp.disp("CoordCF"))
+  "final anytime quality, not that any single rule dominates at every horizon. Figure 1 plots the "
+  "resulting anytime-versus-unseen frontier." % mp.disp("CoordCF"))
 A("<figure>%s<figcaption><b>Figure 1.</b> The anytime-versus-unseen frontier (up and to the right is "
   "better). The confidence- and exploration-directed members of the family (including the active "
   "variant %s) match or dominate the batch variant %s on both axes; the batch variant trades all "
@@ -273,8 +276,10 @@ A("<div class='thm'><b>Supporting result (Proposition F1, this paper).</b> When 
 A("<h2>4. Communication-free de-confliction under capacity-1 contention</h2>")
 A("<p><b>The idea.</b> When tasks deplete or have unit capacity, several robots that have learned "
   "accurate, similar preferences will converge on the same best task and collide; the foundation's "
-  "mission section identifies this within-round coordination as the binding constraint and defers its "
-  "solution. The refinement breaks the symmetry <b>without any communication</b> by giving each robot a "
+  "capacity-1 contention study ([1, Sec. 6.5]) identifies this within-round coordination as the binding "
+  "constraint (it earns the most of any learner under contention yet leaves a residual gap to the "
+  "centralized ceiling) and defers its solution. The refinement breaks the symmetry <b>without any "
+  "communication</b> by giving each robot a "
   "fixed, private offset over tasks, so otherwise-identical robots spread across distinct good tasks. "
   "The mechanism is <b>%s</b> (a fixed private offset) and its self-tuning form <b>%s</b> "
   "(a scarcity-gated offset that scales with the robot's own recent loss rate)."
@@ -317,10 +322,11 @@ A("<p><b>Why proactive private offsets beat the field primitives.</b> Against co
   "static private offset instead spreads the robots once and for all. The categorical unseen quality is "
   "untouched by contention (it is learned contention-free), so the contention story is purely "
   "operational: the offset reduces collisions among robots that have <i>accurate</i> preferences.</p>")
-A("<p>For operational context, the foundation's mission section reports that %s recovers about "
-  "$81\\%%$ of a centralized full-communication ceiling when targets are plentiful and that the residual "
-  "gap is precisely this within-round coordination cost; the two centralized ceilings differ little, so "
-  "coordination, not estimation, is the binding constraint that this refinement targets." % mp.disp("ContentionAdaCF"))
+A("<p>For operational context, the foundation reports that plain %s recovers about $84\\%%$ of a "
+  "centralized full-communication ceiling under masking and that the residual gap is within-round "
+  "coordination, not estimation, with the two centralized ceilings differing little ([1, Sec. 6.4, "
+  "Table 4]); coordination is therefore the binding constraint that this refinement targets, and the "
+  "de-confliction offset attacks exactly that residual." % mp.disp("RewardCF"))
 A("<div class='thm'><b>Supporting result (Theorem F1, this paper).</b> Under a shared offer pool "
   "with capacity-1 matching and no communication, a deterministic argmax over similar robots collides "
   "on $\\Theta(m-K)$ engagements; a fixed, private continuous offset makes same-type argmaxes almost "
@@ -335,7 +341,8 @@ A("<div class='prelim'><b>Preliminary / scope.</b> Theorem F1 proves the fixed-o
 # ---------------- 5. rank self-determination ----------------
 A("<h2>5. Rank self-determination: removing the guessed rank</h2>")
 A("<p><b>The idea.</b> The core method needs a guessed rank $\\hat d$. Although the foundation shows "
-  "the result is robust to over-guessing, carrying any rank hyperparameter at all is unsatisfying for a "
+  "the result is robust to over-guessing (over-ranking is regularized away and the exact rank is not "
+  "needed, [1, Sec. 6.6, Fig. 7]), carrying any rank hyperparameter at all is unsatisfying for a "
   "prior-free method. The refinement makes the swarm <b>learn the rank itself</b> through automatic "
   "relevance determination (ARD), pruning latent directions that the observed, masked design does not "
   "excite. The mechanism is <b>%s</b> (the Bayesian variant with per-column ARD priors)."
@@ -425,9 +432,9 @@ A("<p><b>The evidence (churn is handled, but only by the united method).</b> Add
   "arrivals %s and %s reach $0.363$ and $0.371$ versus $0.132$, all with non-overlapping intervals. "
   "Read as an operational readiness metric, a freshly added robot becomes effective on tasks it never "
   "tried after a handful of engagements (order of the latent rank), while a structure-free newcomer "
-  "never does. Non-stationarity is thus handled categorically, but the win requires combining low-rank "
-  "fold-in with directed newcomer probing; neither structure-free optimism nor exploitative filtering "
-  "alone is enough." % (mp.disp("ActiveCF"), mp.disp("EMCF"), mp.disp("EMCF"),
+  "never does (Figure 4). Non-stationarity is thus handled categorically, but the win requires combining "
+  "low-rank fold-in with directed newcomer probing; neither structure-free optimism nor exploitative "
+  "filtering alone is enough." % (mp.disp("ActiveCF"), mp.disp("EMCF"), mp.disp("EMCF"),
                           mp.disp("ActiveCF"), mp.disp("EMCF")))
 A("<figure>%s<figcaption><b>Figure 4.</b> Newcomer cold-start readiness (strict communication-free "
   "setting): a freshly added robot's skill on tasks it never engaged, versus the number of its own "
@@ -437,15 +444,16 @@ A("<figure>%s<figcaption><b>Figure 4.</b> Newcomer cold-start readiness (strict 
   "flattens as the broadcast is masked more heavily. This is the readiness that confidence-directed "
   "probing restores under churn.</figcaption></figure>"
   % img("F10_newcomer.png", "newcomer cold-start readiness"))
-A("<div class='thm'><b>Supporting results (Theorems F3-F4 and Proposition F3, this paper).</b> "
-  "The fold-in perturbation bound splits a newcomer's cold-start error into basis-recovery, own-probe "
-  "noise, and ridge bias, exact once it has $\\ge\\hat d$ probes; the collective-speedup law makes "
-  "recovery faster as the team grows; and the churn fold-in latency balances probe cost against "
-  "turnover rate, explaining why directed probing is needed under fast churn.</div>")
+A("<div class='thm'><b>Supporting results (Proposition F3, this paper, building on the foundation).</b> "
+  "Two ingredients are imported from the companion paper: the fold-in perturbation bound that splits a "
+  "newcomer's cold-start error into basis-recovery, own-probe noise, and ridge bias, exact once it has "
+  "$\\ge\\hat d$ probes ([1, App. B]), and the collective-speedup law that makes recovery faster as the "
+  "team grows ([1, Thm 4]). Proposition F3 combines them into a churn fold-in latency that balances probe "
+  "cost against turnover rate, explaining why directed newcomer probing is needed under fast churn.</div>")
 A("<div class='prelim'><b>Preliminary.</b> The churn study uses a single turnover schedule (a fixed "
   "active set with periodic departures and arrivals) at full broadcast; the finite-time coverage rate "
-  "under a strongly exploiting, adaptive policy, the same residual the foundation flags for its "
-  "recovery theorem, is the binding open question here too.</div>")
+  "under a strongly exploiting, adaptive policy, the same residual the foundation flags for its recovery "
+  "theorem ([1, Thm 3]), is the binding open question here too.</div>")
 
 # ---------------- 8. unified method ----------------
 A("<h2>8. A unified communication-free method</h2>")
@@ -480,7 +488,8 @@ A("<div class='prelim'><b>Preliminary.</b> The unified method is validated again
 # ---------------- 9. discussion ----------------
 A("<h2>9. Discussion: what carries over from the foundation</h2>")
 A("<p><b>The categorical baseline is the through-line.</b> Every refinement is measured against the "
-  "same structure-free floor the foundation proves, and in every case the categorical unseen-pair "
+  "same structure-free floor the foundation proves ([1, Prop. 1]), and in every case the categorical "
+  "unseen-pair "
   "advantage is preserved: confidence keeps the broadcast at full weight rather than trading "
   "generalization for noise-awareness; the contention offset is value-preserving up to $O(\\varepsilon)$ "
   "and leaves the learned preferences (hence the unseen metric) intact; ARD prunes only unidentifiable "
@@ -494,7 +503,8 @@ A("<p><b>The communication-free constraint carries over too.</b> No refinement r
   "the churn and unified methods gate on locally observed quantities. The reference ceilings remain the "
   "only place where full communication appears. The same collective-speedup intuition also recurs: "
   "directed exploration and newcomer probing work because the swarm's pooled observations feed one "
-  "shared structure, the mechanism the foundation's Theorem 4 makes precise.</p>")
+  "shared structure, the mechanism the foundation's collective-speedup law ([1, Thm 4]) makes "
+  "precise.</p>")
 A("<p><b>A single deployable method.</b> Taken together, the refinements collapse into %s: one "
   "communication-free policy that generalizes to the unseen, explores by confidence, de-conflicts under "
   "contention, self-determines its rank, can fall back to the noise-immune choice channel, and stays "
@@ -511,12 +521,13 @@ A("<p><b>Status.</b> This is a draft follow-up. The companion paper's headline c
   "honest negative and only the fixed-ramp choice channel is a confirmed win; the churn and unified "
   "studies each use a single schedule at full broadcast and have not been swept jointly over the full "
   "operating grid.</p>")
-A("<p><b>Inherited assumptions.</b> All refinements inherit the foundation's premises: the reward is "
+A("<p><b>Inherited assumptions.</b> All refinements inherit the foundation's premises and its scope "
+  "conditions ([1, Sec. 6.8]): the reward is "
   "(approximately) low-rank and the advantage requires structure beyond mere popularity ($d>1$), task "
   "scarcity ($n\\gg T$), and a shared channel ($\\rho>0$); rewards are real-valued and bilinear in "
   "latent traits; and the recovery rate is established for non-adaptive exploration, with the "
-  "finite-time rate under a strongly exploiting policy still open. The refinements relax none of these; "
-  "they add capabilities within the same regime.</p>")
+  "finite-time rate under a strongly exploiting policy still open ([1, Thm 3]). The refinements relax "
+  "none of these; they add capabilities within the same regime.</p>")
 A("<p><b>What remains.</b> The clearest next steps are an adaptive-offset envelope theorem covering the "
   "deployed contention method, a constant-signal-to-noise study of ARD rank recovery, a reward-value "
   "(not merely predictability) signal for the choice channel to handle consistently-wrong teammates, a "
@@ -540,9 +551,9 @@ A("<p class='small'>The source code, the simulation harness, and the per-seed da
 A("<h2>References</h2>")
 A("<p class='small'>[1] A. Apartsin, Y. Meshulam, Y. Aperstein, &ldquo;Acting on the Unseen: "
   "Communication-Free Collaborative Filtering for Decentralized Multi-Robot Task Allocation&rdquo; "
-  "(<a href='ras_paper.html'>companion paper</a>). All formal results cited with bare numbers "
-  "(Proposition 1, Theorems 1-4) are stated and proved there; this paper's own results carry an "
-  "<b>F</b> prefix.</p>")
+  "(<a href='ras_paper.html'>companion paper</a>). All foundation results cited here with a bracket "
+  "pointer (for example [1, Prop. 1], [1, Thm 3], [1, Sec. 6.5]) are stated and proved there; this "
+  "paper's own results carry an <b>F</b> prefix.</p>")
 
 A("</div></body></html>")
 html_str = "\n".join(H)
