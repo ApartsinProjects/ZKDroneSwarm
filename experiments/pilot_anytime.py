@@ -22,6 +22,7 @@ traj[t] = (sum_{<=t} realized - sum_{<=t} random) / (sum_{<=t} oracle - random).
 traj[-1] = whole-episode anytime skill (charges probe cost fully). Saves full
 per-seed trajectories for a figure (F6). Reuses pilot_compare config + registry.
 """
+import os
 import sys
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -33,7 +34,7 @@ from core import make_world
 from _results_io import save_results
 
 RHOS = [1.0, 0.25]
-SEEDS = list(range(8))
+SEEDS = list(range(int(os.environ.get("ZK_SEEDS", "16"))))   # 8->16 for tight CIs (referee concern A)
 
 
 def run_anytime_clshp(Cls, hp, rho, seed, d_hat=None, sb=None):

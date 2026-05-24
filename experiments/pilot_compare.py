@@ -26,6 +26,7 @@ Fairness: all structured learners get the SAME guessed rank d_hat (not true d).
 Skill = (greedy - random) / (oracle - random), oracle = best-in-offered-subset.
 Parallel across CPU cores (one process per (method, rho, seed) cell).
 """
+import os
 import sys
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -43,9 +44,9 @@ from _results_io import save_results
 # ---- world / regime config (block model, signed cosine reward) ----
 M, N, D, K = 30, 240, 5, 10        # K1=K2=K target/drone types -> eff. rank min(d,K)
 D_HAT = 8                          # GUESSED rank for ALL structured learners (fair)
-T, CAND = 50, 20                   # rounds, candidate-offer size (body default; c=n is the Appendix F variant)
+T, CAND = 50, int(os.environ.get("ZK_CAND", "20"))   # offer size; env ZK_CAND (body default 20; X3=3 in-regime, X4=240 all-tasks)
 SO, SB = 0.10, 0.30               # own-obs noise, broadcast-obs noise
-SEEDS = list(range(5))
+SEEDS = list(range(int(os.environ.get("ZK_SEEDS", "16"))))   # bumped 5->16 for tight CIs (referee concern A)
 RHOS = [1.0, 0.5, 0.25]            # per-drone fraction of broadcast observed
 
 

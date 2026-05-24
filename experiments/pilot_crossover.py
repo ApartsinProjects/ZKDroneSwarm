@@ -12,6 +12,7 @@ tighter CIs. Parallel across CPU cores. Pins the crossover near rho=1: PTF
 edges ahead ONLY at full broadcast (no real observation limit); at any genuine
 masking (rho<1) ours wins.
 """
+import os
 import sys
 import numpy as np
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -23,7 +24,7 @@ from _results_io import save_results
 
 METHODS = ["UCBIndep", "MFSGD", "ESTR", "BPMF", "PTF", "RewardCF", "BothCF", "HybridCF"]
 RHOS = [1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.15, 0.1]
-SEEDS = list(range(8))
+SEEDS = list(range(int(os.environ.get("ZK_SEEDS", "16"))))   # 8->16 for tight CIs (referee concern A)
 
 
 def main():

@@ -26,10 +26,19 @@ class RunConfig:
     offer_size: int = 0
 
     # --- observation channel ---
-    mask_mode: str = "persistent"   # "persistent" (fixed blind spots) | "per_round" (dynamic line-of-sight)
-    rho: float = 0.5                # broadcast visibility rate (per robot pair)
+    mask_mode: str = "persistent"   # "persistent" (fixed) | "per_round" (dynamic) | "line_of_sight" (geometry-induced)
+    rho: float = 0.5                # broadcast visibility rate per pair; target LOS density for "line_of_sight"
     sigma_obs: float = 0.3          # per-observer (private) noise on a broadcast reading
     sigma_own: float = 0.0          # noise on a robot's own reading
+
+    # --- geometry (only for mask_mode="line_of_sight"): 2-D patrol positions induce a persistent,
+    # range-limited disk-graph mask and distance-dependent per-observer noise (SNR ~ 1/r^2) ---
+    field_size: float = 10.0        # side length of the 2-D field
+    n_clusters: int = 5             # spatial clusters (sectorized patrol) -> persistent visibility structure
+    cluster_std: float = 1.2        # within-cluster position spread
+    sensing_radius: float = 0.0     # R_s; 0 -> set to the rho-quantile of pairwise distances (density parity with rho)
+    noise_r0: float = 0.0           # distance-noise scale R0; 0 -> use R_s
+    noise_alpha: float = 2.0        # per-observer noise variance grows as sigma_obs^2 * (1 + (r/R0)^alpha)
 
     # --- dynamics ---
     capacity_one: bool = True       # only the first robot to pick a task each round succeeds

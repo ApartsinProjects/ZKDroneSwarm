@@ -44,17 +44,42 @@ class ZKMRTAEnv:
         self.R = reward_matrix(P, U, cfg.reward_model)
         self.rng = np.random.RandomState(seed)
         self.mask = None
+        self.pos = None; self.dist = None; self.sigma_pair = None   # geometry (line_of_sight) state
         self.last_sel = None
         self.last_rew = None
         self.engaged = None
         self.t = 0
 
     def _build_mask(self):
+        if self.cfg.mask_mode == "line_of_sight":
+            self._build_geometry()
+            return
         if self.cfg.rho >= 1.0:
             self.mask = np.ones((self.m, self.m), dtype=bool)
         else:
             self.mask = self.rng.random((self.m, self.m)) < self.cfg.rho
             np.fill_diagonal(self.mask, True)   # always observe self
+
+    def _build_geometry(self):
+        """Geometry-induced PERSISTENT mask + distance-dependent per-observer noise: robots sit in
+        spatial clusters (sectorized patrol), observer i senses teammate k iff within sensing radius
+        R_s (a range-limited line-of-sight disk graph), and reads its outcome with a noise std that
+        grows with distance (free-space SNR ~ 1/r^2)."""
+        c, m = self.cfg, self.m
+        centers = self.rng.uniform(0.0, c.field_size, (c.n_clusters, 2))
+        clu = self.rng.randint(0, c.n_clusters, m)
+        self.pos = centers[clu] + c.cluster_std * self.rng.normal(0.0, 1.0, (m, 2))
+        diff = self.pos[:, None, :] - self.pos[None, :, :]
+        self.dist = np.sqrt((diff ** 2).sum(-1))
+        Rs = c.sensing_radius
+        if Rs <= 0.0:                                  # density parity with Bernoulli(rho)
+            off = self.dist[~np.eye(m, dtype=bool)]
+            Rs = float(np.quantile(off, c.rho))
+        self.Rs = Rs
+        self.mask = self.dist <= Rs
+        np.fill_diagonal(self.mask, True)              # always observe self
+        R0 = c.noise_r0 if c.noise_r0 > 0.0 else Rs
+        self.sigma_pair = c.sigma_obs * np.sqrt(1.0 + (self.dist / max(R0, 1e-9)) ** c.noise_alpha)
 
     def _offers(self):
         c = self.cfg.offer_size
@@ -85,6 +110,8 @@ class ZKMRTAEnv:
                 sel[k] = self.last_sel[k]
                 if k == i:
                     sig = self.cfg.sigma_own
+                elif self.sigma_pair is not None:
+                    sig = self.sigma_pair[i, k]      # distance-dependent (line_of_sight)
                 else:
                     sig = self.cfg.sigma_obs
                 noise = self.rng.normal(0.0, sig) if sig > 0 else 0.0

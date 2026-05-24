@@ -439,6 +439,93 @@ if f:
     fig.tight_layout(); save_fig("F23_ls_contention")
     print("F23_ls_contention  <-", os.path.basename(f))
 
+# ---- F24 (X3): in-regime anytime collapse (strict scarce-offer cT=o(n)) -- demonstrates Theorem 2 ----
+# The body anytime run (Fig 3) uses c=20 (cT/n~4), outside cT=o(n); here a small-c run (cT/n<1) shows
+# the predicted structure-free anytime COLLAPSE that Theorem 2 governs.
+_an_bc = _by_cand("results/pilots/c16_anytime_*.json")
+_small_c = min([c for c in _an_bc if c <= 5], default=None)
+if _small_c is not None:
+    d = json.load(open(_an_bc[_small_c])); raw = d["raw"]; T = d["meta"]["T"]; cc = d["meta"]["cand"]
+    rho_key = "0.25" if "0.25" in raw else list(raw.keys())[-1]
+    rounds = np.arange(1, T + 1)
+    styles = {"RewardCF": dict(color="C0", lw=2.6, label="SwarmCF (online ALS, ours)"),
+              "Tabular": dict(color="C2", ls="-.", lw=1.8, label="Tabular (structure-free)"),
+              "UCBIndep": dict(color="gray", ls=":", lw=1.6, label="Independent-UCB (structure-free)"),
+              "Random": dict(color="C3", ls="--", lw=1.2, label="Random")}
+    plt.figure(figsize=(6, 4))
+    for nm, st in styles.items():
+        if nm not in raw[rho_key]:
+            continue
+        plt.plot(rounds, np.array(raw[rho_key][nm]).mean(0), **st)
+    plt.axhline(0, color="black", lw=0.8, ls=":")
+    plt.xlabel("round  $t$"); plt.ylabel("cumulative-normalized skill")
+    plt.title("Strict scarce-offer regime ($c=%d$, $cT=o(n)$, $\\rho=0.25$): structure-free\n"
+              "anytime skill collapses to the floor (Theorem 2); SwarmCF still earns" % cc, fontsize=9.5)
+    plt.legend(fontsize=8, loc="upper left"); plt.tight_layout(); save_fig("F24_inregime_anytime")
+    print("F24_inregime_anytime  <- c=%d anytime" % cc)
+
+# ---- F25 (X4): under the all-tasks menu a UCB probe restores the online lead over batch completion ----
+_cx_bc = _by_cand("results/pilots/c15_crossover_*.json")
+_cn_x4 = max(_cx_bc) if _cx_bc else None
+if _cn_x4 is not None and _cn_x4 >= 200:
+    d = json.load(open(_cx_bc[_cn_x4])); raw = d["raw"]; rhos = d["meta"]["rhos"]
+    def _ser25(nm):
+        return [np.mean(raw[str(r)][nm]["unseen"]) for r in rhos]
+    styles = {"HybridCF": dict(marker="o", color="C0", lw=2.4, label="SwarmCF + UCB probe (hybrid)"),
+              "RewardCF": dict(marker="s", color="C9", lw=2.0, ls="--", label="SwarmCF (greedy online)"),
+              "PTF": dict(marker="^", color="C3", lw=2.0, label="batch completion (SwarmCF-batch)"),
+              "UCBIndep": dict(marker="x", color="gray", lw=1.2, ls=":", label="structure-free floor")}
+    plt.figure(figsize=(6, 4))
+    for nm, st in styles.items():
+        if nm not in raw[str(rhos[0])]:
+            continue
+        plt.plot(rhos, _ser25(nm), **st)
+    plt.axhline(0, color="black", lw=0.8, ls=":"); plt.gca().invert_xaxis()
+    plt.xlabel("broadcast rate  $\\rho$"); plt.ylabel("UNSEEN-pair skill")
+    plt.title("All-tasks menu ($c=n$): a UCB probe restores the online estimator's lead\n"
+              "over batch completion that pure greedy selection gives up", fontsize=9.5)
+    plt.legend(fontsize=7.5, loc="upper right"); plt.tight_layout(); save_fig("F25_probe_restores")
+    print("F25_probe_restores  <- c=%d crossover" % _cn_x4)
+
+# ---- F26 (X2): robotics-grounded instance (STRATA sensing-modality traits + line-of-sight mask) ----
+f = latest("results/pilots/latentswarm_grounded_*.json")
+if f:
+    d = json.load(open(f)); summ = d["summary"]
+    order = ["swarm_cf", "mf_sgd", "ucb_indep", "random", "oracle"]
+    PRETTY = {"swarm_cf": "SwarmCF", "mf_sgd": "MF-SGD", "ucb_indep": "Indep-UCB",
+              "random": "Random", "oracle": "Oracle"}
+    COL = {"swarm_cf": "C0", "mf_sgd": "C1", "ucb_indep": "C7", "random": "C3", "oracle": "C2"}
+    algos = [a for a in order if a in summ]
+    fig, ax = plt.subplots(1, 3, figsize=(13.5, 4))
+    # (a) illustrative patrol layout: spatial clusters + range-limited line-of-sight disk graph
+    grng = np.random.RandomState(1); mm, nclu, L, cstd = 30, 5, 10.0, 1.2
+    centers = grng.uniform(0, L, (nclu, 2)); clu = grng.randint(0, nclu, mm)
+    pos = centers[clu] + cstd * grng.normal(0, 1, (mm, 2))
+    Dm = np.sqrt(((pos[:, None] - pos[None]) ** 2).sum(-1)); Rs = np.quantile(Dm[~np.eye(mm, bool)], 0.5)
+    for i in range(mm):
+        for k in range(i + 1, mm):
+            if Dm[i, k] <= Rs:
+                ax[0].plot([pos[i, 0], pos[k, 0]], [pos[i, 1], pos[k, 1]], color="#bdd7ee", lw=0.5, zorder=1)
+    ax[0].scatter(pos[:, 0], pos[:, 1], c=clu, cmap="tab10", s=42, edgecolor="black", lw=0.6, zorder=2)
+    ax[0].set_title("(a) Patrol layout: range-limited\nline-of-sight visibility graph", fontsize=9)
+    ax[0].set_xticks([]); ax[0].set_yticks([]); ax[0].set_aspect("equal")
+    # (b) earned, (c) unseen bars with bootstrap CIs
+    for col, (key, ttl) in zip([1, 2], [("earned", "(b) Earned (anytime) skill"),
+                                         ("unseen", "(c) Unseen-pair skill")]):
+        xs = np.arange(len(algos))
+        mu = [summ[a][key][0] for a in algos]
+        lo = [summ[a][key][0] - summ[a][key][1] for a in algos]
+        hi = [summ[a][key][2] - summ[a][key][0] for a in algos]
+        ax[col].bar(xs, mu, yerr=[lo, hi], capsize=3, color=[COL[a] for a in algos], alpha=0.9, edgecolor="black")
+        ax[col].axhline(0, color="black", lw=0.8, ls=":")
+        ax[col].set_xticks(xs); ax[col].set_xticklabels([PRETTY[a] for a in algos], rotation=20, ha="right", fontsize=8)
+        ax[col].set_title(ttl, fontsize=9); ax[col].grid(alpha=0.2, axis="y")
+    fig.suptitle("Robotics-grounded ZK-MRTA: heterogeneous sensing-modality traits + geometry-induced "
+                 "line-of-sight mask\n(the categorical separation holds; positions are load-bearing, not inert)",
+                 fontsize=9.5)
+    fig.tight_layout(rect=[0, 0, 1, 0.90]); save_fig("F26_grounded")
+    print("F26_grounded  <-", os.path.basename(f))
+
 # ---- F14: assumption-stress (approx low-rank + nonlinear link) ----
 f = latest("results/pilots/stress_assump_*.json")
 if f:
