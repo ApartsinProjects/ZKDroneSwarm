@@ -77,8 +77,8 @@ def main():
             print("%-12s | %6.3f [%6.3f,%6.3f] | %6.3f [%6.3f,%6.3f]"
                   % (a, em, elo, ehi, cm, clo, chi))
     print("\nREAD: under the all-tasks menu, structure-free Independent-UCB collides most and earns")
-    print("worst (often <0); restricting the menu cuts collisions. SwarmCF earns most at both menus.")
-    print("No de-confliction is used (deferred to the follow-up).")
+    print("worst (~0); restricting the menu cuts collisions. SwarmCF and CLUB collide rarely and earn most;")
+    print("SwarmCF leads unseen-pair generalization. No de-confliction is used (deferred to the follow-up).")
 
     path = save_results("latentswarm_contention", {
         "meta": {"experiment": "LatentSwarm contention: earned + collision rate vs offer size",

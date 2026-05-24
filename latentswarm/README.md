@@ -62,14 +62,14 @@ python -m latentswarm.run --out results/pilots/latentswarm_main.json
 |---|---|
 | `config.py` | `RunConfig`: every knob (world, observation, geometry, dynamics, scenario, policy, baseline hyperparameters, evaluation). |
 | `registry.py` | Name -> class registries plus the `@scenario` / `@algorithm` / `@metric` / `@visualization` decorators. |
-| `scenarios.py` | Latent-trait generators: `gaussian_mixture` (block model), `iid_gaussian`, `sensing_coalition` (robotics-grounded sensing modalities), `block_cosine` (unit-cosine parity world matching `experiments/core.make_world`). |
+| `scenarios.py` | Latent-trait generators: `uniform_cosine` (i.i.d. unit-sphere traits, NO types; the headline paper world), `gaussian_mixture` / `block_cosine` (type/block worlds, kept for parity), `iid_gaussian`, `sensing_coalition` (robotics-grounded sensing modalities), `approx_lowrank` (rank-d + full-rank perturbation, Appendix F). |
 | `env.py` | `ZKMRTAEnv`: masking (`persistent` / `per_round` / `line_of_sight`), per-observer noise, offered menus, capacity-1 contention. |
 | `algorithms.py` | Core decentralized policies: `random`, `ucb_indep` (structure-free), `mf_sgd`, `swarm_cf` (ours). |
-| `baselines.py` | Competitor `@algorithm` drop-ins: `tabular`, `ucb_homo`, `estr`, `swarmcf_batch` (= PTF), `bpmf`, `club` (clustering-of-bandits; discrete-clustering control). |
+| `baselines.py` | Competitor `@algorithm` drop-ins: `tabular`, `ucb_homo`, `estr`, `swarmcf_batch` (= PTF), `bpmf`, `club` (clustering-of-bandits; discrete-clustering control), `bias_model` (additive popularity, rank&le;2 control). All per-observer (one estimator per robot). |
 | `refinements.py` | The **SwarmCF-\* family** (follow-up paper) as `@algorithm` drop-ins: `em_cf` (SwarmCF-B), `ard_em_cf` (SwarmCF-B-ARD), `active_cf` (SwarmCF-X), `coord_cf` (SwarmCF-Xc), `contention_cf` (SwarmCF-D), `contention_ada_cf` (SwarmCF-D+), `choice_cf` (SwarmCF-Ch), `both_cf` (SwarmCF-RC), `unified_cf` (SwarmCF-U). |
 | `metrics.py` | `earned_skill` (Hungarian or best-in-subset oracle), `unseen_pair_skill`, `unseen_pair_skill_heldout`, `anytime_trajectory`, `cumulative_regret`, `time_to_competence`, `state_uniqueness`, `effective_rank` (ARD rank self-determination), the Hungarian oracle, `bootstrap_ci`. |
 | `run.py` | Config-driven runner and CLI. |
-| `sweeps.py` | Config-driven sweep drivers + CLI (`crossover`, `anytime`, `collab`, `scale_m`, `ranksweep`, `offersize`, `iid_vs_persistent`, `contention`) emitting the figure-pipeline JSON schema. |
+| `sweeps.py` | Config-driven, process-pool-parallel sweep drivers + CLI (`bakeoff` [Table 3], `crossover`, `anytime`, `collab`, `scale_m`, `ranksweep`, `offersize`, `iid_vs_persistent`, `approxrank` [Appendix F], `contention`) emitting the figure-pipeline JSON schema. CLUB + BiasModel are in every comparison. |
 | `tests/` | `pytest` smoke and invariant tests. |
 
 ## The SwarmCF refinement family (follow-up paper)

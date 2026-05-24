@@ -468,7 +468,7 @@ if f:
     ax[0].set_xlabel("collision rate (fraction of robots colliding per round)")
     ax[0].set_ylabel("earned (anytime) skill")
     ax[0].set_title("(a) All-tasks menu + capacity-1 contention: structure-free UCB\n"
-                    "collides almost always and earns $<0$; SwarmCF spreads out, earns most", fontsize=9)
+                    "collides almost always and earns ~0; SwarmCF and CLUB spread out and collide rarely", fontsize=9)
     ax[0].grid(alpha=0.25)
     # (b) collision rate per method: all-tasks vs size-c menu
     x = np.arange(len(algos)); w = 0.38

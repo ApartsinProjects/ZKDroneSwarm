@@ -1,6 +1,6 @@
 """X2: a ROBOTICS-GROUNDED ZK-MRTA instance (addresses the RAS reviewer's "synthetic-only" concern).
 
-Instead of abstract Gaussian-mixture traits and an abstract Bernoulli(rho) mask, this instantiates the
+Instead of abstract i.i.d. unit-sphere traits and an abstract Bernoulli(rho) mask, this instantiates the
 Section 3 model physically:
   - Traits are d NON-NEGATIVE sensing MODALITIES (EO / IR / acoustic / LiDAR / range-endurance), in the
     STRATA / Prorok trait-aggregation style: a robot's capability p_i and a site's requirement u_j are

@@ -68,7 +68,7 @@ All fields have sensible defaults; override only what you need.
 **Scenario (latent-trait world)**
 | Field | Default | Meaning |
 |---|---|---|
-| `scenario` | `"gaussian_mixture"` | `gaussian_mixture` (block, unnormalized inner product), `block_cosine` (block, unit-cosine in [-1,1]; parity with the analytical harness), `iid_gaussian`, `sensing_coalition` (robotics-grounded sensing modalities) |
+| `scenario` | `"gaussian_mixture"` | `uniform_cosine` (i.i.d. unit-sphere, NO types; the paper's headline world), `block_cosine` (block, unit-cosine in [-1,1]; parity with the analytical harness), `gaussian_mixture` (block, unnormalized inner product), `iid_gaussian`, `sensing_coalition` (robotics-grounded sensing modalities), `approx_lowrank` (rank-d + full-rank perturbation, Appendix F) |
 | `n_modes` | 5 | latent types for `gaussian_mixture` / `sensing_coalition` |
 | `n_types` | 10 | latent types for `block_cosine` (= the analytical harness `K1=K2`) |
 | `jitter` | 0.2 | within-type spread (use `0.15` for exact `block_cosine` parity with `core.make_world`) |
@@ -154,13 +154,15 @@ Here visibility comes from 2-D patrol positions (a range-limited line-of-sight d
 per-observer noise grows with distance; traits are non-negative sensing modalities (EO / IR / acoustic /
 LiDAR / range), so the reward is a modality match.
 
-**Worlds: normalized vs unnormalized.**
+**Worlds: uniform (headline) vs block vs unnormalized.**
 ```python
+run(RunConfig(scenario="uniform_cosine"))                         # HEADLINE: i.i.d. unit-sphere traits, NO types, cosine in [-1,1]
+run(RunConfig(scenario="block_cosine", n_types=10, jitter=0.15))  # block, UNIT-COSINE (parity with core.make_world)
 run(RunConfig(scenario="gaussian_mixture"))                       # block, UNNORMALIZED inner product (R is O(1))
-run(RunConfig(scenario="block_cosine", n_types=10, jitter=0.15))  # block, UNIT-COSINE in [-1,1]
 ```
-`block_cosine` is the parity world: at `jitter=0.15` it reproduces `experiments/core.make_world`
-bit-for-bit, so the package matches the analytical-harness numbers. `gaussian_mixture` is the
+`uniform_cosine` is the paper's headline world (i.i.d. Gaussian traits L2-normalized to the unit
+sphere, no discrete types). `block_cosine` is the parity world: at `jitter=0.15` it reproduces
+`experiments/core.make_world(model="block")` bit-for-bit. `gaussian_mixture` is the
 unnormalized inner-product world. Alternatively set `reward_model="cosine"` to normalize at reward time
 rather than at trait generation.
 

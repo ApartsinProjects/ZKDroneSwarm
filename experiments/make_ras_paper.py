@@ -643,10 +643,11 @@ A("<p><b>(b) Why coordination is the binding constraint, and how SwarmCF already
   "models send different robots to different tasks, an implicit de-confliction that emerges from the "
   "personalized low-rank estimate with no message passing. Restricting the offer to a size-$c$ menu "
   "reduces collisions for every method (independent-UCB from $0.97$ to $0.25$), one reason the body uses a "
-  "size-$c$ menu. An explicit communication-free de-confliction mechanism would close the remaining gap to "
-  "the centralized ceiling: in a follow-up, a fixed, private per-robot offset (drawn once and never "
-  "shared) roughly doubles earned reward at the most severe contention with no communication, exceeding "
-  "communication-free reductions of auction-with-backoff and musical-chairs re-seating.</p>")
+  "size-$c$ menu. Closing the remaining coordination gap calls for explicit communication-free "
+  "de-confliction, which we plan to study systematically in a follow-up (a family of private-offset and "
+  "coordination mechanisms). As a preview, a fixed, private per-robot offset (drawn once and never "
+  "shared) already roughly doubles earned reward at the most severe contention with no communication, "
+  "exceeding communication-free auction-with-backoff and musical-chairs re-seating.</p>")
 A("<figure>%s<figcaption><b>Figure 6.</b> The cost of no de-confliction under capacity-1 contention "
   "(LatentSwarm). (a) Earned skill versus collision rate on the all-tasks menu: structure-free "
   "independent-UCB collides on almost every engagement and earns essentially nothing, while SwarmCF and "
