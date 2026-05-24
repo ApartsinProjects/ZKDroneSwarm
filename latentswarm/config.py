@@ -73,6 +73,8 @@ class RunConfig:
     estr_explore_frac: float = 0.4  # ESTR uniform-explore fraction of the horizon before the SVD commit
     ptf_probe_frac: float = 0.4     # SwarmCF-batch (PTF) own-row-UCB probe fraction before warm-start
     bpmf_prior_var: float = 1.0     # BPMF factor prior variance (precision = 1/prior_var)
+    club_sim_thresh: float = 0.4    # CLUB hard-clustering threshold (mean-centered cosine over co-observed targets)
+    club_min_co: int = 3            # CLUB min co-observed targets before a teammate can join the cluster
 
     # --- refinements.py: the SwarmCF-* family (follow-up paper) ----------------------------------
     # All knobs default to the prototype settings (experiments/pilot_noise.py); ported faithfully.

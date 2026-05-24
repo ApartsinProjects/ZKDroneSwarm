@@ -22,9 +22,14 @@ Ported policies:
   estr           explore-then-spectral-commit (uniform explore, one SVD of R_hat, then exploit).
   swarmcf_batch  = PTF: probe (own-row UCB) then SVD warm-start + online SGD-MF finetune.
   bpmf           Bayesian PMF (per-robot conjugate posterior, Thompson-sampled selection).
+  club           Clustering of Bandits (Gentile et al. 2014), decentralized: per-robot hard
+                 clustering of similar teammates, pool cluster-mates' observations to predict.
 
-The low-rank ones (estr, swarmcf_batch, bpmf) return a completed [m, n] from predict_rows; the
-structure-free ones (tabular, ucb_homo) return None (the unseen-pair floor by construction).
+The generalizing ones (estr, swarmcf_batch, bpmf, club) return a completed [m, n] from
+predict_rows; the structure-free ones (tabular, ucb_homo) return None (the unseen-pair floor by
+construction). club is the DISCRETE-clustering control: it transfers across teammates (so it lifts
+above the floor) but groups them into hard clusters rather than the continuous low-rank factors of
+swarm_cf, which is the "is low-rank special?" comparison.
 """
 import numpy as np
 
@@ -343,3 +348,77 @@ class BPMF(Policy):
         muP = np.linalg.solve(self.LP, self.eP[..., None])[..., 0]   # (m,d)
         muU = np.linalg.solve(self.LU, self.eU[..., None])[..., 0]   # (n,d)
         return muP @ muU.T
+
+
+@algorithm("club")
+class CLUB(Policy):
+    """Clustering of Bandits (Gentile et al. 2014), decentralized/local variant. Each robot i keeps
+    per-(teammate, task) empirical means from its OWN view of the broadcast, estimates a HARD CLUSTER
+    of teammates that behave like itself (mean-centered cosine similarity over co-observed tasks,
+    thresholded at club_sim_thresh with at least club_min_co co-observations), then pools its
+    cluster-mates' observations per task to predict, falling back to global popularity where the
+    cluster has no data. It generalizes to a task i never engaged iff a cluster-mate observed it, so
+    it lifts above the structure-free floor; but it transfers via DISCRETE clusters rather than the
+    continuous low-rank factors of swarm_cf (the "is low-rank special?" control, and a published
+    method). ZK-faithful: each robot clusters from its own private broadcast view only, with no central
+    coordinator. Faithful port of experiments/pilot_baselines.CLUB; here one Policy object holds all m
+    robots' accumulators (sum/cnt are [observer i, teammate k, task j]).
+    """
+    name = "club"
+
+    def __init__(self, cfg, m, n, d_guess, seed=0):
+        super().__init__(cfg, m, n, d_guess, seed)
+        self.eps = cfg.epsilon
+        self.sim_thresh = cfg.club_sim_thresh
+        self.min_co = cfg.club_min_co
+        self.sum = np.zeros((m, m, n))   # sum[i, k, j]: observer i's reading sum of teammate k on task j
+        self.cnt = np.zeros((m, m, n))
+
+    def observe(self, obs):
+        for i in range(self.m):
+            sel, rew = obs[i]["sel"], obs[i]["rew"]
+            for k in range(self.m):
+                j = sel[k]
+                if j != NO_OP:
+                    self.sum[i, k, j] += float(rew[k]); self.cnt[i, k, j] += 1
+
+    def _cluster_pred(self, i):
+        """Observer i's predicted reward over all n tasks via its estimated cluster (mirrors
+        pilot_baselines.CLUB._cluster_pred, with self.idx -> i)."""
+        Si, Ci = self.sum[i], self.cnt[i]                    # (m, n) from i's view
+        obs = Ci > 0
+        vals = np.where(obs, Si / np.maximum(Ci, 1), 0.0)
+        co = obs[i][None, :] & obs                           # tasks co-observed with i's own engagements
+        nco = co.sum(1)
+        cluster = np.zeros(self.m, bool); cluster[i] = True
+        vi = vals[i]
+        for k in range(self.m):
+            if k == i or nco[k] < self.min_co:
+                continue
+            mask = co[k]
+            a = vi[mask] - vi[mask].mean()
+            b = vals[k][mask] - vals[k][mask].mean()
+            den = np.linalg.norm(a) * np.linalg.norm(b) + 1e-9
+            if float(a @ b / den) >= self.sim_thresh:
+                cluster[k] = True
+        cl = np.where(cluster)[0]
+        csum = Si[cl].sum(0); ccnt = Ci[cl].sum(0)           # pool within cluster
+        gmean = float(Si.sum() / max(Ci.sum(), 1))           # global-popularity fallback
+        return np.where(ccnt > 0, csum / np.maximum(ccnt, 1), gmean)
+
+    def act(self, obs):
+        a = np.full(self.m, NO_OP, dtype=int)
+        for i in range(self.m):
+            off = self._offered(obs[i])
+            if not off.size:
+                continue
+            if self.rng.random() < self.eps:
+                a[i] = int(self.rng.choice(off))
+            else:
+                pred = self._cluster_pred(i)
+                a[i] = int(off[int(np.argmax(pred[off]))])
+        self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
+        return a
+
+    def predict_rows(self):
+        return np.stack([self._cluster_pred(i) for i in range(self.m)])

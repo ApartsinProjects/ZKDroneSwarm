@@ -5,6 +5,7 @@ Figures -> docs/figures/.
 import json
 import glob
 import os
+import re
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
@@ -22,8 +23,22 @@ def latest(pattern):
 
 
 def save_fig(stem):
-    """Save the current figure as BOTH a raster PNG (for the HTML tutorial/paper)
-    and a vector PDF (for the LaTeX camera-ready), then close it."""
+    """Save the current figure as PNG + PDF, then close it. In-figure titles are dropped
+    (the descriptive caption lives in the paper text); multi-panel '(a)'/'(b)'/'(c)' labels
+    are kept (left-aligned) so the paper figcaptions can cross-reference panels."""
+    fig = plt.gcf()
+    try:
+        if getattr(fig, "_suptitle", None) is not None:
+            fig.suptitle("")
+    except Exception:
+        pass
+    for ax in fig.axes:
+        m = re.match(r"\s*\(([a-z])\)", ax.get_title())
+        ax.set_title(("(%s)" % m.group(1)) if m else "", loc="left", fontsize=9)
+    try:
+        fig.tight_layout()
+    except Exception:
+        pass
     plt.savefig(f"{OUT}/{stem}.png", dpi=150, bbox_inches="tight")
     plt.savefig(f"{PDF_OUT}/{stem}.pdf", bbox_inches="tight")
     plt.close("all")

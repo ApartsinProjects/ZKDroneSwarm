@@ -259,25 +259,39 @@ def html_scorecard(root):
             "<th>unseen skill<br>(&rho;=0.25, masked)</th><th>unseen skill<br>(&rho;=1, full)</th>"
             "<th>cumulative regret<br>(&rho;=0.25, lower=better)</th>"
             "<th>rounds to 25%<br>of oracle</th></tr>"]
-    for r in scorecard_rows(root):
+    data = list(scorecard_rows(root))
+    def _best(key, lo=False):
+        vs = [d[key] for d in data if d.get(key) is not None]
+        return (min(vs) if lo else max(vs)) if vs else None
+    b_u025, b_u100, b_reg = _best("unseen025"), _best("unseen100"), _best("regret", lo=True)
+    _tn = [int(d["ttc"]) for d in data if str(d["ttc"]).isdigit()]
+    b_ttc = min(_tn) if _tn else None
+    eq = lambda a, b: (a is not None and b is not None and abs(a - b) < 1e-9)
+    bold = lambda s, c: ("<b>%s</b>" % s) if c else s
+    for r in data:
         nm = "<b>%s</b>" % disp(r["name"]) if r["prov"].startswith("ours") else disp(r["name"])
-        f = lambda v, p="%.3f": (p % v) if v is not None else "&ndash;"
         fci = lambda ci: ("%.3f [%.3f, %.3f]" % ci) if ci else "&ndash;"
+        reg = ("%.1f" % r["regret"]) if r["regret"] is not None else "&ndash;"
         rows.append("<tr><td class='l'>%s</td><td class='l'>%s</td><td>%s</td><td>%s</td><td>%s</td>"
                     "<td>%s</td></tr>"
-                    % (nm, PROV[r["prov"]], fci(r["unseen025_ci"]), fci(r["unseen100_ci"]),
-                       f(r["regret"], "%.1f"), r["ttc"]))
+                    % (nm, PROV[r["prov"]],
+                       bold(fci(r["unseen025_ci"]), eq(r["unseen025"], b_u025)),
+                       bold(fci(r["unseen100_ci"]), eq(r["unseen100"], b_u100)),
+                       bold(reg, eq(r["regret"], b_reg)),
+                       bold(r["ttc"], str(r["ttc"]).isdigit() and b_ttc is not None and int(r["ttc"]) == b_ttc)))
     rows.append("</table>")
     note = ("<p class='small'>One canonical masked harness (m=30, n=240, 16 seeds); unseen-skill columns "
             "report the mean with a bootstrap 95% confidence interval in brackets, regret and "
-            "time-to-competence are means from the anytime trajectories. SwarmCF leads the operational "
-            "columns (lowest regret, fastest to competence) and is the most masking-robust; on masked "
+            "time-to-competence are means from the anytime trajectories; the best entry in each column is "
+            "shown in <b>bold</b>, and <i>never</i> in the last column marks a method that reaches 25% of "
+            "the centralized oracle in fewer than half the seeds. SwarmCF leads the operational "
+            "columns (lowest regret, fastest and only reliable time-to-competence) and is the most masking-robust; on masked "
             "unseen skill its margin over the batch variant SwarmCF-batch is within the 16-seed interval, "
             "and the batch and clustering baselines win only the full-broadcast column. Structure-free learners are at the "
             "floor on the unseen columns (intervals straddling zero); on the operational columns an "
             "&epsilon;-greedy tabular learner is competitive by re-exploiting already-engaged tasks, so "
             "the categorical separation is specifically an unseen-pair (generalization) phenomenon.</p>")
-    return "\n".join(rows) + "\n" + note
+    return note + "\n" + "\n".join(rows)   # caption/methodology note ABOVE the table
 
 
 def _md_row(cells):

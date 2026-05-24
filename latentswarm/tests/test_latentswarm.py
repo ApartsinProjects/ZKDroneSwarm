@@ -107,12 +107,12 @@ def test_swarmcf_beats_random_smoke():
 
 def test_baselines_registered_and_run():
     """The ported baselines register and obey the predict_rows contract (None for structure-free)."""
-    assert {"tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf"} <= set(ALGORITHMS)
+    assert {"tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club"} <= set(ALGORITHMS)
     cfg = _cfg(m=8, n=20, d=5, T=10, scenario="block_cosine", n_types=5, jitter=0.15,
                offer_size=20, rank_guess=6, rho=0.5, sigma_own=0.10, sigma_obs=0.30)
     P, U = build_scenario(cfg, np.random.RandomState(0)).generate()
     structure_free = {"tabular", "ucb_homo"}
-    for name in ["tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf"]:
+    for name in ["tabular", "ucb_homo", "estr", "swarmcf_batch", "bpmf", "club"]:
         env = ZKMRTAEnv(cfg, P, U, 6, seed=0)
         pol = get(ALGORITHMS, name)(cfg, cfg.m, cfg.n, 6, seed=7)
         per_round, engaged = run_mission(env, pol, cfg.T)
@@ -122,6 +122,27 @@ def test_baselines_registered_and_run():
             assert pr is None
         else:
             assert pr is not None and pr.shape == (cfg.m, cfg.n)
+
+
+def test_club_clusters_and_beats_floor():
+    """CLUB (clustering of bandits) transfers across teammates via hard clusters, so on a clustered
+    (block_cosine) world it generalizes to unseen pairs ABOVE the structure-free floor. Confirms the
+    decentralized cluster-pool + global-popularity fallback predicts a full [m, n] row."""
+    cfg = _cfg(m=8, n=60, d=4, T=14, scenario="block_cosine", n_types=4, jitter=0.15,
+               offer_size=20, rank_guess=5, rho=0.5, sigma_own=0.10, sigma_obs=0.30)
+    P, U = build_scenario(cfg, np.random.RandomState(0)).generate()
+    env = ZKMRTAEnv(cfg, P, U, 5, seed=0)
+    pol = get(ALGORITHMS, "club")(cfg, cfg.m, cfg.n, 5, seed=7)
+    _, engaged = run_mission(env, pol, cfg.T)
+    pr = pol.predict_rows()
+    assert pr is not None and pr.shape == (cfg.m, cfg.n) and np.isfinite(pr).all()
+    metric = get(METRICS, "unseen_pair_skill_heldout")()
+    cf = metric.compute(P=P, U=U, pred_rows=pr, engaged=engaged,
+                        rng=np.random.RandomState(1), offer_size=20)
+    floor = metric.compute(P=P, U=U, pred_rows=None, engaged=engaged,
+                           rng=np.random.RandomState(1), offer_size=20)
+    assert cf is not None and floor is not None
+    assert cf > floor                                     # clustering transfer lifts above the floor
 
 
 def test_block_cosine_matches_core_make_world():

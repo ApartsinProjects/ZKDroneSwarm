@@ -49,6 +49,7 @@ PKG2KEY = {
     "ucb_indep": "UCBIndep",
     "ucb_homo": "UCBHomo",
     "tabular": "Tabular",
+    "club": "CLUB",                 # clustering-of-bandits (discrete-clustering control)
     "random": "Random",
     # SwarmCF-* refinement family (follow-up paper); keys match method_profiles.FAMILY code names
     "em_cf": "EMCF",

@@ -65,7 +65,7 @@ python -m latentswarm.run --out results/pilots/latentswarm_main.json
 | `scenarios.py` | Latent-trait generators: `gaussian_mixture` (block model), `iid_gaussian`, `sensing_coalition` (robotics-grounded sensing modalities), `block_cosine` (unit-cosine parity world matching `experiments/core.make_world`). |
 | `env.py` | `ZKMRTAEnv`: masking (`persistent` / `per_round` / `line_of_sight`), per-observer noise, offered menus, capacity-1 contention. |
 | `algorithms.py` | Core decentralized policies: `random`, `ucb_indep` (structure-free), `mf_sgd`, `swarm_cf` (ours). |
-| `baselines.py` | Competitor `@algorithm` drop-ins: `tabular`, `ucb_homo`, `estr`, `swarmcf_batch` (= PTF), `bpmf`. |
+| `baselines.py` | Competitor `@algorithm` drop-ins: `tabular`, `ucb_homo`, `estr`, `swarmcf_batch` (= PTF), `bpmf`, `club` (clustering-of-bandits; discrete-clustering control). |
 | `refinements.py` | The **SwarmCF-\* family** (follow-up paper) as `@algorithm` drop-ins: `em_cf` (SwarmCF-B), `ard_em_cf` (SwarmCF-B-ARD), `active_cf` (SwarmCF-X), `coord_cf` (SwarmCF-Xc), `contention_cf` (SwarmCF-D), `contention_ada_cf` (SwarmCF-D+), `choice_cf` (SwarmCF-Ch), `both_cf` (SwarmCF-RC), `unified_cf` (SwarmCF-U). |
 | `metrics.py` | `earned_skill` (Hungarian or best-in-subset oracle), `unseen_pair_skill`, `unseen_pair_skill_heldout`, `anytime_trajectory`, `cumulative_regret`, `time_to_competence`, `state_uniqueness`, `effective_rank` (ARD rank self-determination), the Hungarian oracle, `bootstrap_ci`. |
 | `run.py` | Config-driven runner and CLI. |
