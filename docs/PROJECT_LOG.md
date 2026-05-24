@@ -557,3 +557,17 @@ capstone, theory T9/P10/P16, paper/tutorial consolidation + novelty framing.)
   [47], fold-in [48] where prior-art concepts are used. PROSE: "for example aerial vehicles"
   (was "say"); "Computational cost" (was "On-board cost", colliding with "Onboarding").
   Committed rounds 18-20, pushed.
+- Cycle 67 (reviewer rounds 21-23: Table 2, anytime rigor, ceiling attribution): TABLE 2
+  (round 21) dropped the redundant profile-badge column (same fix as Table 3), full-word
+  headers, Communication reads none/full, ours rows shaded. ANYTIME RIGOR (round 22): Figure 3
+  shows eps-greedy Tabular climbing to ~0.25, so "structure-free stuck near random" was false
+  -- only per-arm UCB is pinned; corrected prose + caption; fixed the scarcity condition
+  ("n>>cT" -> "n>>T" in Section 3/scope/limitations; it contradicted the intro and the headline
+  params cT=1000>n=240); qualified Theorem 2's SwarmCF bound as conditional on basis recovery;
+  moved the Fig 3 legend off the annotation. CEILING ATTRIBUTION (round 23): Section 6.4's "~81%
+  of the ceiling" was the DEFERRED ContentionAdaCF; corrected to the in-paper plain SwarmCF
+  (~80%, 0.44 vs 0.55 ceiling, from ctde_20260523_193407.json) and reframed the residual gap as
+  what the deferred de-confliction targets; defined Theorem 2's function g; noted skill can be
+  negative; fixed two missing-space merges. Verified: cross-references (Figs 1-6, Tables 1-3,
+  Prop 1 + Thms 1-4, Appendices A-D) all resolve; 48 refs all cited. Committed rounds 21-23,
+  pushed. Reviewer recommendation: accept.
