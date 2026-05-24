@@ -470,22 +470,17 @@ A("<figure>%s<figcaption><b>Figure 4.</b> (a) Value of the broadcast: unseen ski
   "SwarmCF-batch rise (the gain is structural), while structure-free learners stay "
   "flat.</figcaption></figure>" % img("F18_collab_scaling.png", "why a swarm"))
 
-A("<h3>6.4 An operational mission and a centralized ceiling</h3>")
-A("<p>Framed as a target-servicing / dispatch mission (the Section 3 model, reframed), latent factors are robot capability traits and "
-  "task requirement traits, each robot repeatedly services an offered target under range-limited, "
-  "distance-noisy sensing, SwarmCF on the servicing-skill metric leads every external low-rank "
-  "method and our batch variant SwarmCF-batch under limited observability ($\\rho=0.25$; the "
-  "consolidated comparison is Table 3), while structure-free learners sit at the random-dispatch floor "
-  "(the same categorical separation as Figures 2-3, in operational form). To bound the "
-  "cost of our constraints we add two reference ceilings (not "
-  "competitors): a centralized full-communication matcher with Hungarian assignment [47] (optimal "
-  "one-to-one robot-task matching), and the same "
-  "with noiseless, unmasked observation. SwarmCF recovers about 80% of the full-communication ceiling "
-  "(servicing skill $\\approx 0.44$ versus $\\approx 0.55$); the two ceilings differ little (both "
-  "$\\approx 0.5$), so the price of observation noise is small and the residual gap is within-round "
-  "coordination, not estimation. Coordination is therefore the binding constraint, which Section 6.5 "
-  "targets directly by adding capacity-1 contention.</p>")
-A("<p>Table 3 consolidates the comparison on the canonical masked harness.</p>")
+A("<h3>6.4 The cost of communication-free operation: a centralized ceiling</h3>")
+A("<p>Table 3 consolidates the masked-harness comparison across all methods. Here we ask how far "
+  "communication-free SwarmCF is from a centralized optimum that our constraints forbid. We add two "
+  "reference <b>ceilings</b> (upper bounds, not competitors): a centralized full-communication matcher "
+  "that sees every reward and computes the optimal one-to-one robot-task assignment by Hungarian "
+  "matching [47], and the same matcher with noiseless, unmasked observation. Under limited observability "
+  "($\\rho=0.25$) SwarmCF recovers about 80% of the full-communication ceiling, and the two ceilings "
+  "differ little (both $\\approx 0.5$), so the price of the masked, privately-noisy observation is small: "
+  "<b>estimation is nearly solved</b>, and the residual gap to the centralized optimum is within-round "
+  "<b>coordination</b>, not estimation. Coordination is therefore the binding constraint, which "
+  "Section 6.5 isolates by adding capacity-1 contention.</p>")
 A("<p class='small'><b>Table 3.</b> Performance scorecard on one canonical masked harness.</p>")
 A(mp.html_scorecard(ROOT))
 
