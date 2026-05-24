@@ -21,8 +21,9 @@ SCENARIOS, ALGORITHMS, METRICS, VISUALIZATIONS   # name -> class/callable dicts
 @scenario(name) @algorithm(name) @metric(name) @visualization(name)   # decorators that register
 get(reg, name)                                   # lookup with a helpful error
 ```
-Registration happens on import: `latentswarm/__init__.py` imports `scenarios`, `algorithms`, `metrics`
-for their decorator side effects, so importing the package populates the registries.
+Registration happens on import: `latentswarm/__init__.py` imports `scenarios`, `algorithms`,
+`baselines`, `metrics` for their decorator side effects, so importing the package populates the
+registries.
 
 ## 2. The environment contract (`env.py`)
 
@@ -138,23 +139,49 @@ mask and capacity-1, structure-free policies stay at the unseen floor, SwarmCF b
 test when you add a component.
 
 ## 7. Roadmap: a single codebase for the whole paper
-The package currently produces the contention figures, the rank sweep, and the grounded instance. Folding
-the remaining analytical sweeps in (so one command reproduces every paper figure) needs, in priority order:
+The package powers the contention figures, the rank sweep, and the grounded instance, and now also
+folds in the analytical sweeps so the package path reproduces the headline figures. Status of the
+unification (all items below are DONE; see the parity note at the end):
 
-1. **`baselines.py`** (new): the missing policies as `@algorithm` drop-ins (`Tabular`, `UCBHomo`, `ESTR`,
-   `PTF` = SwarmCF-batch, `BPMF`, and optionally `SoftImpute`, `BiasModel`, `KNNCF`). This plus
-   anytime/regret metrics reproduces the bake-off table and the broadcast-rate / anytime / scaling figures.
-2. **`metrics.py`** additions: anytime cumulative-reward trajectory + AUC, cumulative regret,
-   time-to-competence, and state-uniqueness; plus a held-out unseen-pair eval matching the analytical
-   protocol (fresh size-`min(c,20)` offers over repeats).
-3. **`sweeps.py`** (new): config-driven drivers (broadcast-rate crossover, anytime, collaboration including
-   `rho=0`, scale-with-`m`, offer-size, persistent-vs-i.i.d., recovery validation) emitting the same JSON
-   schema `make_figures.py` already reads.
-4. **A parity scenario.** Important caveat for a "matches the analytical harness" claim: the current
-   `gaussian_mixture` scenario is an **unnormalized inner-product** world, whereas the analytical harness
-   (`experiments/core.make_world`) builds a **unit-cosine** world (traits L2-normalized, reward in
-   `[-1,1]`, every latent type forced present). A faithful `block_cosine` scenario replicating that
-   construction is the linchpin for statistical (within-CI) parity; bit-identical parity is not expected
-   because the two implementations use different RNG stream structures and ALS vectorization. A small
-   2-3-seed parity check (compare SwarmCF overall + unseen skill and the structure-free floor against the
-   analytical numbers) is the acceptance test, not a full rerun.
+1. **`baselines.py`** (DONE): the missing policies as `@algorithm` drop-ins, ported faithfully from
+   `experiments/pilot_baselines.py` + `pilot_noise.py` and adapted to the Policy interface:
+   `tabular` (own-row eps-greedy), `ucb_homo` (shared arm table), `estr` (explore-then-spectral-commit),
+   `swarmcf_batch` (= PTF: probe-then SVD warm-start + SGD-MF finetune), `bpmf` (Bayesian PMF). The
+   low-rank ones return a completed `[m,n]` from `predict_rows`; `tabular`/`ucb_homo` return `None`
+   (the unseen floor). Imported in `__init__.py` so they register on import. (`SoftImpute`/`BiasModel`/
+   `KNNCF` remain available in the analytical harness; port them here the same way if a figure needs them.)
+2. **`metrics.py`** additions (DONE): `anytime_trajectory` (per-round cumulative `(real-random)/
+   (oracle-random)` + final AUC), `cumulative_regret` (`sum_t (1-skill_t)`), `time_to_competence`
+   (rounds to a fraction of oracle), `state_uniqueness` (`1 - mean pairwise cosine` of the per-robot
+   predicted reward matrices, via `Policy.per_robot_full()`), and `unseen_pair_skill_heldout` (the
+   analytical held-out protocol: fresh size-`min(c,20)` menus over ~120 reps from each robot's
+   never-engaged tasks). `earned_skill` also accepts `oracle_mode="best_in_subset"` (the no-contention
+   ceiling) in addition to the default Hungarian ceiling.
+3. **`sweeps.py`** (DONE) + CLI: config-driven drivers reproducing `crossover` (unseen vs rho),
+   `anytime` (trajectory), `collab` (rho incl 0), `scale_m` (team size), `ranksweep` (d_hat),
+   `offersize` (c=20 vs c=n), and `iid_vs_persistent`. Each emits the SAME JSON schema (and analytical
+   method KEYS: `RewardCF`, `PTF`, `ESTR`, `BPMF`, `UCBIndep`, `Tabular`) that `experiments/make_figures.py`
+   reads (`c15_crossover`, `c16_anytime`, `collab`, `scale_m`, `e246_scaling`, `e12_iid_masking`). Run with
+   `python -m latentswarm.sweeps --which crossover`. **By default sweeps write to `results/smoke/`**; point
+   `--out results/pilots` only for a real (non-smoke) sweep that should feed the figure pipeline.
+4. **A parity scenario** (DONE): `block_cosine` replicates `experiments/core.make_world` for `signed=True`
+   (the **unit-cosine** world: type centers and per-entity traits L2-normalized so `R = P Uᵀ` is a signed
+   cosine in `[-1,1]`, rank `<= min(d, n_types)`, every latent type forced present, within-type jitter =
+   `cfg.jitter`, with `cfg.n_types` = core's `K1=K2`, default 10). It reproduces `make_world`'s exact
+   `RandomState(seed)` draw order, so its `P,U` are **bit-identical** to `core.make_world(..., signed=True)`.
+   `gaussian_mixture` is left as the unnormalized-inner-product world; use `block_cosine` to match the
+   analytical numbers.
+
+**Parity status.** A 3-seed parity check (`results/smoke/parity_check.py`) compares the package path
+(`block_cosine` + persistent mask + the new metrics) against `experiments/pilot_c11_masking.run_masked`
+called in-process, at `m=30, n=240, d=5, n_types=10, T=50, c=20, rho=0.5, sigma_own=0.10, sigma_obs=0.30,
+d_hat = RandomState(9000+seed).randint(5,11)`. **Statistical parity holds**: SwarmCF overall 0.629 vs 0.638,
+SwarmCF unseen 0.356 vs 0.398, Tabular unseen ~0 vs ~0 (both at the structure-free floor), state-uniqueness
+0.724 vs 0.707 (analytical vs package, 3-seed means; all within overlapping ranges). **Bit-identical parity
+is not expected** because the two implementations use different RNG stream structures: `run_masked` draws
+the per-round candsets, the persistent mask, and the per-(i,k) observation noise in one explicit loop and
+evaluates overall/unseen from a single interleaved eval RNG, whereas the package draws candsets and
+per-observer noise inside `ZKMRTAEnv._offers`/`_observe` (a different call order) and the held-out / overall
+metrics each own an independent eval stream. The per-seed differences this induces (largest on the noisier
+unseen metric) average out across seeds; the categorical claims (CF lifts unseen well above the floor;
+tabular stays at it; state-uniqueness substantial under masking) reproduce cleanly.

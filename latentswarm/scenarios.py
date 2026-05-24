@@ -62,14 +62,49 @@ class SensingCoalition(Scenario):
         c, rng = self.cfg, self.rng
         d = c.d
         K = max(1, min(c.n_modes, d))            # modality archetypes (one specialist per modality)
-        arche = 0.15 * np.ones((K, d))           # small baseline competence in every modality
+        arche = c.sensing_base_competence * np.ones((K, d))   # small baseline competence in every modality
         for k in range(K):
-            arche[k, k % d] += 1.0               # the archetype's specialty modality
+            arche[k, k % d] += c.sensing_specialty           # the archetype's specialty modality
         mode_p = rng.randint(0, K, c.m); mode_u = rng.randint(0, K, c.n)
         P = np.clip(arche[mode_p] + c.jitter * rng.normal(0.0, 1.0, (c.m, d)), 0.0, None)
         U = np.clip(arche[mode_u] + c.jitter * rng.normal(0.0, 1.0, (c.n, d)), 0.0, None)
         s = float((P @ U.T).std()) + 1e-9        # scale reward to O(1)
         return P / s ** 0.5, U / s ** 0.5
+
+
+@scenario("block_cosine")
+class BlockCosine(Scenario):
+    """PARITY scenario: a faithful port of experiments/core.make_world for signed=True (the
+    analytical harness's UNIT-COSINE world). K1=K2=n_types latent types; type prototypes and
+    per-entity traits are L2-normalized so R = P U^T is a signed COSINE in [-1, 1] (rank <= min(d,
+    n_types)); every latent type is forced present (first K rows take ids 0..K-1, then shuffled),
+    with within-type jitter = cfg.jitter (core's `within`, default 0.15 there).
+
+    RNG parity: this reproduces make_world's exact RandomState(seed) draw order
+    (A, B, t, s, shuffle t, shuffle s, P-jitter, U-jitter), so given the runner's world_rng =
+    RandomState(seed) the produced P, U are bit-identical to core.make_world(..., signed=True).
+    Use this (not gaussian_mixture, which is the UNNORMALIZED inner-product world) to match the
+    analytical numbers."""
+    name = "block_cosine"
+
+    @staticmethod
+    def _unit(X):
+        # signed (no abs): unit-L2-normalize rows -> inner product becomes cosine in [-1, 1].
+        return X / np.maximum(np.linalg.norm(X, axis=1, keepdims=True), 1e-12)
+
+    def generate(self):
+        c, rng = self.cfg, self.rng
+        m, n, d = c.m, c.n, c.d
+        K1 = K2 = int(c.n_types)
+        within = c.jitter
+        A = self._unit(rng.randn(K1, d))        # drone-type prototypes (signed, unit)
+        B = self._unit(rng.randn(K2, d))        # target-type prototypes (signed, unit)
+        t = rng.randint(0, K1, m); s = rng.randint(0, K2, n)
+        t[:K1] = np.arange(K1); s[:K2] = np.arange(K2)   # force every latent type present
+        rng.shuffle(t); rng.shuffle(s)
+        P = self._unit(A[t] + within * rng.randn(m, d))
+        U = self._unit(B[s] + within * rng.randn(n, d))
+        return P, U
 
 
 def build_scenario(cfg, rng) -> Scenario:

@@ -48,6 +48,13 @@ class RunConfig:
     scenario: str = "gaussian_mixture"
     n_modes: int = 5
     jitter: float = 0.2
+    # block_cosine (parity) scenario: number of latent types K (= core's K1=K2). Each type is forced
+    # present (as experiments/core.make_world does); within-type spread is `jitter` there.
+    n_types: int = 10
+    # sensing_coalition scenario knobs (lifted from former literals): a robot/site profile is a small
+    # baseline competence in every modality plus a specialty bump on its archetype's modality.
+    sensing_base_competence: float = 0.15    # baseline competence in every modality (was 0.15)
+    sensing_specialty: float = 1.0           # specialty-modality strength bump (was 1.0)
 
     # --- policy (shared exploration + estimator knobs) ---
     epsilon: float = 0.4
@@ -57,7 +64,15 @@ class RunConfig:
     als_sweeps: int = 8
     refit_every: int = 3
     mf_lr: float = 0.05
+    mf_ridge: float = 1e-2          # MF-SGD factor L2 regularization (was the hard-coded lam=1e-2)
     ucb_c: float = 2.0
+    factor_init_scale: float = 0.1  # std of the low-rank factor random init (was rng.normal(0, 0.1, ...))
+    buffer_window: int = 6000       # SwarmCF per-robot observation buffer length (was self.window=6000)
+
+    # --- baselines.py hyperparameters (mirror the analytical-harness REGISTRY) ---
+    estr_explore_frac: float = 0.4  # ESTR uniform-explore fraction of the horizon before the SVD commit
+    ptf_probe_frac: float = 0.4     # SwarmCF-batch (PTF) own-row-UCB probe fraction before warm-start
+    bpmf_prior_var: float = 1.0     # BPMF factor prior variance (precision = 1/prior_var)
 
     # --- evaluation ---
     seeds: List[int] = field(default_factory=lambda: list(range(16)))

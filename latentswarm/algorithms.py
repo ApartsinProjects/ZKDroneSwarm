@@ -88,8 +88,9 @@ class _LowRankPolicy(Policy):
     def __init__(self, cfg, m, n, d_guess, seed=0):
         super().__init__(cfg, m, n, d_guess, seed)
         self.eps = cfg.epsilon
-        self.P = [self.rng.normal(0, 0.1, (m, self.d)) for _ in range(m)]   # per-robot robot factors
-        self.U = [self.rng.normal(0, 0.1, (n, self.d)) for _ in range(m)]   # per-robot task factors
+        s0 = cfg.factor_init_scale
+        self.P = [self.rng.normal(0, s0, (m, self.d)) for _ in range(m)]   # per-robot robot factors
+        self.U = [self.rng.normal(0, s0, (n, self.d)) for _ in range(m)]   # per-robot task factors
 
     def act(self, obs):
         a = np.full(self.m, NO_OP, dtype=int)
@@ -108,6 +109,12 @@ class _LowRankPolicy(Policy):
     def predict_rows(self):
         return np.stack([self.P[i][i] @ self.U[i].T for i in range(self.m)])
 
+    def per_robot_full(self):
+        """Each robot's FULL predicted reward matrix R_hat^(i) = P_i @ U_i^T (frame-invariant), as a
+        list of m arrays [m, n]. Used by the state_uniqueness metric (mirrors run_masked's uniq, which
+        compares whole predicted matrices, not the trivially-different per-robot own rows)."""
+        return [self.P[i] @ self.U[i].T for i in range(self.m)]
+
 
 @algorithm("mf_sgd")
 class MFSGD(_LowRankPolicy):
@@ -115,7 +122,7 @@ class MFSGD(_LowRankPolicy):
     name = "mf_sgd"
 
     def observe(self, obs):
-        lr, lam = self.cfg.mf_lr, 1e-2
+        lr, lam = self.cfg.mf_lr, self.cfg.mf_ridge
         for i in range(self.m):
             sel, rew = obs[i]["sel"], obs[i]["rew"]
             Pi, Ui = self.P[i], self.U[i]
@@ -137,7 +144,7 @@ class SwarmCF(_LowRankPolicy):
     def __init__(self, cfg, m, n, d_guess, seed=0):
         super().__init__(cfg, m, n, d_guess, seed)
         self.buf = [([], [], []) for _ in range(m)]   # per robot: (engager idx, task idx, reward)
-        self.window = 6000
+        self.window = cfg.buffer_window
 
     def observe(self, obs):
         for i in range(self.m):

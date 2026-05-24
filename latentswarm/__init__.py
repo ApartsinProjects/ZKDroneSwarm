@@ -15,13 +15,13 @@ Quick start:
     run(RunConfig())
 """
 from .config import RunConfig
-from . import scenarios, algorithms, metrics   # import for side effect: populate registries
+from . import scenarios, algorithms, baselines, metrics   # import for side effect: populate registries
 from .env import ZKMRTAEnv, reward_matrix
 from .registry import SCENARIOS, ALGORITHMS, METRICS, VISUALIZATIONS
 
 __all__ = [
     "RunConfig", "ZKMRTAEnv", "reward_matrix",
-    "scenarios", "algorithms", "metrics",
+    "scenarios", "algorithms", "baselines", "metrics",
     "SCENARIOS", "ALGORITHMS", "METRICS", "VISUALIZATIONS",
 ]
 __version__ = "0.1.0"

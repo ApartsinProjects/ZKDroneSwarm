@@ -60,13 +60,15 @@ python -m latentswarm.run --out results/pilots/latentswarm_main.json
 
 | File | Purpose |
 |---|---|
-| `config.py` | `RunConfig`: every knob (world, observation, geometry, dynamics, scenario, policy, evaluation). |
+| `config.py` | `RunConfig`: every knob (world, observation, geometry, dynamics, scenario, policy, baseline hyperparameters, evaluation). |
 | `registry.py` | Name -> class registries plus the `@scenario` / `@algorithm` / `@metric` / `@visualization` decorators. |
-| `scenarios.py` | Latent-trait generators: `gaussian_mixture` (block model), `iid_gaussian`, `sensing_coalition` (robotics-grounded sensing modalities). |
+| `scenarios.py` | Latent-trait generators: `gaussian_mixture` (block model), `iid_gaussian`, `sensing_coalition` (robotics-grounded sensing modalities), `block_cosine` (unit-cosine parity world matching `experiments/core.make_world`). |
 | `env.py` | `ZKMRTAEnv`: masking (`persistent` / `per_round` / `line_of_sight`), per-observer noise, offered menus, capacity-1 contention. |
-| `algorithms.py` | Decentralized policies: `random`, `ucb_indep` (structure-free), `mf_sgd`, `swarm_cf` (ours). |
-| `metrics.py` | `earned_skill`, `unseen_pair_skill`, the Hungarian oracle, `bootstrap_ci`. |
+| `algorithms.py` | Core decentralized policies: `random`, `ucb_indep` (structure-free), `mf_sgd`, `swarm_cf` (ours). |
+| `baselines.py` | Competitor `@algorithm` drop-ins: `tabular`, `ucb_homo`, `estr`, `swarmcf_batch` (= PTF), `bpmf`. |
+| `metrics.py` | `earned_skill` (Hungarian or best-in-subset oracle), `unseen_pair_skill`, `unseen_pair_skill_heldout`, `anytime_trajectory`, `cumulative_regret`, `time_to_competence`, `state_uniqueness`, the Hungarian oracle, `bootstrap_ci`. |
 | `run.py` | Config-driven runner and CLI. |
+| `sweeps.py` | Config-driven sweep drivers + CLI (`crossover`, `anytime`, `collab`, `scale_m`, `ranksweep`, `offersize`, `iid_vs_persistent`) emitting the figure-pipeline JSON schema. |
 | `tests/` | `pytest` smoke and invariant tests. |
 
 ## Documentation
@@ -82,10 +84,13 @@ pytest latentswarm/tests -q
 ```
 
 ## Status and roadmap
-The package currently powers the paper's contention figures, the rank-robustness sweep, and the
-robotics-grounded instance. Porting the remaining analytical sweeps (the method bake-off and the
-broadcast-rate / scaling / offer-size / masking sweeps) into the package, so a single command reproduces
-every paper figure, is in progress; see the roadmap in the developer guide.
+The package powers the paper's contention figures, the rank-robustness sweep, and the robotics-grounded
+instance, and now also folds in the analytical sweeps: the competitor baselines (`baselines.py`), the
+anytime / regret / time-to-competence / state-uniqueness / held-out-unseen metrics (`metrics.py`), the
+`block_cosine` unit-cosine parity scenario, and config-driven sweep drivers (`sweeps.py`, e.g.
+`python -m latentswarm.sweeps --which crossover`) that emit the same JSON schema `experiments/make_figures.py`
+reads. A 3-seed parity check confirms the package path reproduces the analytical numbers within overlapping
+ranges; see the roadmap and parity note in the developer guide.
 
 ## Citation
 Apartsin, Meshulam, Aperstein. *Acting on the Unseen: Communication-Free Collaborative Filtering for

@@ -65,16 +65,31 @@ All fields have sensible defaults; override only what you need.
 | `capacity_one` | True | only the first robot to pick a task each round succeeds (capacity-1 contention) |
 | `reward_model` | `"inner_product"` | `"inner_product"` (`R_ij=<p_i,u_j>`) or `"cosine"` (normalized) |
 
-**Scenario, policy, evaluation**
+**Scenario (latent-trait world)**
 | Field | Default | Meaning |
 |---|---|---|
-| `scenario` | `"gaussian_mixture"` | trait generator: `gaussian_mixture`, `iid_gaussian`, `sensing_coalition` |
-| `n_modes`, `jitter` | 5, 0.2 | latent types and within-type spread |
+| `scenario` | `"gaussian_mixture"` | `gaussian_mixture` (block, unnormalized inner product), `block_cosine` (block, unit-cosine in [-1,1]; parity with the analytical harness), `iid_gaussian`, `sensing_coalition` (robotics-grounded sensing modalities) |
+| `n_modes` | 5 | latent types for `gaussian_mixture` / `sensing_coalition` |
+| `n_types` | 10 | latent types for `block_cosine` (= the analytical harness `K1=K2`) |
+| `jitter` | 0.2 | within-type spread (use `0.15` for exact `block_cosine` parity with `core.make_world`) |
+| `sensing_base_competence`, `sensing_specialty` | 0.15, 1.0 | `sensing_coalition` modality baseline and specialty bump |
+
+**Policy hyperparameters**
+| Field | Default | Meaning |
+|---|---|---|
 | `epsilon`, `epsilon_decay`, `epsilon_min` | 0.4, 0.99, 0.05 | exploration schedule shared by structured policies |
-| `ridge`, `als_sweeps`, `refit_every`, `mf_lr`, `ucb_c` | 1.0, 8, 3, 0.05, 2.0 | estimator hyperparameters |
+| `ridge`, `als_sweeps`, `refit_every` | 1.0, 8, 3 | SwarmCF weighted-ALS hyperparameters |
+| `mf_lr`, `mf_ridge` | 0.05, 1e-2 | MF-SGD step size and factor L2 regularization |
+| `factor_init_scale`, `buffer_window` | 0.1, 6000 | low-rank factor init std; SwarmCF observation buffer length |
+| `ucb_c` | 2.0 | UCB exploration constant |
+| `estr_explore_frac`, `ptf_probe_frac`, `bpmf_prior_var` | 0.4, 0.4, 1.0 | ESTR / SwarmCF-batch / BPMF baseline hyperparameters |
+
+**Evaluation**
+| Field | Default | Meaning |
+|---|---|---|
 | `seeds` | `range(16)` | random seeds (each is one independent world + run) |
-| `algorithms` | `[random, ucb_indep, mf_sgd, swarm_cf]` | policies to evaluate (`random` is always included) |
-| `metrics` | `[earned_skill, unseen_pair_skill]` | metrics to report |
+| `algorithms` | `[random, ucb_indep, mf_sgd, swarm_cf]` | policies (`random` always included); also available: `tabular`, `ucb_homo`, `estr`, `swarmcf_batch` (PTF), `bpmf` |
+| `metrics` | `[earned_skill, unseen_pair_skill]` | also: `unseen_pair_skill_heldout`, `anytime_trajectory`, `cumulative_regret`, `time_to_competence`, `state_uniqueness` |
 
 ## 3. Output format
 
@@ -110,6 +125,16 @@ Here visibility comes from 2-D patrol positions (a range-limited line-of-sight d
 per-observer noise grows with distance; traits are non-negative sensing modalities (EO / IR / acoustic /
 LiDAR / range), so the reward is a modality match.
 
+**Worlds: normalized vs unnormalized.**
+```python
+run(RunConfig(scenario="gaussian_mixture"))                       # block, UNNORMALIZED inner product (R is O(1))
+run(RunConfig(scenario="block_cosine", n_types=10, jitter=0.15))  # block, UNIT-COSINE in [-1,1]
+```
+`block_cosine` is the parity world: at `jitter=0.15` it reproduces `experiments/core.make_world`
+bit-for-bit, so the package matches the analytical-harness numbers. `gaussian_mixture` is the
+unnormalized inner-product world. Alternatively set `reward_model="cosine"` to normalize at reward time
+rather than at trait generation.
+
 **Offer size (scarcity knob).**
 ```python
 run(RunConfig(offer_size=0))    # all tasks offered each round
@@ -137,18 +162,30 @@ run(RunConfig(algorithms=["random", "ucb_indep", "swarm_cf"]))
 
 ## 5. Reproducing paper figures
 
-The study drivers (one script per experiment) live in `experiments/` and import this package:
+**Unified sweep drivers (single codebase).** The package ships config-driven sweeps that emit the same
+JSON schema the figure pipeline reads (use `block_cosine` with `jitter=0.15` for parity with the
+analytical harness):
+```bash
+python -m latentswarm.sweeps --which crossover          # broadcast-rate / unseen-pair skill (Fig 2)
+python -m latentswarm.sweeps --which anytime            # anytime cumulative-reward trajectory (Fig 3)
+python -m latentswarm.sweeps --which collab             # value of the broadcast incl rho=0 (Fig 4a)
+python -m latentswarm.sweeps --which scale_m            # scaling with team size m (Fig 4b)
+python -m latentswarm.sweeps --which ranksweep          # rank-guess robustness (Fig 7)
+python -m latentswarm.sweeps --which offersize          # offer size c=20 vs c=n (Fig 8)
+python -m latentswarm.sweeps --which iid_vs_persistent  # masking model (Fig 9)
+```
+Single-config study drivers also live in `experiments/`:
 
 | Script | Produces |
 |---|---|
-| `experiments/latentswarm_contention.py` | the contention bake-off and the collision / de-confliction figures |
-| `experiments/latentswarm_grounded.py` | the robotics-grounded instance (geometry mask + sensing modalities) |
-| `experiments/ranksweep.py` | the rank-guess robustness sweep |
+| `experiments/latentswarm_contention.py` | contention bake-off + collision / de-confliction (Figs 5, 6) |
+| `experiments/latentswarm_grounded.py` | the robotics-grounded instance |
+| `experiments/ranksweep.py` | the rank-guess robustness sweep (Fig 7) |
 
-Each writes a JSON to `results/pilots/`; `experiments/make_figures.py` turns those into the figures. The
-remaining headline sweeps (the broadcast-rate, anytime, scaling, and offer-size figures and the
-consolidated bake-off table) currently run from the analytical harness; folding them into this package is
-the roadmap item in the developer guide.
+`experiments/make_figures.py` turns the JSONs in `results/pilots/` into the figures. A 3-seed parity check
+(`results/smoke/parity_check.py`) confirms the package path reproduces the analytical-harness numbers
+within overlapping ranges (statistical parity, not bit-identical except for the world itself; see the
+developer guide's parity note).
 
 ## 6. Reproducibility notes
 Every reported number is a mean over `seeds` with a bootstrap 95% confidence interval (`bootstrap_ci`).
