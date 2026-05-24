@@ -1033,3 +1033,20 @@ Funding section (standard "no specific grant" sentence; AUTHORS MUST replace if 
 reference audit (agent, web): all 48 references verified real with correct authors/title/venue/year (48 OK,
 0 issues; only cosmetic notes such as #11 "MCMC" abbreviation), so the bibliography is submission-ready.
 Word .docx not rebuilt; ras_paper2 handled separately (Cycle 95).
+
+## Cycle 95 (follow-up paper polish + alignment to the accepted base; HTML only)
+Per user instruction (the earlier ras_paper2 freeze is lifted), polished the follow-up paper assuming the
+base is accepted. Done via agent on make_ras_paper2.py only (base paper untouched). (1) External images:
+img() now emits src="figures/NAME.png" loading="lazy" (base64 dropped); ras_paper2.html fell ~499 KB ->
+~43 KB; all 4 referenced figures (F11_pareto, F15_deconfliction, F7_channels, F10_newcomer) exist. (2)
+Terminology aligned to base: abstract "privately-perceived" -> "privately-noisy"; method names already route
+through method_profiles.disp() (SwarmCF-* scheme), so no stale PTF/RewardCF/ContentionCF/ChoiceEM/TabulaDrone
+remain; matched "categorical separation", "structure-free", "unseen-pair", "anytime", "guessed rank",
+"LatentSwarm". (3) Framing as companion to the accepted base: subtitle + scope box + one-paragraph background
+recap now treat the foundation paper as published prior work [1] (with a References [1] entry linking
+ras_paper.html and a reciprocal back-link), without re-deriving it. (4) Fixed two broken figure
+cross-references (in-text Figure 1->2 and 2->3 to match captions). Verified: 0 base64, 4 external imgs, 0
+"privately-perceived", 0 em/en/double dashes, 0 stale names. Not yet acted on (need author judgment): explicit
+[1, Thm/Sec] pointers into the base once its final numbering is fixed; confirm the follow-up's headline
+numbers against the latest logs; optionally promote a few prose-only claims (ARD, churn) to figures; ensure
+ras_paper2.docx exists before the .docx link is used. Word .docx not rebuilt; base paper untouched.

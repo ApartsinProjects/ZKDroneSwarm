@@ -9,7 +9,7 @@ Output: docs/ras_paper2.html. Run from REPO ROOT (reads docs/figures/*.png, impo
 method_profiles). DRAFT: every empirical number is taken from the project's logged data
 (docs/*.md, results/pilots/*.json); no fabricated figures.
 """
-import base64, os, sys
+import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import method_profiles as mp
 
@@ -19,12 +19,14 @@ OUT = os.path.join(ROOT, "docs", "ras_paper2.html")
 
 
 def img(name, alt, w="90%"):
+    # External PNG reference (GitHub Pages serves docs/figures/ alongside the HTML),
+    # not a base64 data URI: keeps the page ~20x smaller and the prose diffs readable.
+    # The build-time existence check is retained so missing figures still surface.
     p = os.path.join(FIG, name)
     if not os.path.exists(p):
         return "<p><em>[missing %s]</em></p>" % name
-    b = base64.b64encode(open(p, "rb").read()).decode("ascii")
-    return ('<img alt="%s" src="data:image/png;base64,%s" style="max-width:%s;height:auto;'
-            'border:1px solid #d7dde3;border-radius:6px">' % (alt, b, w))
+    return ('<img alt="%s" src="figures/%s" loading="lazy" style="max-width:%s;height:auto;'
+            'border:1px solid #d7dde3;border-radius:6px">' % (alt, name, w))
 
 
 CSS = """
@@ -50,7 +52,9 @@ th,td{border:1px solid #e2e8ee;padding:5px 8px;text-align:center}td.l,th.l{text-
 ol.contrib>li{margin:4px 0}
 .docxlink{position:fixed;top:10px;right:12px;z-index:50;background:#1f5fa8;color:#fff;text-decoration:none;font:600 12px/1.2 -apple-system,Segoe UI,Roboto,sans-serif;padding:7px 11px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .docxlink:hover{background:#17487f}
-@media print{.docxlink{display:none}}
+.followlink{position:fixed;top:46px;right:12px;z-index:50;background:#0a7d4d;color:#fff;text-decoration:none;font:600 12px/1.2 -apple-system,Segoe UI,Roboto,sans-serif;padding:7px 11px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.followlink:hover{background:#085f3a}
+@media print{.docxlink,.followlink{display:none}}
 """
 
 KATEX = ("<link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'>"
@@ -68,25 +72,29 @@ A("<!doctype html><html lang='en'><head><meta charset='utf-8'>"
 
 # ---------------- title / meta ----------------
 A("<a class='docxlink' href='ras_paper2.docx'>Download .docx</a>")
+A("<a class='followlink' href='ras_paper.html'>&#8598; Companion paper</a>")
 A("<h1>Refinements of Communication-Free Collaborative Filtering for Decentralized "
   "Multi-Robot Task Allocation: confidence, contention, rank, and beyond</h1>")
-A("<p class='sub'>Follow-up to &ldquo;Acting on the Unseen&rdquo;.<br>"
+A("<p class='sub'>Companion follow-up to &ldquo;Acting on the Unseen: Communication-Free "
+  "Collaborative Filtering for Decentralized Multi-Robot Task Allocation&rdquo; [1], which establishes "
+  "the core result this paper builds on.<br>"
   "Alexander Apartsin<sup>a</sup>, Yigal Meshulam<sup>b</sup>, "
   "Yehudit Aperstein<sup>b,&lowast;</sup><br>"
   "<span class='small'><sup>a</sup>Holon Institute of Technology, Holon, Israel.&ensp;"
   "<sup>b</sup>Afeka Tel Aviv Academic College of Engineering, Tel Aviv, Israel.&ensp;"
   "<sup>&lowast;</sup>Corresponding author.</span></p>")
 
-A("<div class='hl'><b>This is a draft follow-up paper.</b> It builds on the companion paper, which "
-  "establishes the core result; here we study the refinements that foundation enables. Several results "
-  "below are reported as <b>preliminary</b> and are marked as such; they are grounded in logged "
-  "experiments but have not received the full statistical treatment of the companion paper's headline "
-  "claims.</div>")
+A("<div class='hl'><b>Scope.</b> This paper builds directly on the companion paper [1], which "
+  "establishes the core ZK-MRTA result and the formal theory we treat here as settled prior work; we do "
+  "not re-derive it but recap it briefly (Sections 1 and 2) and study the refinements that foundation "
+  "enables. Several results below are reported as <b>preliminary</b> and are marked as such: they are "
+  "grounded in logged experiments but have not yet received the full statistical treatment of the "
+  "companion paper's headline claims.</div>")
 
 # ---------------- abstract ----------------
 A("<div class='abs'><b>Abstract.</b> A companion paper establishes that, in the <b>Zero-Knowledge MRTA</b> "
   "(ZK-MRTA) setting, a robot team with no prior "
-  "knowledge, no communication, and only a partial, noisy, privately-perceived view of teammates' "
+  "knowledge, no communication, and only a partial, privately-noisy view of teammates' "
   "outcomes can still act well on tasks it never attempted, by running decentralized online low-rank "
   "collaborative filtering over the passive broadcast (<b>SwarmCF</b>); the advantage over any "
   "structure-free learner is categorical, not a constant factor. That paper deliberately keeps to a "
@@ -111,7 +119,8 @@ A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized 
 
 # ---------------- 1. the foundation ----------------
 A("<h2>1. Introduction and the foundation</h2>")
-A("<div class='box'><b>The companion paper, in one paragraph.</b> The foundation paper formalizes "
+A("<div class='box'><b>Background: the companion paper, in one paragraph.</b> The foundation paper [1] "
+  "formalizes "
   "multi-robot task allocation (MRTA) in its most restrictive but practically common form, which it names "
   "<b>Zero-Knowledge MRTA</b> (ZK-MRTA): a team of "
   "$m$ robots faces $n$ tasks whose hidden robot$\\times$task reward $R=PU^\\top$ is low-rank (a few "
@@ -290,7 +299,7 @@ A("<p><b>The evidence (a roughly 2x earned-reward win at severe contention, no m
   "among reward-seekers and unseen skill recovering to $0.320$) and roughly doubles earned reward at "
   "the most contended pool (pool $15$: $0.100$ versus $\\le 0.06$ for the no-offset methods, with "
   "non-overlapping intervals). The fixed-offset form %s wins similarly at severe contention "
-  "($0.105$ at pool $15$). Figure 1 shows the de-confliction sweep." % (mp.disp("ContentionAdaCF"), mp.disp("ContentionCF")))
+  "($0.105$ at pool $15$). Figure 2 shows the de-confliction sweep." % (mp.disp("ContentionAdaCF"), mp.disp("ContentionCF")))
 A("<figure>%s<figcaption><b>Figure 2.</b> Communication-free de-confliction under capacity-1 "
   "contention. As the shared task pool shrinks (more contention, left to right), the private-offset "
   "methods (%s, %s) sustain the most earned reward among reward-seeking policies, roughly doubling the "
@@ -376,7 +385,7 @@ A("<p><b>The evidence (a clean noise-immune niche).</b> Sweeping the broadcast r
   "broadcast, the reward channel degrades with noise while the choice channel is flat by construction. "
   "They cross over: at high observation noise ($\\sigma=2.0$) %s beats the reward channel on both "
   "unseen skill ($0.093$ versus $0.042$) and anytime skill ($0.219$ versus $0.179$) with "
-  "non-overlapping intervals, whereas at low noise the reward channel leads. Figure 2 shows the "
+  "non-overlapping intervals, whereas at low noise the reward channel leads. Figure 3 shows the "
   "two-channel grid that locates this crossover." % mp.disp("ChoiceCF"))
 A("<figure>%s<figcaption><b>Figure 3.</b> The two channels across the observation grid (broadcast rate "
   "$\\rho$ and per-observer reward noise $\\sigma$). The reward channel is strongest when observation "
@@ -527,6 +536,13 @@ A("<p class='small'>The source code, the simulation harness, and the per-seed da
   "This follow-up is a companion to &ldquo;Acting on the Unseen: Communication-Free Collaborative "
   "Filtering for Decentralized Multi-Robot Task Allocation&rdquo;, which establishes the core result "
   "and the formal theory cited here.</p>")
+
+A("<h2>References</h2>")
+A("<p class='small'>[1] A. Apartsin, Y. Meshulam, Y. Aperstein, &ldquo;Acting on the Unseen: "
+  "Communication-Free Collaborative Filtering for Decentralized Multi-Robot Task Allocation&rdquo; "
+  "(<a href='ras_paper.html'>companion paper</a>). All formal results cited with bare numbers "
+  "(Proposition 1, Theorems 1-4) are stated and proved there; this paper's own results carry an "
+  "<b>F</b> prefix.</p>")
 
 A("</div></body></html>")
 html_str = "\n".join(H)
