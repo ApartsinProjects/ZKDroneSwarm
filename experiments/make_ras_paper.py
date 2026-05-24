@@ -507,7 +507,7 @@ A("<p><b>How to read the comparison.</b> The setting is new, so this is a contro
   "exactly our MF-SGD and PTF (SwarmCF is its online-ALS member); and a Gang-of-Bandits method needs a "
   "prior similarity graph, so its data-driven successor CLUB is the admissible clustered-bandit. Two "
   "further structure-sharing baselines, memory-based kNN-CF and convex nuclear-norm SoftImpute, are "
-  "evaluated in Appendix F. In our harness <b>every</b> method runs decentralized and communication-free "
+  "evaluated in Appendix E. In our harness <b>every</b> method runs decentralized and communication-free "
   "(one estimator per robot), differing only in the update rule; Table 3 (Appendix C) gives each method's "
   "operating profile.</p>")
 
@@ -935,7 +935,7 @@ A("<div class='algo'><div class='cap'>Algorithm 2: Fold-in (solve a new entity's
   "and observations $y$ (the few rewards seen for the newcomer), with weights $W$:\n"
   "    $\\hat x \\leftarrow (B^\\top W B+\\lambda I)^{-1} B^\\top W y$    // $O(\\hat d^3)$ ridge solve\n"
   "predict reward on any other entity with factor $b$ as $\\langle b,\\hat x\\rangle$</div>")
-A("<h2>Appendix C. Reproducibility</h2>")
+A("<h2>Appendix C. Reproducibility and methods compared</h2>")
 A("<p class='small'>All experiments draw the latent traits i.i.d. and uniformly on the unit sphere "
   "(no discrete robot or task types), giving the signed low-rank reward of "
   "Section 3, and report bootstrap 95% "
@@ -999,7 +999,7 @@ A("<div class='algo'><div class='cap'>Algorithm 3: LatentSwarm mission (a ZK-MRT
   "        $(k,\\,a_k,\\,\\langle p_k,u_{a_k}\\rangle+\\eta_{ik})$, private $\\eta_{ik}\\sim\\mathcal N(0,\\sigma^2)$\n"
   "score: earned skill vs random / Hungarian oracle; unseen-pair skill on never-engaged tasks</div>")
 
-A("<h2>Appendix E. Robustness to the offer size, the masking model, and approximate low-rank</h2>")
+A("<h2>Appendix E. Robustness and trait-distribution sensitivity</h2>")
 A("<p class='small'>Two evaluation choices in the body are robustness knobs rather than load-bearing "
   "assumptions: the offer size and the masking model. We vary each here and find the categorical "
   "separation and the masking-robustness of SwarmCF unchanged.</p>")
@@ -1092,15 +1092,14 @@ A("<figure>%s<figcaption><b>Figure 10.</b> Approximate-low-rank robustness: unse
   "bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
   % img("F27_approxrank.png", "approximate low-rank robustness"))
 
-A("<h2>Appendix F. Sensitivity to the trait distribution</h2>")
-A("<p class='small'>The body draws latent traits i.i.d. on the unit sphere with no discrete types "
+A("<p class='small'><b>Trait distribution.</b> The body draws latent traits i.i.d. on the unit sphere with no discrete types "
   "(uniform_cosine). To check the categorical separation is a property of shared low-rank structure "
   "rather than of that particular distribution, we re-run the masked bake-off (the Table 2 harness, "
   "$\\rho=0.25$, 16 seeds) on three trait-generating distributions, varying only the scenario: "
   "<b>block</b> (discrete latent types, the regime most favorable to clustering), <b>uniform</b> (the "
   "body's no-types headline), and <b>approximate low-rank</b> (continuous traits perturbed off the "
   "rank-$d$ subspace, $\\varepsilon=0.5$, so about 80% of the reward energy is low-rank; the full "
-  "$\\varepsilon$-sweep is Appendix E). This is also where we evaluate the two further structure-sharing "
+  "$\\varepsilon$-sweep is above). This is also where we evaluate the two further structure-sharing "
   "baselines noted in Section 6, memory-based <b>kNN-CF</b> and convex nuclear-norm completion "
   "<b>SoftImpute</b>. Table 4 reports held-out unseen-pair skill.</p>")
 A("<p class='small'><b>Table 4.</b> Unseen-pair skill by trait distribution (masked harness, "
@@ -1130,8 +1129,8 @@ A("<p class='small'>Three things hold across all three distributions. <i>(i)</i>
   "0.079 in the no-types uniform world, while SwarmCF falls only from 0.296 to 0.227. This is the "
   "quantitative form of the Section 6.4 observation that continuous low-rank's advantage over hard "
   "clustering widens as discrete types disappear. Under approximate low-rank every method degrades "
-  "gracefully and SwarmCF stays about three times CLUB, consistent with the $\\varepsilon$-sweep of "
-  "Appendix E. The separation is therefore a property of exploiting shared low-rank structure, not an "
+  "gracefully and SwarmCF stays about three times CLUB, consistent with the approximate-low-rank "
+  "sweep above. The separation is therefore a property of exploiting shared low-rank structure, not an "
   "artifact of the uniform trait distribution.</p>")
 A("</div></body></html>")
 html_str = renumber_refs("\n".join(H))
