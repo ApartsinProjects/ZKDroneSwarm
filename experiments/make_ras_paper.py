@@ -146,7 +146,8 @@ A("<div class='abs'><b>Abstract.</b> Multi-robot task allocation usually assumes
   "body's restricted task menu and narrows under an unrestricted all-tasks menu), with the advantage over "
   "discrete-clustering and batch baselines persisting (and widening) when the latent traits are continuous "
   "rather than type-clustered, and holding under capacity-1 "
-  "contention and in a robotics-grounded sensing instance.</div>")
+  "contention and in physically grounded sensing instances, including one where the low-rank structure "
+  "is emergent (measured from a multi-sensor detection model) rather than assumed.</div>")
 A("<p class='small'><b>Keywords:</b> multi-robot task allocation; decentralized learning; collaborative "
   "filtering; low-rank matrix completion; communication-free coordination; swarm "
   "robotics.</p>")
@@ -222,7 +223,8 @@ A("<p><b>Contributions.</b></p><ol class='contrib'>"
   "full-communication ceiling, where the residual gap is dominated by estimation under the masked "
   "broadcast rather than coordination (Section 6.4); and we show the advantage <b>persists under capacity-1 contention</b> (Section 6.5) and in a "
   "<b>robotics-grounded instance</b> with heterogeneous sensing traits and a range-limited line-of-sight "
-  "mask (Section 6.7).</li>"
+  "mask (Section 6.7), including a physically assembled detection reward whose low rank is emergent rather "
+  "than assumed (Appendix E).</li>"
   "<li>We release <b>LatentSwarm</b>, an open, modular Python package for ZK-MRTA, "
   "covering the masked-broadcast setting used for our headline results and its capacity-1 contention "
   "extension; with it we show the separation survives contention and "
@@ -663,7 +665,9 @@ A("<p>To check the separation is not an artifact of the abstract traits and Bern
   "($0.11$), while structure-free Independent-UCB and MF-SGD sit at the floor (Figure 6). The absolute "
   "skill is lower than in the body because line-of-sight visibility is a harsher channel, so these are a "
   "separate grounded instance, not a restatement of Table 2; the separation is a property of the shared "
-  "low-rank structure, not of the trait or mask model.</p>")
+  "low-rank structure, not of the trait or mask model. Here the reward is still rank-$d$ by construction "
+  "(a modality inner product); Appendix E complements this by grounding the reward itself, assembling it "
+  "from a non-factorized detection model whose low rank is emergent rather than constructed.</p>")
 A("<figure>%s<figcaption><b>Figure 6.</b> A robotics-grounded instance (LatentSwarm): non-negative "
   "sensing-modality traits and a range-limited line-of-sight mask with distance-dependent noise, under "
   "capacity-1 contention. (a) Example patrol layout and visibility graph; (b) earned and (c) unseen-pair "
@@ -1116,8 +1120,9 @@ A("<figure>%s<figcaption><b>Figure 10.</b> Approximate-low-rank robustness: unse
   % img("F27_approxrank.png", "approximate low-rank robustness"))
 A("<p class='small'><b>The low-rank premise is emergent.</b> The body builds the reward by construction "
   "as $R=PU^\\top$, so a reader may ask whether low rank is an artifact of that choice rather than a "
-  "property of physical sensing. To check, we assemble a robot-by-task reward from an independent "
-  "multi-sensor detection model that never factorizes it, and measure its singular spectrum. Each robot "
+  "property of physical sensing. The grounded instance of Section 6.7 still builds the reward as a "
+  "rank-$d$ modality match; here we drop that and assemble a robot-by-task reward from an independent "
+  "multi-sensor detection model that never factorizes it, then measure its singular spectrum. Each robot "
   "has a continuous non-negative gain profile over $S$ sensing modalities and a position; each task has a "
   "modality signature and a position. The per-modality detection probability is a rectified-linear "
   "function of the matched-filter SNR (the modality match $a_{is}b_{js}$ attenuated by a smooth range "
