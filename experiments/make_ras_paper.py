@@ -472,7 +472,12 @@ A("<p><b>Relation to the experiments.</b> Theorems 1-3 are worst-case <i>suffici
   "numerically several hundred rounds at the headline $n=240,d=5,m=30,\\rho=0.25$; the method nonetheless "
   "reaches strong skill within $T=50$ because <i>partial, graded</i> recovery is enough to rank well. The "
   "theory thus establishes feasibility and the team-size scaling of full recovery, while the experiments "
-  "operate in the earlier graded-spanning regime (Appendix A), not at the full-recovery threshold.</p>")
+  "operate in the earlier graded-spanning regime (Appendix A), not at the full-recovery threshold. The "
+  "$\\varepsilon$-floor corollary of Appendix A makes the rate finite (not merely asymptotic) for the "
+  "exploiting policy we actually run, and the recovery-versus-horizon sweep (Appendix E, Figure 11) "
+  "confirms the picture directly: under the non-adaptive exploration the theorem assumes, recovery reaches "
+  "$\\approx 0.99$ near $T_{\\mathrm{rec}}$, while at the body's $T=50$ only $\\approx 14\\%$ of pairs are "
+  "formally recovered yet ranking is already accurate.</p>")
 
 # ---------------- 6. experiments ----------------
 A("<h2>6. Experiments</h2>")
@@ -686,9 +691,10 @@ A("<p><b>Limitations.</b> The reward is assumed (approximately) low-rank and sta
   "the regime is itself an open problem. "
   "Rewards are real-valued and bilinear in latent traits; and the "
   "recovery rate of Theorem 2 is established for non-adaptive "
-  "exploration, so the finite-time rate under the strongly exploiting $\\varepsilon$-decay policy our "
-  "experiments actually use (which can starve low-reward tasks of spanning coverage) remains an open "
-  "guarantee, with Appendix A the empirical coverage evidence.</p>")
+  "exploration; the finite-time rate under the strongly exploiting $\\varepsilon$-decay policy our "
+  "experiments actually use (which can starve low-reward tasks of spanning coverage) is bounded, loosely, "
+  "by the $\\varepsilon$-floor corollary of Appendix A, with the recovery-versus-horizon experiment "
+  "(Appendix E) showing the practical rate.</p>")
 A("<p><b>Scope of the advantage.</b> It is not universal, and holds when three conditions co-occur: "
   "<b>(i) low-rank but personalized</b> structure ($1\\lt d\\ll\\min(m,n)$): at $d=1$ the reward reduces "
   "to a shared popularity order a bias/pooling baseline already captures; <b>(ii) task scarcity</b> "
@@ -893,8 +899,28 @@ A("<p class='small'><b>Theorem 2 (recovery).</b> A fully-observed invertible $\\
   "which decreases in the team size $\\rho m$ and requires $\\rho m>d$. <i>Remark:</i> the condition is "
   "deterministic and is validated empirically at the end of this appendix. We are not aware of a comparable recovery "
   "condition for a persistent, per-observer mask, the regime where uniform-sampling matrix-completion "
-  "guarantees do not apply; the finite-time rate under a strongly-exploiting (adaptive) policy is left "
-  "open.</p>")
+  "guarantees do not apply; the finite-time rate under the strongly-exploiting (adaptive) policy we run is "
+  "bounded by the corollary below.</p>")
+A("<p class='small'><b>Corollary (recovery under the $\\varepsilon$-greedy policy).</b> The rate above "
+  "assumes non-adaptive (uniform) exploration. Under the $\\varepsilon$-greedy policy we actually run, with "
+  "a constant exploration floor $\\varepsilon_{\\min}>0$ (each robot selects a uniformly random offered "
+  "task with probability at least $\\varepsilon_{\\min}$ every round), the spanning condition of Theorem 2 "
+  "still holds for all tasks with high probability after "
+  "$T=O\\!\\big(\\tfrac{nd}{\\rho m\\,\\varepsilon_{\\min}}\\log n\\big)$ rounds. <i>Proof.</i> Restrict to "
+  "exploration engagements: a visible teammate explores with probability $\\ge\\varepsilon_{\\min}$ and "
+  "then engages a given task with probability $\\approx 1/n$, so it covers each task at rate "
+  "$\\ge\\varepsilon_{\\min}/n$; applying the coverage and union-bound argument of Theorem 2 to this "
+  "$\\varepsilon_{\\min}$-thinned sub-process gives the stated time, and exploitation engagements only add "
+  "coverage. $\\square$ <i>Remark:</i> the bound is the non-adaptive rate inflated by "
+  "$1/\\varepsilon_{\\min}$ (here $20\\times$ at $\\varepsilon_{\\min}=0.05$); it is loose because "
+  "exploitation also covers the high-value tasks and, more to the point, acting well needs only correct "
+  "<i>ranking</i> of each offered set (graded recovery of the high-value tasks), not full recovery of every "
+  "task. The recovery-versus-horizon experiment (Appendix E, Figure 11) makes this concrete: under uniform "
+  "exploration the recovery fraction reaches $\\approx 0.99$ near $T_{\\mathrm{rec}}$ (the Theorem 2 "
+  "regime), whereas the $\\varepsilon$-greedy policy recovers more slowly (about $0.52$ by "
+  "$T_{\\mathrm{rec}}$, as the $1/\\varepsilon_{\\min}$ factor predicts); yet SwarmCF already attains its "
+  "operational skill at the body's $T=50$, where only about $14\\%$ of pairs are formally recovered, "
+  "because ranking needs graded recovery of the high-value tasks, not full recovery of every task.</p>")
 A("<p class='small'><b>Theorem 3 (collective speedup).</b> <i>(a)</i> At $\\rho=0$ robot $i$ sees only its "
   "own engaged entries $\\langle p_i,u_j\\rangle$ with $U$ unknown; for $d>1$ these place no constraint on "
   "$\\langle p_i,u_{j'}\\rangle$ at an unseen $j'$, so the estimate is the prior (Proposition 1) and unseen "
@@ -1141,6 +1167,25 @@ A("<p class='small'><b>Coordination versus estimation (a partial-communication r
   "without communication is a follow-up direction, where candidate mechanisms (fixed private per-robot "
   "offsets, or randomized near-best action selection that breaks ties stochastically rather than greedily) "
   "can be evaluated against the collision baseline measured here.</p>")
+A("<p class='small'><b>Recovery versus horizon.</b> The body operates at $T=50$, well below the worst-case "
+  "full-recovery time $T_{\\mathrm{rec}}\\approx 877$ rounds (Theorem 2 at $n=240,d=5,m=30,\\rho=0.25$). "
+  "Sweeping the horizon (Figure 11), the Theorem 2 recovery fraction (share of pairs whose spanning "
+  "condition holds) under the non-adaptive uniform-exploration policy the theorem assumes climbs to "
+  "$\\approx 0.99$ by $T\\approx T_{\\mathrm{rec}}$, confirming the theorem's regime is reached "
+  "empirically. The $\\varepsilon$-greedy policy we actually run recovers more slowly (to $\\approx 0.52$ "
+  "at $T_{\\mathrm{rec}}$), consistent with the $1/\\varepsilon_{\\min}$ inflation of the corollary in "
+  "Appendix A, because exploitation diverts coverage from low-reward tasks. Crucially, SwarmCF's "
+  "operational unseen-pair skill is already attained at $T=50$, where only $\\approx 14\\%$ of pairs are "
+  "formally recovered: acting well needs correct ranking, i.e. graded recovery of the high-value tasks, "
+  "not full recovery of every pair, which is why the body's short horizon suffices.</p>")
+A("<figure>%s<figcaption><b>Figure 11.</b> Recovery versus horizon ($n=240,d=5,m=30,\\rho=0.25$, 16 "
+  "seeds). The Theorem 2 recovery fraction (fraction of pairs whose spanning condition holds) versus the "
+  "mission horizon $T$: under the non-adaptive uniform exploration the theorem assumes, recovery reaches "
+  "$\\approx 0.99$ near the worst-case $T_{\\mathrm{rec}}\\approx 877$ (validating the theorem's regime); "
+  "the $\\varepsilon$-greedy policy the body runs recovers more slowly (graded), consistent with the "
+  "$\\varepsilon$-floor corollary of Appendix A. The body operates at $T=50$ (dotted), where graded "
+  "recovery already yields accurate ranking. Means with bootstrap 95%% CIs over 16 seeds.</figcaption></figure>"
+  % img("F_recoveryT.png", "recovery versus horizon"))
 A("</div></body></html>")
 html_str = renumber_refs("\n".join(H))
 open(OUT, "w", encoding="utf-8").write(html_str)
