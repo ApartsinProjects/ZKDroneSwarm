@@ -251,3 +251,135 @@ class CommCF(SwarmCF):
                 claimed.add(int(a[i]))
         self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
         return a
+
+
+@algorithm("swarm_cf_bias")
+class SwarmCFBias(SwarmCF):
+    """SwarmCF with additive biases: predict mu_i + b_i[k] + c_i[j] + <P_i[k], U_i[j]> (the textbook
+    factorization-with-biases of Koren, Bell and Volinsky 2009). The per-observer global mean mu_i,
+    robot biases b_i and task biases c_i absorb the additive level of the reward (so the rank-d
+    factors model only the interaction RESIDUAL rather than fighting the ridge to represent the
+    mean), and each U_i[j] is centered on its task bias instead of shrunk toward zero. Identical
+    eps-greedy action, buffer and ALS schedule as SwarmCF; the biases are fit by block-coordinate
+    descent interleaved with the two factor sweeps. Strictly generalizes SwarmCF: on a zero-mean
+    reward the biases vanish and it reduces to SwarmCF."""
+    name = "swarm_cf_bias"
+
+    def __init__(self, cfg, m, n, d_guess, seed=0):
+        super().__init__(cfg, m, n, d_guess, seed)
+        self.mu = np.zeros(m)                         # per-observer global mean
+        self.bk = [np.zeros(m) for _ in range(m)]     # per-observer robot biases  b_i[k]
+        self.cj = [np.zeros(n) for _ in range(m)]     # per-observer task  biases  c_i[j]
+
+    def _als(self, i):
+        K, J, V = self.buf[i]
+        if not K:
+            return
+        K = np.asarray(K); J = np.asarray(J); V = np.asarray(V, dtype=float)
+        d = self.d
+        Imat = self.cfg.ridge * np.eye(d)
+        lam_b = getattr(self.cfg, "bias_ridge", 5.0)
+        P, U = self.P[i], self.U[i]
+        mu = float(V.mean())
+        bk, cj = self.bk[i].copy(), self.cj[i].copy()
+        for _ in range(self.cfg.als_sweeps):
+            e = V - mu - bk[K] - cj[J]                # residual the factors must explain
+            # ---- P given U (on the bias-removed residual) ----
+            A = np.tile(Imat, (self.m, 1, 1)); b = np.zeros((self.m, d))
+            Uj = U[J]
+            np.add.at(A, K, np.einsum('ni,nj->nij', Uj, Uj))
+            np.add.at(b, K, e[:, None] * Uj)
+            P = np.linalg.solve(A, b[..., None])[..., 0]
+            # ---- U given P ----
+            A2 = np.tile(Imat, (self.n, 1, 1)); b2 = np.zeros((self.n, d))
+            Pk = P[K]
+            np.add.at(A2, J, np.einsum('ni,nj->nij', Pk, Pk))
+            np.add.at(b2, J, e[:, None] * Pk)
+            U = np.linalg.solve(A2, b2[..., None])[..., 0]
+            # ---- biases given P, U (block-coordinate, ridge-regularized counts) ----
+            inter = np.einsum('ni,ni->n', P[K], U[J])
+            num_b = np.zeros(self.m); cnt_b = np.zeros(self.m)
+            np.add.at(num_b, K, V - mu - cj[J] - inter); np.add.at(cnt_b, K, 1.0)
+            bk = num_b / (cnt_b + lam_b)
+            num_c = np.zeros(self.n); cnt_c = np.zeros(self.n)
+            np.add.at(num_c, J, V - mu - bk[K] - inter); np.add.at(cnt_c, J, 1.0)
+            cj = num_c / (cnt_c + lam_b)
+        self.P[i], self.U[i] = P, U
+        self.mu[i] = mu; self.bk[i] = bk; self.cj[i] = cj
+
+    def act(self, obs):
+        a = np.full(self.m, NO_OP, dtype=int)
+        for i in range(self.m):
+            off = self._offered(obs[i])
+            if not off.size:
+                continue
+            if self.rng.random() < self.eps:
+                a[i] = int(self.rng.choice(off))
+            else:                                     # mu + b_i[i] are constant over the menu -> omit
+                scores = self.cj[i][off] + self.P[i][i] @ self.U[i][off].T
+                a[i] = int(off[int(np.argmax(scores))])
+        self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
+        return a
+
+    def predict_rows(self):
+        return np.stack([self.mu[i] + self.bk[i][i] + self.cj[i] + self.P[i][i] @ self.U[i].T
+                         for i in range(self.m)])
+
+
+@algorithm("swarm_cf_nbr")
+class SwarmCFNbr(SwarmCFBias):
+    """SwarmCF + neighborhood correction (Koren 2008, "Factorization Meets the Neighborhood"). The
+    biased factor model gives a smooth global prediction; a memory-based residual term then adds back
+    the LOCAL structure a global rank-d model smooths over: for robot i on task j, a similarity-
+    weighted average of teammates' factor-model residuals on the SAME task j (similarity = the cosine
+    of robot factors P_i[i] and P_i[k], i.e. distances in the learned latent space). Captures the
+    fine neighborhood agreement that lifts memory-based CF on physically-grounded rewards, while the
+    factor backbone keeps the global low-rank generalization. Same action/learning as SwarmCFBias;
+    only predict_rows (and the greedy score) add the neighborhood residual. Reuses the broadcast
+    observation tensor already collected for the factor fit, so it stays communication-free and on
+    the same passive-observation budget."""
+    name = "swarm_cf_nbr"
+
+    def __init__(self, cfg, m, n, d_guess, seed=0):
+        super().__init__(cfg, m, n, d_guess, seed)
+        self.beta = getattr(self.cfg, "nbr_beta", 1.0)   # weight on the neighborhood residual term
+
+    def _resid_pred(self, i):
+        """Robot i's predicted row from the biased factor model PLUS a latent-space neighborhood
+        correction on the residual r_kj - (mu + b_k + c_j + <P_k,U_j>) of co-observed teammates."""
+        K, J, V = self.buf[i]
+        base_full = self.mu[i] + self.bk[i][i] + self.cj[i] + self.P[i][i] @ self.U[i].T   # (n,) factor pred
+        if not K:
+            return base_full
+        K = np.asarray(K); J = np.asarray(J); V = np.asarray(V, dtype=float)
+        P, U = self.P[i], self.U[i]
+        # residual of every buffered observation under the full biased factor model
+        pred_obs = self.mu[i] + self.bk[i][K] + self.cj[i][J] + np.einsum('ni,ni->n', P[K], U[J])
+        res = V - pred_obs
+        # latent-space similarity of teammate k to robot i (cosine of robot factors), nonneg-clipped
+        Pi = P[i]; Pn = P / (np.linalg.norm(P, axis=1, keepdims=True) + 1e-9)
+        sim = np.clip(Pn @ (Pi / (np.linalg.norm(Pi) + 1e-9)), 0.0, None)
+        sim[i] = 0.0                                       # exclude self (own row gives no transfer)
+        w = sim[K]                                         # weight each observation by its observer similarity
+        num = np.zeros(self.n); den = np.zeros(self.n)
+        np.add.at(num, J, w * res); np.add.at(den, J, w)
+        corr = np.zeros(self.n); nz = den > 1e-9            # neighborhood residual per task (0 where none)
+        corr[nz] = num[nz] / den[nz]
+        return base_full + self.beta * corr
+
+    def act(self, obs):
+        a = np.full(self.m, NO_OP, dtype=int)
+        for i in range(self.m):
+            off = self._offered(obs[i])
+            if not off.size:
+                continue
+            if self.rng.random() < self.eps:
+                a[i] = int(self.rng.choice(off))
+            else:
+                pred = self._resid_pred(i)
+                a[i] = int(off[int(np.argmax(pred[off]))])
+        self.eps = max(self.cfg.epsilon_min, self.eps * self.cfg.epsilon_decay)
+        return a
+
+    def predict_rows(self):
+        return np.stack([self._resid_pred(i) for i in range(self.m)])
